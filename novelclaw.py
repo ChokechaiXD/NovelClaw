@@ -164,6 +164,20 @@ def cmd_test(verbose=False):
     sys.exit(subprocess.call(args))
 
 
+def cmd_learn():
+    """Phase 3: scan translated chapters, auto-update dynamic ban list.
+
+    Usage:
+        python novelclaw.py learn               # scan all + update dynamic_bans.md
+        python novelclaw.py learn --dry-run     # preview candidates only
+        python novelclaw.py learn --chapter 100 # scan single chapter
+    """
+    args = [sys.executable, str(ROOT / 'tools' / 'learn_slop.py')]
+    # Forward all flags/args (--dry-run, --chapter N, --top N, etc.)
+    args.extend(a for a in sys.argv[2:] if a != 'learn')
+    sys.exit(subprocess.call(args))
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -216,10 +230,12 @@ def main():
         subprocess.run([sys.executable, str(GLOSSARY_STATS if False else ROOT / 'tools' / 'glossary_stats.py'), '--stale', '--top', '10'])
     elif sub == 'test':
         cmd_test()
+    elif sub == 'learn':
+        cmd_learn()
     else:
         print(f'Unknown subcommand: {sub}')
         print('Available: status, prep, validate [--cjk|chapter], candidates, scrape,')
-        print('             backup, clean, stats, review, orchestrate, health, test')
+        print('             backup, clean, stats, review, orchestrate, health, test, learn')
         sys.exit(1)
 
 
