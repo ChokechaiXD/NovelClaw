@@ -95,14 +95,6 @@ def clean_source(raw: str) -> str:
 
 
 def last_chapter_summaries(n: int) -> str:
-    """Read the most recent Ch XX block from summary.md.
-
-    The `n` parameter is accepted for API symmetry with other context
-    helpers (so a future caller can ask "summaries for the N chapters
-    before ch n") but currently we only return the latest block — the
-    previous `count=2` parameter was misleading because the implementation
-    always returned exactly one block.
-    """
     summary = (ROOT / 'summary.md').read_text(encoding='utf-8')
     m = re.search(r'(## Ch \d+.*?)(?=\n## |\Z)', summary, re.DOTALL)
     if m:
@@ -117,6 +109,35 @@ def get_chapter_title(num: int) -> str:
     raw = f.read_text(encoding='utf-8')
     m = re.match(r'# (.+)', raw)
     return m.group(1).strip() if m else '(no title)'
+
+
+def load_dynamic_bans(limit: int = 10) -> list[str]:
+    """Load top-N dynamic ban bigrams from learn_slop.py output.
+
+    Sourced from `dynamic_bans.md` (auto-generated). Used to inject
+    novel-specific crutch phrases into the pre-chapter context so
+    Mika avoids them in the next translation.
+
+    Returns list of `w1 w2` strings (sorted by frequency in source file).
+    """
+    f = ROOT / 'dynamic_bans.md'
+    if not f.exists():
+        return []
+    text = f.read_text(encoding='utf-8')
+    # Parse `## Banned (auto)` section, top entries
+    m = re.search(r'## Banned \(auto\)(.*?)(?=\n## |\Z)', text, re.DOTALL)
+    if not m:
+        return []
+    section = m.group(1)
+    # Match `- w1 w2   (Nx in M ch)` — sort by total count desc
+    entries = []
+    for line in section.splitlines():
+        m2 = re.match(r'^- (\S+) (\S+)\s+\((\d+)x in (\d+) ch\)', line)
+        if m2:
+            w1, w2, total, cc = m2.groups()
+            entries.append((f'{w1} {w2}', int(total), int(cc)))
+    entries.sort(key=lambda x: (-x[1], -x[2]))
+    return [e[0] for e in entries[:limit]]
 
 
 def main():
@@ -151,6 +172,9 @@ def main():
     # 4. Last summary entry
     summary_excerpt = last_chapter_summaries(target)
 
+    # 5. Dynamic bans (Phase 3 — auto-learned crutch phrases)
+    dynamic_bans = load_dynamic_bans(limit=10)
+
     # Output
     print('━' * 70)
     print(f'  PRE-CHAPTER CONTEXT — Ch {target}')
@@ -165,6 +189,11 @@ def main():
         print(f'   {line}')
     print('   ...')
     print()
+    if dynamic_bans:
+        print(f'🚫 Dynamic bans (avoid these crutch phrases — learned from prior ch):')
+        for bg in dynamic_bans:
+            print(f'   - {bg}')
+        print()
     print(f'📝 SOURCE (ch {target}, cleaned):')
     print('─' * 70)
     print(source)
