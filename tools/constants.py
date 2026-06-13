@@ -33,8 +33,4 @@ NAME_CHECKS = [
     ('陈江', 'เฉินเจียง', 'เฉินเจียงก'),  # fixed: was ('陈江', 'เฉินเจียง', 'เฉินเจียง') — typo
     ('香江', 'ฮ่องกง', 'เซียงเจียง'),
     ('极地人', 'คนเมืองหนาว', 'ชาวโพลาร์'),
-    ('冰封纪元', '《มหายุคน้ำแข็ง》', '《มหายุคน้ำแข็ง》'),  # fixed: was dup, no longer triggers
-    # NOTE: when both correct and wrong Thai are identical, the auto-fix can
-    # never trigger. Use this only for entries that need a manual review flag
-    # rather than a mechanical replace.
 ]

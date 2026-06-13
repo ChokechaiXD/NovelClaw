@@ -44,14 +44,22 @@ def read_progress_last() -> int:
 
 def split_paragraphs(text: str) -> list[str]:
     parts = text.split('\n---\n')
-    body = parts[0]
+    # Use the LONGEST part as body (handles both formats):
+    # - source CN: no `---` → parts = [whole file]
+    # - translation TH: `---` separates title, content, footer → parts[1] is content
+    if len(parts) > 1:
+        body = max(parts, key=len)
+    else:
+        body = parts[0]
     body = re.sub(r'^#\s+.*?\n', '', body, count=1)
     return [p.strip() for p in re.split(r'\n\s*\n', body) if p.strip()]
 
 
 def extract_numbers(text: str) -> set[str]:
     text_clean = re.sub(r'(\d),(\d)', r'\1\2', text)
-    return set(re.findall(r'\b\d{2,3}\b', text_clean))
+    # Use lookbehind/lookahead instead of \b — \b is ASCII-only and
+    # doesn't work at CJK↔digit boundaries (e.g. 他有15个苹果).
+    return set(re.findall(r'(?<!\d)\d{2,3}(?!\d)', text_clean))
 
 
 def load_glossary_main() -> dict[str, str]:
@@ -100,6 +108,25 @@ def auto_fix(text: str) -> tuple[str, list[str]]:
     new_text = text.rstrip() + '\n'
     if new_text != text:
         fixes.append('Trimmed trailing whitespace')
+        text = new_text
+
+    # 4. Number form normalization (TH style: no separator for 4-digit
+    # numbers, comma for 5+ digits. Mixed forms like "1000" vs "1,000"
+    # in same chapter look inconsistent.)
+    # Find all 4+ digit numbers without separator (use lookbehind/lookahead
+    # because \b is ASCII-only and doesn't work at CJK↔digit boundaries).
+    no_sep_matches = list(re.finditer(r'(?<!\d)\d{4,}(?!\d)', text))
+    if no_sep_matches:
+        # Normalize "1000" → "1,000" for 5+ digits only (4 digits stay bare)
+        new_text = text
+        for m in reversed(no_sep_matches):
+            num_str = m.group()
+            if len(num_str) >= 5:  # 10000+ → 10,000
+                formatted = f'{int(num_str):,}'
+                if formatted != num_str:
+                    new_text = new_text[:m.start()] + formatted + new_text[m.end():]
+                    fixes.append(f'Normalized "{num_str}" → "{formatted}"')
+            # 4-digit numbers (1000-9999) stay as-is per TH convention
         text = new_text
 
     return text, fixes

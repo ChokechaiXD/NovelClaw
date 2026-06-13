@@ -26,6 +26,11 @@ NovelClaw/
 │   ├── validate_no_cjk.py   #   zero-CJK leakage scan
 │   ├── find_candidates.py   #   chapters that may need re-translation
 │   └── scrape_chapters.py    #   initial source scraper (aiohttp)
+├── tests/                   # ← pytest suite (parse + auto_fix regression)
+│   ├── conftest.py
+│   ├── test_constants.py
+│   ├── test_find_candidates.py
+│   └── test_validate_chapter.py
 ├── reader/                  # ← web reader (Node.js)
 │   ├── server.js
 │   ├── package.json
@@ -58,8 +63,11 @@ NovelClaw/
 | `status` | Show translation progress + glossary stats |
 | `prep [N]` | Bundle context (source + glossary hits + last summaries) for chapter N (or next) |
 | `validate [N]` | Check chapter N for length/numbers/names; `validate N --fix` auto-fixes mechanical issues |
+| `validate --cjk [N...]` | CJK leakage check (all or specific chapters) |
 | `candidates` | Find chapters that may need re-translation |
 | `scrape` | Re-scrape source chapters (one-time) |
+| `health` | Quick health check: candidates + CJK + stale glossary |
+| `test [-v]` | Run pytest suite (validates parse + auto_fix logic, 39 tests) |
 
 ## Reader
 
@@ -78,10 +86,13 @@ Features:
 
 1. **User says:** "next" or "แปล ch N" or "ต่อ"
 2. **Mika runs** `python novelclaw.py prep N` to get source + context
-3. **Mika translates** per `PROMPT.md` rules
-4. **Mika saves** to `chapters/NNNN.md`
-5. **Mika runs** `python novelclaw.py validate N --fix` to catch mechanical issues
-6. **Reader** auto-discovers new chapter; sidebar updates
+3. **Mika outputs Pre-Translation Fact Sheet** (§4b Phase 1) — list every number, name, stat, dialogue as a fenced code block in chat
+4. **Mika translates** per `PROMPT.md` rules using the 5-Phase workflow
+5. **Mika runs** `python tools/slop_detector.py --chapter N` to check anti-AI patterns
+6. **Mika runs** `python novelclaw.py validate N` to verify Ground Truth coverage + length + glossary
+7. **If slop detector flags red** (Tier 1/2 hits, >5 crutches/ch, 【】 split, 3+ em dashes) → **fix and re-validate before claiming done**
+8. **Mika writes** to `chapters/NNNN.md` only after all checks pass
+9. **Reader** auto-discovers new chapter; sidebar updates
 
 ## Why the name
 

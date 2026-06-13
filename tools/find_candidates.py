@@ -32,21 +32,27 @@ NAME_CHECKS = [  # noqa: F811
     ('陈江', 'เฉินเจียง', 'เฉินเจียงก'),  # fixed: was 'เฉินเจียง' = correct, never triggered
     ('香江', 'ฮ่องกง', 'เซียงเจียง'),
     ('极地人', 'คนเมืองหนาว', 'ชาวโพลาร์'),
-    # NOTE: 冰封纪元 entry removed (correct == wrong == 《มหายุคน้ำแข็ง》)
-    # This was a typo that meant the check could never trigger.
 ]
 
 
 def split_paragraphs(text: str) -> list[str]:
     parts = text.split('\n---\n')
-    body = parts[0]
+    # Use the LONGEST part as body (handles both formats):
+    # - source CN: no `---` → parts = [whole file]
+    # - translation TH: `---` separates title, content, footer → parts[1] is content
+    if len(parts) > 1:
+        body = max(parts, key=len)
+    else:
+        body = parts[0]
     body = re.sub(r'^#\s+.*?\n', '', body, count=1)
     return [p.strip() for p in re.split(r'\n\s*\n', body) if p.strip()]
 
 
 def extract_numbers(text: str) -> set[str]:
     text_clean = re.sub(r'(\d),(\d)', r'\1\2', text)
-    return set(re.findall(r'\b\d{2,3}\b', text_clean))
+    # Use lookbehind/lookahead instead of \b — \b is ASCII-only and
+    # doesn't work at CJK↔digit boundaries (e.g. 他有15个苹果).
+    return set(re.findall(r'(?<!\d)\d{2,3}(?!\d)', text_clean))
 
 
 def load_glossary_main() -> dict[str, str]:
