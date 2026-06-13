@@ -1,0 +1,55 @@
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backups (regenerate via `python novelclaw.py backup`)
+backups/
+
+# Build / temp
+*.log
+tmp_*
+.tmp/
+*.tmp
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Translator memory — keep first batch in repo, ignore ongoing backups
+# (Don't ignore chapters/ — those are the actual translation work)
+
+# CN source files (copyrighted, do NOT push)
+novels/*/chapters/source/
+**/chapters/source/
