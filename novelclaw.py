@@ -13,7 +13,10 @@ Usage:
   python novelclaw.py clean [N...]              # check source for scrape artifacts
   python novelclaw.py stats                      # glossary usage statistics
   python novelclaw.py review N [--context]       # generate Tier-2 review checklist for ch N
+  python novelclaw.py orchestrate [N]            # full pipeline: prep → translate → proofread
+  python novelclaw.py health                     # quick health: candidates + cjk + stale glossary
   python novelclaw.py scrape                     # scrape source chapters
+  python novelclaw.py test [-v]                  # run pytest suite (validates parse + auto_fix)
 """
 import subprocess
 import sys
@@ -127,6 +130,15 @@ def cmd_clean(chapters):
     sys.exit(subprocess.call(args))
 
 
+def cmd_orchestrate():
+    """Run full NovelClaw pipeline for a chapter."""
+    args = [sys.executable, str(ROOT / 'tools' / 'orchestrate.py')]
+    # Pass through all subcommand args (flags + positional chapter)
+    for a in sys.argv[2:]:
+        args.append(a)
+    sys.exit(subprocess.call(args))
+
+
 def cmd_stats():
     args = [sys.executable, str(ROOT / 'tools' / 'glossary_stats.py')]
     passthrough = [a for a in sys.argv[2:] if a not in ('stats',)]
@@ -141,6 +153,14 @@ def cmd_review(chapters):
         args.append('--context')
     if '--checklist' in sys.argv:
         args.append('--checklist')
+    sys.exit(subprocess.call(args))
+
+
+def cmd_test(verbose=False):
+    """Run pytest suite. Verifies parse helpers + auto_fix logic."""
+    args = [sys.executable, '-m', 'pytest', str(ROOT / 'tests')]
+    if verbose or '-v' in sys.argv:
+        args.append('-v')
     sys.exit(subprocess.call(args))
 
 
@@ -182,10 +202,24 @@ def main():
             print('Usage: python novelclaw.py review N [N...] [--context] [--checklist]')
             sys.exit(1)
         cmd_review(chapters)
+    elif sub == 'orchestrate':
+        cmd_orchestrate()
+    elif sub == 'health':
+        # Quick health check: candidates + cjk + stale glossary
+        print('━' * 60)
+        print('  NovelClaw health check')
+        print('━' * 60)
+        cmd_candidates()
+        print()
+        cmd_validate_cjk(None)
+        print()
+        subprocess.run([sys.executable, str(GLOSSARY_STATS if False else ROOT / 'tools' / 'glossary_stats.py'), '--stale', '--top', '10'])
+    elif sub == 'test':
+        cmd_test()
     else:
         print(f'Unknown subcommand: {sub}')
         print('Available: status, prep, validate [--cjk|chapter], candidates, scrape,')
-        print('             backup, clean, stats, review')
+        print('             backup, clean, stats, review, orchestrate, health, test')
         sys.exit(1)
 
 
