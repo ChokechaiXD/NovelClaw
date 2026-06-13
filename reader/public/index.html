@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#fafaf7" />
+  <title>NovelClaw Reader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body data-theme="light">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="icon-btn" id="toggle-sidebar" title="สลับรายการตอน (S)">☰</button>
+      <h1 class="novel-title" id="novel-title">NovelClaw</h1>
+      <span class="topbar-progress" id="topbar-progress"></span>
+    </div>
+    <div class="topbar-right">
+      <button class="icon-btn" id="font-smaller" title="ตัวอักษรเล็กลง">A−</button>
+      <button class="icon-btn" id="font-larger" title="ตัวอักษรใหญ่ขึ้น">A+</button>
+      <button class="icon-btn" id="theme-toggle" title="เปลี่ยนธีม (T)">☀</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-label">รายการตอน</span>
+        <span class="chapter-count" id="chapter-count">—</span>
+      </div>
+      <div class="sidebar-search">
+        <input
+          type="search"
+          id="chapter-search"
+          placeholder="🔍 ค้นหาตอน (เลข หรือ คำในชื่อ)"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+      <ol class="chapter-list" id="chapter-list"></ol>
+    </aside>
+
+    <main class="reader" id="reader">
+      <div class="empty-state" id="empty-state">
+        <p>เลือกตอนจากรายการด้านซ้ายเพื่อเริ่มอ่าน</p>
+      </div>
+      <article class="chapter" id="chapter" hidden>
+        <div class="chapter-meta-row" id="chapter-meta-row">
+          <span id="reading-time"></span>
+          <span class="divider-dot"></span>
+          <span id="chapter-pos-top"></span>
+        </div>
+        <header class="chapter-header">
+          <h2 class="chapter-title" id="chapter-title">—</h2>
+          <div class="chapter-nav">
+            <button class="nav-btn" id="prev-chapter" disabled>← ก่อนหน้า</button>
+            <span class="chapter-position" id="chapter-position">— / —</span>
+            <button class="nav-btn" id="next-chapter" disabled>ถัดไป →</button>
+          </div>
+        </header>
+        <div class="divider">♥ &nbsp; ♦ &nbsp; ♥</div>
+        <div class="chapter-content" id="chapter-content"></div>
+        <div class="divider">♥ &nbsp; ♦ &nbsp; ♥</div>
+        <footer class="chapter-footer">
+          <p class="chapter-meta" id="chapter-meta"></p>
+        </footer>
+        <nav class="chapter-nav-bottom">
+          <button class="nav-btn" id="prev-chapter-2" disabled>← ก่อนหน้า</button>
+          <button class="nav-btn" id="back-to-top">กลับขึ้นบน</button>
+          <button class="nav-btn" id="next-chapter-2" disabled>ถัดไป →</button>
+        </nav>
+      </article>
+    </main>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,430 @@
+// NovelClaw Reader v2 — frontend logic.
+// Vanilla JS, no framework.
+
+const state = {
+  novel: null,
+  chapters: [],   // [{num, title}, ...]
+  index: -1,
+  num: null,
+  searchQuery: '',
+};
+
+const STORAGE_KEY = 'novelclaw-reader-v1';
+const THEMES = ['light', 'sepia', 'dark'];
+const THEME_ICONS = { light: '☀', sepia: '📜', dark: '🌙' };
+const READING_WPM = 250;
+
+// ── Storage helpers ────────────────────────────────────────────────────
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
+}
+function saveState(s) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
+}
+function markRead(slug, num) {
+  const s = loadState();
+  s[slug] = s[slug] || {};
+  s[slug][num] = Date.now();
+  saveState(s);
+}
+function isRead(slug, num) {
+  const s = loadState();
+  return !!(s[slug] && s[slug][num]);
+}
+function getLastPosition(slug) {
+  return loadState()[slug + '-last'] || null;
+}
+function setLastPosition(slug, num) {
+  const s = loadState();
+  s[slug + '-last'] = num;
+  saveState(s);
+}
+
+// ── API ────────────────────────────────────────────────────────────────
+
+async function api(path) {
+  const res = await fetch(path);
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+// ── Rendering ──────────────────────────────────────────────────────────
+
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') node.className = v;
+    else if (k === 'onclick') node.addEventListener('click', v);
+    else if (k === 'dataset') Object.assign(node.dataset, v);
+    else node.setAttribute(k, v);
+  }
+  for (const c of children.flat()) {
+    if (c == null) continue;
+    node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return node;
+}
+
+function setNovelTitle(slug, meta) {
+  const titleEl = document.getElementById('novel-title');
+  if (meta) {
+    const m = meta.match(/\*\*Original title \(CN\):\*\*\s*(.+)/);
+    titleEl.textContent = m ? m[1].trim() : slug;
+    titleEl.title = meta.split('\n')[0].replace(/^#\s*/, '');
+  } else {
+    titleEl.textContent = slug;
+  }
+}
+
+function findIndexByNum(num) {
+  for (let i = 0; i < state.chapters.length; i++) {
+    if (state.chapters[i].num === num) return i;
+  }
+  return -1;
+}
+
+function renderChapterList() {
+  const list = document.getElementById('chapter-list');
+  list.innerHTML = '';
+  const slug = state.novel;
+  const q = (state.searchQuery || '').toLowerCase();
+  const visible = state.chapters.filter((ch) => {
+    if (!q) return true;
+    if (String(ch.num) === q) return true;
+    if (String(ch.num).startsWith(q)) return true;
+    return (ch.title || '').toLowerCase().includes(q);
+  });
+  if (visible.length === 0) {
+    list.appendChild(el('li', { class: 'empty-list' }, '(ไม่พบ chapter)'));
+  } else {
+    visible.forEach((ch) => {
+      const num = ch.num;
+      const title = ch.title || `ตอนที่ ${num}`;
+      const read = isRead(slug, num);
+      const a = el(
+        'a',
+        {
+          href: `?novel=${slug}&ch=${num}`,
+          class: `chapter-link ${num === state.num ? 'active' : ''} ${read ? 'read' : ''}`,
+          'data-num': String(num),
+          title,
+          onclick: (e) => { e.preventDefault(); loadChapter(num); },
+        },
+        el('span', { class: 'chapter-num' }, String(num).padStart(4, '0')),
+        el('span', { class: 'chapter-label-text' }, title),
+      );
+      list.appendChild(el('li', {}, a));
+    });
+  }
+  const label = q
+    ? `${visible.length} / ${state.chapters.length} ตอน`
+    : `${state.chapters.length} ตอน`;
+  document.getElementById('chapter-count').textContent = label;
+  updateTopProgress();
+}
+
+function updateTopProgress() {
+  const slug = state.novel;
+  if (!slug) return;
+  const readCount = state.chapters.filter((c) => isRead(slug, c.num)).length;
+  const total = state.chapters.length;
+  const pct = total > 0 ? Math.round((readCount / total) * 100) : 0;
+  const el = document.getElementById('topbar-progress');
+  if (el) el.textContent = `${readCount}/${total} (${pct}%)`;
+}
+
+function setActiveInList() {
+  document.querySelectorAll('.chapter-list a').forEach((a) => {
+    const n = parseInt(a.dataset.num, 10);
+    a.classList.toggle('active', n === state.num);
+  });
+}
+
+function updateNavButtons() {
+  const prev = state.index > 0;
+  const next = state.index < state.chapters.length - 1;
+  for (const id of ['prev-chapter', 'prev-chapter-2']) {
+    document.getElementById(id).disabled = !prev;
+  }
+  for (const id of ['next-chapter', 'next-chapter-2']) {
+    document.getElementById(id).disabled = !next;
+  }
+  const pos = document.getElementById('chapter-position');
+  pos.textContent = state.index >= 0
+    ? `${state.index + 1} / ${state.chapters.length}`
+    : `— / ${state.chapters.length}`;
+  const posTop = document.getElementById('chapter-pos-top');
+  if (posTop) posTop.textContent = pos.textContent;
+}
+
+function estimateReadingTime(html) {
+  const text = html.replace(/<[^>]+>/g, '').replace(/\s+/g, '');
+  return Math.max(1, Math.round(text.length / READING_WPM));
+}
+
+function showChapter(data) {
+  document.getElementById('empty-state').hidden = true;
+  const article = document.getElementById('chapter');
+  article.hidden = false;
+
+  document.getElementById('chapter-title').textContent =
+    data.title || `ตอนที่ ${data.num}`;
+  document.getElementById('chapter-content').innerHTML = data.html;
+  document.getElementById('chapter-meta').innerHTML = data.metaHtml || '';
+
+  const rt = document.getElementById('reading-time');
+  if (rt && data.html) {
+    rt.textContent = `⏱ ${estimateReadingTime(data.html)} นาที`;
+  }
+
+  setActiveInList();
+  updateNavButtons();
+  updateURL();
+  markRead(state.novel, data.num);
+  setLastPosition(state.novel, data.num);
+  renderChapterList();  // refresh "read" state
+
+  // Browser tab title
+  document.title = `ตอนที่ ${data.num} — ${data.title || ''}`.trim() + ` — ${state.novel}`;
+}
+
+function updateURL() {
+  const url = new URL(window.location);
+  url.searchParams.set('novel', state.novel);
+  url.searchParams.set('ch', String(state.num));
+  history.replaceState({}, '', url);
+}
+
+function showError(msg) {
+  document.getElementById('empty-state').hidden = false;
+  document.getElementById('empty-state').innerHTML = `<p>${msg}</p>`;
+  document.getElementById('chapter').hidden = true;
+}
+
+// ── Loading ────────────────────────────────────────────────────────────
+
+async function loadNovels() {
+  const novels = await api('/api/novels');
+  if (novels.length === 0) {
+    showError('ยังไม่มีนิยายในระบบ — รัน NovelClaw translation ก่อน');
+    return;
+  }
+  const params = new URL(window.location).searchParams;
+  const wanted = params.get('novel');
+  const novel = novels.find((n) => n.slug === wanted) || novels[0];
+  await loadNovel(novel);
+}
+
+async function loadNovel(novel) {
+  state.novel = novel.slug;
+  setNovelTitle(novel.slug, novel.meta);
+  document.title = `${novel.slug} — NovelClaw`;
+
+  const { chapters } = await api(`/api/novel/${encodeURIComponent(novel.slug)}/chapters`);
+  state.chapters = chapters;
+  renderChapterList();
+
+  const params = new URL(window.location).searchParams;
+  const chParam = parseInt(params.get('ch'), 10);
+  const lastPos = getLastPosition(novel.slug);
+  const nums = chapters.map((c) => c.num);
+  const startCh = nums.includes(chParam) ? chParam
+                : nums.includes(lastPos) ? lastPos
+                : nums[0];
+  if (startCh != null) await loadChapter(startCh);
+  else showError('ยังไม่มีตอนที่แปลแล้วในเรื่องนี้');
+}
+
+// ── Search ──────────────────────────────────────────────────────────────
+let searchDebounce = null;
+let lastQuery = '';
+
+document.getElementById('chapter-search').addEventListener('input', (e) => {
+  const q = e.target.value.trim();
+  if (q === lastQuery) return;
+  lastQuery = q;
+  clearTimeout(searchDebounce);
+  if (!q) { renderChapterList(); return; }
+  searchDebounce = setTimeout(() => runSearch(q), 200);
+});
+
+// Escape clears the search input and re-renders the full chapter list.
+// Useful when reader hits Esc to dismiss search and see everything again.
+document.getElementById('chapter-search').addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    e.target.value = '';
+    lastQuery = '';
+    clearTimeout(searchDebounce);
+    renderChapterList();
+    e.target.blur();
+  }
+});
+
+async function runSearch(q) {
+  try {
+    const results = await api(`/api/novel/${encodeURIComponent(state.novel)}/chapters/search?q=${encodeURIComponent(q)}`);
+    renderSearchResults(results, q);
+  } catch (err) {
+    // Search failure: just log to console (search is best-effort, the
+    // chapter list itself still works). Surface as a soft warning so
+    // a misconfigured server doesn't silently break search.
+    console.warn('Search failed:', err);
+    const list = document.getElementById('chapter-list');
+    if (list) list.appendChild(el('li', { class: 'empty' }, `ค้นหาไม่สำเร็จ: ${err.message || 'เชื่อมต่อล้มเหลว'}`));
+  }
+}
+
+function renderSearchResults(results, q) {
+  const list = document.getElementById('chapter-list');
+  list.innerHTML = '';
+  if (results.length === 0) {
+    list.appendChild(el('li', { class: 'empty' }, `ไม่พบ "${q}"`));
+    return;
+  }
+  for (const c of results) {
+    const a = el(
+      'a',
+      {
+        href: `?novel=${state.novel}&ch=${c.num}`,
+        class: `chapter-link ${c.num === state.num ? 'active' : ''}`,
+        'data-num': String(c.num),
+        title: c.title,
+        onclick: (e) => { e.preventDefault(); loadChapter(c.num); },
+      },
+      el('span', { class: 'chapter-num' }, String(c.num).padStart(4, '0')),
+      el('span', { class: 'chapter-label-text' }, c.title || `ตอนที่ ${c.num}`),
+    );
+    list.appendChild(el('li', {}, a));
+  }
+  document.getElementById('chapter-count').textContent = `${results.length} / ${state.chapters.length}`;
+}
+
+async function loadChapter(num) {
+  state.num = num;
+  state.index = findIndexByNum(num);
+  // Close mobile sidebar on chapter click
+  if (window.innerWidth <= 768) {
+    document.getElementById('sidebar').classList.add('collapsed');
+    document.body.classList.remove('sidebar-open');
+  }
+  try {
+    const data = await api(`/api/novel/${encodeURIComponent(state.novel)}/chapter/${num}`);
+    showChapter(data);
+    // Scroll to top so user sees chapter title and meta on chapter switch
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  } catch (err) {
+      // Translate HTTP errors into Thai so the reader sees a friendly
+      // message instead of "404 Not Found" or "Failed to fetch".
+      let msg;
+      if (err && err.status === 404) {
+          msg = 'ยังไม่มีตอนนี้ในระบบ';
+      } else if (err && err.status >= 500) {
+          msg = 'เซิร์ฟเวอร์มีปัญหา ลองใหม่อีกครั้ง';
+      } else if (err && err.message) {
+          msg = 'เชื่อมต่อล้มเหลว';
+      } else {
+          msg = 'เกิดข้อผิดพลาด';
+      }
+      const friendly = `โหลดตอนที่ ${num} ไม่สำเร็จ — ${msg}`;
+      if (chapterContent) chapterContent.innerHTML = `<p style="text-align:center;padding:2em;color:var(--text-muted);">${friendly}</p>`;
+  }
+}
+
+// ── Nav ────────────────────────────────────────────────────────────────
+
+function step(delta) {
+  const next = state.index + delta;
+  if (next < 0 || next >= state.chapters.length) return;
+  loadChapter(state.chapters[next].num);
+}
+
+// ── Theme ──────────────────────────────────────────────────────────────
+
+function getTheme() { return document.body.dataset.theme || 'light'; }
+function setTheme(theme) {
+  document.body.dataset.theme = theme;
+  document.getElementById('theme-toggle').textContent = THEME_ICONS[theme];
+  const s = loadState(); s.theme = theme; saveState(s);
+}
+function cycleTheme() {
+  const cur = getTheme();
+  setTheme(THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length]);
+}
+
+// ── Wiring ────────────────────────────────────────────────────────────
+
+document.getElementById('toggle-sidebar').addEventListener('click', () => {
+  const sidebar = document.getElementById('sidebar');
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) {
+    const opening = sidebar.classList.contains('collapsed');
+    sidebar.classList.toggle('collapsed');
+    document.body.classList.toggle('sidebar-open', opening);
+  } else {
+    sidebar.classList.toggle('collapsed');
+    document.body.classList.remove('sidebar-open');
+  }
+});
+for (const id of ['prev-chapter', 'prev-chapter-2']) {
+  document.getElementById(id).addEventListener('click', () => step(-1));
+}
+for (const id of ['next-chapter', 'next-chapter-2']) {
+  document.getElementById(id).addEventListener('click', () => step(+1));
+}
+document.getElementById('back-to-top').addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+let fontStep = 0;
+document.getElementById('font-smaller').addEventListener('click', () => {
+  fontStep = Math.max(-2, fontStep - 1); applyFontSize();
+});
+document.getElementById('font-larger').addEventListener('click', () => {
+  fontStep = Math.min(3, fontStep + 1); applyFontSize();
+});
+function applyFontSize() {
+  document.documentElement.style.setProperty('--font-size', `${17 + fontStep * 2}px`);
+}
+
+// Backdrop click closes sidebar on mobile
+document.body.addEventListener('click', (e) => {
+  if (window.innerWidth > 768) return;
+  if (!document.body.classList.contains('sidebar-open')) return;
+  // Click on the backdrop (pseudo-element on body): target === body
+  if (e.target !== document.body) return;
+  document.getElementById('sidebar').classList.add('collapsed');
+  document.body.classList.remove('sidebar-open');
+});
+
+document.getElementById('theme-toggle').addEventListener('click', cycleTheme);
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.matches('input, textarea')) return;
+  if (e.key === 'ArrowLeft') step(-1);
+  if (e.key === 'ArrowRight') step(+1);
+  if (e.key === 't' || e.key === 'T') cycleTheme();
+  if (e.key === 's' || e.key === 'S') {
+    const sidebar = document.getElementById('sidebar');
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      const opening = sidebar.classList.contains('collapsed');
+      sidebar.classList.toggle('collapsed');
+      document.body.classList.toggle('sidebar-open', opening);
+    } else {
+      sidebar.classList.toggle('collapsed');
+    }
+  }
+  if (e.key === 'Home') window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (e.key === 'End') window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────
+
+(function init() {
+  const saved = loadState();
+  setTheme(saved.theme || 'light');
+  loadNovels().catch((err) => {
+    showError(`เริ่มต้นไม่สำเร็จ: ${err.message}`);
+  });
+})();

@@ -1,0 +1,193 @@
+"""novelclaw.py — Unified CLI for the NovelClaw project.
+
+Single entry point. Discovers and dispatches to existing tools.
+
+Usage:
+  python novelclaw.py status                    # show translation progress + glossary stats
+  python novelclaw.py prep [N]                  # pre_chapter.py for next (or Nth) chapter
+  python novelclaw.py validate [N]               # validate_chapter.py for last (or Nth) chapter
+  python novelclaw.py validate N --fix          # apply mechanical fixes + re-validate
+  python novelclaw.py validate --cjk [N...]     # CJK leakage check (all or specific chapters)
+  python novelclaw.py candidates                 # find chapters that may need re-translation
+  python novelclaw.py backup [--list]            # create or list zip snapshots
+  python novelclaw.py clean [N...]              # check source for scrape artifacts
+  python novelclaw.py stats                      # glossary usage statistics
+  python novelclaw.py review N [--context]       # generate Tier-2 review checklist for ch N
+  python novelclaw.py scrape                     # scrape source chapters
+"""
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).parent
+NOVEL = 'global-descent'
+
+
+def cmd_status():
+    """Show translation progress + glossary stats."""
+    p = ROOT / 'novels' / NOVEL / 'progress.md'
+    if not p.exists():
+        print('progress.md not found')
+        return
+    text = p.read_text(encoding='utf-8')
+    import re
+    m = re.search(r'Last translated:\*\* ch (\d+)', text)
+    last = int(m.group(1)) if m else 0
+    # Look for "/ 1,239" or "/1239" in the progress line
+    m2 = re.search(r'\*\*\s*(\d+)/([\d,]+)\s*\(', text)
+    if m2:
+        done, total_raw = int(m2.group(1)), m2.group(2).replace(',', '')
+        total = int(total_raw)
+    else:
+        done = total = 0
+
+    # Glossary
+    gdir = ROOT / 'novels' / NOVEL / 'glossary'
+    counts = {}
+    for tier in ('locked.md', 'reference.md', 'auto.md'):
+        path = gdir / tier
+        if not path.exists():
+            counts[tier] = 0
+            continue
+        n = 0
+        for line in path.read_text(encoding='utf-8').splitlines():
+            if line.startswith('| ') and not line.startswith('|--') and 'Source' not in line and 'Category' not in line:
+                n += 1
+        counts[tier] = n
+
+    print('━' * 60)
+    print(f'  NovelClaw status — {NOVEL}')
+    print('━' * 60)
+    print(f'  Last translated: ch {last}')
+    print(f'  Progress:        {done}/{total} ({100*done/total:.2f}%)' if total else f'  Progress:        {done}/???')
+    print(f'  Next chapter:    ch {last + 1}')
+    print()
+    print(f'  Glossary:')
+    for tier, n in counts.items():
+        print(f'    {tier:14} {n:4} terms')
+    print(f'    {"total":14} {sum(counts.values()):4} terms')
+    print()
+    remaining = total - done
+    if done > 0:
+        print(f'  Remaining: {remaining} chapters')
+    print('━' * 60)
+
+
+def cmd_prep(n=None):
+    args = [sys.executable, str(ROOT / 'tools' / 'pre_chapter.py')]
+    if n is not None:
+        args.append(str(n))
+    sys.exit(subprocess.call(args))
+
+
+def cmd_validate(n=None, fix=False):
+    args = [sys.executable, str(ROOT / 'tools' / 'validate_chapter.py')]
+    if n is not None:
+        args.append(str(n))
+    if fix:
+        args.append('--fix')
+    sys.exit(subprocess.call(args))
+
+
+def cmd_candidates():
+    args = [sys.executable, str(ROOT / 'tools' / 'find_candidates.py')]
+    sys.exit(subprocess.call(args))
+
+
+def cmd_validate_cjk(chapters=None):
+    """Run tools/validate_no_cjk.py to check for source-language leakage."""
+    args = [sys.executable, str(ROOT / 'tools' / 'validate_no_cjk.py')]
+    if chapters:
+        args.extend(str(c) for c in chapters)
+    else:
+        args.append('--all')
+    sys.exit(subprocess.call(args))
+
+
+def cmd_scrape():
+    args = [sys.executable, str(ROOT / 'tools' / 'scrape_chapters.py')]
+    sys.exit(subprocess.call(args))
+
+
+def cmd_backup():
+    args = [sys.executable, str(ROOT / 'tools' / 'backup.py')]
+    passthrough = []
+    if '--list' in sys.argv:
+        passthrough.append('--list')
+    args.extend(passthrough)
+    sys.exit(subprocess.call(args))
+
+
+def cmd_clean(chapters):
+    args = [sys.executable, str(ROOT / 'tools' / 'clean_source.py')]
+    if chapters:
+        args.extend(str(c) for c in chapters)
+    if '--strict' in sys.argv:
+        args.append('--strict')
+    sys.exit(subprocess.call(args))
+
+
+def cmd_stats():
+    args = [sys.executable, str(ROOT / 'tools' / 'glossary_stats.py')]
+    passthrough = [a for a in sys.argv[2:] if a not in ('stats',)]
+    args.extend(passthrough)
+    sys.exit(subprocess.call(args))
+
+
+def cmd_review(chapters):
+    args = [sys.executable, str(ROOT / 'tools' / 'review_chapter.py')]
+    args.extend(str(c) for c in chapters)
+    if '--context' in sys.argv:
+        args.append('--context')
+    if '--checklist' in sys.argv:
+        args.append('--checklist')
+    sys.exit(subprocess.call(args))
+
+
+def main():
+    if len(sys.argv) < 2:
+        print(__doc__)
+        sys.exit(1)
+    sub = sys.argv[1]
+    if sub == 'status':
+        cmd_status()
+    elif sub == 'prep':
+        n = int(sys.argv[2]) if len(sys.argv) > 2 else None
+        cmd_prep(n)
+    elif sub == 'validate':
+        # Two modes: chapter quality (existing) or CJK check (--cjk flag)
+        if '--cjk' in sys.argv:
+            args = [a for a in sys.argv[2:] if a != '--cjk']
+            chapters = [int(a) for a in args if a.isdigit()] or None
+            cmd_validate_cjk(chapters)
+        else:
+            fix = '--fix' in sys.argv
+            args = [a for a in sys.argv[2:] if a != '--fix']
+            n = int(args[0]) if args else None
+            cmd_validate(n, fix=fix)
+    elif sub == 'candidates':
+        cmd_candidates()
+    elif sub == 'scrape':
+        cmd_scrape()
+    elif sub == 'backup':
+        cmd_backup()
+    elif sub == 'clean':
+        chapters = [int(a) for a in sys.argv[2:] if a.isdigit()]
+        cmd_clean(chapters)
+    elif sub == 'stats':
+        cmd_stats()
+    elif sub == 'review':
+        chapters = [int(a) for a in sys.argv[2:] if a.isdigit()]
+        if not chapters:
+            print('Usage: python novelclaw.py review N [N...] [--context] [--checklist]')
+            sys.exit(1)
+        cmd_review(chapters)
+    else:
+        print(f'Unknown subcommand: {sub}')
+        print('Available: status, prep, validate [--cjk|chapter], candidates, scrape,')
+        print('             backup, clean, stats, review')
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()
