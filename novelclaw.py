@@ -193,6 +193,27 @@ def cmd_search(query=None, limit=5):
     sys.exit(subprocess.call(args))
 
 
+def cmd_audit(chapter=None, all_chapters=False):
+    """Phase 1: generate 5-Phase CoT audit log for chapter(s)."""
+    args = [sys.executable, str(ROOT / 'tools' / 'audit.py')]
+    if all_chapters:
+        args.append('--all')
+        args.append('--update')  # Always update when running --all
+    elif chapter:
+        args.append(str(chapter))
+    else:
+        print('Usage: python novelclaw.py audit N | --all')
+        sys.exit(1)
+    sys.exit(subprocess.call(args))
+
+
+def cmd_npc(*args_list):
+    """Phase 2: NPC dossier bank — extract / list / inject / add."""
+    args = [sys.executable, str(ROOT / 'tools' / 'npc_bank.py')]
+    args.extend(args_list)
+    sys.exit(subprocess.call(args))
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -262,11 +283,23 @@ def main():
             print('Usage: python novelclaw.py search "蕾妮絲 ฮอว์อาย" [--limit 5]')
             sys.exit(1)
         cmd_search(query, limit)
+    elif sub == 'audit':
+        if '--all' in sys.argv[2:]:
+            cmd_audit(all_chapters=True)
+        else:
+            args = sys.argv[2:]
+            n = int(args[0]) if args and args[0].isdigit() else None
+            if not n:
+                print('Usage: python novelclaw.py audit N | --all')
+                sys.exit(1)
+            cmd_audit(chapter=n)
+    elif sub == 'npc':
+        cmd_npc(*sys.argv[2:])
     else:
         print(f'Unknown subcommand: {sub}')
         print('Available: status, prep, validate [--cjk|chapter], candidates, scrape,')
         print('             backup, clean, stats, review, orchestrate, health, test,')
-        print('             learn, search-index, search')
+        print('             learn, search-index, search, audit, npc')
         sys.exit(1)
 
 

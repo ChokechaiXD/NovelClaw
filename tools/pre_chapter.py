@@ -183,6 +183,13 @@ def main():
     except Exception as e:
         fts_context = f'(FTS5 context unavailable: {e})'
 
+    # 7. NPC dossiers (Phase 2 — character voice consistency)
+    try:
+        from npc_bank import format_inject_block
+        npc_block = format_inject_block(target, top_n=3)
+    except Exception as e:
+        npc_block = f'(NPC dossiers unavailable: {e})'
+
     # Output
     print('━' * 70)
     print(f'  PRE-CHAPTER CONTEXT — Ch {target}')
@@ -204,6 +211,9 @@ def main():
         print()
     if fts_context:
         print(fts_context)
+        print()
+    if npc_block:
+        print(npc_block)
         print()
     print(f'📝 SOURCE (ch {target}, cleaned):')
     print('─' * 70)
