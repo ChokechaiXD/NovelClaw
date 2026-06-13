@@ -845,6 +845,25 @@ Before translating ANY chapter, Mika reads:
 This is the "long-term memory" that prevents เฉาซิง becoming โจวซิง in chapter 5,
 or the tone shifting from นิยายจริงจัง to นิยายตลก between chapters.
 
+### 5c. AUTOMATED CONTEXT (NovelClaw 2.0 — Phase 1-4)
+
+In addition to the static files above, `pre_chapter.py` (via
+`python novelclaw.py prep N`) automatically injects 4 layers of smart context:
+
+1. **Dynamic bans** (Phase 3) — top-10 crutch bigrams auto-learned from
+   prior translations. Avoid these phrases to prevent repetition drift.
+2. **Cross-chapter context** (Phase 4) — FTS5 search of prior chapters
+   to find which chapters mention the same names/concepts as ch N.
+   Prevents continuity breaks (renamed characters, forgotten status).
+3. **NPC dossiers** (Phase 2) — character voice + relationship context
+   for the top-3 NPCs appearing in ch N, sourced from `npc_bank/`.
+4. **5-Phase audit** (Phase 1, post-hoc) — after translating, run
+   `python novelclaw.py audit N` to generate provenance log in
+   `chapters/{N:04d}/audit.md` for review.
+
+The pre_chapter output shows ALL of these before the source text, so
+Mika has full context before writing a single word.
+
 ## 5b. GLOSSARY (Contextual Loading)
 
 The glossary is split into 3 files by priority. Read them in order:

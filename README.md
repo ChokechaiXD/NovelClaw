@@ -61,13 +61,18 @@ NovelClaw/
 | Command | What it does |
 |---------|--------------|
 | `status` | Show translation progress + glossary stats |
-| `prep [N]` | Bundle context (source + glossary hits + last summaries) for chapter N (or next) |
+| `prep [N]` | Bundle context (source + glossary + dynamic bans + FTS5 + NPC dossiers) for ch N (or next) |
 | `validate [N]` | Check chapter N for length/numbers/names; `validate N --fix` auto-fixes mechanical issues |
 | `validate --cjk [N...]` | CJK leakage check (all or specific chapters) |
 | `candidates` | Find chapters that may need re-translation |
 | `scrape` | Re-scrape source chapters (one-time) |
 | `health` | Quick health check: candidates + CJK + stale glossary |
-| `test [-v]` | Run pytest suite (validates parse + auto_fix logic, 39 tests) |
+| `test [-v]` | Run pytest suite (198 tests across parse, auto_fix, slop, audit, NPC bank, FTS5, learn) |
+| `learn [--dry-run] [--chapter N]` | **Phase 3** — scan translated chapters, auto-update dynamic ban list |
+| `search-index` | **Phase 4** — build/rebuild FTS5 index over translated chapters |
+| `search "QUERY" [--limit N]` | **Phase 4** — full-text search by CN/TH/EN name or concept |
+| `audit N` or `audit --all` | **Phase 1** — generate 5-Phase CoT audit log per chapter |
+| `npc extract N` / `list` / `inject N` / `add NAME` | **Phase 2** — NPC Dossier Bank management |
 
 ## Reader
 
@@ -93,6 +98,31 @@ Features:
 7. **If slop detector flags red** (Tier 1/2 hits, >5 crutches/ch, 【】 split, 3+ em dashes) → **fix and re-validate before claiming done**
 8. **Mika writes** to `chapters/NNNN.md` only after all checks pass
 9. **Reader** auto-discovers new chapter; sidebar updates
+
+## NovelClaw 2.0 — Smart Context Pipeline (Phases 1-4)
+
+Four automated systems work together to maintain quality across 1,239 chapters:
+
+| Phase | Tool | Purpose | Inspired by |
+|-------|------|---------|-------------|
+| **1. CoT Audit** | `tools/audit.py` | 5-Phase provenance log (Ground Truth → Plot → Scene → Draft → Correction) per chapter | Megumin V7 5-Phase Audit |
+| **2. NPC Bank** | `tools/npc_bank.py` | Character dossiers (voice, relationships, agenda) injected for top-3 NPCs in each ch | Megumin V7 NPC Bank + Nemo Lore Entity |
+| **3. Dynamic Bans** | `tools/learn_slop.py` | Auto-learned crutch phrases from translated output → ban list per novel | Megumin Dynamic Ban + Nemo Prose Polisher |
+| **4. FTS5 Search** | `tools/chapter_search.py` | SQLite FTS5 cross-chapter continuity (top-3 relevant prior ch injected) | Megumin Long-Term Vault + Nemo Archive Retrieval |
+
+All four feed into `pre_chapter.py`, so `python novelclaw.py prep 101`
+now outputs **7 context sections** before the source text:
+
+1. Previous ch titles (tone)
+2. Last summary entry
+3. Dynamic bans (Phase 3)
+4. Cross-chapter FTS5 context (Phase 4)
+5. NPC dossiers (Phase 2)
+6. Source text
+7. Glossary terms
+
+**Token overhead:** ~25-30% per ch (smart context, not padding).
+**Quality lift:** name consistency + continuity + anti-repetition + provenance.
 
 ## Why the name
 
