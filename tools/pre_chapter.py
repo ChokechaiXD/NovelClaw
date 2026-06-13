@@ -175,6 +175,14 @@ def main():
     # 5. Dynamic bans (Phase 3 — auto-learned crutch phrases)
     dynamic_bans = load_dynamic_bans(limit=10)
 
+    # 6. Cross-chapter context (Phase 4 — FTS5 search)
+    try:
+        sys.path.insert(0, str(Path(__file__).parent))
+        from chapter_search import format_context_block
+        fts_context = format_context_block(target, top_k=3)
+    except Exception as e:
+        fts_context = f'(FTS5 context unavailable: {e})'
+
     # Output
     print('━' * 70)
     print(f'  PRE-CHAPTER CONTEXT — Ch {target}')
@@ -193,6 +201,9 @@ def main():
         print(f'🚫 Dynamic bans (avoid these crutch phrases — learned from prior ch):')
         for bg in dynamic_bans:
             print(f'   - {bg}')
+        print()
+    if fts_context:
+        print(fts_context)
         print()
     print(f'📝 SOURCE (ch {target}, cleaned):')
     print('─' * 70)

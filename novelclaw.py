@@ -178,6 +178,21 @@ def cmd_learn():
     sys.exit(subprocess.call(args))
 
 
+def cmd_search_index():
+    """Phase 4: build/rebuild FTS5 index over translated chapters."""
+    args = [sys.executable, str(ROOT / 'tools' / 'chapter_search.py'), 'index']
+    sys.exit(subprocess.call(args))
+
+
+def cmd_search(query=None, limit=5):
+    """Phase 4: search translated chapters by CN/TH/EN name or concept."""
+    args = [sys.executable, str(ROOT / 'tools' / 'chapter_search.py'), 'search']
+    if query:
+        args.append(query)
+    args += ['--limit', str(limit)]
+    sys.exit(subprocess.call(args))
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -232,10 +247,26 @@ def main():
         cmd_test()
     elif sub == 'learn':
         cmd_learn()
+    elif sub == 'search-index':
+        cmd_search_index()
+    elif sub == 'search':
+        # search QUERY [--limit N]
+        args = sys.argv[2:]
+        query = args[0] if args and not args[0].startswith('--') else None
+        limit = 5
+        if '--limit' in args:
+            i = args.index('--limit')
+            if i + 1 < len(args):
+                limit = int(args[i + 1])
+        if not query:
+            print('Usage: python novelclaw.py search "蕾妮絲 ฮอว์อาย" [--limit 5]')
+            sys.exit(1)
+        cmd_search(query, limit)
     else:
         print(f'Unknown subcommand: {sub}')
         print('Available: status, prep, validate [--cjk|chapter], candidates, scrape,')
-        print('             backup, clean, stats, review, orchestrate, health, test, learn')
+        print('             backup, clean, stats, review, orchestrate, health, test,')
+        print('             learn, search-index, search')
         sys.exit(1)
 
 
