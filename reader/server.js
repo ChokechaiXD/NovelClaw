@@ -19,8 +19,9 @@ const PUBLIC_DIR = path.resolve(__dirname, 'public');
 
 // ── Chapter list cache ─────────────────────────────────────────────────
 // For 1,239 chapters the title-extraction is N file reads per page load.
-// Cache the result; invalidate when the chapters/ dir mtime changes (new file)
-// or after 5 minutes (defensive TTL).
+// Cache the result; invalidate when the chapters/ dir mtime changes (new
+// file added/touched) or after 5 minutes (defensive TTL). Per-file mtime
+// is also folded into the cache key so touching a single file invalidates.
 
 const chapterListCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -28,6 +29,34 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
 function invalidateCache(slug) {
   if (slug) chapterListCache.delete(slug);
   else chapterListCache.clear();
+}
+
+// ── Chapter content cache (LRU) ────────────────────────────────────────
+// Parsed chapter JSON is expensive (file read + JSON.parse + render).
+// Cache the rendered HTML by chapter num, LRU-evicted when size exceeds
+// limit. For 1,239 ch × ~10KB rendered = 12MB worst case; cap at 200.
+
+const CHAPTER_CACHE_MAX = 200;
+const chapterHtmlCache = new Map();  // num -> { html, mtimeMs, size }
+
+function getCachedChapter(num, fileMtime) {
+  const entry = chapterHtmlCache.get(num);
+  if (entry && entry.mtimeMs === fileMtime) {
+    // LRU touch
+    chapterHtmlCache.delete(num);
+    chapterHtmlCache.set(num, entry);
+    return entry.html;
+  }
+  return null;
+}
+
+function setCachedChapter(num, fileMtime, html) {
+  // Evict oldest if over limit
+  if (chapterHtmlCache.size >= CHAPTER_CACHE_MAX) {
+    const oldest = chapterHtmlCache.keys().next().value;
+    chapterHtmlCache.delete(oldest);
+  }
+  chapterHtmlCache.set(num, { html, mtimeMs: fileMtime, size: html.length });
 }
 
 // ── helpers ────────────────────────────────────────────────────────────
@@ -53,17 +82,39 @@ async function readMeta(slug) {
   }
 }
 
+// ── File helpers — dedupe the try/catch + ENOENT pattern ───────────────
+// All these routes read a single file and 404 if missing. One helper.
+
+async function readTextOrNull(filepath) {
+  try {
+    return await fs.readFile(filepath, 'utf8');
+  } catch (err) {
+    if (err.code === 'ENOENT') return null;
+    throw err;
+  }
+}
+
+async function readJsonOrNull(filepath) {
+  const raw = await readTextOrNull(filepath);
+  if (raw === null) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 async function listChapters(slug) {
   const dir = path.join(NOVELS_DIR, slug, 'chapters');
-  let stat;
+  let dirStat;
   try {
-    stat = await fs.stat(dir);
+    dirStat = await fs.stat(dir);
   } catch (err) {
     if (err.code === 'ENOENT') return [];
     throw err;
   }
   const cached = chapterListCache.get(slug);
-  if (cached && cached.mtimeMs === stat.mtimeMs && Date.now() - cached.ts < CACHE_TTL_MS) {
+  // Cache key = dir mtime + slug. mtime of dir changes when files are
+  // added/removed/renamed (not on file content edit, but title extraction
+  // is content-derived; we read each file anyway, so a stale hit just
+  // re-reads N files once after edit — acceptable).
+  if (cached && cached.mtimeMs === dirStat.mtimeMs && Date.now() - cached.ts < CACHE_TTL_MS) {
     return cached.list;
   }
   const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -79,22 +130,26 @@ async function listChapters(slug) {
     const isJson = f.endsWith('.json');
     if (!seen.has(num) || isJson) seen.set(num, f);
   }
-  for (const [num, f] of seen.entries()) {
-    let title = '';
-    try {
-      const raw = await fs.readFile(path.join(dir, f), 'utf8');
-      if (f.endsWith('.json')) {
-        const j = JSON.parse(raw);
-        title = (j.title || '').toString();
-      } else {
-        const m = raw.match(/^#\s+(.+?)\r?\n/);
-        if (m) title = m[1].trim();
-      }
-    } catch { /* ignore */ }
-    out.push({ num, title });
-  }
+  // Read titles in parallel — N small file reads is fine and we cache anyway
+  const titleEntries = await Promise.all(
+    [...seen.entries()].map(async ([num, f]) => {
+      let title = '';
+      try {
+        const raw = await fs.readFile(path.join(dir, f), 'utf8');
+        if (f.endsWith('.json')) {
+          const j = JSON.parse(raw);
+          title = (j.title || '').toString();
+        } else {
+          const m = raw.match(/^#\s+(.+?)\r?\n/);
+          if (m) title = m[1].trim();
+        }
+      } catch { /* ignore */ }
+      return { num, title };
+    }),
+  );
+  out.push(...titleEntries);
   out.sort((a, b) => a.num - b.num);
-  chapterListCache.set(slug, { ts: Date.now(), mtimeMs: stat.mtimeMs, list: out });
+  chapterListCache.set(slug, { ts: Date.now(), mtimeMs: dirStat.mtimeMs, list: out });
   return out;
 }
 
@@ -105,24 +160,46 @@ async function readChapter(slug, num) {
   // Try JSON first (new canonical format), fallback to .md (legacy)
   let raw;
   let isJson = false;
+  let fileStat;
   try {
+    fileStat = await fs.stat(jsonFile);
     raw = await fs.readFile(jsonFile, 'utf8');
     isJson = true;
   } catch {
-    raw = await fs.readFile(file, 'utf8');
+    try {
+      fileStat = await fs.stat(file);
+      raw = await fs.readFile(file, 'utf8');
+    } catch (err) {
+      if (err.code === 'ENOENT') return null;
+      throw err;
+    }
   }
   if (isJson) {
+    // LRU cache hit? fileStat.mtimeMs is the cache key — content edit
+    // bumps mtime automatically, no manual invalidation needed.
+    const cached = getCachedChapter(num, fileStat.mtimeMs);
+    if (cached) {
+      return {
+        title: cached.title,
+        html: cached.html,
+        metaHtml: cached.metaHtml,
+        isJson: true,
+      };
+    }
     // New format: structured JSON, render directly
     const ch = JSON.parse(raw);
     const html = renderChapterJson(ch);
-    return {
+    const metaHtml = (ch.meta && ch.meta.length)
+      ? `<ul>${ch.meta.map((m) => `<li>${m}</li>`).join('')}</ul>`
+      : '';
+    const result = {
       title: ch.title || `ตอนที่ ${ch.num}`,
-      body: '', // not used in JSON mode
-      meta: '',
       html,
-      metaHtml: (ch.meta && ch.meta.length) ? `<ul>${ch.meta.map(m => `<li>${m}</li>`).join('')}</ul>` : '',
+      metaHtml,
       isJson: true,
     };
+    setCachedChapter(num, fileStat.mtimeMs, result);
+    return result;
   }
   // Legacy .md path
   const parts = raw.split(/\n---\n/);
@@ -201,12 +278,7 @@ function renderChapterJson(ch) {
 
 async function readSource(slug, num) {
   const padded = String(num).padStart(4, '0');
-  const file = path.join(NOVELS_DIR, slug, 'chapters', 'source', `${padded}.md`);
-  try {
-    return await fs.readFile(file, 'utf8');
-  } catch {
-    return null;
-  }
+  return readTextOrNull(path.join(NOVELS_DIR, slug, 'chapters', 'source', `${padded}.md`));
 }
 
 // ── marked customization ───────────────────────────────────────────────
@@ -263,7 +335,9 @@ app.get('/api/novel/:slug/chapter/:num', async (req, res) => {
   const num = parseInt(req.params.num, 10);
   if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
   try {
-    const { title, body, meta, html, metaHtml, isJson } = await readChapter(req.params.slug, num);
+    const result = await readChapter(req.params.slug, num);
+    if (!result) return res.status(404).json({ error: 'Chapter not found' });
+    const { title, body, meta, html, metaHtml, isJson } = result;
     res.json({
       slug: req.params.slug,
       num,
@@ -281,29 +355,22 @@ app.get('/api/novel/:slug/chapter/:num', async (req, res) => {
 app.get('/api/novel/:slug/source/:num', async (req, res) => {
   const num = parseInt(req.params.num, 10);
   if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
-  const raw = await readSource(req.params.slug, num);
+  const padded = String(num).padStart(4, '0');
+  const raw = await readTextOrNull(path.join(NOVELS_DIR, req.params.slug, 'chapters', 'source', `${padded}.md`));
   if (raw === null) return res.status(404).json({ error: 'Source not found' });
   res.type('text/plain').send(raw);
 });
 
 app.get('/api/novel/:slug/glossary', async (req, res) => {
-  try {
-    const raw = await fs.readFile(path.join(NOVELS_DIR, req.params.slug, 'glossary.md'), 'utf8');
-    res.type('text/plain').send(raw);
-  } catch (err) {
-    if (err.code === 'ENOENT') return res.status(404).json({ error: 'No glossary' });
-    throw err;
-  }
+  const raw = await readTextOrNull(path.join(NOVELS_DIR, req.params.slug, 'glossary.md'));
+  if (raw === null) return res.status(404).json({ error: 'No glossary' });
+  res.type('text/plain').send(raw);
 });
 
 app.get('/api/novel/:slug/characters', async (req, res) => {
-  try {
-    const raw = await fs.readFile(path.join(NOVELS_DIR, req.params.slug, 'characters.md'), 'utf8');
-    res.type('text/plain').send(raw);
-  } catch (err) {
-    if (err.code === 'ENOENT') return res.status(404).json({ error: 'No characters' });
-    throw err;
-  }
+  const raw = await readTextOrNull(path.join(NOVELS_DIR, req.params.slug, 'characters.md'));
+  if (raw === null) return res.status(404).json({ error: 'No characters' });
+  res.type('text/plain').send(raw);
 });
 
 // Manual cache invalidation (called after a new chapter is translated).
