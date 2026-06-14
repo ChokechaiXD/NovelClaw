@@ -89,17 +89,88 @@ async function listChapters(slug) {
 async function readChapter(slug, num) {
   const padded = String(num).padStart(4, '0');
   const file = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.md`);
-  const raw = await fs.readFile(file, 'utf8');
+  const jsonFile = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.json`);
+  // Try JSON first (new canonical format), fallback to .md (legacy)
+  let raw;
+  let isJson = false;
+  try {
+    raw = await fs.readFile(jsonFile, 'utf8');
+    isJson = true;
+  } catch {
+    raw = await fs.readFile(file, 'utf8');
+  }
+  if (isJson) {
+    // New format: structured JSON, render directly
+    const ch = JSON.parse(raw);
+    const html = renderChapterJson(ch);
+    return {
+      title: ch.title || `ตอนที่ ${ch.num}`,
+      body: '', // not used in JSON mode
+      meta: (ch.notes || []).join('\n'),
+      html,
+      metaHtml: '', // notes are inlined as <details>
+      isJson: true,
+    };
+  }
+  // Legacy .md path
   const parts = raw.split(/\n---\n/);
   let body = (parts[0] || '').trim();
-  const meta = (parts[1] || '').trim();
+  // If there's a 2nd --- in the body itself, keep it (Source footer separator)
+  let meta = '';
+  if (parts.length >= 3) {
+    body = body + '\n\n---\n\n' + (parts[1] || '').trim();
+    meta = (parts[2] || '').trim();
+  } else if (parts.length === 2) {
+    const subparts = parts[1].split(/\n---\n/);
+    if (subparts.length >= 2) {
+      body = body + '\n\n---\n\n' + subparts[0].trim();
+      meta = subparts.slice(1).join('\n\n---\n').trim();
+    } else {
+      body = body + '\n\n---\n\n' + parts[1].trim();
+    }
+  }
   let title = '';
   const m = body.match(/^#\s+(.+?)\r?\n/);
   if (m) {
     title = m[1].trim();
     body = body.slice(m[0].length).trim();
   }
-  return { title, body, meta };
+  return { title, body, meta, isJson: false };
+}
+
+/**
+ * Render a Chapter JSON object directly to HTML.
+ * Replaces marked.js for the new format — no parsing, just block-by-block DOM.
+ */
+function renderChapterJson(ch) {
+  const escapeHtml = (s) => s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  const esc = (s) => s;  // our text is already safe (no HTML in source)
+
+  let html = '';
+  for (const block of ch.blocks || []) {
+    if (block.type === 'narration') {
+      html += `<p>${esc(block.text)}</p>\n`;
+    } else if (block.type === 'dialogue') {
+      // 「...」 is the canonical format; render with subtle indent
+      html += `<p class="dialogue">${esc(block.text)}</p>\n`;
+    } else if (block.type === 'system') {
+      // 【...】 system message — render with subtle background
+      html += `<p class="system-msg">${esc(block.text)}</p>\n`;
+    } else if (block.type === 'game_title') {
+      // 《...》 game title — just text (rare standalone)
+      html += `<p>${esc(block.text)}</p>\n`;
+    } else if (block.type === 'end') {
+      html += `<p class="end-marker">${esc(block.text)}</p>\n`;
+    }
+  }
+  // Source footer
+  if (ch.source) {
+    html += `<hr/>\n<p class="source-footer">${esc(ch.source)}</p>\n`;
+  }
+  return html;
 }
 
 async function readSource(slug, num) {
@@ -166,13 +237,14 @@ app.get('/api/novel/:slug/chapter/:num', async (req, res) => {
   const num = parseInt(req.params.num, 10);
   if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
   try {
-    const { title, body, meta } = await readChapter(req.params.slug, num);
+    const { title, body, meta, html, metaHtml, isJson } = await readChapter(req.params.slug, num);
     res.json({
       slug: req.params.slug,
       num,
       title,
-      html: marked.parse(body),
-      metaHtml: meta ? marked.parse(meta) : '',
+      // For JSON mode, html is pre-rendered. For .md mode, parse with marked.
+      html: isJson ? html : (body ? marked.parse(body) : ''),
+      metaHtml: metaHtml || (meta ? marked.parse(meta) : ''),
     });
   } catch (err) {
     if (err.code === 'ENOENT') return res.status(404).json({ error: 'Chapter not found' });
