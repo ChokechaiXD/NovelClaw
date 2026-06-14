@@ -32,9 +32,9 @@ def read_progress() -> int:
 
 
 def load_glossary() -> list[tuple[str, str, str]]:
-    """Load all locked+reference terms as (source, thai, notes) tuples."""
+    """Load all locked+reference+auto terms as (source, thai, notes) tuples."""
     rows = []
-    for tier in ('locked.md', 'reference.md'):
+    for tier in ('locked.md', 'reference.md', 'auto.md'):
         for line in (GLOSSARY_DIR / tier).read_text(encoding='utf-8').splitlines():
             if not line.startswith('| ') or line.startswith('|--') or 'Source' in line:
                 continue

@@ -64,7 +64,7 @@ def extract_numbers(text: str) -> set[str]:
 
 def load_glossary_main() -> dict[str, str]:
     out = {}
-    for tier in ('locked.md', 'reference.md'):
+    for tier in ('locked.md', 'reference.md', 'auto.md'):
         for line in (GLOSSARY_DIR / tier).read_text(encoding='utf-8').splitlines():
             if not line.startswith('| ') or line.startswith('|--') or 'Source' in line:
                 continue
