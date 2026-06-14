@@ -86,7 +86,10 @@ def check_chapter(num: int, strict: bool = False) -> tuple[list[str], list[str]]
     text_no_markers = re.sub(r'[\u300a\u300b][^\u300a\u300b]*[\u300b]', '', text_no_markers)
 
     if strict:
-        text_to_scan = re.sub(r'^#\s+.*\n', '', text_no_markers, count=1, flags=re.M)
+        # In strict mode, ALSO scan the H1 title (which is normally excluded).
+        # Non-strict path uses extract_body_lines (skips H1 + Source footer).
+        # For strict, we use the H1-included body so CJK in title gets flagged.
+        text_to_scan = text_no_markers
     else:
         body_lines = extract_body_lines(text_no_markers)
         text_to_scan = '\n'.join(body_lines)
