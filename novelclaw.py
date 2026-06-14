@@ -194,6 +194,7 @@ def cmd_audit(chapter=None, all_chapters=False):
         args.append('--update')  # Always update when running --all
     elif chapter:
         args.append(str(chapter))
+        args.append('--update')  # Save audit.md when running single ch
     else:
         print('Usage: python novelclaw.py audit N | --all')
         sys.exit(1)

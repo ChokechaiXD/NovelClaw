@@ -268,8 +268,13 @@
 - 蕾妮絲 solo-killed lv18 boss (highest single dmg ever)
 - Day 8 dawn: 埃麗莎 saved, 希兒妲 seriously injured (lost 8 limbs in 3 days regrowing)
 
-## Current status (post ch 110)
+## Current status (post ch 111)
 - Members: 莎拉, 阿薩姆, 布洛特, 蕾妮絲, 安德魯, 坎達爾+坎特爾, 大花, 希兒妲, 伊莉娜
 - 埃麗莎 in critical care (heart 40% remaining)
+- 梅爾 + 牦牛 (10+ heads) + 埃麗莎 recruited from 霍格村
+- 6 new recruits: ลาคิด (lv8), เอลลี่ (lv7 mage), บริทซ์ เรนา (lv7), ซิลเวีย (lv7), 3x soldiers
+- All 6 loyalty boosted 51→63 via secret roasted rabbit (legendary stat-boost food)
+- Plan: divide party — 阿薩姆 + 蕾妮絲 escort cattle back, 曹星 + 希兒妲 + 莎拉 + 6 new → 4 abandoned territories
+- 4 abandoned territories available, 16+ 极地人 (polar people) to recruit
 - Next: 希兒妲 recovery + journey to 凛冬城 (next city)
 - Style note: ch 101-110 translated in batch (mechanical), ch 97-100 literary
