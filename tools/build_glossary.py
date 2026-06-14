@@ -237,71 +237,75 @@ def parse_all_glossaries() -> list[dict]:
 # ────────────────────────────────────────────────────────────────────
 # Style rules (parsed from style.md, embedded constants)
 # ────────────────────────────────────────────────────────────────────
+# All anti-patterns are INFO level — transmittor principle: we report
+# (did translator generate new instances beyond source?) but do not
+# auto-fix author's voice. The doctor's detect_anti_patterns only flags
+# when TRANSLATION has MORE occurrences than SOURCE.
 
 STYLE_RULES = [
-    # ── Forbidden (errors — should never appear)
+    # ── Forbidden (errors — locked term violation, hard rule)
     ('forbidden', r'ฮ่องกง', 'เซียนเจียง', 'error', 'all', 'style.md',
      'ฮ่องกงถือเป็นเมืองหลวง', 'เซียนเจียงถือเป็นเมืองหลวง',
      'Hong Kong = เซียนเจียง (transliteration hits emotional register better)'),
-    # ── Anti-patterns (warnings — show-don't-tell + translated feel)
-    ('anti_pattern', r'ดีใจในใจ', None, 'warning', 'narration', 'style.md',
+    # ── Anti-patterns — INFO only (transmittor preserves author's voice)
+    ('anti_pattern', r'ดีใจในใจ', None, 'info', 'narration', 'style.md',
      'เขาดีใจในใจมาก', 'ยิ้มจนเห็นเขี้ยว',
-     'emotion lump — use gesture/sensation instead'),
-    ('anti_pattern', r'เสียใจในใจ', None, 'warning', 'narration', 'style.md',
+     'emotion lump — author may use this intentionally; only flag if translator adds more than source'),
+    ('anti_pattern', r'เสียใจในใจ', None, 'info', 'narration', 'style.md',
      'นางเสียใจในใจ', 'กัดริมฝีปากแน่น',
-     'emotion lump — use gesture/sensation instead'),
-    ('anti_pattern', r'สีหน้าเปี่ยม(?!ด้วย)', None, 'warning', 'narration', 'style.md',
+     'emotion lump — author may use this intentionally'),
+    ('anti_pattern', r'สีหน้าเปี่ยม(?!ด้วย)', None, 'info', 'narration', 'style.md',
      'สีหน้าเปี่ยมความยินดี', 'ขมวดคิ้วยิ้ม',
-     'use specific face/body action'),
-    ('anti_pattern', r'ฉายแวว', None, 'warning', 'narration', 'style.md',
+     'flat emotion — author may use this intentionally'),
+    ('anti_pattern', r'ฉายแวว', None, 'info', 'narration', 'style.md',
      'ฉายแววดีใจ', 'ยิ้มออก',
-     'show-don\'t-tell — describe what eyes actually do'),
-    ('anti_pattern', r'รวดเร็วดุจสายฟ้า', None, 'warning', 'narration', 'style.md',
+     'show-don\'t-tell — but author may use this as their style'),
+    ('anti_pattern', r'รวดเร็วดุจสายฟ้า', None, 'info', 'narration', 'style.md',
      'เขาเคลื่อนที่รวดเร็วดุจสายฟ้า', 'รีบเดินหน้า',
-     'translated-feeling idiom — use action verb'),
-    ('anti_pattern', r'ตกใจจนหัวหมุน', None, 'warning', 'narration', 'style.md',
+     'translated-feeling idiom — author may use this as their style'),
+    ('anti_pattern', r'ตกใจจนหัวหมุน', None, 'info', 'narration', 'style.md',
      'ตกใจจนหัวหมุน', 'ตัวสั่น',
-     'translated phrase — use body reaction'),
-    ('anti_pattern', r'กล่าวว่า', 'พูดว่า', 'warning', 'dialogue', 'style.md',
+     'translated phrase — author may use this as their style'),
+    ('anti_pattern', r'กล่าวว่า', 'พูดว่า', 'info', 'dialogue', 'style.md',
      'เขากล่าวว่า "ไปกัน"', 'เขาพูดว่า "ไปกัน"',
-     'formal verb — too formal for modern dialogue'),
-    ('anti_pattern', r'เอ่ยปาก', 'พูด', 'warning', 'dialogue', 'style.md',
+     'formal verb — author may use this in formal dialogue'),
+    ('anti_pattern', r'เอ่ยปาก', 'พูด', 'info', 'dialogue', 'style.md',
      'เธอเอ่ยปากว่า...', 'เธอพูดว่า...',
-     'formal verb — use casual "พูด" or "บอก"'),
-    ('anti_pattern', r'เอ่ยว่า', 'ว่า', 'warning', 'dialogue', 'style.md',
+     'formal verb — author may use this in formal dialogue'),
+    ('anti_pattern', r'เอ่ยว่า', 'ว่า', 'info', 'dialogue', 'style.md',
      'เขาเอ่ยว่า...', 'เขาว่า...',
-     'formal verb — drop the verb, just use "ว่า"'),
-    # ── Collocation watchlist (P3)
-    ('collocation', r'บัลลังก์ระยิบระยับ', 'เปล่งรัศมี', 'warning', 'narration', 'style.md',
+     'formal verb — author may use this in formal dialogue'),
+    # ── Collocation watchlist (P3) — also info, translittor principle
+    ('collocation', r'บัลลังก์ระยิบระยับ', 'เปล่งรัศมี', 'info', 'narration', 'style.md',
      'บัลลังก์ระยิบระยับ', 'บัลลังก์เปล่งรัศมี',
-     '璀璨 = เปล่งรัศมี/สว่างไสว/แพรวพราว (not ระยิบระยับ)'),
-    ('collocation', r'น้ำผึ้งทองคำ', 'น้ำผึ้งป่า/น้ำผึ้งหอม', 'warning', 'narration', 'style.md',
+     'literal calque — author may use this as their style'),
+    ('collocation', r'น้ำผึ้งทองคำ', 'น้ำผึ้งป่า/น้ำผึ้งหอม', 'info', 'narration', 'style.md',
      'ขวดน้ำผึ้งทองคำ', 'ขวดน้ำผึ้งหอม',
-     '黄金蜂蜜 = literal calque. Re-anchor to flavor/source'),
-    ('collocation', r'ข้างหน้า(?=.*แรก|.*ก่อน)', 'แรก/ก่อนหน้า', 'warning', 'narration', 'style.md',
+     'literal calque — author may use this as their style'),
+    ('collocation', r'ข้างหน้า(?=.*แรก|.*ก่อน)', 'แรก/ก่อนหน้า', 'info', 'narration', 'style.md',
      'ข้างหน้าแรก', 'แรก',
-     '前面的 = "earlier/preceding", not "ahead" (use แรก/ก่อนหน้า)'),
-    # ── Slop (auto-detected, list maintained by learn_slop.py)
-    ('anti_pattern', r'อย่างไรก็ตาม', 'drop or rephrase', 'warning', 'narration', 'learn_slop',
+     'literal "ahead" — author may use this as their style'),
+    # ── Slop (learn_slop auto-banned) — info
+    ('anti_pattern', r'อย่างไรก็ตาม', 'drop or rephrase', 'info', 'narration', 'learn_slop',
      'อย่างไรก็ตาม เขายังคงเดินหน้า', 'เขายังคงเดินหน้า',
-     'top slop word (92x) — droppable connector'),
-    ('anti_pattern', r'ดังนั้น', 'drop or rephrase', 'warning', 'narration', 'learn_slop',
+     'top slop word (92x) — author may use this as their style'),
+    ('anti_pattern', r'ดังนั้น', 'drop or rephrase', 'info', 'narration', 'learn_slop',
      'ดังนั้นเขาจึงตัดสินใจ', 'เขาจึงตัดสินใจ',
-     'top slop word (44x) — droppable connector'),
-    ('anti_pattern', r'แม้ว่า', 'drop or rephrase', 'warning', 'narration', 'learn_slop',
+     'top slop word (44x) — author may use this as their style'),
+    ('anti_pattern', r'แม้ว่า', 'drop or rephrase', 'info', 'narration', 'learn_slop',
      'แม้ว่าจะยาก แต่เขาก็ทำ', 'ยากแต่เขาก็ทำ',
-     'top slop word (21x) — droppable concessive'),
-    ('anti_pattern', r'เต็มไปด้วยความ', 'replace with concrete', 'warning', 'narration', 'learn_slop',
+     'top slop word (21x) — author may use this as their style'),
+    ('anti_pattern', r'เต็มไปด้วยความ', 'replace with concrete', 'info', 'narration', 'learn_slop',
      'เต็มไปด้วยความหวัง', 'ตาเป็นประกาย',
-     'emotion lump (28x) — make concrete'),
-    ('anti_pattern', r'ชาวอาณานิคม(?!ชื่อ)', 'flip to TH order', 'warning', 'narration', 'style.md',
+     'emotion lump (28x) — author may use this as their style'),
+    ('anti_pattern', r'ชาวอาณานิคม(?!ชื่อ)', 'flip to TH order', 'info', 'narration', 'style.md',
      'ชาวอาณานิคมเฉาอี', 'เฉาอี ชาวอาณานิคม',
-     'appositive compound — CN [mod][noun], TH needs flip'),
-    # ── Length/sentence rhythm (P5, P7)
+     'appositive compound — author may use CN word order as their style'),
+    # ── Length/sentence rhythm (P5) — info
     ('anti_pattern', r'^(เฉาซิง.{0,20}[\.\!\?]?)\n(เฉาซิง.{0,20}[\.\!\?]?)\n(เฉาซิง.{0,20})', None,
-     'warning', 'narration', 'style.md',
+     'info', 'narration', 'style.md',
      'เฉาซิงพยักหน้า\nเฉาซิงยิ้ม\nเฉาซิงพูด', 'พยักหน้า ยิ้ม แล้วพูด',
-     'subject echo (P5) — 3+ consecutive same subject'),
+     'subject echo (P5) — author may use this as their style'),
 ]
 
 
