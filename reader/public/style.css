@@ -436,53 +436,40 @@ button {
 .chapter-content em:only-child { font-size: var(--font-size); font-style: italic; color: var(--text-soft); text-align: center; margin: 1.5em 0 0.5em; }
 
 /* Block-type styling for JSON-rendered chapters.
-   - dialogue: 「...」 subtle indent + accent border
-   - system-msg: 【...】 subtle background tint, distinct from body
-   - end-marker: centered, muted
-   - source-footer: italic, small, centered
+   P'Chok's choice (2026-06-14): minimal — "คลีนๆ เน้นอ่าน"
+   - dialogue: subtle indent (so it visually differs from narration)
+   - system:   light background tint (so it stands out as game UI)
+   - end:      centered, muted
+   - source-footer: italic, small
 */
 .chapter-content p.dialogue {
   text-indent: 0;
-  margin: 0.7em 0 0.7em 1.2em;
-  padding-left: 0.8em;
-  border-left: 2px solid var(--accent-soft);
+  margin: 0.6em 0 0.6em 1.2em;
   color: var(--text);
-  line-height: 1.8;
 }
 .chapter-content p.system-msg {
   text-indent: 0;
-  margin: 1em 0;
-  padding: 10px 14px;
+  margin: 0.8em 0;
+  padding: 8px 12px;
   background: var(--bg-soft);
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--accent-soft);
   border-radius: 0 4px 4px 0;
-  font-size: 0.93em;
+  font-size: 0.95em;
   color: var(--text);
-  line-height: 1.6;
-  font-family: var(--font-mono, monospace);
-}
-.chapter-content p.system-msg::before {
-  content: '⚙ ';
-  color: var(--accent);
-  font-weight: 600;
-  margin-right: 0.3em;
 }
 .chapter-content p.end-marker {
   text-indent: 0;
   text-align: center;
-  margin: 2em 0 1em;
-  font-weight: 600;
+  margin: 1.5em 0 0.5em;
   color: var(--text-soft);
-  font-size: 0.95em;
-  letter-spacing: 0.05em;
 }
 .chapter-content p.source-footer {
   text-indent: 0;
   text-align: center;
-  margin: 2em 0 0.5em;
+  margin: 1.5em 0 0.5em;
   font-style: italic;
   color: var(--text-soft);
-  font-size: 0.85em;
+  font-size: 0.9em;
 }
 
 /* Translation notes (หมายเหตุการแปล) — collapsible details block.
