@@ -157,18 +157,37 @@ def cmd_test(verbose=False):
     sys.exit(subprocess.call(args))
 
 
-def cmd_learn():
+def cmd_learn(audit_missing=True):
     """Phase 3: scan translated chapters, auto-update dynamic ban list.
 
+    Also auto-audits any ch missing audit.md (set --no-audit to skip).
+
     Usage:
-        python novelclaw.py learn               # scan all + update dynamic_bans.md
+        python novelclaw.py learn               # scan + update + auto-audit
+        python novelclaw.py learn --no-audit    # skip auto-audit
         python novelclaw.py learn --dry-run     # preview candidates only
         python novelclaw.py learn --chapter 100 # scan single chapter
     """
-    args = [sys.executable, str(ROOT / 'tools' / 'learn_slop.py')]
-    # Forward all flags/args (--dry-run, --chapter N, --top N, etc.)
-    args.extend(a for a in sys.argv[2:] if a != 'learn')
-    sys.exit(subprocess.call(args))
+    args_ = [sys.executable, str(ROOT / 'tools' / 'learn_slop.py')]
+    args_.extend(a for a in sys.argv[2:] if a not in ('learn', '--no-audit'))
+    subprocess.call(args_)
+
+    # Auto-audit missing audit.md after learn
+    if audit_missing and '--dry-run' not in sys.argv:
+        from pathlib import Path
+        chs = sorted([
+            int(f.stem) for f in (ROOT / 'novels' / NOVEL / 'chapters').glob('0*.md')
+            if f.stem.isdigit() and len(f.stem) == 4
+        ])
+        missing = [n for n in chs
+                   if not (ROOT / 'novels' / NOVEL / 'chapters' / f'{n:04d}' / 'audit.md').exists()]
+        if missing:
+            print(f'\n📋 Auto-auditing {len(missing)} missing audit.md...')
+            for n in missing:
+                subprocess.call([sys.executable, str(ROOT / 'tools' / 'audit.py'),
+                                 str(n), '--update'])
+        else:
+            print(f'\n✓ All {len(chs)} chapters have audit.md')
 
 
 def cmd_search_index():
@@ -259,7 +278,8 @@ def main():
     elif sub == 'test':
         cmd_test()
     elif sub == 'learn':
-        cmd_learn()
+        no_audit = '--no-audit' in sys.argv
+        cmd_learn(audit_missing=not no_audit)
     elif sub == 'search-index':
         cmd_search_index()
     elif sub == 'search':
