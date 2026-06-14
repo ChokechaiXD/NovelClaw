@@ -117,8 +117,16 @@ class Narration(BaseModel):
     @field_validator('text')
     @classmethod
     def reject_cjk_leakage(cls, v: str) -> str:
-        """Reject raw CN chars in narration (no body text should be untranslated)."""
-        cn = re.findall(r'[\u4e00-\u9fff]', v)
+        """Reject raw CN chars in narration.
+
+        Whitelisted zones (per style.md): 【...】 system messages and
+        《...》 game titles / donor names may contain CN chars inline
+        within narration. Strip those before checking.
+        """
+        # Strip 【...】 and 《...》 content (greedy non-】/》 match)
+        cleaned = re.sub(r'【[^】]*】', '', v)
+        cleaned = re.sub(r'《[^》]*》', '', cleaned)
+        cn = re.findall(r'[\u4e00-\u9fff]', cleaned)
         if cn:
             raise ValueError(
                 f'Narration contains {len(cn)} raw CN chars (must be translated). '
