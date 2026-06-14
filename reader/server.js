@@ -11,6 +11,9 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { marked } = require('marked');
 
+// Export pure functions for testing (without spinning up HTTP server)
+// When required as a module, only the renderer + helpers are exported.
+// When run directly (`node server.js`), the server starts.
 const PORT = Number(process.env.PORT) || 4173;
 const NOVELS_DIR = process.env.NOVELCLAW_ROOT
   ? path.resolve(process.env.NOVELCLAW_ROOT)
@@ -431,3 +434,10 @@ app.listen(PORT, '0.0.0.0', () => {
   }
   console.log(`Serving novels from: ${NOVELS_DIR}`);
 });
+
+// ── Exports (for testing) ─────────────────────────────────────────────
+// When this file is required as a module (test_server.js, future
+// in-process consumers), export the pure functions. When run via
+// `node server.js`, the app.listen above is the entry point.
+
+module.exports = { BRACKETS, renderChapterJson };
