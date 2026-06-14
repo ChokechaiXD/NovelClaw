@@ -246,3 +246,8 @@
 - **Gender:** female
 - **Personality:** Regal, predatory, confident. Blood Spider Queen — boss-tier enemy.
 - **Speech pattern:** Archaic, formal, slightly theatrical. Uses "ข้า" (royal "I"). Speaks in pronouncements, not requests.
+
+## 埃麗莎 (เอลิซ่า) — **DAMPSEL** (ch 101)
+- **Gender:** female
+- **Personality:** Daughter of 梅爾 (เมล). Frozen by 冰霜女巫 3 days, heart at 40% upon rescue.
+- **Speech pattern:** Weak, grateful, soft. Few words while recovering.

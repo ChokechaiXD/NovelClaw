@@ -243,3 +243,33 @@
 - Defenses: 3 element towers, 2 watchtowers, 2 lighthouses
 - Last new recruit: 希兒妲·血吻 (Blood Spider Queen) — has not yet submitted
 - Next quest: Find 埃麗莎 (Mel's daughter) at 落雪湖 + find 云彩牦牛
+
+## Ch 101 (Day 6 evening)
+- 希兒妲 submitted after all-night test (sterilization + 60% tax)
+- Party left 落雪鎮 toward 落雪湖 to find 埃麗莎
+- Met 伊莉娜 (lv20 火系大法師, head-tier recruit candidate)
+- 埃麗莎 frozen 3 days ago, guarded by 2 lv25 精英霜巫
+- Party 11 people, 希兒妲 + 伊莉娜 both added (12 total)
+
+## Ch 102-106 (Day 6-7)
+- 2-night camp en route to 落雪湖
+- 2 attacks: 雪狼王 lv18 + 冰霜巨魔 lv20 — repelled
+- 阿薩姆 built new 弩炮 tower
+- Territory production booming: 1,100 food/day
+- Stats: territory 100/100 population, treasury 12K gold
+- 希兒妲 integrating — still proud, but no longer hostile
+
+## Ch 107-110 (Day 7-8)
+- Reached 落雪湖 outskirts at dawn Day 7
+- 埃麗莎 sighting — 200m from 冰霜女巫 camp
+- 2 女巫 lv25 (casters), 1 冰霜巨魔 lv20 (tank)
+- 曹星 strategy: 2-phase — 希兒妲 solo alpha strike → team cleanup
+- Day 7 night: ambush prep, found player-built watchtower (abandoned)
+- 蕾妮絲 solo-killed lv18 boss (highest single dmg ever)
+- Day 8 dawn: 埃麗莎 saved, 希兒妲 seriously injured (lost 8 limbs in 3 days regrowing)
+
+## Current status (post ch 110)
+- Members: 莎拉, 阿薩姆, 布洛特, 蕾妮絲, 安德魯, 坎達爾+坎特爾, 大花, 希兒妲, 伊莉娜
+- 埃麗莎 in critical care (heart 40% remaining)
+- Next: 希兒妲 recovery + journey to 凛冬城 (next city)
+- Style note: ch 101-110 translated in batch (mechanical), ch 97-100 literary

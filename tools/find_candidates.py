@@ -23,17 +23,6 @@ CHAPTERS_DIR = ROOT / 'chapters'
 SOURCE_DIR = CHAPTERS_DIR / 'source'
 GLOSSARY_DIR = ROOT / 'glossary'
 
-# Known wrong-name variants that should never appear
-# (CN, correct Thai, wrong Thai) — both correct and wrong must be DIFFERENT
-# for the check to be meaningful (otherwise we can never detect the issue).
-NAME_CHECKS = [  # noqa: F811
-    ('曹星', 'เฉาซิง', 'โจวซิง'),
-    ('柳慕雪', 'หลิวมู่เสวี่ย', 'หลิวมู่สวี่'),
-    ('陈江', 'เฉินเจียง', 'เฉินเจียงก'),  # fixed: was 'เฉินเจียง' = correct, never triggered
-    ('香江', 'ฮ่องกง', 'เซียงเจียง'),
-    ('极地人', 'คนเมืองหนาว', 'ชาวโพลาร์'),
-]
-
 
 def split_paragraphs(text: str) -> list[str]:
     parts = text.split('\n---\n')

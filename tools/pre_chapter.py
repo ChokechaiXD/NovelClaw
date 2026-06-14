@@ -25,9 +25,9 @@ ROOT = NOVEL_ROOT
 def read_progress() -> int:
     """Next chapter to translate from progress.md."""
     p = ROOT / 'progress.md'
-    m = re.search(r'Next chapter to translate:\*\* ch (\d+)', p.read_text(encoding='utf-8'))
+    m = re.search(r'Next chapter[:\s]*\*\*\s*ch\s*(\d+)', p.read_text(encoding='utf-8'), re.IGNORECASE)
     if not m:
-        sys.exit("Could not parse progress.md for 'Next chapter to translate'")
+        sys.exit("Could not parse progress.md for 'Next chapter'")
     return int(m.group(1))
 
 
