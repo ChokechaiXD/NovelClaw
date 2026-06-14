@@ -1,0 +1,34 @@
+{
+  "title": "^# ตอนที่ (\\d+) (.+)$",
+  "body_required": [
+    "H1 title (only one at top)",
+    "Body paragraphs separated by blank line",
+    "(จบบท) at end of body",
+    "--- separator",
+    "*Source: ch N* footer (one line)",
+    "หมายเหตุการแปล: section after another ---"
+  ],
+  "dialogue": "「...」 (full-width brackets, content inside, no space inside brackets)",
+  "system_message": "【...】 (full-width brackets, content inside, no space inside brackets)",
+  "game_title": "《...》 (full-width brackets)",
+  "paragraphs": "separated by single blank line (\\n\\n), no trailing spaces",
+  "em_dash": "— (em-dash for missing numbers, e.g., \"—/—\")",
+  "characters": {
+    "left_quote": "「",
+    "right_quote": "」",
+    "left_system": "【",
+    "right_system": "】",
+    "left_game": "《",
+    "right_game": "》"
+  },
+  "forbidden": [
+    "\"  (straight double quote)",
+    "'  (straight single quote)",
+    "[  (square bracket left)",
+    "]  (square bracket right)",
+    "<  (less-than)",
+    ">  (greater-than)",
+    "  (trailing whitespace on any line)",
+    "\n\n\n+  (3+ blank lines)"
+  ]
+}

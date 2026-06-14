@@ -24,9 +24,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from constants import CHAPTERS_DIR, GLOSSARY_DIR  # noqa: E402
-from glossary_doctor import (  # noqa: E402
-    load_glossary, validate_chapter, print_fix_hints
-)
+from glossary_doctor import load_glossary, validate_chapter  # noqa: E402
 
 DB_PATH = GLOSSARY_DIR / 'glossary.db'
 
@@ -83,7 +81,13 @@ def main():
         else:
             print(f'\n✓ ch{ch} clean — ready to commit')
         if args.fix_suggestions and issues:
-            print_fix_hints(ch, issues)
+            # Transmittor principle: just show issues, no auto-fix hints
+            print(f'\nNote: translator transmittor — issues below are REPORTS, not auto-fix instructions.')
+            for i in issues[:10]:
+                sev = i.get('severity', '?')
+                print(f'  [{sev}] {i.get("rule_type")}: {i.get("pattern", "")[:60]}')
+                if i.get('note'):
+                    print(f'    → {i["note"][:80]}')
         sys.exit(0)
 
 

@@ -1,25 +1,31 @@
-"""validate_chapter.py v2 — Quality check with auto-fix.
+"""validate_chapter.py v3 — Quality check (transmittor principle).
 
 Two modes:
   default:    report only (exit 0/1)
-  --fix:      apply mechanical fixes, save, then report
+  --mechanical-fix:  apply ONLY mechanical/structural fixes (whitespace,
+                    number formatting, system message wrapping), save, then
+                    report. NEVER rewrites content (translator transmittor —
+                    we don't touch the author's voice, anti-patterns, etc.)
 
-Mechanical fixes (zero quality risk):
+Mechanical fixes ONLY (zero content risk):
   - Wrong-name variants (e.g., "โจวซิง" → "เฉาซิง" if 曹星 in source)
+    — but only if WRONG is present and CORRECT is not (else flag for review)
   - Trailing whitespace + missing final newline
-  - "—" (em-dash) standardization (placeholder for missing numbers)
+  - Number form normalization (1000 → 1,000 for 5+ digit)
   - System message wrapping: 【...】 around standalone "系統提示出現"
 
-Non-mechanical (always reported, never auto-fixed):
-  - Length ratio issues
-  - Missing/extra numbers
-  - Glossary paraphrase rate
+NEVER auto-fixed (transmittor = we transmit, not edit):
+  - Anti-patterns (translated-feel, formal verbs) — author's voice
+  - Subject echo (3+ consecutive เฉาซิง) — author's style
+  - Length ratio — might be intentional (CN/TH natural expansion)
+  - "ดีใจในใจ", "ฉายแวว", etc. — author's flat emotion
 
 Usage:
-  python validate_chapter.py 71            # check only
-  python validate_chapter.py 71 --fix     # check + apply mechanical fixes
-  python validate_chapter.py               # check last translated
-  python validate_chapter.py --fix --all  # fix all chapters
+  python validate_chapter.py 71                       # check only
+  python validate_chapter.py 71 --mechanical-fix      # check + mechanical fixes only
+  python validate_chapter.py 71 --fix                 # alias for --mechanical-fix
+  python validate_chapter.py                          # check last translated
+  python validate_chapter.py --mechanical-fix --all   # fix all chapters
 """
 import re
 import sys
@@ -77,13 +83,18 @@ def load_glossary_main() -> dict[str, str]:
 # ── Auto-fix ───────────────────────────────────────────────────────────
 
 def auto_fix(text: str) -> tuple[str, list[str]]:
-    """Apply mechanical fixes. Returns (new_text, list_of_fixes).
+    """Apply ONLY mechanical/structural fixes (transmittor principle).
+
+    Returns (new_text, list_of_fixes).
 
     For each (cn, correct, wrong) in NAME_CHECKS:
       - wrong in text AND correct NOT in text  → auto-replace, log fix
       - wrong in text AND correct in text      → flag for manual review
                                                  (not auto-fixed; user must
                                                  decide which usage is correct)
+
+    NOTE: this function does NOT touch content (anti-patterns, length,
+    subject echo). Those are author's voice — we transmit, not edit.
     """
     fixes = []
 

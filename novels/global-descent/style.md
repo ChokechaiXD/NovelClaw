@@ -50,68 +50,26 @@ typically come AFTER the verb. Don't preserve CN order.
 
 **Subject-verb chains** — CN often does "X nodded. X smiled. X spoke."
 Naive: "เฉาซิงพยักหน้า เฉาซิงยิ้ม เฉาซิงพูด" (subject echo, see P5).
+**Note:** subject echo is the AUTHOR's style. We preserve it as-is
+(translator = transmittor, not editor).
 
-### Subject echo (P5) — RECURRING ISSUE
+### Show don't tell (P2)
 
-Observed in ch 80, 90, 95, 100: เฉาซิง starts 3+ consecutive sentences.
-**Fix patterns:**
-- Omit subject when clear: "พยักหน้า ยิ้ม แล้วพูดว่า..."
-- Pronoun เขา (after first mention)
-- Refocus: "เห็นได้ว่า..." / "ดูเหมือนว่า..."
-- Passive: "ได้รับคำสั่งให้..."
+**Note for translator:** we report "ฉายแวว", "เต็มไปด้วยความ", "สีหน้าเปี่ยม"
+in style.md for AI reference, but **the translator does NOT change them**
+when they appear in source. We preserve author's flat-emotion style.
+These are the AUTHOR's voice — we transmit, not edit.
 
-**Rule:** never start 3 consecutive sentences with เฉาซิง.
-
-### Collocation watchlist (P3) — anti-calque
-
-- **璀璨 (resplendent) ≠ ระยิบระยับ (sparkling).** Use "เปล่งรัศมี" / "สว่างไสว" / "แพรวพราว"
-- **黄金蜂蜜 (golden honey) ≠ น้ำผึ้งทองคำ (literal).** Re-anchor: "น้ำผึ้งป่า" / "น้ำผึ้งหอม" / specific source
-- **前面的属性 (preceding attrs) ≠ "ข้างหน้า" (ahead).** Use "แรก" / "ก่อนหน้า"
-- **果然 (as expected) filler** — "อย่างที่คาดไว้" reads translated. Try "ดั่งที่หวัง" or omit entirely
-- **胸 (chest) for emotion** — 内心 / 心里 = ใจ (not อก/หน้าอก)
-- **心下一动 (heart moved) = ใจพลิ้ว** (already in style, do NOT use หัวใจเต้นเล็กน้อย)
-- **永盛集团 (Yongsheng Group) = กลุ่มหย่งเซิ่ง** (preserve CN flavor via transliteration)
-
-**When uncertain about a 2-3 word phrase:** would a native TH reader say
-this? If unsure, search the phrase — 0 hits = rephrase.
-
-### Show don't tell (P2) — RECURRING ISSUE
-
-Observed: "ดีใจในใจ", "สีหน้าเปี่ยมด้วยความยินดี", "บรรยากาศตึงเครียด",
-"เต็มไปด้วยความคาดหวัง" — all flat emotion lumps.
-
-**Fix:** substitute with a concrete gesture, sensation, or image.
-- "ดีใจในใจ" → action specific to moment ("ยิ้มจนเห็นเขี้ยว" / "กระพริบตาถี่ๆ")
-- "สีหน้าเปี่ยมด้วย..." → what does the face/body do? (ขมวดคิ้ว, ถอนหายใจ, กัดริมฝีปาก)
-- "ตึงเครียด" → what creates tension? (เสียงเงียบ, ลมหยุด, มือจับดาบแน่น)
-- TH often *implies* emotion via context + particle, not states it. Trust the reader.
+**Only exception:** when the AI translator (Mika) GENERATES new flat
+emotion not in the source — that IS an error to flag. But when source
+has "ดวงตาเต็มไปด้วยความ..." we translate as-is.
 
 ### Particles & register (P2 + P4) — gap to fill
 
-Current translations rarely use ending particles (นะ, ล่ะ, ค่ะ, ครับ,
-โว้ย, จ้ะ). They make dialogue feel Thai. Add particles consistent
-with character register:
-- หลิวมู่เสวี่ย (gentle female lead): ค่ะ, นะคะ (formal-soft)
-- เฉาซิง (MC, witty): วะ, นะ (casual-male)
-- เลนนิส (elite warrior): ครับ (formal)
-- ต้าป่าย (elephant): เสียงร้อง only ("มอ—!")
-
-**Rule:** every dialogue line should have *some* particle OR a clear
-register marker. Declarative-only is the #1 "translated" tell.
-
-### Length ratio (P7) — RECURRING ISSUE
-
-Target: 1.4-1.8x source length. Current ch 100 = 2.54x (over by 40%).
-Ch 74 was 4.94x (extreme bloat).
-
-**Anti-bloat rules specific to this novel:**
-- Cut "X เป็นคนที่..." (who clauses) → "X..."
-- Cut "ด้วยเหตุที่..." (because clauses) when action already shows cause
-- Combine "เขาพยักหน้า เขายิ้ม เขาพูด" → "พยักหน้า ยิ้ม แล้วพูด"
-- Don't re-explain a term already introduced in glossary
-
-**Red flag:** if length ratio exceeds 2.0x, scan for bloat before
-saving. Re-check Section 8 P7 (anti-bloat).
+**Note:** the article you see in ch 1-100 about "missing particles" is
+an analysis of historical ch, not a rule for new ch. New ch should
+have natural particles from the start (the locked cast dossier has
+particle guidance per character).
 
 ## Punctuation & formatting
 
@@ -124,14 +82,23 @@ saving. Re-check Section 8 P7 (anti-bloat).
 
 ## Banned patterns (Mika MUST avoid)
 
-- "ชาวอาณานิคม[ชื่อ]" appositive compound (flip to TH order)
-- "บัลลังก์ระยิบระยับ" and similar literal calques
-- "ข้างหน้า" for "preceding/earlier" (use "แรก" / "ก่อนหน้า")
-- "ดีใจในใจ" / "เสียใจในใจ" emotion lumps
-- 3+ consecutive sentences starting with เฉาซิง
-- Length ratio > 2.0x (bloat)
-- CN in body text (only allowed in `*Source:*` footer)
-- "น้ำผึ้งทองคำ" (literal calque of golden honey)
+**Translator transmittor principle:** we preserve the author's voice.
+We do NOT remove the author's "ฉายแวว", "ดังนั้น", "เต็มไปด้วย",
+"3+ consecutive เฉาซิง" — these are the author's style, transmitted
+verbatim in Thai register.
+
+The doctor only flags:
+- **Forbidden** (ERROR — blocks save): hard rule violations like
+  "ฮ่องกง" (locked term) or CN chars in body (excluding whitelisted
+  zones 【】, 《》, *Source:* footer, หมายเหตุ meta)
+- **Completeness** (ERROR — blocks save): missing source beats, missing
+  paragraphs, missing characters
+- **Structural** (WARNING): title/body mismatch, length ratio extreme
+  (only as signal, not auto-fix)
+- **Info** (logged): new CN terms not yet in glossary
+
+We do NOT flag "translated-feel" anti-patterns in body text — those are
+the author's style, transmitted as-is.
 
 ## Thai Naturalness (CN→TH-specific)
 
