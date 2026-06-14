@@ -69,13 +69,31 @@ def clean_source(raw: str) -> str:
     for line in lines[1:]:  # skip H1
         stripped = line.strip()
         if not in_body:
-            if stripped == '' or '全球降臨' in stripped or '第' in stripped[:5]:
+            # Skip empty lines, "全球降臨" tags, and chapter markers like "第XXX章"
+            if stripped == '' or '全球降臨' in stripped:
+                continue
+            # Bug #19 regression: only skip lines that look like chapter markers
+            # (e.g. "第五章 開局"), not arbitrary paragraphs that start with "第"
+            # (e.g. "第一段落" = "first paragraph").
+            if re.match(r'^第[一二三四五六七八九十百千零\d]+章', stripped):
                 continue
             in_body = True
         out.append(line)
     text = '\n'.join(out)
-    # Remove trailing line-number noise: "死了！11" → "死了！"
-    text = re.sub(r'([\u4e00-\u9fff，。！？…：])\s*\d{1,3}(?=\s|$)', r'\1', text)
+    # Remove trailing line-number noise: "死了！11" → "死了！".
+    # Real line numbers come from the scraper appending a number after
+    # a CJK punctuation mark (！, 。, etc.) at end of a sentence. We must
+    # NOT strip cases like "段落1" (paragraph 1) which is intentional content.
+    # So require the preceding CJK char to be punctuation only (no CJK letters).
+    # CJK punctuation: ！？。，；：…— (U+FF01-FF64 + U+3000-303F for CJK punct).
+    text = re.sub(
+        r'([！？。，；：…—]+)'  # CJK punctuation (no CJK letters)
+        r'\s*'
+        r'(\d{1,3})'
+        r'(?=\s|$)',
+        r'\1',
+        text,
+    )
     # Remove reader comment lines (short single-line meta — typically from
     # the source site like "求票求收藏！" / "本章未完待续"). Heuristic: a line
     # that is ONLY non-CJK characters, has no Thai letters, AND no common
