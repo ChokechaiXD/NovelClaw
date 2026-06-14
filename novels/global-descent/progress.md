@@ -1,8 +1,8 @@
 # NovelClaw Progress — global-descent
 
-Last translated:** ch 111**
-Total progress: 111/1,239 (8.96%)
-Next chapter: **ch 112**
+Last translated:** ch 112**
+Total progress: 112/1,239 (9.04%)
+Next chapter: **ch 113**
 
 ## Recent activity (2026-06-13)
 
