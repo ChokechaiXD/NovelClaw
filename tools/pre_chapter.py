@@ -32,7 +32,17 @@ def read_progress() -> int:
 
 
 def load_glossary() -> list[tuple[str, str, str]]:
-    """Load all locked+reference+auto terms as (source, thai, notes) tuples."""
+    """Load all locked+reference+auto terms as (source, thai, notes) tuples.
+
+    Primary source: glossary.yml (canonical, git-tracked).
+    Legacy fallback: .md table files (still works, used during migration).
+    """
+    from load_glossary import load_terms
+    terms = load_terms()
+    if terms:
+        return [(t["source"], t["thai"], t.get("notes") or "") for t in terms]
+
+    # Legacy fallback: parse .md tables
     rows = []
     for tier in ('locked.md', 'reference.md', 'auto.md'):
         for line in (GLOSSARY_DIR / tier).read_text(encoding='utf-8').splitlines():
@@ -42,6 +52,16 @@ def load_glossary() -> list[tuple[str, str, str]]:
             if len(cells) >= 6 and cells[1] and cells[1] != '-':
                 rows.append((cells[1], cells[2], cells[5]))
     return rows
+
+
+def load_glossary_yml() -> list[dict]:
+    """Load rich term data from glossary.yml (explanation, category, etc).
+
+    Used for context injection — locked terms get full explanation;
+    others just source+thai.
+    """
+    from load_glossary import load_terms
+    return load_terms()
 
 
 def find_terms_in_source(source: str, glossary: list) -> dict[str, str]:
@@ -172,46 +192,52 @@ def main():
     raw_src = src_file.read_text(encoding='utf-8')
     source = clean_source(raw_src)
 
-    # 2. Glossary terms in source (with explanations from DB)
-    glossary_db = GLOSSARY_DIR / 'glossary.db'
-    if glossary_db.exists():
-        import sqlite3
-        conn = sqlite3.connect(glossary_db)
-        cur = conn.cursor()
-        # Find terms in source
-        cur.execute('''SELECT source_norm, thai, category, priority, explanation
-                       FROM terms WHERE status = "active" ''')
-        rows = cur.fetchall()
-        conn.close()
-        # Build (source, thai, notes) for legacy compat
-        glossary = [(r[0], r[1], r[3]) for r in rows]
-        terms = find_terms_in_source(source, glossary)
-        if terms:
-            # Build term dict for explanation lookup
-            term_info = {r[0]: {'thai': r[1], 'cat': r[2], 'prio': r[3], 'expl': r[4] or ''}
-                         for r in rows}
-            terms_lines = []
-            for src in sorted(terms.keys()):
-                thai = terms[src]
-                info = term_info.get(src, {})
-                expl = info.get('expl', '')
-                # Only show explanation for non-trivial terms (skip "one-off auto" that have generic)
-                if expl and info.get('prio', 3) == 1:
-                    # Locked term — always show explanation
-                    terms_lines.append(f'  {src:18} → {thai:30} [{info.get("cat", "ทั่วไป")}]')
-                    terms_lines.append(f'    📝 {expl[:100]}')
-                else:
-                    terms_lines.append(f'  {src:18} → {thai:30} [{info.get("cat", "ทั่วไป")}]')
-        else:
-            terms_lines = ['  (none found in source)']
+    # 2. Glossary terms in source (with explanations)
+    # Primary: glossary.yml (git-tracked source of truth)
+    # Optional: glossary.db adds explanations if it has them
+    glossary_yml = load_glossary_yml()
+    glossary_db_explanations: dict[str, str] = {}
+    glossary_db_path = GLOSSARY_DIR / 'glossary.db'
+    if glossary_db_path.exists():
+        try:
+            import sqlite3
+            conn = sqlite3.connect(glossary_db_path)
+            cur = conn.cursor()
+            cur.execute('''SELECT source_norm, explanation FROM terms
+                           WHERE status = "active" AND explanation IS NOT NULL''')
+            for src, expl in cur.fetchall():
+                if expl:
+                    glossary_db_explanations[src] = expl
+            conn.close()
+        except Exception:
+            pass
+
+    # Find terms in source
+    terms = find_terms_in_source(source, [(t["source"], t["thai"], "") for t in glossary_yml])
+    if terms:
+        # Build term_info from yml + (optional) db explanations
+        term_info = {
+            t["source"]: {
+                "thai": t["thai"],
+                "cat": t.get("category", "ทั่วไป"),
+                "prio": t.get("priority", 3),
+                "expl": glossary_db_explanations.get(t["source"], t.get("explanation", "") or ""),
+            }
+            for t in glossary_yml
+        }
+        terms_lines = []
+        for src in sorted(terms.keys()):
+            thai = terms[src]
+            info = term_info.get(src, {})
+            expl = info.get("expl", "")
+            if expl and info.get("prio", 3) <= 2:
+                # Locked/reference term — show explanation
+                terms_lines.append(f'  {src:18} → {thai:30} [{info.get("cat", "ทั่วไป")}]')
+                terms_lines.append(f'    📝 {expl[:100]}')
+            else:
+                terms_lines.append(f'  {src:18} → {thai:30} [{info.get("cat", "ทั่วไป")}]')
     else:
-        # Fallback to .md files
-        glossary = load_glossary()
-        terms = find_terms_in_source(source, glossary)
-        if terms:
-            terms_lines = [f'  {src:18} → {thai}' for src, thai in sorted(terms.items())]
-        else:
-            terms_lines = ['  (none found in source)']
+        terms_lines = ['  (none found in source)']
 
     # 3. Last chapter titles (for tone consistency)
     if target > 1:
