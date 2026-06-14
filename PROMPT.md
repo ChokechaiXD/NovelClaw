@@ -96,7 +96,8 @@ A novel reader's contract: **every word of the source appears in the translation
 
 - Translate every paragraph, every sentence, every line of dialogue.
 - Never skip, summarize, paraphrase-instead-of-translate, or "compress" content for brevity.
-- Output length must be ≥ 60% of source length (hard floor for completeness). The 140-180% range is a typical CN→TH natural expansion signal — not an edit target. Do not compress source to fit.
+- Output length must be ≥ 60% of source length (hard floor for completeness — below this, content is likely missing). The 140-180% range is a typical CN→TH natural expansion signal — not an edit target. Do not compress source to fit.
+- **Length ratio quick reference:** ≥60% = completeness floor (§1) | 1.4-1.8x = natural expansion signal (§3) | ≥0.6 flag + >2.5x bloat signal = self-check thresholds (§8). These are three different contexts — not conflicting targets.
 - Preserve scene breaks verbatim: blank lines, 【…】 system messages,
   《…》 game titles, …… ellipses for pauses. These are author intent, not
   decoration.
@@ -112,7 +113,7 @@ A novel reader's contract: **every word of the source appears in the translation
 
 Rules:
 - **All proper nouns must be Thai-rendered** per `glossary/locked.md` (e.g., 曹星 → เฉาซิง, 布洛特 → บรูนท์, not CN retention). No CN characters in body text — ever.
-- **All filler / connective words must be Thai** (果然 → อย่างที่คาดไว้, 原来如此 → เข้าใจแล้ว, 嚣张 → ทะนงตัว, 致命 → ถึงตาย, 叠加 → ซ้อนทับ, 民兵 → ทหารรักษาการณ์, 资料片 → เนื้อหาเสริม).
+- **All filler / connective words must be Thai** (果然 → อย่างที่คาดไว้ or ดั่งที่หวัง — see §4c TH crutches for options, 原来如此 → เข้าใจแล้ว, 嚣张 → ทะนงตัว, 致命 → ถึงตาย, 叠加 → ซ้อนทับ, 民兵 → ทหารรักษาการณ์, 资料片 → เนื้อหาเสริม).
 - **Chat messages, in-game UI text, item names displayed in dialogue** must be translated into Thai inside their 【】, 《》, or "" wrappers. No CN pass-through.
 - **No mixed CN/TH terms** (e.g., glossary entry "布洛特·ซัลเฟอร์สโตน" is wrong — must be "บรูนท์·ซัลเฟอร์สโตน").
 - **The H1 title and all body text must be Thai**; the only place CN may appear is the optional `*Source: ch N (<CN title for reference>)*` footer line at the very end, and even that is a courtesy, not a requirement.
