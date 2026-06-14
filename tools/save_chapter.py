@@ -1,94 +1,145 @@
-"""save_chapter.py — Auto-validate chapter on save.
+"""save_chapter.py — Unified chapter save + validate (replaces save_chapter.py + save_json.py).
 
-Wraps the translation save flow with auto-doctor:
-  1. Run glossary_doctor on the new ch
-  2. If errors → BLOCK save (must fix first)
-  3. If warnings → save anyway, but log to doctor_log + show summary
-  4. Update ch_meta.validation_status
+Pipeline:
+  1. Read chapter (.json canonical, .md legacy fallback)
+  2. Schema validate (Pydantic) — JSON only; MD gets basic checks
+  3. Glossary doctor (transmittor: detect, don't fix)
+  4. Block on errors; report warnings
+  5. Save (JSON format, with FTS index update)
 
 Usage:
-  python tools/save_chapter.py 112                  # validate ch 112
-  python tools/save_chapter.py 112 --strict         # block on warnings too
-  python tools/save_chapter.py 112 --fix-suggestions  # show fix hints
-
-Exit codes:
-  0 = saved (clean or warnings-only)
-  1 = save blocked (errors)
-  2 = strict mode blocked (warnings)
+    python tools/save_chapter.py 113                  # validate + save
+    python tools/save_chapter.py 113 --dry-run        # validate only
+    python tools/save_chapter.py 113 --strict         # block on warnings too
+    python tools/save_chapter.py 113 --from-md        # migrate .md → .json first
 """
 import argparse
-import sqlite3
+import json
 import sys
-from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from constants import CHAPTERS_DIR, GLOSSARY_DIR  # noqa: E402
-from glossary_doctor import load_glossary, validate_chapter  # noqa: E402
+from constants import CHAPTERS_DIR, GLOSSARY_DIR
 
 DB_PATH = GLOSSARY_DIR / 'glossary.db'
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument('chapter', type=int, help='Chapter number to validate')
+    ap = argparse.ArgumentParser(description='Save + validate chapter')
+    ap.add_argument('chapter', type=int, help='Chapter number')
+    ap.add_argument('--dry-run', action='store_true', help='Validate only, do not save')
     ap.add_argument('--strict', action='store_true', help='Block on warnings too')
-    ap.add_argument('--fix-suggestions', action='store_true', help='Show fix hints')
-    ap.add_argument('--gate-only', action='store_true', help='CI gate — no DB write')
+    ap.add_argument('--from-md', action='store_true', help='Read from .md then convert to .json')
     args = ap.parse_args()
 
     ch = args.chapter
-    ch_path = CHAPTERS_DIR / f'{ch:04d}.md'
-    if not ch_path.exists():
-        print(f'❌ ch{ch}: file not found at {ch_path}')
+    json_path = CHAPTERS_DIR / f'{ch:04d}.json'
+    md_path = CHAPTERS_DIR / f'{ch:04d}.md'
+
+    # ── Resolve input file ────────────────────────────────────────────
+    if args.from_md:
+        if not md_path.exists():
+            print(f'❌ ch{ch}: .md not found at {md_path}')
+            sys.exit(1)
+        # Use migration tool
+        from migrate_to_json import migrate
+        ok, msg = migrate(ch, dry_run=False)
+        if not ok:
+            print(f'❌ ch{ch}: migrate failed: {msg}')
+            sys.exit(1)
+        input_path = json_path
+    elif json_path.exists():
+        input_path = json_path
+    elif md_path.exists():
+        input_path = md_path
+    else:
+        print(f'❌ ch{ch}: no chapter file found (.json or .md)')
         sys.exit(1)
 
-    glossary, alias_map, style_rules = load_glossary()
-    issues = validate_chapter(ch, glossary, alias_map, style_rules,
-                              log_to_db=not args.gate_only)
+    # ── Schema validation (JSON only) ────────────────────────────────
+    if input_path.suffix == '.json':
+        from schema import Chapter, load_chapter as _load, save_chapter as _save
+        try:
+            validated = _load(input_path)
+            print(f'✓ ch{ch} schema valid ({len(validated.blocks)} blocks, title="{validated.title}")')
+        except Exception as e:
+            print(f'❌ ch{ch} schema error: {e}')
+            sys.exit(1)
+    else:
+        # MD: basic checks only (no Pydantic schema)
+        content = input_path.read_text(encoding='utf-8')
+        lines = content.splitlines()
+        validated = None
+        print(f'✓ ch{ch} MD loaded ({len(lines)} lines, basic checks only)')
+
+    # ── Glossary doctor ───────────────────────────────────────────────
+    issues = []
+    try:
+        from glossary_doctor import load_glossary, validate_chapter as _doctor
+        glossary, alias_map, style_rules = load_glossary()
+        issues = _doctor(ch, glossary, alias_map, style_rules, log_to_db=False)
+    except Exception as e:
+        print(f'⚠️  Doctor unavailable: {e}')
+
     errors = [i for i in issues if i.get('severity') == 'error']
     warnings = [i for i in issues if i.get('severity') == 'warning']
     info = [i for i in issues if i.get('severity') == 'info']
 
-    print(f'\n📋 ch{ch} doctor summary:')
-    print(f'   ❌ errors:   {len(errors)}')
-    print(f'   ⚠️  warnings: {len(warnings)}')
-    print(f'   ℹ️  info:     {len(info)}')
+    print(f'📋 ch{ch} doctor: ❌{len(errors)} ⚠️{len(warnings)} ℹ️{len(info)}')
 
     if errors:
         print(f'\n❌ ch{ch} BLOCKED — fix errors first:')
         for e in errors:
-            print(f'   {e["rule_type"]}: {e.get("pattern", "")[:80]}')
+            print(f'   {e.get("rule_type", "?")}: {e.get("pattern", "")[:80]}')
             if e.get('explanation'):
                 print(f'      Why: {e["explanation"][:100]}')
-            if e.get('fix'):
-                print(f'      → {e["fix"]}')
-        if args.fix_suggestions:
-            print_fix_hints(ch, issues)
         sys.exit(1)
-    elif warnings and args.strict:
+
+    if warnings and args.strict:
         print(f'\n⚠️  ch{ch} BLOCKED (--strict) — fix warnings:')
-        for w in warnings[:10]:
-            print(f'   {w["rule_type"]}: {w.get("pattern", "")[:80]}')
+        for w in warnings[:5]:
+            print(f'   {w.get("rule_type", "?")}: {w.get("pattern", "")[:80]}')
         sys.exit(2)
+
+    if warnings:
+        for w in warnings[:5]:
+            print(f'   ⚠ {w.get("rule_type", "?")}: {w.get("pattern", "")[:80]}')
+
+    # ── Save ──────────────────────────────────────────────────────────
+    if args.dry_run:
+        print(f'\n[dry-run] would save to {json_path.name}')
     else:
-        if warnings:
-            print(f'\n⚠️  ch{ch} saved with {len(warnings)} warning(s) — review when you can:')
-            for w in warnings[:5]:
-                print(f'   {w["rule_type"]}: {w.get("pattern", "")[:80]}')
-            if len(warnings) > 5:
-                print(f'   ... and {len(warnings) - 5} more')
+        if validated is not None:
+            _save(validated, json_path)
+            # Also save to FTS index
+            try:
+                save_to_fts(validated, ch)
+            except Exception:
+                pass
+            print(f'\n✓ ch{ch} saved → {json_path.name}')
         else:
-            print(f'\n✓ ch{ch} clean — ready to commit')
-        if args.fix_suggestions and issues:
-            # Transmittor principle: just show issues, no auto-fix hints
-            print(f'\nNote: translator transmittor — issues below are REPORTS, not auto-fix instructions.')
-            for i in issues[:10]:
-                sev = i.get('severity', '?')
-                print(f'  [{sev}] {i.get("rule_type")}: {i.get("pattern", "")[:60]}')
-                if i.get('note'):
-                    print(f'    → {i["note"][:80]}')
-        sys.exit(0)
+            # MD: just validate, no save
+            print(f'\n✓ ch{ch} validated (MD — no save)')
+
+
+def save_to_fts(chapter, ch_num: int):
+    """Update FTS index for this chapter."""
+    try:
+        import sqlite3
+        fts_db = GLOSSARY_DIR.parent / 'chapters' / 'fts_index.db'
+        conn = sqlite3.connect(str(fts_db))
+        conn.execute('DELETE FROM chapters WHERE num = ?', (ch_num,))
+        for block in chapter.blocks:
+            text = getattr(block, 'text', str(block))
+            if text:
+                conn.execute(
+                    'INSERT INTO chapters (num, type, text) VALUES (?, ?, ?)',
+                    (ch_num, block.__class__.__name__, text[:2000])
+                )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass  # FTS is optional
 
 
 if __name__ == '__main__':

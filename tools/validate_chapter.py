@@ -199,12 +199,16 @@ def validate(target: int, do_fix: bool = False) -> int:
         for f in fixes:
             info.append(f'  ✓ {f}')
 
-    # 1. Paragraphs
-    if src_paras:
+    # 1. Paragraph ratio (skip for CN source — CN has no paragraph breaks)
+    # Use character-based length ratio instead (section 3 below)
+    if src_paras and len(src_paras) > 1:
+        # Only check paragraph ratio if source actually has multiple paragraphs
         ratio = len(tr_paras) / len(src_paras)
         info.append(f'Paragraphs: source={len(src_paras)} | translation={len(tr_paras)} | ratio={ratio:.2f}')
         if ratio < 0.5 or ratio > 2.5:
             errors.append(f'Paragraph count ratio: {ratio:.2f} (expected 0.5-2.5)')
+    else:
+        info.append(f'Paragraphs: source={len(src_paras)} | translation={len(tr_paras)} (single-source-para, ratio N/A)')
 
     # 2. Numbers
     src_nums = extract_numbers(source)
