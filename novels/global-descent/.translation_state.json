@@ -1,0 +1,13 @@
+{
+  "last_chapter": 116,
+  "total_chapters": 1239,
+  "last_commit": "8f67e69",
+  "last_updated": "2026-06-14T19:30:00+07:00",
+  "history": [
+    {"ch": 112, "blocks": 255, "leak": 0, "commit": "efd763d", "message": "ch 112: real translation (was MOCK), 255 blocks, 0 CN leak"},
+    {"ch": 113, "blocks": 260, "leak": 0, "commit": "2139ce5", "message": "add translation toolkit: translate_ch.py + TRANSLATION_GUIDE.md"},
+    {"ch": 114, "blocks": 279, "leak": 0, "commit": "031adce", "message": "ch 114: real translation, 279 blocks, 0 CN leak"},
+    {"ch": 115, "blocks": 268, "leak": 0, "commit": "9268614", "message": "ch 115: real translation, 268 blocks, 0 CN leak"},
+    {"ch": 116, "blocks": 263, "leak": 0, "commit": "8f67e69", "message": "ch 116: real translation, 263 blocks, 0 CN leak"}
+  ]
+}
