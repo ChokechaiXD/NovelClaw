@@ -255,7 +255,7 @@ def main():
         print()
         cmd_validate_cjk(None)
         print()
-        subprocess.run([sys.executable, str(GLOSSARY_STATS if False else ROOT / 'tools' / 'glossary_stats.py'), '--stale', '--top', '10'])
+        subprocess.run([sys.executable, str(ROOT / 'tools' / 'glossary_stats.py'), '--stale', '--top', '10'])
     elif sub == 'test':
         cmd_test()
     elif sub == 'learn':

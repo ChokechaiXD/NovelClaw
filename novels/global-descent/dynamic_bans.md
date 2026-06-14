@@ -49,6 +49,9 @@ OR appears in 5+ chapters. Excludes glossary terms and whitelist.
 - โอ๊ะ โอ๊ะโอ๊ะ
 - โฮ่ โฮ่
 - ได้รับ อาหารแห้งชิ้นใหญ่
+- ซีเออร์ดา จูบเลือด
+- เฉาซิง พยักหน้า
+- พระประสงค์ แห่งราชินี
 - ไม่เปลี่ยนแปลง plot
 
 ## [whitelist]
@@ -81,3 +84,6 @@ OR appears in 5+ chapters. Excludes glossary terms and whitelist.
 - โอ๊ะ โอ๊ะโอ๊ะ
 - โฮ่ โฮ่
 - ได้รับ อาหารแห้งชิ้นใหญ่
+- ซีเออร์ดา จูบเลือด
+- เฉาซิง พยักหน้า
+- พระประสงค์ แห่งราชินี
