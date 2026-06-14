@@ -315,13 +315,63 @@ const app = express();
 
 app.use(express.static(PUBLIC_DIR));
 
+// ── Novel metadata cache (Phase 2 — multi-novel support) ──────────────
+// Reads meta.md YAML frontmatter once per novel. Cached like the
+// chapter list. Frontmatter format:
+//   ---
+//   slug: global-descent
+//   title: 全球降臨...
+//   source_lang: cn
+//   target_lang: th
+//   ...
+//   ---
+
+const novelMetaCache = new Map();
+
+async function readNovelMeta(slug) {
+  if (novelMetaCache.has(slug)) return novelMetaCache.get(slug);
+  const metaPath = path.join(NOVELS_DIR, slug, 'meta.md');
+  let raw = '';
+  try {
+    raw = await fs.readFile(metaPath, 'utf8');
+  } catch {
+    const fallback = { slug, title: slug, source_lang: 'cn', target_lang: 'th' };
+    novelMetaCache.set(slug, fallback);
+    return fallback;
+  }
+  // Parse YAML frontmatter
+  const m = raw.match(/^---\s*\n([\s\S]*?)\n---/);
+  const meta = { slug, title: slug, source_lang: 'cn', target_lang: 'th' };
+  if (m) {
+    for (const line of m[1].split('\n')) {
+      const kv = line.match(/^(\w[\w_]*):\s*(.+?)\s*$/);
+      if (kv) {
+        let val = kv[2].replace(/^['"]|['"]$/g, '');
+        meta[kv[1]] = val;
+      }
+    }
+  }
+  novelMetaCache.set(slug, meta);
+  return meta;
+}
+
 app.get('/api/novels', async (_req, res) => {
   const slugs = await listNovels();
   const novels = await Promise.all(
     slugs.map(async (slug) => {
+      const meta = await readNovelMeta(slug);
       const chapters = await listChapters(slug);
-      const meta = await readMeta(slug);
-      return { slug, chapterCount: chapters.length, meta };
+      return {
+        slug,
+        title: meta.title || slug,
+        author: meta.author || '',
+        source_lang: meta.source_lang || 'cn',
+        target_lang: meta.target_lang || 'th',
+        chapterCount: chapters.length,
+        totalChapters: parseInt(meta.total_chapters, 10) || chapters.length,
+        status: meta.status || 'unknown',
+        meta: await readMeta(slug),
+      };
     }),
   );
   res.json(novels);

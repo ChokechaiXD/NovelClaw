@@ -1,3 +1,15 @@
+---
+slug: global-descent
+title: 全球降臨：帶著嫂嫂末世種田
+author: 一條小白蛇
+source_lang: cn
+target_lang: th
+source_url: https://tw.hjwzw.com/Book/Chapter/50356
+total_chapters: 1239
+status: in_progress
+started: '2026-06-13'
+---
+
 # 全球降臨：帶著嫂嫂末世種田
 
 - **Original title (CN):** 全球降臨：帶著嫂嫂末世種田
@@ -6,7 +18,7 @@
 - **Target language:** Thai (TH)
 - **Slug:** global-descent
 - **Source URL:** https://tw.hjwzw.com/Book/Chapter/50356
-- **Status:** 111 of 1,239 chapters translated (8.96%)
+- **Status:** 52 of 1,239 chapters translated (4.20%)
 - **Last translated:** ch 111
 - **Font fix applied:** ch 101-110 (569 quotes + 16 name-dots normalized, 2026-06-14)
 - **Style drift acknowledged:** ch 97-100 literary, ch 101+ mechanical (batch translation)

@@ -18,6 +18,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from constants import LENGTH_RATIO_OK, NAME_CHECKS, NOVEL_ROOT  # noqa: E402
 
+# Backward compat: use NOVEL_ROOT (hardcoded to global-descent) as the
+# default. New code should use `from registry import get_novel` instead.
 ROOT = NOVEL_ROOT
 CHAPTERS_DIR = ROOT / 'chapters'
 SOURCE_DIR = CHAPTERS_DIR / 'source'

@@ -26,6 +26,11 @@ from pathlib import Path
 
 CHAPTERS_DIR = Path("novels/global-descent/chapters")
 
+# Multi-novel support (Phase 2 — 2026-06-14):
+# cn_checker can target any novel via env var or by patching
+# CHAPTERS_DIR. The default is global-descent for backward compat.
+NOVEL_SLUG = 'global-descent'
+
 # Unicode ranges
 CN = re.compile(r'[\u4e00-\u9fff]')           # CJK Unified Ideographs (Chinese)
 JP_KANA = re.compile(r'[\u3040-\u309f\u30a0-\u30ff]')  # Hiragana + Katakana
