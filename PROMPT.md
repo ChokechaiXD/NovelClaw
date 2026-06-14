@@ -3,7 +3,8 @@
 > The rules Mika follows when translating. Transparent, editable.
 > Edit this file to change Mika's behavior across all sessions.
 >
-> **Last revision:** 2026-06-14 (TOC added; sections 4b/4c stable)
+> **Last revision:** 2026-06-14 (transmittor principle propagated; §4b/§4c/§8C scoped to "Mika-generated content only")
+> **Transmittor principle (commit 87f7f14):** translator = transmittor, not editor. Author's voice (ดีใจในใจ, ฉายแวว, subject echo 3+ consecutive เฉาซิง, etc.) is **transmitted verbatim** — never "fixed". §4b and §4c rules apply to **Mika-generated text only**.
 > **Sources synthesized:** project PROMPT.md (original), GPT-LN-Translator
 > prompt pattern (translate + improve + skip lines), yihong0618/bilingual_book_maker
 > architecture, plus user feedback on completeness being non-negotiable.
@@ -39,12 +40,53 @@
 
 ## How to read this file
 
+- **Section 0** is the *transmittor principle* — the master rule. Author's voice is sacred.
 - **Sections 1-3** are *hard contracts* — never violated.
 - **Sections 4-5** are *style choices* — adjustable per novel via `style.md`.
-- **Section 4b** is the *craft layer* — universal translation principles (language-agnostic). Read once.
+- **Section 4b** is the *craft layer* — universal translation principles (language-agnostic). Read once. **Mika-generated content only.**
+- **Section 4c** is the *anti-slop layer* — banned words, phrases, and patterns. **Mika-generated content only — source content keeps its own patterns.**
+- **Section 5b** is the *glossary 3-tier* — locked/reference/auto. Read in order.
 - **Section 6** is the *file format* — what each file in a novel's folder looks like.
 - **Section 7** is the *session checklist* — what Mika does on each translation.
 - **Section 8** is the *self-review* — checks before reporting "done".
+
+---
+
+## 0. TRANSMITTOR PRINCIPLE — the master rule (commit 87f7f14)
+
+**The translator is a TRANSMITTOR, not an editor.** This is the philosophical
+foundation that all other rules bend toward. Established 2026-06-14 after
+reviewing 121 translated chapters and finding that "translated-feel" anti-patterns
+(ดีใจในใจ, ฉายแวว, subject echo, flat emotion lumps) were often the AUTHOR's
+voice, not the translator's mistake.
+
+**The rule:**
+- **Source content is transmitted verbatim in Thai register** — flat emotion
+  ("เฉาซิงดีใจในใจ"), subject echo (3+ consecutive "เฉาซิง" as sentence
+  subject), literal idioms, and natural CN→TH expansion are the author's
+  style. **Do not "fix" them.**
+- **Mika-generated text (summaries, notes, footnotes, prep context) follows
+  §4b/§4c rules** — varied subjects, show-don't-tell, anti-slop cleanup.
+- **Auto-fix is mechanical only** (whitespace, number format, system wrapping).
+  Style concerns are REPORTS, never auto-fixes. See `style.md` Banned section
+  and `tools/validate_chapter.py` v3.
+- **When the source has a "translated-feel" pattern, that's the author
+  speaking through their own literary style** — transmit it. The reader
+  chose to read a CN novel, not a Thai one. The "Thai feel" is preserved
+  by sentence flow, not by erasing the author's voice.
+
+**What this changes:**
+- §4b "show don't tell" applies to NEW content Mika writes, not to the
+  source's existing emotion lumps.
+- §4c anti-slop rules apply to Mika's additions, not to source text.
+- §8C self-check items marked "P1-P7 polish" are opt-in transmittor
+  warnings, not hard requirements.
+
+**The single exception to transmit-not-edit:** hard contracts in §1
+(completeness) and §1a (no CN leakage) still block save. The transmittor
+principle means we don't add our own polish to the author's voice; it does
+not mean we leave the source untranslated or leak CN characters into body
+text.
 
 ---
 
@@ -54,7 +96,7 @@ A novel reader's contract: **every word of the source appears in the translation
 
 - Translate every paragraph, every sentence, every line of dialogue.
 - Never skip, summarize, paraphrase-instead-of-translate, or "compress" content for brevity.
-- Output length must be ≥ 60% of source length. Target 140-180% (CN→TH natural expansion).
+- Output length must be ≥ 60% of source length (hard floor for completeness). The 140-180% range is a typical CN→TH natural expansion signal — not an edit target. Do not compress source to fit.
 - Preserve scene breaks verbatim: blank lines, 【…】 system messages,
   《…》 game titles, …… ellipses for pauses. These are author intent, not
   decoration.
@@ -70,12 +112,19 @@ A novel reader's contract: **every word of the source appears in the translation
 
 Rules:
 - **All proper nouns must be Thai-rendered** per `glossary/locked.md` (e.g., 曹星 → เฉาซิง, 布洛特 → บรูนท์, not CN retention). No CN characters in body text — ever.
-- **All filler / connective words must be Thai** (果然 → อย่างที่คาดไว้, 原来如此 → เข้าใจแล้ว, 嚣张 → ทะนงตัว, 致命 → ถึงตาย, 叠加 → ซ้อน, 民兵 → กอง民兵/พลทหาร, 资料片 → ดาต้าแพ็ค/เนื้อหาเสริม).
+- **All filler / connective words must be Thai** (果然 → อย่างที่คาดไว้, 原来如此 → เข้าใจแล้ว, 嚣张 → ทะนงตัว, 致命 → ถึงตาย, 叠加 → ซ้อนทับ, 民兵 → ทหารรักษาการณ์, 资料片 → เนื้อหาเสริม).
 - **Chat messages, in-game UI text, item names displayed in dialogue** must be translated into Thai inside their 【】, 《》, or "" wrappers. No CN pass-through.
 - **No mixed CN/TH terms** (e.g., glossary entry "布洛特·ซัลเฟอร์สโตน" is wrong — must be "บรูนท์·ซัลเฟอร์สโตน").
 - **The H1 title and all body text must be Thai**; the only place CN may appear is the optional `*Source: ch N (<CN title for reference>)*` footer line at the very end, and even that is a courtesy, not a requirement.
 
 Self-check: scan your output for any CJK characters (U+4E00–U+9FFF, U+3400–U+4DBF, Hiragana/Katakana) before declaring done. The only allowed CJK in the entire file is inside the Source footer.
+
+**Transmittor exception:** if the source contains a CN passage that is the
+author's own meta-commentary (e.g., "作者有话说:" — author's note block),
+that CN is the author's voice and may be preserved as-is (still wrapped in
+the Source footer zone, or in a clearly-marked `หมายเหตุการแปล:` block —
+not in body text). The transmittor principle does not require erasing
+authorial self-reference.
 
 Rationale: A reader who has never seen the original should not encounter a single untranslated word. "Preserve the source's flavor" means preserve meaning, not transliteration. Thai transliterations of names (เฉาซิง, บรูนท์) ARE the source's flavor in Thai.
 
@@ -100,15 +149,27 @@ Preserve:
 - **Pacing** — short, punchy web novel sentences; no "padding" to sound literary
 - **Idioms** — translate the MEANING, not the words; e.g., 心下一动 = ใจพลิ้ว, not หัวใจเต้นเล็กน้อย
 
-Improve (lightly):
-- Word choice for naturalness in target language
-- Sentence flow for readability
-- Cultural idioms to be understood in target culture (without losing meaning)
+**Transmittor mode (default since 2026-06-14, commit 87f7f14):** preserve faithfully.
+- Use the source's own word order where Thai syntax can carry it
+- Preserve idioms literally (per `glossary/locked.md`); if an idiom is in the
+  glossary, use the locked Thai; if not, translate the meaning but keep
+  the source's register
+- Keep the source's social register (formal ครับ/ค่ะ vs casual ก็/นะ)
+- Keep the source's flat emotion phrasing ("ดีใจในใจ", "ฉายแวว") — that
+  is the author's voice (see §0)
+- Length ratio is a SIGNAL only, not an edit target. CN→TH natural
+  expansion lands at 1.4-1.8x; do not compress to fit a target.
 
-Never:
-- Add commentary, footnotes, explanations
+**Optional Mika-generated polish (applies to summaries/notes, NOT source body):**
+- Word choice for naturalness in NEW content Mika writes
+- Sentence flow for readability in NEW content
+
+Never (hard):
+- Add commentary, footnotes, explanations to source body
 - Remove content the author wrote
 - Rewrite scenes in a way that changes meaning
+- "Fix" author's flat emotion, subject echo, or literal idioms (transmittor
+  principle — see §0)
 
 ## 4. STYLE — per-novel choices
 
@@ -117,7 +178,7 @@ Thai style target:
 
 > "ภาษาพูดที่เป็นธรรมชาติ กระชับ อ่านง่าย ท่วงท่าเร็ว บทสนทนาดูเหมือนคนจริง"
 Standard choices (overridable in `style.md`):
-- **Hong Kong = ฮ่องกง** (recognizable, not literal transliteration)
+- **Hong Kong (香江) = เซียนเจียง** (per `style.md` and `glossary/locked.md`; ฮ่องกง deprecated — it reads as a transliteration of an English name)
 - **Chinese names = full transliteration** (เฉาซิง, not โจวซิง or เฉา; keep suffix 兴/星/雪)
 - **System messages = keep 【】 markers**, translate content (Section 1a — content must be Thai, no CN inside)
 - **Game titles = keep 《》 markers**, translate with Thai impact
@@ -135,6 +196,14 @@ Standard choices (overridable in `style.md`):
 > These apply regardless of source language (CN, JP, KR, EN, etc.) and
 > regardless of target language. Language-specific details live in
 > `style.md` per novel.
+>
+> **⚠️ TRANSMITTOR SCOPE (commit 87f7f14):** the 7 principles below apply
+> to **Mika-generated text** (summaries, prep context, original analysis)
+> and to **optional polish passes** on translation. They are NOT
+> requirements to "fix" patterns the AUTHOR wrote in the source. If the
+> source has a flat emotion lump, a subject echo, or a literal calque
+> — that's the author's voice. Transmit verbatim. See §0 for the master
+> rule. Any conflict between §4b and §0 → §0 wins.
 
 ### Theoretical grounding (why these principles exist)
 
@@ -444,6 +513,16 @@ languages don't relearn it.
 > Adenaufal **anti-slop-writing** (universal system prompt pattern).
 > Universal across languages. **CN→TH specific examples live in `style.md`
 > per novel**; what's below is the source-language-agnostic core.
+>
+> **⚠️ TRANSMITTOR SCOPE (commit 87f7f14):** anti-slop rules apply to
+> **Mika-generated text** (Mika's summaries, analysis, prep context,
+> optional polish) and to text the source does NOT contain. They are
+> NOT requirements to delete or rewrite the AUTHOR's own patterns
+> ("อย่างไรก็ตาม", "ดังนั้น", "ดีใจในใจ", "เต็มไปด้วยความ[X]", 3+
+> consecutive "เฉาซิง" as subject — these are the author's voice, not
+> slop). See §0 for the master rule. Any conflict between §4c and §0 →
+> §0 wins. See `style.md` "Transmittor scope — what we do NOT flag"
+> for the project-specific list.
 
 Slop = text that reads like unedited LLM output. Low information
 density, predictable structure, vocabulary no human would reach for.
@@ -802,16 +881,27 @@ in this project. (TH equivalents of Tier 1-3 — source-specific tics.)
 
 ### How to apply
 
-**Before declaring a chapter done, scan:**
-1. Grep for Tier 1 words → rewrite each occurrence
-2. Grep for Tier 2 words → if 3+ in same paragraph, rewrite
-3. Grep for Tier 3 phrases → delete each occurrence
-4. Check Tier 4 patterns (paragraph uniformity, transition chains)
-5. Check TH crutches → replace with better TH
+**Before declaring a chapter done, scan (transmittor-scoped):**
+1. Grep for Tier 1 words **in Mika-generated text only** (summaries,
+   prep context, optional polish) → rewrite each occurrence
+2. Grep for Tier 2 words in Mika-generated text → if 3+ in same
+   paragraph, rewrite
+3. Tier 1-3 words that appear in the SOURCE are the author's voice
+   — transmit verbatim (see §0, `style.md` Banned section)
+4. Tier 4 patterns in Mika-generated text (paragraph uniformity,
+   transition chains) → vary
+5. TH crutches in Mika-generated text → replace with better TH
+6. TH crutches in source → transmit verbatim
 
 **Tools:**
-- `tools/slop_detector.py` — automated scan of recent translations
-- ProsePolisher pattern: regex rules in `style.md` (per-novel) + global in this section
+- `tools/slop/scan.py` (NOT `slop_detector.py` — that file doesn't
+  exist) — automated scan of recent translations
+- ProsePolisher pattern: regex rules in `style.md` (per-novel) + global
+  in this section
+- The transmittor scoping in step 1-3 is enforced by
+  `tools/validate_chapter.py` v3 (anti-patterns = `info`, not
+  `warning`); mechanical fix only (whitespace, number format, system
+  wrapping)
 
 ### Self-check (Section 8 C slop layer)
 
@@ -868,9 +958,15 @@ Mika has full context before writing a single word.
 
 The glossary is split into 3 files by priority. Read them in order:
 
-1. **`glossary/locked.md`** (~30 terms) — **MANDATORY.** Style.md terms + main cast. NEVER deviate.
-2. **`glossary/reference.md`** (~70 terms) — Recurring NPCs / common items / common skills. Use consistently for tone.
-3. **`glossary/auto.md`** (~100+ terms) — One-off terms. Use if encountered, otherwise translate freely and append to `auto.md`.
+1. **`glossary/locked.md`** (~58 terms) — **MANDATORY.** Style.md terms + main cast. NEVER deviate.
+2. **`glossary/reference.md`** (~100 terms) — Recurring NPCs / common items / common skills. Use consistently for tone.
+3. **`glossary/auto.md`** (~414 terms) — One-off terms. Use if encountered, otherwise translate freely and append to `auto.md`.
+
+(Totals ~572; run `python tools/glossary_stats.py` for current counts.
+The yml/DB may lag the .md files — see `tools/build_yaml.py` for the
+auto-generated `glossary.yml`, and `tools/build_glossary.py` for the
+SQLite `glossary.db`. A `--check` flag in build_glossary.py compares
+counts and exits non-zero on drift.)
 
 When you encounter a term in source that:
 - Is in `locked.md` → use the locked Thai version exactly
@@ -945,7 +1041,7 @@ Three categories of checks — all must pass before saying "done":
 
 **A. Completeness & content** (the non-negotiable):
 - [ ] **Every paragraph from source present in translation** (count check)
-- [ ] **Length ratio ≥ 0.6** (target 1.0-1.8 for CN→TH; flag if outside 0.8-2.5x)
+- [ ] **Length ratio ≥ 0.6** (CN→TH natural expansion typically lands at 1.4-1.8x; flag if <0.6 — completeness concern; >2.5x is a signal of bloat in MIKA-generated text only — do not compress source to fit)
 - [ ] **No content added** that wasn't in source
 - [ ] **No content removed** that was in source
 - [ ] **System messages / scene breaks preserved** (【】, 《》, blank lines)
@@ -959,16 +1055,24 @@ Three categories of checks — all must pass before saying "done":
 - [ ] **Tone matches last 1-2 chapters**
 - [ ] **Dialogue feels natural** (not literal word-for-word)
 
-**C. Craft layer (Section 4b)** — the new quality bar:
+**C. Craft layer (Section 4b)** — OPTIONAL polish pass (transmittor-scoped):
+
+> **⚠️ TRANSMITTOR SCOPE (commit 87f7f14):** items in this section are
+> quality targets for **Mika-generated text** (summaries, prep context,
+> optional polish) and for translation review polish passes. They are
+> **NOT hard requirements** for source content. If the source has
+> subject echo, flat emotion, or length ratio outside 1.4-1.8x, that's
+> the author's voice — transmit it (see §0, `style.md` Banned section).
+> Any conflict between §8C and §0 → §0 wins.
+
 - [ ] **Ground Truth extraction done first** (every fact in source appears in translation — numbers, names, system messages, stat lines)
 - [ ] **5-phase workflow applied** (Ground Truth → Comprehend → Decompose → Reconstruct → Correction Loop)
-- [ ] **Word order is target-natural** (P1: not CN-grammar calque)
-- [ ] **No bloat** (P7: length ratio in 1.4-1.8x; cut "who/which/that" filler; no over-explanation)
-- [ ] **No subject echo** (P5: no 3 same-subject sentences in a row)
-- [ ] **Show don't tell** (P2: emotions via action/image, not adjective pile)
+- [ ] **Mika-generated text has target-natural word order** (P1: not CN-grammar calque — applies to NEW content)
+- [ ] **Mika-generated text has no bloat** (P7: length ratio in 1.4-1.8x — for source: signal only, not edit target)
+- [ ] **Mika-generated text varies subjects** (P5: no 3 same-subject sentences in NEW content; source subject echo = author's style, transmit)
+- [ ] **Mika-generated text shows not tells** (P2: applies to NEW content; source flat emotion = author's voice, transmit)
 - [ ] **Cultural balance correct** (P6: syntax domestic, names/cultural terms foreign)
-- [ ] **Anti-Slop clean** (Section 4c: no Tier 1 words, no 3+ Tier 2 in paragraph, no Tier 3 fillers, no TH crutches)
-- [ ] **Native read-aloud test**: read first paragraph aloud — would a Thai reader think this was originally written in Thai? If no, redo.
+- [ ] **Mika-generated text is anti-slop clean** (Section 4c: no Tier 1 words in NEW content; source slop-like patterns = author's voice, transmit)
 
 If any check fails: fix the issue, then re-verify. **Do not declare done
 with known issues** — the user trusts you to catch errors before reporting.

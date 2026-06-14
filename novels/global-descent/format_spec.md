@@ -35,7 +35,7 @@
 | **Separator 1** | `---` on its own line | `---` |
 | **Source footer** | `*Source: ch {N}*` (NO novel title, NO author) | `*Source: ch 112*` |
 | **Separator 2** | `---` on its own line | `---` |
-| **Meta section** | `หมายเหตยการแปล:` followed by `- {note}` lines | (see ch 112) |
+| **Meta section** | `หมายเหตุการแปล:` followed by `- {note}` lines | (see ch 112) |
 
 ## Bracket conventions (CRITICAL)
 

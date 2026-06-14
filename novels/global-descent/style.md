@@ -80,7 +80,13 @@ particle guidance per character).
   `【เลเวล 10 (1533/10000)】`
 - **Source footer:** `*Source: ch N*` (CN title optional, in CN)
 
-## Banned patterns (Mika MUST avoid)
+## Transmittor scope — what we do NOT flag in body text
+
+> **Renamed 2026-06-14 (commit 87f7f14).** The old title "Banned patterns
+> (Mika MUST avoid)" was misleading — the section's content is actually
+> a scope statement: "what we do NOT auto-fix or auto-flag in body text,
+> because that's the author's voice." The transmittor principle means
+> we transmit, not edit. See PROMPT.md §0 for the master rule.
 
 **Translator transmittor principle:** we preserve the author's voice.
 We do NOT remove the author's "ฉายแวว", "ดังนั้น", "เต็มไปด้วย",
@@ -106,13 +112,19 @@ Universal writing principles + TH-specific application live in
 [`docs/THAI_NATURALNESS.md`](../../../docs/THAI_NATURALNESS.md).
 Read once, apply consistently.
 
-**Top 5 things that make TH read as "CN-translation" (avoid these):**
+**Top 5 things that make TH read as "CN-translation" (transmittor-scoped):**
 
-1. **Filter words** — `รู้สึกว่า` / `คิดว่า` / `เชื่อว่า` (drop if removable)
-2. **Adverb -ๆ** — `ช้าๆ` / `เบาๆ` / `เงียบๆ` (use verb choice instead)
-3. **的 → ของ** — drop "ของ" when possessive is clear
-4. **是 → เป็น/คือ** — drop when sentence works without it
-5. **了 → แล้ว** — drop when context already marks completion
+> **⚠️ Transmittor scope (commit 87f7f14):** these rules apply to
+> **Mika-generated content only** (summaries, prep context, optional
+> polish). When these patterns appear in the **source**, that's the
+> author's voice — transmit verbatim. The doctor does not auto-fix
+> these in source body text. See PROMPT.md §0.
+
+1. **Filter words** — `รู้สึกว่า` / `คิดว่า` / `เชื่อว่า` (drop if removable in MIKA-generated text; transmit in source)
+2. **Adverb -ๆ** — `ช้าๆ` / `เบาๆ` / `เงียบๆ` (use verb choice instead in MIKA-generated text; transmit in source)
+3. **的 → ของ** — drop "ของ" in MIKA-generated text when possessive is clear; transmit in source
+4. **是 → เป็น/คือ** — drop in MIKA-generated text when sentence works without it; transmit in source
+5. **了 → แล้ว** — drop in MIKA-generated text when context already marks completion; transmit in source
 
 See `THAI_NATURALNESS.md` §5 for banned phrases, §6 for CN→TH anti-patterns,
 §3 for sentence rhythm. Goal: respect the source's voice, deliver TH that
@@ -130,20 +142,14 @@ reads Thai to a Thai reader.
 - When in doubt: แปลแบบเบา + ใส่ ellipsis เพื่อ imply rather than 跳過ทั้งหมด
 
 
-## Auto-detected slop candidates (from slop_detector.py)
-
-- "อย่างไรก็ตาม" (Tier 3 — 92x)
-- "ดังนั้น" (Tier 3 — 44x)
-- "เต็มไปด้วยความ" (Tier 3 — 28x)
-- "รวมถึง" (Tier 3 — 22x)
-- "แม้ว่า" (Tier 3 — 21x)
-- "นอกจากนี้" (Tier 3 — 13x)
-- "ถึงแม้ว่า" (Tier 3 — 11x)
-- "ชาวอาณานิคม" (Tier 3 — 11x)
-- "ดีใจในใจ" (Tier 3 — 8x)
-- "โดยเฉพาะ" (Tier 3 — 7x)
-
 ## Auto-detected slop candidates (slop_detector v2)
+
+> **Transmittor scope (commit 87f7f14):** these phrases are flagged ONLY
+> when Mika generates them NEW (not in source). When they appear in
+> source, transmit verbatim per PROMPT.md §0. v1 (above) was removed
+> 2026-06-14 — duplicate of v2 with stale counts. The doctor (`tools/
+> glossary_doctor.py`) treats these as `info`, not `warning`, in source
+> body text.
 
 - "อย่างไรก็ตาม" (Tier 3 — 90x)
 - "ดังนั้น" (Tier 3 — 42x)
