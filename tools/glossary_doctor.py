@@ -248,6 +248,7 @@ def detect_cjk_leakage(text):
     """ERROR — find raw CN chars in body (excludes whitelisted zones)."""
     cleaned = re.sub(r'【[^】]*】', '', text)  # system messages
     cleaned = re.sub(r'《[^》]*》', '', cleaned)  # game titles
+    cleaned = re.sub(r'「[^」]*」', '', cleaned)  # dialogue
     cleaned = re.sub(r'\*Source:[^*]*\*', '', cleaned)  # source footer
     cleaned = re.split(r'\nหมายเหตุ[ก-๙ ]*[:：]', cleaned, maxsplit=1)[0]
     cleaned = re.split(r'\n(?:Translation [Nn]otes?|Note:|Notes:)\s*\n', cleaned, maxsplit=1)[0]
@@ -258,7 +259,7 @@ def detect_cjk_leakage(text):
             'severity': 'error',
             'pattern': f'{len(cjk)} CN chars in body',
             'count': len(cjk),
-            'note': 'translate or move to whitelisted zone (【】, 《》, footer)',
+            'note': 'translate or move to whitelisted zone (【】, 《》, 「」, footer)',
             'explanation': 'CN chars in translated body = untranslated content',
         }]
     return []
