@@ -9,6 +9,7 @@
 const express = require('express');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { spawn } = require('node:child_process');
 const { marked } = require('marked');
 
 // Export pure functions for testing (without spinning up HTTP server)
@@ -390,20 +391,117 @@ app.get('/api/novel/:slug/chapter-numbers', async (req, res) => {
 // Search filter — case-insensitive, matches against num + title + number-prefix
 // e.g. ?q=81 returns ch 81 if exists, else 810-819
 // e.g. ?q=7  returns ch 7 if exists + ch 70-79
-// e.g. ?q=นักธนู returns any chapter with "นักธนู" in title
+// e.g. ?q=นักธนู returns any chapter with "นักธนู" in title or content
+//
+// mode=title (default): in-memory filter on title + num (fast, no Python).
+// mode=content: FTS5 full-text search (delegates to tools/chapter_search.py
+//               --json search). Returns ranked snippets. Best for finding
+//               where a character/place/event was mentioned.
+// mode=all: union of both (deduped, title hits ranked first).
 app.get('/api/novel/:slug/chapters/search', async (req, res) => {
   const q = (req.query.q || '').toString().trim();
+  const mode = (req.query.mode || 'title').toString();
+  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
   if (!q) return res.json([]);
-  const all = await listChapters(req.params.slug);
-  const qn = parseInt(q, 10);
-  const qLower = q.toLowerCase();
-  const results = all.filter((c) => {
-    if (Number.isFinite(qn) && c.num === qn) return true;
-    if (Number.isFinite(qn) && String(c.num).startsWith(q)) return true;
-    return c.title.toLowerCase().includes(qLower);
-  });
-  res.json(results);
+  if (!['title', 'content', 'all'].includes(mode)) {
+    return res.status(400).json({ error: `Unknown mode '${mode}' (use title|content|all)` });
+  }
+
+  let results = [];
+  if (mode === 'title' || mode === 'all') {
+    const all = await listChapters(req.params.slug);
+    const qn = parseInt(q, 10);
+    const qLower = q.toLowerCase();
+    const seen = new Set();
+    for (const c of all) {
+      if (Number.isFinite(qn) && c.num === qn) {
+        if (!seen.has(c.num)) { results.push({ num: c.num, title: c.title, source: 'title' }); seen.add(c.num); }
+        continue;
+      }
+      if (Number.isFinite(qn) && String(c.num).startsWith(q)) {
+        if (!seen.has(c.num)) { results.push({ num: c.num, title: c.title, source: 'title' }); seen.add(c.num); }
+        continue;
+      }
+      if (c.title && c.title.toLowerCase().includes(qLower)) {
+        if (!seen.has(c.num)) { results.push({ num: c.num, title: c.title, source: 'title' }); seen.add(c.num); }
+      }
+    }
+  }
+
+  if (mode === 'content' || mode === 'all') {
+    try {
+      const fts = await ftsSearch(req.params.slug, q, limit);
+      console.log(`[search] fts5 returned ${fts.length} results for "${q}"`);
+      const seen = new Set(results.map((r) => r.num));
+      for (const r of fts) {
+        if (seen.has(r.chapter_num)) continue;
+        results.push({
+          num: r.chapter_num,
+          title: r.title,
+          snippet: r.snippet,
+          score: r.score,
+          source: 'content',
+        });
+        seen.add(r.chapter_num);
+      }
+    } catch (err) {
+      // Don't fail the whole request if FTS5 isn't built yet
+      if (err.code !== 'FTS_EMPTY') {
+        console.warn(`FTS5 search failed: ${err.message}`);
+      } else {
+        console.log(`[search] fts5 skipped: ${err.message}`);
+      }
+    }
+  }
+
+  res.json(results.slice(0, limit));
 });
+
+// FTS5-backed search — spawns tools/chapter_search.py with --json.
+// Returns [] if index doesn't exist yet (so the endpoint works for a fresh
+// clone before chapter_search.py index has been run).
+async function ftsSearch(slug, query, limit) {
+  const novelRoot = path.join(NOVELS_DIR, slug);
+  const indexPath = path.join(novelRoot, 'chapters', 'fts_index.db');
+  // Fast path: if no index file exists, skip the spawn entirely
+  try {
+    await fs.access(indexPath);
+  } catch {
+    const e = new Error('FTS index not built');
+    e.code = 'FTS_EMPTY';
+    throw e;
+  }
+  const cwd = path.resolve(__dirname, '..');
+  const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+  const args = [
+    'tools/chapter_search.py',
+    '--novel-root', novelRoot,
+    '--json', 'search', query,
+    '--limit', String(limit),
+  ];
+  return new Promise((resolve, reject) => {
+    const child = spawn(py, args, { cwd, windowsHide: true });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
+    child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
+    child.on('error', (err) => reject(err));
+    child.on('close', (code) => {
+      if (code !== 0) {
+        const e = new Error(`chapter_search.py exited ${code}: ${stderr.trim()}`);
+        e.code = 'FTS_FAIL';
+        reject(e);
+        return;
+      }
+      try {
+        const parsed = stdout.trim() ? JSON.parse(stdout) : [];
+        resolve(Array.isArray(parsed) ? parsed : []);
+      } catch (err) {
+        reject(new Error(`Invalid JSON from chapter_search.py: ${err.message}`));
+      }
+    });
+  });
+}
 
 app.get('/api/novel/:slug/chapter/:num', async (req, res) => {
   const num = parseInt(req.params.num, 10);
