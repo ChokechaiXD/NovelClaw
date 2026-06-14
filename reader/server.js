@@ -153,21 +153,35 @@ async function readChapter(slug, num) {
 /**
  * Render a Chapter JSON object directly to HTML.
  * Replaces marked.js for the new format — no parsing, just block-by-block DOM.
+ *
+ * Quote style (P'Chok's choice, 2026-06-14):
+ *   Dialogue   → "..." (curly U+201C / U+201D) — Thai standard
+ *   Nested     → '...' (curly U+2018 / U+2019) — inside curly double
+ *   System msg → 【...】 (game UI, kept)
+ *   Title      → 《...》 (kept)
+ *   End        → (จบบท)
+ *
+ * Source blocks may use 「...」 (CN-style kagikakko); renderer converts to curly.
  */
 function renderChapterJson(ch) {
-  const escapeHtml = (s) => s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
   const esc = (s) => s;  // our text is already safe (no HTML in source)
+
+  // Convert CN/JP kagikakko to curly Thai/EN quotes
+  // 「 → " (U+201C),  」 → " (U+201D)
+  // 『 → ' (U+2018),  』 → ' (U+2019)
+  const toCurly = (s) => s
+    .replace(/「/g, '\u201C')   // opening double
+    .replace(/」/g, '\u201D')   // closing double
+    .replace(/『/g, '\u2018')   // opening single
+    .replace(/』/g, '\u2019');  // closing single
 
   let html = '';
   for (const block of ch.blocks || []) {
     if (block.type === 'narration') {
-      html += `<p>${esc(block.text)}</p>\n`;
+      html += `<p>${esc(toCurly(block.text))}</p>\n`;
     } else if (block.type === 'dialogue') {
-      // 「...」 is the canonical format; render with subtle indent
-      html += `<p class="dialogue">${esc(block.text)}</p>\n`;
+      // dialogue: convert kagikakko to curly quotes
+      html += `<p class="dialogue">${esc(toCurly(block.text))}</p>\n`;
     } else if (block.type === 'system') {
       // 【...】 system message — render with subtle background
       html += `<p class="system-msg">${esc(block.text)}</p>\n`;
