@@ -35,11 +35,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from constants import NOVEL_ROOT  # noqa: E402
 
-DB_FILE = NOVEL_ROOT / 'chapters' / 'fts_index.db'
+# DB_FILE is the default. --novel-root <path> overrides (multi-novel support,
+# added 2026-06-14 for Tier 3 #12 server endpoint).
+def _resolve_db(novel_root: Path | None = None) -> Path:
+    root = novel_root or NOVEL_ROOT
+    return root / 'chapters' / 'fts_index.db'
 
-# Multi-novel: FTS5 index is per-novel (Phase 2 — 2026-06-14).
-# For now, the index lives in the same chapters/ dir. To support
-# multiple novels, each novel would have its own fts_index.db.
+# Backwards-compat: existing code uses DB_FILE constant. Most paths read this,
+# so we keep it pointing at the default. --novel-root switches at call time.
+DB_FILE = _resolve_db()
 
 
 # ── Schema ─────────────────────────────────────────────────────────
@@ -63,10 +67,16 @@ CREATE TABLE IF NOT EXISTS chapter_meta (
 """
 
 
-def get_conn() -> sqlite3.Connection:
-    """Get SQLite connection (creates DB if needed)."""
-    DB_FILE.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(DB_FILE))
+def get_conn(db_file: Path | None = None) -> sqlite3.Connection:
+    """Get SQLite connection (creates DB if needed).
+
+    `db_file` lets callers point at a per-novel index (e.g.
+    novels/<slug>/chapters/fts_index.db). Defaults to the global NOVEL_ROOT
+    index for backwards compat.
+    """
+    target = db_file or DB_FILE
+    target.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(target))
     conn.executescript(SCHEMA)
     return conn
 
@@ -163,18 +173,23 @@ def extract_summary(body: str, max_chars: int = 300) -> str:
     return '\n\n'.join(out)
 
 
-def build_index() -> int:
+def build_index(novel_root: Path | None = None) -> int:
     """Build/rebuild the FTS5 index from all translated chapters.
 
     Supports BOTH .json (new canonical) and .md (legacy). For .json, we
     extract text from each block. For .md, we use the legacy separator
     parser.
 
+    `novel_root` defaults to NOVEL_ROOT (global-descent). Pass an
+    alternate root to build a per-novel index.
+
     Returns number of chapters indexed.
     """
-    conn = get_conn()
+    root = novel_root or NOVEL_ROOT
+    db_file = _resolve_db(root)
+    conn = get_conn(db_file)
     cur = conn.cursor()
-    chapters_dir = NOVEL_ROOT / 'chapters'
+    chapters_dir = root / 'chapters'
     # Accept both formats — sort by numeric stem
     files = sorted(
         list(chapters_dir.glob('*.md')) + list(chapters_dir.glob('*.json')),
@@ -240,12 +255,20 @@ def _extract_from_json(filepath: Path) -> tuple[int, str, str]:
     return num, title, '\n\n'.join(parts)
 
 
-def search(query: str, limit: int = 5, exclude_chapter: int | None = None) -> list[dict]:
+def search(
+    query: str,
+    limit: int = 5,
+    exclude_chapter: int | None = None,
+    novel_root: Path | None = None,
+) -> list[dict]:
     """Search for chapters matching query.
 
     Returns list of {chapter_num, title, snippet, score} sorted by relevance.
+
+    `novel_root` lets callers target a per-novel FTS5 index.
     """
-    conn = get_conn()
+    root = novel_root or NOVEL_ROOT
+    conn = get_conn(_resolve_db(root))
     cur = conn.cursor()
 
     # Sanitize query: FTS5 special chars can break; keep CN/TH/EN + spaces
@@ -360,6 +383,15 @@ def get_stats() -> dict:
 def main():
     import argparse
     p = argparse.ArgumentParser(description='FTS5 chapter search (Phase 4 continuity)')
+    p.add_argument(
+        '--novel-root', type=Path, default=None,
+        help='Override novel root (default: NOVEL_ROOT from constants). '
+             'Use for multi-novel setups (e.g. --novel-root novels/<slug>).',
+    )
+    p.add_argument(
+        '--json', action='store_true',
+        help='Output search/stats as JSON (machine-readable for server.js).',
+    )
     sub = p.add_subparsers(dest='cmd', required=True)
 
     sub.add_parser('index', help='build/rebuild FTS5 index')
@@ -377,12 +409,22 @@ def main():
 
     args = p.parse_args()
 
+    root = args.novel_root
+    db_file = _resolve_db(root) if root else DB_FILE
+
     if args.cmd == 'index':
-        n = build_index()
-        print(f'✅ Indexed {n} chapters → {DB_FILE}')
+        n = build_index(novel_root=root)
+        print(f'✅ Indexed {n} chapters → {db_file}')
 
     elif args.cmd == 'search':
-        results = search(args.query, limit=args.limit, exclude_chapter=args.exclude)
+        results = search(
+            args.query, limit=args.limit,
+            exclude_chapter=args.exclude, novel_root=root,
+        )
+        if args.json:
+            import json as _json
+            print(_json.dumps(results, ensure_ascii=False))
+            return
         if not results:
             print('No matches.')
             return
@@ -402,9 +444,13 @@ def main():
 
     elif args.cmd == 'stats':
         s = get_stats()
+        if args.json:
+            import json as _json
+            print(_json.dumps({**s, 'db_file': str(db_file)}, ensure_ascii=False))
+            return
         print(f'Indexed chapters: {s["indexed"]}')
         print(f'Last indexed:     {s["last_indexed"] or "(never)"}')
-        print(f'DB file:          {DB_FILE}')
+        print(f'DB file:          {db_file}')
 
 
 if __name__ == '__main__':
