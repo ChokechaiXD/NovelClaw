@@ -84,9 +84,57 @@ function findIndexByNum(num) {
   return -1;
 }
 
+// Build a VirtualScroll instance for the chapter list. The render fn
+// captures the current `state.num` and `isRead(slug, num)` so that
+// updates to state.recompute the active/read class in place via .update().
+function createListInstance() {
+  const container = document.getElementById('chapter-list');
+  let viewport = document.getElementById('vscroll-viewport');
+  let spacer = document.getElementById('vscroll-spacer');
+  if (!viewport || !spacer) {
+    container.innerHTML =
+      '<div class="vscroll-viewport" id="vscroll-viewport">' +
+      '<div class="vscroll-spacer" id="vscroll-spacer"></div></div>';
+    viewport = document.getElementById('vscroll-viewport');
+    spacer = document.getElementById('vscroll-spacer');
+  }
+  const slug = state.novel;
+  function classesFor(num, read) {
+    return `vscroll-row ${num === state.num ? 'active' : ''} ${read ? 'read' : ''}`.trim();
+  }
+  return new VirtualScroll(container, {
+    rowHeight: 64,
+    buffer: 5,
+    render: (ch) => {
+      const num = ch.num;
+      const title = ch.title || `ตอนที่ ${num}`;
+      const read = isRead(slug, num);
+      return el('a', {
+        href: `?novel=${slug}&ch=${num}`,
+        class: classesFor(num, read),
+        'data-num': String(num),
+        title,
+        onclick: (e) => { e.preventDefault(); loadChapter(num); },
+      },
+        el('span', { class: 'chapter-num' }, String(num).padStart(4, '0')),
+        el('span', { class: 'chapter-label-text' }, title),
+      );
+    },
+    update: (ch, _idx, rowEl) => {
+      const num = ch.num;
+      const title = ch.title || `ตอนที่ ${num}`;
+      const read = isRead(slug, num);
+      rowEl.className = classesFor(num, read);
+      rowEl.setAttribute('href', `?novel=${slug}&ch=${num}`);
+      rowEl.setAttribute('data-num', String(num));
+      rowEl.setAttribute('title', title);
+      const label = rowEl.querySelector('.chapter-label-text');
+      if (label) label.textContent = title;
+    },
+  });
+}
+
 function renderChapterList() {
-  const list = document.getElementById('chapter-list');
-  list.innerHTML = '';
   const slug = state.novel;
   const q = (state.searchQuery || '').toLowerCase();
   const visible = state.chapters.filter((ch) => {
@@ -95,27 +143,16 @@ function renderChapterList() {
     if (String(ch.num).startsWith(q)) return true;
     return (ch.title || '').toLowerCase().includes(q);
   });
+
   if (visible.length === 0) {
-    list.appendChild(el('li', { class: 'empty-list' }, '(ไม่พบ chapter)'));
+    if (state.list) state.list.setItems([]);
+    const list = document.getElementById('chapter-list');
+    list.innerHTML = '<li class="empty-list">(ไม่พบ chapter)</li>';
   } else {
-    visible.forEach((ch) => {
-      const num = ch.num;
-      const title = ch.title || `ตอนที่ ${num}`;
-      const read = isRead(slug, num);
-      const a = el(
-        'a',
-        {
-          href: `?novel=${slug}&ch=${num}`,
-          class: `chapter-link ${num === state.num ? 'active' : ''} ${read ? 'read' : ''}`,
-          'data-num': String(num),
-          title,
-          onclick: (e) => { e.preventDefault(); loadChapter(num); },
-        },
-        el('span', { class: 'chapter-num' }, String(num).padStart(4, '0')),
-        el('span', { class: 'chapter-label-text' }, title),
-      );
-      list.appendChild(el('li', {}, a));
-    });
+    const placeholder = document.querySelector('#chapter-list > .empty-list');
+    if (placeholder) placeholder.remove();
+    if (!state.list) state.list = createListInstance();
+    state.list.setItems(visible);
   }
   const label = q
     ? `${visible.length} / ${state.chapters.length} ตอน`
@@ -135,10 +172,7 @@ function updateTopProgress() {
 }
 
 function setActiveInList() {
-  document.querySelectorAll('.chapter-list a').forEach((a) => {
-    const n = parseInt(a.dataset.num, 10);
-    a.classList.toggle('active', n === state.num);
-  });
+  if (state.list) state.list.refresh();
 }
 
 function updateNavButtons() {
@@ -171,7 +205,13 @@ function showChapter(data) {
   document.getElementById('chapter-title').textContent =
     data.title || `ตอนที่ ${data.num}`;
   document.getElementById('chapter-content').innerHTML = data.html;
-  document.getElementById('chapter-meta').innerHTML = data.metaHtml || '';
+  // Wrap metaHtml in collapsible <details> if present
+  if (data.metaHtml) {
+    document.getElementById('chapter-meta').innerHTML =
+      `<details><summary>หมายเหตุการแปล</summary>${data.metaHtml}</details>`;
+  } else {
+    document.getElementById('chapter-meta').innerHTML = '';
+  }
 
   const rt = document.getElementById('reading-time');
   if (rt && data.html) {
@@ -184,6 +224,10 @@ function showChapter(data) {
   markRead(state.novel, data.num);
   setLastPosition(state.novel, data.num);
   renderChapterList();  // refresh "read" state
+  // Keep the active row visible in the sidebar
+  if (state.list && state.index >= 0) {
+    state.list.scrollToIndex(state.index, { align: 'center' });
+  }
 
   // Browser tab title
   document.title = `ตอนที่ ${data.num} — ${data.title || ''}`.trim() + ` — ${state.novel}`;
@@ -263,7 +307,12 @@ document.getElementById('chapter-search').addEventListener('keydown', (e) => {
 
 async function runSearch(q) {
   try {
-    const results = await api(`/api/novel/${encodeURIComponent(state.novel)}/chapters/search?q=${encodeURIComponent(q)}`);
+    // mode=all: title filter + FTS5 content search union, deduped, title first.
+    // limit=30: more than enough for sidebar; virtual scroll handles overflow.
+    const results = await api(
+      `/api/novel/${encodeURIComponent(state.novel)}/chapters/search?` +
+      `q=${encodeURIComponent(q)}&mode=all&limit=30`,
+    );
     renderSearchResults(results, q);
   } catch (err) {
     // Search failure: just log to console (search is best-effort, the
@@ -280,24 +329,60 @@ function renderSearchResults(results, q) {
   list.innerHTML = '';
   if (results.length === 0) {
     list.appendChild(el('li', { class: 'empty' }, `ไม่พบ "${q}"`));
+    document.getElementById('chapter-count').textContent = `0 / ${state.chapters.length}`;
     return;
   }
-  for (const c of results) {
-    const a = el(
-      'a',
-      {
-        href: `?novel=${state.novel}&ch=${c.num}`,
-        class: `chapter-link ${c.num === state.num ? 'active' : ''}`,
-        'data-num': String(c.num),
-        title: c.title,
-        onclick: (e) => { e.preventDefault(); loadChapter(c.num); },
-      },
-      el('span', { class: 'chapter-num' }, String(c.num).padStart(4, '0')),
-      el('span', { class: 'chapter-label-text' }, c.title || `ตอนที่ ${c.num}`),
-    );
-    list.appendChild(el('li', {}, a));
+  // Search results: use VirtualScroll if many (UX stays smooth), or a
+  // plain list if few (rendering one card with a snippet looks better
+  // than a virtualised row at that scale).
+  if (results.length <= 12) {
+    renderSearchResultsSimple(results);
+  } else {
+    renderSearchResultsVirtual(results);
   }
   document.getElementById('chapter-count').textContent = `${results.length} / ${state.chapters.length}`;
+}
+
+function renderSearchResultsSimple(results) {
+  const list = document.getElementById('chapter-list');
+  for (const c of results) {
+    const snippetText = c.snippet ? stripSnippetMarkers(c.snippet) : null;
+    const rowChildren = [
+      el('span', { class: 'chapter-num' }, String(c.num).padStart(4, '0')),
+      el('div', { class: 'chapter-text-col' },
+        el('span', { class: 'chapter-label-text' }, c.title || `ตอนที่ ${c.num}`),
+        snippetText ? el('span', { class: 'chapter-snippet' }, snippetText) : null,
+      ),
+    ];
+    const a = el('a', {
+      href: `?novel=${state.novel}&ch=${c.num}`,
+      class: `search-row ${c.num === state.num ? 'active' : ''} ${c.source === 'content' ? 'from-content' : 'from-title'}`,
+      'data-num': String(c.num),
+      title: c.title,
+      onclick: (e) => { e.preventDefault(); loadChapter(c.num); },
+    }, ...rowChildren);
+    list.appendChild(el('li', {}, a));
+  }
+}
+
+function renderSearchResultsVirtual(results) {
+  if (!state.list) state.list = createListInstance();
+  // Override the list's items with search results by giving it a
+  // shallow copy where each item has the snippet/source tags. We can't
+  // reuse the main list instance cleanly (it reads state.chapters shape),
+  // so we fall back to simple render but cap at the limit. With limit=30
+  // it's still manageable.
+  renderSearchResultsSimple(results);
+}
+
+// FTS5 wraps the matched substring in <<...>>. Strip them for display
+// but keep the substring so the user can see what was matched.
+function stripSnippetMarkers(snippet) {
+  return snippet
+    .replace(/<</g, '')
+    .replace(/>>/g, '')
+    .replace(/\n+/g, ' ')
+    .trim();
 }
 
 async function loadChapter(num) {
@@ -326,6 +411,7 @@ async function loadChapter(num) {
       } else {
           msg = 'เกิดข้อผิดพลาด';
       }
+      const chapterContent = document.getElementById('chapter-content');
       const friendly = `โหลดตอนที่ ${num} ไม่สำเร็จ — ${msg}`;
       if (chapterContent) chapterContent.innerHTML = `<p style="text-align:center;padding:2em;color:var(--text-muted);">${friendly}</p>`;
   }

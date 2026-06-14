@@ -44,7 +44,11 @@
           spellcheck="false"
         />
       </div>
-      <ol class="chapter-list" id="chapter-list"></ol>
+      <ol class="chapter-list" id="chapter-list">
+        <div class="vscroll-viewport" id="vscroll-viewport">
+          <div class="vscroll-spacer" id="vscroll-spacer"></div>
+        </div>
+      </ol>
     </aside>
 
     <main class="reader" id="reader">
@@ -80,6 +84,7 @@
     </main>
   </div>
 
+  <script src="/virtual-scroll.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>
