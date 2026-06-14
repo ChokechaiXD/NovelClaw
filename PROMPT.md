@@ -979,25 +979,30 @@ The glossary is split this way to keep the prompt small (only relevant terms per
 
 ## 6. FILE FORMAT
 
-### Chapter file `chapters/NNNN.md`
+### Chapter file `chapters/NNNN.json`
 
-```markdown
-# ตอนที่ N <Thai title>
+JSON format (schema-validated, type-safe). Each chapter is a JSON file with blocks of dialogue, narration, and system messages.
 
-<translated content — every paragraph from source>
-
----
-
-*Source: ch N*
-*Translated: <YYYY-MM-DD>*
+```json
+{
+  "schema_version": 1,
+  "num": 113,
+  "title": "ตอนที่ 113 ...",
+  "lang": "cn",
+  "blocks": [
+    {"type": "narration", "text": "<TH narration>"},
+    {"type": "dialogue", "text": "「TH dialogue」", "speaker": "เฉาซิง"},
+    {"type": "system", "text": "【TH system message】"}
+  ],
+  "source": "ch 113"
+}
 ```
 
-**Optional:** A `*คำแปล:*` one-paragraph summary may appear in the
-final section (after a `---` separator). This is used in the reader
-sidebar's "what happened" tooltip for the chapter. Keep it under
-1,000 Thai characters.
+See `tools/schema.py` for the full Pydantic schema. Save with `python tools/save_json.py <N>`.
 
-### Glossary `glossary.md`
+**Legacy:** `.md` format is still readable by most tools (fallback) but `.json` is the canonical translation format.
+
+### Glossary `glossary/locked.md` + `glossary/reference.md` + `glossary/auto.md`
 
 Markdown table with columns: Source | Thai | Category | Priority | Notes.
 Categories: ตัวละคร (character), ไอเทม (item), สถานที่ (place), สกิล (skill).
