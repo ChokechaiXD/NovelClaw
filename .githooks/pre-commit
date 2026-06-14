@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""Pre-commit hook: validate any staged chapters/*.json files.
+
+Blocks commit if:
+  - Schema validation fails (Pydantic)
+  - Glossary doctor finds errors
+
+Shows warnings/info (transmittor principle — report, don't fix).
+
+Configure: git config core.hooksPath .githooks
+"""
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+REPO = Path(__file__).parent.parent
+sys.path.insert(0, str(REPO / "tools"))
+from schema import Chapter  # noqa: E402
+
+
+def main():
+    # Find staged chapters/*.json
+    result = subprocess.run(
+        ['git', 'diff', '--cached', '--name-only', '--diff-filter=ACM'],
+        capture_output=True, text=True, cwd=REPO,
+    )
+    staged = [
+        line.strip()
+        for line in result.stdout.splitlines()
+        if line.strip().startswith('novels/global-descent/chapters/') and line.strip().endswith('.json')
+    ]
+
+    if not staged:
+        return 0  # Nothing to check
+
+    print(f'🪝 pre-commit: validating {len(staged)} ch file(s)...')
+
+    errors = 0
+    warnings = 0
+
+    for path_str in staged:
+        path = REPO / path_str
+        if not path.exists():
+            continue
+        try:
+            data = json.loads(path.read_text(encoding='utf-8'))
+        except json.JSONDecodeError as e:
+            print(f'  ❌ {path.name}: invalid JSON: {e}')
+            errors += 1
+            continue
+        try:
+            ch = Chapter(**data)
+        except Exception as e:
+            print(f'  ❌ {path.name}: schema failed: {str(e)[:200]}')
+            errors += 1
+            continue
+
+        # Doctor check (warnings only — transmittor principle)
+        try:
+            from glossary_doctor import load_glossary, validate_chapter
+            glossary, alias_map, style_rules = load_glossary()
+            issues = validate_chapter(ch.num, glossary, alias_map, style_rules, log_to_db=False)
+            ch_errors = [i for i in issues if i.get('severity') == 'error']
+            ch_warnings = [i for i in issues if i.get('severity') == 'warning']
+            if ch_errors:
+                print(f'  ❌ {path.name}: {len(ch_errors)} doctor error(s):')
+                for e in ch_errors[:3]:
+                    print(f'      {e.get("rule_type", "?")}: {e.get("pattern", "")[:60]}')
+                errors += len(ch_errors)
+            else:
+                w_msg = f', {len(ch_warnings)} warning(s)' if ch_warnings else ''
+                print(f'  ✓ {path.name}: schema OK ({len(ch.blocks)} blocks{w_msg})')
+                warnings += len(ch_warnings)
+        except Exception as e:
+            print(f'  ⚠️  {path.name}: doctor unavailable: {e}')
+
+    print()
+    if errors:
+        print(f'❌ pre-commit BLOCKED: {errors} error(s) across {len(staged)} file(s)')
+        print('   Fix schema/doctor errors before committing.')
+        return 1
+
+    if warnings:
+        print(f'⚠️  pre-commit ALLOWED: {warnings} warning(s) (transmittor — review when you can)')
+    else:
+        print(f'✓ pre-commit PASSED: {len(staged)} ch file(s) clean')
+
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
