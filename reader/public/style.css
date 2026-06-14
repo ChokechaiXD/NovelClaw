@@ -149,13 +149,15 @@ button {
   width: var(--sidebar-w);
   background: var(--sidebar-bg);
   border-right: 1px solid var(--border);
-  overflow-y: auto;
+  /* Virtual scroll owns the inner scroll; sidebar is a flex column */
+  overflow: hidden;
   position: sticky;
   top: calc(56px + var(--safe-top));
   height: calc(100dvh - 56px - var(--safe-top));
   flex-shrink: 0;
   transition: transform 0.2s, margin-left 0.2s;
-  /* Allow scroll within sidebar without scroll-jacking the body */
+  display: flex;
+  flex-direction: column;
   overscroll-behavior-y: contain;
 }
 
@@ -169,17 +171,15 @@ button {
   justify-content: space-between;
   padding: 16px 20px 8px;
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
   background: var(--sidebar-bg);
+  flex-shrink: 0;
   z-index: 2;
 }
 
 .sidebar-search {
   padding: 8px 16px 4px;
   background: var(--sidebar-bg);
-  position: sticky;
-  top: 56px;
+  flex-shrink: 0;
   z-index: 1;
 }
 
@@ -219,39 +219,118 @@ button {
 
 .chapter-list {
   margin: 0;
-  padding: 8px 0;
+  padding: 0;
   list-style: none;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .chapter-list li { margin: 0; }
 
-.chapter-list a {
+/* Virtual scroll viewport — fixed height, scrolls, contains the spacer */
+.chapter-list .vscroll-viewport {
+  position: relative;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
+}
+
+.chapter-list .vscroll-spacer {
+  position: relative;
+  width: 100%;
+}
+
+/* Rows are absolutely positioned by virtual-scroll.js */
+.chapter-list .vscroll-row {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  padding: 10px 20px;  /* slightly bigger for touch */
+  padding: 10px 20px;
   color: var(--sidebar-text);
   text-decoration: none;
   border-left: 3px solid transparent;
   transition: background 0.1s, border-color 0.1s, color 0.1s;
+  cursor: pointer;
   min-height: var(--tap-min);
+  box-sizing: border-box;
+  background: transparent;
 }
 
-.chapter-list a:hover {
+.chapter-list .vscroll-row:hover {
   background: var(--surface);
   color: var(--text);
-  text-decoration: none;
 }
 
-.chapter-list a.active {
+.chapter-list .vscroll-row.active {
   background: var(--accent-soft);
   border-left-color: var(--accent);
   color: var(--accent);
   font-weight: 500;
 }
 
-.chapter-list a.read {
+.chapter-list .vscroll-row.read .chapter-num {
   color: var(--text-soft);
+  opacity: 0.6;
+}
+
+/* Search result card — taller (snippet row), two-column layout */
+.chapter-list .search-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 20px;
+  color: var(--sidebar-text);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+  cursor: pointer;
+  min-height: var(--tap-min);
+  box-sizing: border-box;
+  background: transparent;
+}
+
+.chapter-list .search-row:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.chapter-list .search-row.active {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+  color: var(--accent);
+}
+
+.chapter-list .search-row .chapter-text-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.chapter-list .search-row .chapter-snippet {
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
+}
+
+.chapter-list .search-row.from-content {
+  border-left-color: var(--accent);
+  border-left-width: 1px;
+  border-left-style: dashed;
+}
+
+.chapter-list .search-row.from-title {
+  /* default — same as plain chapter-link */
 }
 
 .chapter-num {
@@ -262,7 +341,7 @@ button {
   flex-shrink: 0;
 }
 
-.chapter-list a.active .chapter-num {
+.vscroll-row.active .chapter-num {
   color: var(--accent);
   font-weight: 600;
 }
