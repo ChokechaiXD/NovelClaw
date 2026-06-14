@@ -31,12 +31,12 @@ git commit -m "translate ch 113"
 | Block type | Required text pattern | Example |
 |---|---|---|
 | `narration` | any text, no CN leakage (except in 【】/《》) | `เฉาซิงเดินไปข้างหน้า` |
-| `dialogue` | must contain `「...」` (full-width CJK brackets) | `เฉาซิงพูด 「ไปกัน」` |
-| `system` | must contain `【...】` | `【เลเวล 10 (1533/10000)】` |
-| `game_title` | must contain `《...》` | `《มหายุคน้ำแข็ง》` |
-| `end` | exactly `(จบบท)` (only one per ch, must be last) | `(จบบท)` |
+| `dialogue` | CN: `「...」` JP/KR: same. EN/TH: curly `"..."` U+201C/U+201D | `เฉาซิงพูด 「ไปกัน」` (CN) / `"Hello"` (EN) |
+| `system` | CN/JP/KR/TH: `【...】`. EN: `[...]` | `【เลเวล 10 (1533/10000)】` |
+| `game_title` | CN/TH: `《...》`. JP: `『...』`. EN/TH: curly `"..."` | `《มหายุคน้ำแข็ง》` |
+| `end` | CN/TH: `(จบบท)`. JP: `（終）`. KR: `(끝)`. EN: `(End)` | per language |
 
-**Title format:** `ตอนที่ N <thai_title>` (space between N and title)
+**Title format:** `ตอนที่ N <translated_title>` (space between N and title)
 
 **Required fields per chapter:**
 - `schema_version: 1`
@@ -45,6 +45,28 @@ git commit -m "translate ch 113"
 - `blocks: [...]` (at least 1 content block + 1 end block)
 - `source: "ch N"` (short form, no novel title)
 - `notes: [...]` (optional)
+- `lang: "cn"` (default; can be `cn`, `jp`, `kr`, `en`, `th`)
+
+**Multi-language brackets (Phase 2 — 2026-06-14):**
+
+Each source language has its own bracket convention. The schema
+enforces the right brackets per `lang`. Renderer also switches styling.
+
+| Language | Dialogue | System | Game title | End marker |
+|---|---|---|---|---|
+| `cn` (default) | `「...」` | `【...】` | `《...》` | `(จบบท)` |
+| `jp` | `「...」` | `【...】` | `『...』` | `（終）` |
+| `kr` | `「...」` | `【...】` | `《...》` | `(끝)` |
+| `en` | `"..."` (curly) | `[...]` | `"..."` (curly) | `(End)` |
+| `th` | `"..."` (curly) | `【...】` | `《...》` | `(จบบท)` |
+
+Renderer converts kagikakko to curly quotes for `cn/jp/kr` at render time
+(so `「สวัสดี」` displays as `"สวัสดี"`). For `en/th`, source already uses
+curly quotes — no conversion needed.
+
+**Adding a new language:** edit `BRACKETS` in `tools/schema.py` (single
+source of truth) and mirror it in `reader/server.js` (renderer). Add test
+to `tests/test_multilang_schema.py`.
 
 ---
 
