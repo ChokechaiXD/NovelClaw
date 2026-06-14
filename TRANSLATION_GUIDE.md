@@ -12,15 +12,14 @@ python tools/translate_ch.py 113 --context --search
 
 # Step 2: Read source, translate to Thai (Mika does this manually)
 
-# Step 3: Build JSON manually OR via Python script
-# Save as chapters/0113.json with structure:
-#   {"schema_version": 1, "num": 113, "title": "ตอนที่ N ...", "blocks": [...], "source": "ch 113"}
+# Step 3: Save chapter file
+# Save as chapters/NNNN.md (e.g., chapters/0113.md)
 
 # Step 4: Validate (auto on git commit via pre-commit hook)
-python tools/save_json.py 113
+python tools/validate_chapter.py 113
 
 # Step 5: Commit
-git add novels/global-descent/chapters/0113.json
+git add novels/global-descent/chapters/0113.md
 git commit -m "translate ch 113"
 ```
 
@@ -224,10 +223,10 @@ with open('novels/global-descent/chapters/source/0113.md', encoding='utf-8') as 
 # 3. Translate (Mika writes JSON)
 
 # 4. Validate
-python tools/save_json.py 113
+python tools/validate_chapter.py 113
 
 # 5. Commit (pre-commit hook auto-runs)
-git add novels/global-descent/chapters/0113.json
+git add novels/global-descent/chapters/0113.md
 git commit -m "translate ch 113"
 ```
 

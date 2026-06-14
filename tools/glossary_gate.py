@@ -41,7 +41,7 @@ from load_glossary import load_terms  # noqa: E402
 
 # Reuse source-path logic from constants
 sys.path.insert(0, str(Path(__file__).parent))
-from constants import NOVEL_ROOT  # noqa: E402
+from constants import GLOSSARY_DIR, NOVEL_ROOT  # noqa: E402
 
 SOURCE_DIR = NOVEL_ROOT / 'chapters' / 'source'
 CHAPTERS_DIR = NOVEL_ROOT / 'chapters'
@@ -196,8 +196,26 @@ def scan_chapter(num: int, min_occurrences: int = 2) -> dict:
                    key=lambda x: -x[1])
     banned = sorted([(t, c) for t, c in frequent.items() if t in bans],
                     key=lambda x: -x[1])
+
+    # Filter out "new" terms that are substrings of known glossary terms.
+    # extract_cn_terms generates all overlapping 2-4 char substrings,
+    # so a known term like "曹星" produces noise like "曹星走", "星走".
+    # Remove candidates that are partial matches of any known term:
+    #   - term is a proper substring of a known term, OR
+    #   - a known term is a proper substring of term
+    known_for_noise = {g for g in glossary if len(g) >= 2}
+    def is_substring_noise(term: str) -> bool:
+        """Return True if `term` partially overlaps any known glossary term."""
+        for g in known_for_noise:
+            if term == g:
+                continue
+            if term in g or g in term:
+                return True
+        return False
+
     new = sorted([(t, c) for t, c in frequent.items()
-                  if t not in glossary and t not in bans],
+                  if t not in glossary and t not in bans
+                  and not is_substring_noise(t)],
                  key=lambda x: -x[1])
 
     return {
@@ -269,7 +287,7 @@ def format_report(result: dict, suggest: bool = False) -> str:
         lines.append(f"❌ GATE FAILED — {len(result['terms_new'])} new terms need glossary entries")
         lines.append('')
         lines.append('How to fix:')
-        lines.append('  1. Add new terms to: novels/global-descent/glossary/locked.md or reference.md')
+        lines.append(f'  1. Add new terms to: {GLOSSARY_DIR.relative_to(NOVEL_ROOT)}/locked.md or reference.md')
         lines.append(f"  2. Run: python tools/build_yaml.py  (regenerates glossary.yml)")
         lines.append(f"  3. Re-run: python tools/glossary_gate.py {result['num']}")
 
