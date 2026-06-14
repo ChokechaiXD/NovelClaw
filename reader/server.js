@@ -67,17 +67,29 @@ async function listChapters(slug) {
     return cached.list;
   }
   const entries = await fs.readdir(dir, { withFileTypes: true });
+  // Accept .json (new canonical) and .md (legacy)
   const files = entries
-    .filter((e) => e.isFile() && /^\d{4}\.md$/.test(e.name))
+    .filter((e) => e.isFile() && /^\d{4}\.(json|md)$/.test(e.name))
     .map((e) => e.name);
   const out = [];
+  // Dedupe: if both .json and .md exist for same num, keep .json only
+  const seen = new Map();
   for (const f of files) {
     const num = parseInt(f.slice(0, 4), 10);
+    const isJson = f.endsWith('.json');
+    if (!seen.has(num) || isJson) seen.set(num, f);
+  }
+  for (const [num, f] of seen.entries()) {
     let title = '';
     try {
       const raw = await fs.readFile(path.join(dir, f), 'utf8');
-      const m = raw.match(/^#\s+(.+?)\r?\n/);
-      if (m) title = m[1].trim();
+      if (f.endsWith('.json')) {
+        const j = JSON.parse(raw);
+        title = (j.title || '').toString();
+      } else {
+        const m = raw.match(/^#\s+(.+?)\r?\n/);
+        if (m) title = m[1].trim();
+      }
     } catch { /* ignore */ }
     out.push({ num, title });
   }
@@ -106,9 +118,9 @@ async function readChapter(slug, num) {
     return {
       title: ch.title || `ตอนที่ ${ch.num}`,
       body: '', // not used in JSON mode
-      meta: (ch.notes || []).join('\n'),
+      meta: '',
       html,
-      metaHtml: '', // notes are inlined as <details>
+      metaHtml: (ch.meta && ch.meta.length) ? `<ul>${ch.meta.map(m => `<li>${m}</li>`).join('')}</ul>` : '',
       isJson: true,
     };
   }
