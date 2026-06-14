@@ -1,0 +1,12 @@
+{
+  "name": "uukanshu",
+  "display_name": "UU看書 (uukanshu.cc)",
+  "toc_url": "https://uukanshu.cc/book/25241/",
+  "read_url_template": "https://uukanshu.cc/book/25241/{chid}.html",
+  "html_parser": "parse_uukanshu_html",
+  "toc_pattern": "href=\"/book/25241/(\\d+)\\.html\"[^>]*>\\s*第\\s*(\\d+)\\s*章",
+  "main_characters": ["曹星", "星火城", "一條小白蛇", "陳江", "柳慕雪",
+                      "梅爾", "埃麗莎", "希兒妲", "蕾妮絲"],
+  "ocr_selectors": [".readcotent", "#content", ".content", "div.txt"],
+  "notes": "uukanshu has ch 1-810 (5.9M chars), clean HTML. Use for 1-810, fall back to hjwzw for 811+."
+}

@@ -11,6 +11,7 @@ __pycache__/
 *.so
 .Python
 .venv/
+.venv312/
 venv/
 env/
 ENV/
@@ -34,6 +35,8 @@ desktop.ini
 
 # Backups (regenerate via `python novelclaw.py backup`)
 backups/
+# Source backup from 2026-06-14 re-scrape (temporary, can be regenerated)
+novels/*/chapters/source_backup_*/
 
 # Build / temp
 *.log
@@ -53,3 +56,6 @@ htmlcov/
 # CN source files (copyrighted, do NOT push)
 novels/*/chapters/source/
 **/chapters/source/
+# Quarantined source files (copyrighted, do NOT push)
+novels/*/chapters/source_dirty/
+**/chapters/source_dirty/*.md

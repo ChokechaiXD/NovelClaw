@@ -1,0 +1,11 @@
+{
+  "name": "hjwzw",
+  "display_name": "黃金屋中文 (tw.hjwzw.com)",
+  "toc_url": "https://tw.hjwzw.com/Book/Chapter/50356",
+  "read_url_template": "https://tw.hjwzw.com/Book/Read/50356,{chid}",
+  "html_parser": "parse_hjwzw_html",
+  "toc_pattern": "href=\"/Book/Read/50356,(\\d+)\"[^>]*>\\s*第(\\d+)章",
+  "main_characters": ["曹星", "星火城", "一條小白蛇"],
+  "ocr_selectors": ["#content", ".content", "#chaptercontent", "div.txt"],
+  "notes": "hjwzw serves truncated body for ch 800+ (1.2K chars vs typical 5K+). Use Tier 2 (OCR) fallback for these."
+}
