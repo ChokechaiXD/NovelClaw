@@ -172,13 +172,46 @@ def main():
     raw_src = src_file.read_text(encoding='utf-8')
     source = clean_source(raw_src)
 
-    # 2. Glossary terms in source
-    glossary = load_glossary()
-    terms = find_terms_in_source(source, glossary)
-    if terms:
-        terms_lines = [f'  {src:18} → {thai}' for src, thai in sorted(terms.items())]
+    # 2. Glossary terms in source (with explanations from DB)
+    glossary_db = GLOSSARY_DIR / 'glossary.db'
+    if glossary_db.exists():
+        import sqlite3
+        conn = sqlite3.connect(glossary_db)
+        cur = conn.cursor()
+        # Find terms in source
+        cur.execute('''SELECT source_norm, thai, category, priority, explanation
+                       FROM terms WHERE status = "active" ''')
+        rows = cur.fetchall()
+        conn.close()
+        # Build (source, thai, notes) for legacy compat
+        glossary = [(r[0], r[1], r[3]) for r in rows]
+        terms = find_terms_in_source(source, glossary)
+        if terms:
+            # Build term dict for explanation lookup
+            term_info = {r[0]: {'thai': r[1], 'cat': r[2], 'prio': r[3], 'expl': r[4] or ''}
+                         for r in rows}
+            terms_lines = []
+            for src in sorted(terms.keys()):
+                thai = terms[src]
+                info = term_info.get(src, {})
+                expl = info.get('expl', '')
+                # Only show explanation for non-trivial terms (skip "one-off auto" that have generic)
+                if expl and info.get('prio', 3) == 1:
+                    # Locked term — always show explanation
+                    terms_lines.append(f'  {src:18} → {thai:30} [{info.get("cat", "ทั่วไป")}]')
+                    terms_lines.append(f'    📝 {expl[:100]}')
+                else:
+                    terms_lines.append(f'  {src:18} → {thai:30} [{info.get("cat", "ทั่วไป")}]')
+        else:
+            terms_lines = ['  (none found in source)']
     else:
-        terms_lines = ['  (none found in source)']
+        # Fallback to .md files
+        glossary = load_glossary()
+        terms = find_terms_in_source(source, glossary)
+        if terms:
+            terms_lines = [f'  {src:18} → {thai}' for src, thai in sorted(terms.items())]
+        else:
+            terms_lines = ['  (none found in source)']
 
     # 3. Last chapter titles (for tone consistency)
     if target > 1:

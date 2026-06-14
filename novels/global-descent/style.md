@@ -20,7 +20,7 @@
 
 ## Specific term choices (locked)
 
-- **Hong Kong = ฮ่องกง** (recognizable, not เซียงเจียง)
+- **Hong Kong = เซียนเจียง** (preserve CN flavor via transliteration; เซียนเจียง hits emotional register better than ฮ่องกง, which reads as a transliteration of an English name)
 - **曹星 = เฉาซิง** (preserve CN name, no romanization change)
 - **柳慕雪 = หลิวมู่เสวี่ย** (preserve CN, sister-in-law)
 - **伊勒娜 = อิเลน่า** (elf character)

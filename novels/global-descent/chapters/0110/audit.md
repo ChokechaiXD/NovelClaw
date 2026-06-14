@@ -9,7 +9,7 @@
 - **Translation chars:** 12,806
 - **Length ratio:** 2.32x (target 1.5-3.0) — ✅
 - **Paragraphs:** 216
-- **Thai names detected:** กำลัง, หลิวมู่เสวี่ย, อาซัม, ฮ่องกง, เฉาซิง, โลก, ไม้
+- **Thai names detected:** กำลัง, หลิวมู่เสวี่ย, อาซัม, เซียนเจียง, เฉาซิง, โลก, ไม้
 - **CN names detected:** (none)
 
 ## Phase 2: Plot Engine

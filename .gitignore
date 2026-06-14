@@ -59,3 +59,9 @@ novels/*/chapters/source/
 # Quarantined source files (copyrighted, do NOT push)
 novels/*/chapters/source_dirty/
 **/chapters/source_dirty/*.md
+
+# Auto-generated DBs (rebuild via `python novelclaw.py glossary build --apply`)
+# - glossary.db = rebuilt from locked.md/reference.md/auto.md
+# - fts_index.db = rebuilt via `python novelclaw.py search-index`
+**/glossary.db
+**/fts_index.db

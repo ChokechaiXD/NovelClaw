@@ -16,6 +16,13 @@ Usage:
   python novelclaw.py health                     # quick health: candidates + cjk + stale glossary
   python novelclaw.py scrape                     # scrape source chapters
   python novelclaw.py test [-v]                  # run pytest suite (validates parse + auto_fix)
+
+  # Glossary system (v2 — auto everything)
+  python novelclaw.py glossary build [--apply] [--rescore]  # rebuild glossary.db
+  python novelclaw.py glossary doctor [--ch N|--all|--gate] # run doctor
+  python novelclaw.py glossary report                        # full glossary state
+  python novelclaw.py glossary save N [--strict]            # validate ch before commit
+  python novelclaw.py glossary stats                         # usage statistics
 """
 import subprocess
 import sys
@@ -227,6 +234,42 @@ def cmd_npc(*args_list):
     sys.exit(subprocess.call(args))
 
 
+def cmd_glossary(*args_list):
+    """Unified glossary commands: build, doctor, report, stats, save.
+
+    Sub-commands:
+      build [--apply] [--rescore]   - rebuild glossary.db from .md files
+      doctor [--ch N|--all|--gate]  - run doctor on chapters
+      report                        - full glossary state report
+      save N [--strict] [--fix-suggestions]  - validate ch before commit
+      stats                         - usage statistics
+    """
+    if not args_list:
+        print(__doc__ if False else "Glossary subcommands: build, doctor, report, save, stats")
+        return
+    sub = args_list[0]
+    rest = list(args_list[1:])  # convert tuple → list for concatenation
+    if sub == 'build':
+        args = [sys.executable, str(ROOT / 'tools' / 'build_glossary.py')] + rest
+        sys.exit(subprocess.call(args))
+    elif sub == 'doctor':
+        args = [sys.executable, str(ROOT / 'tools' / 'glossary_doctor.py')] + rest
+        sys.exit(subprocess.call(args))
+    elif sub == 'save':
+        args = [sys.executable, str(ROOT / 'tools' / 'save_chapter.py')] + rest
+        sys.exit(subprocess.call(args))
+    elif sub == 'stats':
+        args = [sys.executable, str(ROOT / 'tools' / 'glossary_stats.py')] + rest
+        sys.exit(subprocess.call(args))
+    elif sub == 'report':
+        args = [sys.executable, str(ROOT / 'tools' / 'glossary_doctor.py'), '--report']
+        sys.exit(subprocess.call(args))
+    else:
+        print(f'Unknown glossary subcommand: {sub}')
+        print('Available: build, doctor, save, stats, report')
+        sys.exit(1)
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -307,11 +350,13 @@ def main():
             cmd_audit(chapter=n)
     elif sub == 'npc':
         cmd_npc(*sys.argv[2:])
+    elif sub == 'glossary':
+        cmd_glossary(*sys.argv[2:])
     else:
         print(f'Unknown subcommand: {sub}')
         print('Available: status, prep, validate [--cjk|chapter], candidates, scrape,')
         print('             backup, clean, stats, review, health, test,')
-        print('             learn, search-index, search, audit, npc')
+        print('             learn, search-index, search, audit, npc, glossary')
         sys.exit(1)
 
 

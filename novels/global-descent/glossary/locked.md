@@ -3,7 +3,7 @@
 **ใช้ term เหล่านี้เท่านั้น ห้ามเปลี่ยน** — mandated by `style.md` (user's stated choices) and the main cast (used in every chapter).
 
 **Priority 1 (Locked):**
-- Style.md terms: HK = ฮ่องกง, 曹星 = เฉาซิง, 《冰封纪元》=《มหายุคน้ำแข็ง》, 极地人 = คนเมืองหนาว, etc.
+- Style.md terms: HK = เซียนเจียง, 曹星 = เฉาซิง, 《冰封纪元》=《มหายุคน้ำแข็ง》, 极地人 = คนเมืองหนาว, etc.
 - Main cast: appears in every chapter
 - 5 classes: appear whenever class system is mentioned
 - Main game locations: appear repeatedly across arc
@@ -40,7 +40,7 @@
 | 雪地獵人 | นายพรานหิมะ | ทั่วไป | 3 | class |
 | 霜狼 | หมาป่าเหมันต์ | ตัวละคร | 3 | they |
 | 领主小屋 | บ้านพักลอร์ด | สถานที่ | 3 |  |
-| 香江 | ฮ่องกง | สถานที่ | 3 | (style.md: 香江 = ฮ่องกง, not เซียงเจียง; old had เซียงเจียง, deprecated) |
+| 香江 | เซียนเจียง | สถานที่ | 3 | (style.md: 香江 = เซียนเจียง, not ฮ่องกง; hits emotional register better; old had ฮ่องกง/เซียงเจียง, both deprecated in favor of เซียนเจียง) |
 | 外挂 | โปรแกรมช่วยเล่น | ทั่วไป | 3 | game cheat/hack term; **Thai now** (CN retention deprecated) |
 | 资料片 | เนื้อหาเสริม | ทั่วไป | 3 | expansion / data pack (game term) |
 | 圍 | ล้อม | ทั่วไป | 3 | CN radical of 包围/围住/周围 etc.; translate context |
