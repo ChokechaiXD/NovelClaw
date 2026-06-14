@@ -26,6 +26,7 @@ Usage:
     python chapter_search.py context 80               # top-3 for ch 80's prep
     python chapter_search.py stats                    # index health
 """
+import json
 import re
 import sqlite3
 import sys
@@ -161,12 +162,20 @@ def extract_summary(body: str, max_chars: int = 300) -> str:
 def build_index() -> int:
     """Build/rebuild the FTS5 index from all translated chapters.
 
+    Supports BOTH .json (new canonical) and .md (legacy). For .json, we
+    extract text from each block. For .md, we use the legacy separator
+    parser.
+
     Returns number of chapters indexed.
     """
     conn = get_conn()
     cur = conn.cursor()
     chapters_dir = NOVEL_ROOT / 'chapters'
-    files = sorted(chapters_dir.glob('*.md'))
+    # Accept both formats — sort by numeric stem
+    files = sorted(
+        list(chapters_dir.glob('*.md')) + list(chapters_dir.glob('*.json')),
+        key=lambda p: (int(p.stem) if p.stem.isdigit() else 0, p.suffix),
+    )
 
     # Clear existing
     cur.execute('DELETE FROM chapter_fts')
@@ -178,8 +187,8 @@ def build_index() -> int:
     count = 0
     for f in files:
         try:
-            num, title, body = extract_chapter_text(f)
-        except (ValueError, IndexError):
+            num, title, body = _extract_text(f)
+        except (ValueError, IndexError, json.JSONDecodeError):
             continue
         summary = extract_summary(body)
         # Strip 【】 from indexed body to reduce noise (game stats)
@@ -197,6 +206,34 @@ def build_index() -> int:
     conn.commit()
     conn.close()
     return count
+
+
+def _extract_text(filepath: Path) -> tuple[int, str, str]:
+    """Unified extractor — handles .json (new) and .md (legacy).
+
+    Returns (chapter_num, title, body).
+    """
+    if filepath.suffix == '.json':
+        return _extract_from_json(filepath)
+    return extract_chapter_text(filepath)
+
+
+def _extract_from_json(filepath: Path) -> tuple[int, str, str]:
+    """Extract (num, title, body) from a .json chapter file.
+
+    Body is reconstructed by joining all block.text values, since FTS5
+    wants searchable text not metadata.
+    """
+    import json
+    data = json.loads(filepath.read_text(encoding='utf-8'))
+    num = int(filepath.stem)
+    title = data.get('title') or f'ตอนที่ {num}'
+    parts = []
+    for b in data.get('blocks', []):
+        text = b.get('text', '')
+        if text:
+            parts.append(text)
+    return num, title, '\n\n'.join(parts)
 
 
 def search(query: str, limit: int = 5, exclude_chapter: int | None = None) -> list[dict]:

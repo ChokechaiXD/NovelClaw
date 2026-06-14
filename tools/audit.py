@@ -34,26 +34,60 @@ from constants import NOVEL_ROOT  # noqa: E402
 
 
 def load_chapter(num: int) -> str | None:
-    """Load translated chapter body, or None if not found."""
-    f = NOVEL_ROOT / 'chapters' / f'{num:04d}.md'
-    if not f.exists():
-        return None
-    text = f.read_text(encoding='utf-8')
-    # Extract body between first --- and second --- (handles both formats)
-    lines = text.splitlines()
-    sep_idxs = [i for i, ln in enumerate(lines) if ln.strip() == '---']
-    if not sep_idxs:
-        return '\n'.join(lines[1:]).strip()
-    # Check if NEW format (header before first ---)
-    header = [ln for ln in lines[:sep_idxs[0]] if ln.strip()]
-    is_new = (header and header[0].startswith('# ')
-              and len(header) <= 2
-              and all('*Source:' in ln or ln.startswith('# ') for ln in header[1:]))
-    if is_new and len(sep_idxs) >= 2:
-        return '\n'.join(lines[sep_idxs[0] + 1:sep_idxs[1]]).strip()
-    if not is_new:
-        return '\n'.join(lines[:sep_idxs[0]]).strip()
-    return text
+    """Load translated chapter body, or None if not found.
+
+    Supports both .json (new canonical) and .md (legacy).
+    """
+    json_f = NOVEL_ROOT / 'chapters' / f'{num:04d}.json'
+    md_f = NOVEL_ROOT / 'chapters' / f'{num:04d}.md'
+    if json_f.exists():
+        try:
+            data = json.loads(json_f.read_text(encoding='utf-8'))
+            parts = []
+            for b in data.get('blocks', []):
+                t = b.get('text', '')
+                if t:
+                    parts.append(t)
+            return '\n\n'.join(parts)
+        except (json.JSONDecodeError, OSError):
+            return None
+    if md_f.exists():
+        text = md_f.read_text(encoding='utf-8')
+        # Extract body between first --- and second --- (handles both formats)
+        lines = text.splitlines()
+        sep_idxs = [i for i, ln in enumerate(lines) if ln.strip() == '---']
+        if not sep_idxs:
+            return '\n'.join(lines[1:]).strip()
+        # Check if NEW format (header before first ---)
+        header = [ln for ln in lines[:sep_idxs[0]] if ln.strip()]
+        is_new = (header and header[0].startswith('# ')
+                  and len(header) <= 2
+                  and all('*Source:' in ln or ln.startswith('# ') for ln in header[1:]))
+        if is_new and len(sep_idxs) >= 2:
+            return '\n'.join(lines[sep_idxs[0] + 1:sep_idxs[1]]).strip()
+        if not is_new:
+            return '\n'.join(lines[:sep_idxs[0]]).strip()
+        return text
+    return None
+
+
+def load_title(num: int) -> str:
+    """Load chapter title from .json (preferred) or .md (fallback)."""
+    json_f = NOVEL_ROOT / 'chapters' / f'{num:04d}.json'
+    if json_f.exists():
+        try:
+            data = json.loads(json_f.read_text(encoding='utf-8'))
+            t = data.get('title')
+            if t:
+                return t
+        except (json.JSONDecodeError, OSError):
+            pass
+    md_f = NOVEL_ROOT / 'chapters' / f'{num:04d}.md'
+    if md_f.exists():
+        m = re.search(r'# (.+)', md_f.read_text(encoding='utf-8'))
+        if m:
+            return m.group(1).strip()
+    return f'ch {num}'
 
 
 def extract_chars(body: str) -> set[str]:
@@ -100,8 +134,7 @@ def ground_truth_phase(num: int, body: str) -> dict:
     trans_len = len(body)
     ratio = (trans_len / src_len) if src_len else 0.0
 
-    title = re.search(r'# (.+)', (NOVEL_ROOT / 'chapters' / f'{num:04d}.md').read_text(encoding='utf-8'))
-    title = title.group(1) if title else f'ch {num}'
+    title = load_title(num)
 
     return {
         'chapter': num,
