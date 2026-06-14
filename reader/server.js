@@ -227,6 +227,24 @@ async function readChapter(slug, num) {
   return { title, body, meta, isJson: false };
 }
 
+// ── Bracket / quote config per language (mirrors tools/schema.py) ─────
+//
+// Each source language has its own bracket convention. The renderer
+// picks the right profile from ch.lang. For 'en' and 'th', dialogue
+// uses curly "..." (U+201C/U+201D). For 'cn'/'jp'/'kr', it uses 「...」
+// (converted at render time to curly for readability).
+//
+// The `toCurly` kagikakko conversion is language-agnostic: 「 → ", 」 → ",
+// 『 → ', 』 → '.
+
+const BRACKETS = {
+  cn: { dialogueOpen: '「', dialogueClose: '」', systemOpen: '【', systemClose: '】', gameOpen: '《', gameClose: '》', endMarker: '(จบบท)' },
+  jp: { dialogueOpen: '「', dialogueClose: '」', systemOpen: '【', systemClose: '】', gameOpen: '『', gameClose: '』', endMarker: '（終）' },
+  kr: { dialogueOpen: '「', dialogueClose: '」', systemOpen: '【', systemClose: '】', gameOpen: '《', gameClose: '》', endMarker: '(끝)' },
+  en: { dialogueOpen: '\u201C', dialogueClose: '\u201D', systemOpen: '[', systemClose: ']', gameOpen: '\u201C', gameClose: '\u201D', endMarker: '(End)' },
+  th: { dialogueOpen: '\u201C', dialogueClose: '\u201D', systemOpen: '【', systemClose: '】', gameOpen: '《', gameClose: '》', endMarker: '(จบบท)' },
+};
+
 /**
  * Render a Chapter JSON object directly to HTML.
  * Replaces marked.js for the new format — no parsing, just block-by-block DOM.
@@ -236,37 +254,40 @@ async function readChapter(slug, num) {
  *   Nested     → '...' (curly U+2018 / U+2019) — inside curly double
  *   System msg → 【...】 (game UI, kept)
  *   Title      → 《...》 (kept)
- *   End        → (จบบท)
+ *   End        → per language (see BRACKETS)
  *
  * Source blocks may use 「...」 (CN-style kagikakko); renderer converts to curly.
+ * Multi-language (Phase 2 — 2026-06-14): renderer switches on ch.lang to
+ * apply per-language bracket profile. Missing lang defaults to 'cn'.
  */
 function renderChapterJson(ch) {
   const esc = (s) => s;  // our text is already safe (no HTML in source)
 
-  // Convert CN/JP kagikakko to curly Thai/EN quotes
-  // 「 → " (U+201C),  」 → " (U+201D)
-  // 『 → ' (U+2018),  』 → ' (U+2019)
+  // Convert CN/JP kagikakko to curly Thai/EN quotes (language-agnostic)
   const toCurly = (s) => s
     .replace(/「/g, '\u201C')   // opening double
     .replace(/」/g, '\u201D')   // closing double
     .replace(/『/g, '\u2018')   // opening single
     .replace(/』/g, '\u2019');  // closing single
 
+  const lang = (ch.lang && BRACKETS[ch.lang]) ? ch.lang : 'cn';
+  const b = BRACKETS[lang];
+
   let html = '';
   for (const block of ch.blocks || []) {
     if (block.type === 'narration') {
       html += `<p>${esc(toCurly(block.text))}</p>\n`;
     } else if (block.type === 'dialogue') {
-      // dialogue: convert kagikakko to curly quotes
-      html += `<p class="dialogue">${esc(toCurly(block.text))}</p>\n`;
+      // dialogue: convert kagikakko to curly quotes (per language)
+      html += `<p class="dialogue" data-lang="${lang}">${esc(toCurly(block.text))}</p>\n`;
     } else if (block.type === 'system') {
       // 【...】 system message — render with subtle background
-      html += `<p class="system-msg">${esc(block.text)}</p>\n`;
+      html += `<p class="system-msg" data-lang="${lang}">${esc(block.text)}</p>\n`;
     } else if (block.type === 'game_title') {
       // 《...》 game title — just text (rare standalone)
-      html += `<p>${esc(block.text)}</p>\n`;
+      html += `<p class="game-title" data-lang="${lang}">${esc(block.text)}</p>\n`;
     } else if (block.type === 'end') {
-      html += `<p class="end-marker">${esc(block.text)}</p>\n`;
+      html += `<p class="end-marker" data-lang="${lang}">${esc(block.text)}</p>\n`;
     }
   }
   // Source footer

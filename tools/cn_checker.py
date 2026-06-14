@@ -66,7 +66,14 @@ def should_strip_block(text):
 
 
 def check_chapter(num, strict=False):
-    """Check one chapter. Returns (leak_count, leak_details)."""
+    """Check one chapter. Returns (leak_count, leak_details).
+
+    Multi-language aware (Phase 2 — 2026-06-14): only scans chapters whose
+    lang is 'cn' (or unknown / no lang field — backward compat). Other
+    languages (en, jp, kr, th) don't leak CN because their source text
+    IS in those languages, and the validation step already strips
+    whitelisted zones.
+    """
     padded = f"{num:04d}.json"
     path = CHAPTERS_DIR / padded
     if not path.exists():
@@ -74,6 +81,11 @@ def check_chapter(num, strict=False):
 
     with open(path, 'r', encoding='utf-8') as f:
         data = json.load(f)
+
+    # Skip non-CN chapters — they don't leak CN by design
+    lang = data.get('lang', 'cn')
+    if lang not in ('cn', None, ''):
+        return 0, []
 
     leaks = []
     for i, block in enumerate(data.get('blocks', [])):

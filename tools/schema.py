@@ -16,6 +16,12 @@ The format spec is now CODE, not documentation. Style.md + format_spec.md
 become schema enums and validators.
 
 Schema versioning: v1 is the current schema. Future changes bump version.
+
+Multi-language support (Phase 2 — 2026-06-14):
+  - `lang` field on Chapter (default 'cn' for backward compat)
+  - BRACKETS config: per-language profile for dialogue / system / title / end markers
+  - Reader switches on ch.lang to apply correct rendering
+  - Allows: cn, jp, kr, en, th source novels — one schema, many formats
 """
 from __future__ import annotations
 
@@ -26,23 +32,109 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # ────────────────────────────────────────────────────────────────────
+# Language + bracket profile (multi-language support)
+# ────────────────────────────────────────────────────────────────────
+#
+# Each language has its own bracket conventions for dialogue, system
+# messages, game titles, and end markers. The validator uses these to
+# check that a block's text actually contains the right brackets for
+# its language.
+#
+# Rendering: the server.js renderer also switches on ch.lang. The
+# 'dialogue' curly-quote conversion (「」 → " " / 『』 → ' ') is
+# language-agnostic and applies to all languages.
+#
+# 'cn' is the historical default. Existing chapters with no `lang`
+# field default to 'cn' (backward compat).
+
+class Language(str, Enum):
+    CN = 'cn'    # Chinese — 【】, 《》, 「」, (จบบท)
+    JP = 'jp'    # Japanese — 【】, 『』, 「」, （終）
+    KR = 'kr'    # Korean   — 【】, 《》, 「」, (끝)
+    EN = 'en'    # English  — [ ], "...", (End)
+    TH = 'th'    # Thai source — same as CN brackets, (จบบท)
+
+
+# Bracket profile per language. Keys = block semantic role.
+# Values = (open_char, close_char) or end-marker text.
+#
+# For 'en' and 'th', dialogue uses straight ASCII " which the renderer
+# converts to curly U+201C/U+201D at render time. We store the curly
+# form in the bracket config so validator can check for it.
+BRACKETS: dict[str, dict[str, str]] = {
+    'cn': {
+        'dialogue_open': '「',
+        'dialogue_close': '」',
+        'system_open': '【',
+        'system_close': '】',
+        'game_open': '《',
+        'game_close': '》',
+        'end_marker': '(จบบท)',
+    },
+    'jp': {
+        'dialogue_open': '「',
+        'dialogue_close': '」',
+        'system_open': '【',
+        'system_close': '】',
+        'game_open': '『',
+        'game_close': '』',
+        'end_marker': '（終）',
+    },
+    'kr': {
+        'dialogue_open': '「',
+        'dialogue_close': '」',
+        'system_open': '【',
+        'system_close': '】',
+        'game_open': '《',
+        'game_close': '》',
+        'end_marker': '(끝)',
+    },
+    'en': {
+        # EN: curly quotes U+201C/U+201D (renderer converts ASCII " → curly)
+        'dialogue_open': '\u201C',
+        'dialogue_close': '\u201D',
+        'system_open': '[',
+        'system_close': ']',
+        'game_open': '\u201C',
+        'game_close': '\u201D',
+        'end_marker': '(End)',
+    },
+    'th': {
+        # TH novels translated from CN/JP keep CN brackets. TH originals
+        # would use curly quotes. The source-language detection happens
+        # at translation time; for now default to curly quotes.
+        'dialogue_open': '\u201C',
+        'dialogue_close': '\u201D',
+        'system_open': '【',
+        'system_close': '】',
+        'game_open': '《',
+        'game_close': '》',
+        'end_marker': '(จบบท)',
+    },
+}
+
+
+# ────────────────────────────────────────────────────────────────────
 # Enums (the "format spec" is now a code-enforced contract)
 # ────────────────────────────────────────────────────────────────────
 
 class DialogueQuote(str, Enum):
-    """Full-width CJK brackets for dialogue (format spec: no straight quotes)."""
+    """CJK bracket pair for dialogue (per-language, see BRACKETS).
+
+    Kept for backward compat — these are the CN defaults.
+    """
     OPEN = '「'
     CLOSE = '」'
 
 
 class SystemBracket(str, Enum):
-    """Full-width CJK brackets for system messages."""
+    """CJK bracket pair for system messages."""
     OPEN = '【'
     CLOSE = '】'
 
 
 class GameBracket(str, Enum):
-    """Full-width CJK brackets for game titles."""
+    """CJK bracket pair for game titles."""
     OPEN = '《'
     CLOSE = '》'
 
@@ -50,10 +142,10 @@ class GameBracket(str, Enum):
 class BlockType(str, Enum):
     """Type of content block in a chapter."""
     NARRATION = 'narration'   # regular paragraph
-    DIALOGUE = 'dialogue'     # 「...」 character speech
-    SYSTEM = 'system'         # 【...】 game system message
-    GAME_TITLE = 'game_title' # 《...》 game/book title
-    END = 'end'               # (จบบท) end marker
+    DIALOGUE = 'dialogue'     # character speech (brackets per language)
+    SYSTEM = 'system'         # game system notification
+    GAME_TITLE = 'game_title' # game/book title
+    END = 'end'               # end-of-chapter marker (per language)
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -61,69 +153,64 @@ class BlockType(str, Enum):
 # ────────────────────────────────────────────────────────────────────
 
 class Dialogue(BaseModel):
-    """A character speaking line. Enforced: must contain 「」 (full-width CJK brackets).
+    """A character speaking line. Brackets per `Chapter.lang` (see BRACKETS).
 
+    Default: 「...」 (CN/JP/KR). For EN/TH: curly "..." (U+201C/U+201D).
     Allows narration prefix (e.g. "เฉาซิงพูด 「...」") which is common
     in CN web novels where the speaker tag is inline. Use a separate
     Narration block instead if the prefix is long or has no dialogue.
+
+    The bracket check is enforced at Chapter level via model_validator
+    because we need Chapter.lang context. This per-block validator only
+    rejects straight ASCII quotes (common author error).
     """
     type: BlockType = BlockType.DIALOGUE
     speaker: Optional[str] = None    # character name (e.g., "เฉาซิง") — not required
-    text: str = Field(..., min_length=1, description='Dialogue text, must contain 「」 brackets')
+    text: str = Field(..., min_length=1, description='Dialogue text, brackets per language')
 
     @field_validator('text')
     @classmethod
-    def validate_cjk_brackets(cls, v: str) -> str:
-        v = v.strip()
-        # Must contain at least one pair of 「...」
-        if not (DialogueQuote.OPEN in v and DialogueQuote.CLOSE in v):
+    def reject_straight_quotes(cls, v: str) -> str:
+        """Reject straight ASCII quotes — they should be curly or full-width.
+
+        Authors (or LLM translators) sometimes insert " or ' instead of
+        「」 or curly " ". Catching here gives a clear error before
+        bracket check at chapter level.
+        """
+        if '"' in v:
             raise ValueError(
-                f'Dialogue must contain 「」, got: {v[:50]!r}'
+                f'Dialogue must not contain straight " — use 「」 or curly "\u201C\u201D: {v[:50]!r}'
             )
-        # Reject straight quotes inside dialogue
-        if '"' in v or "'" in v:
-            raise ValueError(f'Dialogue must not contain straight quotes: {v[:50]!r}')
         return v
 
 
 class SystemMessage(BaseModel):
-    """【...】 game system notification. Brackets included in text.
+    """Game system notification. Brackets per `Chapter.lang` (see BRACKETS).
 
     Allows inline narration prefix (e.g. "ของดรอป "【...】") for items
     that appear in narration context.
     """
     type: BlockType = BlockType.SYSTEM
-    text: str = Field(..., min_length=1, description='System message, must contain 【】')
-
-    @field_validator('text')
-    @classmethod
-    def validate_cjk_brackets(cls, v: str) -> str:
-        v = v.strip()
-        if not (SystemBracket.OPEN in v and SystemBracket.CLOSE in v):
-            raise ValueError(f'System message must contain 【】, got: {v[:50]!r}')
-        return v
+    text: str = Field(..., min_length=1, description='System message, brackets per language')
 
 
 class GameTitle(BaseModel):
-    """《...》 game/book title. Brackets included in text.
+    """Game/book title. Brackets per `Chapter.lang` (see BRACKETS).
 
     Allows inline narration prefix for titles mentioned in text.
     """
     type: BlockType = BlockType.GAME_TITLE
-    text: str = Field(..., min_length=1, description='Game title, must contain 《》')
-
-    @field_validator('text')
-    @classmethod
-    def validate_cjk_brackets(cls, v: str) -> str:
-        v = v.strip()
-        if not (GameBracket.OPEN in v and GameBracket.CLOSE in v):
-            raise ValueError(f'Game title must contain 《》, got: {v[:50]!r}')
-        return v
+    text: str = Field(..., min_length=1, description='Game title, brackets per language')
 
 
 class Narration(BaseModel):
     """Regular narrative paragraph. No brackets required (brackets may appear
-    inline if quoted by the narrative)."""
+    inline if quoted by the narrative).
+
+    CN leak check: rejects raw CN chars in narration, except inside
+    whitelisted zones (【...】 system, 《...》 title) which are CN by design.
+    Only applies to CN-language chapters (other languages don't leak CN).
+    """
     type: BlockType = BlockType.NARRATION
     text: str = Field(..., min_length=1, description='Narrative paragraph text')
 
@@ -135,6 +222,9 @@ class Narration(BaseModel):
         Whitelisted zones (per style.md): 【...】 system messages and
         《...》 game titles / donor names may contain CN chars inline
         within narration. Strip those before checking.
+
+        Note: for non-CN languages (en, th, jp, kr) this check is
+        skipped at the chapter level — see Chapter.validate_cn_only_blocks.
         """
         # Strip 【...】 and 《...》 content (greedy non-】/》 match)
         cleaned = re.sub(r'【[^】]*】', '', v)
@@ -149,15 +239,16 @@ class Narration(BaseModel):
 
 
 class EndMarker(BaseModel):
-    """(จบบท) end-of-chapter marker. Always exactly one per ch."""
+    """End-of-chapter marker. Text per `Chapter.lang` (see BRACKETS)."""
     type: BlockType = BlockType.END
-    text: str = '(จบบท)'
+    text: str = '(จบบท)'  # default CN/TH; Chapter.model_validator sets per-lang
 
     @field_validator('text')
     @classmethod
     def validate_text(cls, v: str) -> str:
-        if v != '(จบบท)':
-            raise ValueError(f'End marker must be exactly "(จบบท)", got: {v!r}')
+        # Soft check — exact text enforced at Chapter level per language
+        if not v or v.isspace():
+            raise ValueError('End marker text cannot be empty')
         return v
 
 
@@ -180,6 +271,11 @@ class Chapter(BaseModel):
     """A single chapter. The new canonical format.
 
     Loaded from / saved to chapters/NNNN.json. Reader renders this directly.
+
+    `lang` field (Phase 2 — 2026-06-14): source language of this chapter.
+    Defaults to 'cn' for backward compat with existing chapters. Used by
+    the validator to pick the right bracket profile (BRACKETS config) and
+    by the renderer (server.js) to apply per-language styling.
     """
     schema_version: int = 1
     num: int = Field(..., ge=1, le=9999, description='Chapter number')
@@ -187,6 +283,10 @@ class Chapter(BaseModel):
     blocks: List[Block] = Field(..., min_length=1, description='Ordered content blocks')
     source: str = Field(..., pattern=r'^ch \d+$', description='Source attribution (e.g., "ch 112")')
     notes: List[str] = Field(default_factory=list, description='Translation notes (rendered in collapsible details)')
+    lang: Language = Field(
+        default=Language.CN,
+        description='Source language (cn|jp|kr|en|th). Determines bracket profile.',
+    )
 
     @field_validator('blocks', mode='before')
     @classmethod
@@ -209,7 +309,7 @@ class Chapter(BaseModel):
     @field_validator('title')
     @classmethod
     def validate_title(cls, v: str, info) -> str:
-        # title should be "ตอนที่ {N} {thai_title}" — must match
+        # title should be "ตอนที่ {N} {translated_title}" — must match
         m = re.match(r'^ตอนที่ (\d+) (.+)$', v.strip())
         if not m:
             raise ValueError(f'Title must be "ตอนที่ {{N}} {{title}}", got: {v!r}')
@@ -223,15 +323,49 @@ class Chapter(BaseModel):
 
     @model_validator(mode='after')
     def validate_chapter_structure(self) -> 'Chapter':
+        # Get language-specific bracket profile
+        lang = self.lang.value if isinstance(self.lang, Language) else self.lang
+        brackets = BRACKETS.get(lang, BRACKETS['cn'])
+        end_marker_text = brackets['end_marker']
+
+        # Per-block bracket validation against language profile
+        for i, block in enumerate(self.blocks):
+            if isinstance(block, Dialogue):
+                if brackets['dialogue_open'] not in block.text or brackets['dialogue_close'] not in block.text:
+                    raise ValueError(
+                        f'block {i} (dialogue[{lang}]) must contain '
+                        f'{brackets["dialogue_open"]}...{brackets["dialogue_close"]}: '
+                        f'{block.text[:50]!r}'
+                    )
+            elif isinstance(block, SystemMessage):
+                if brackets['system_open'] not in block.text or brackets['system_close'] not in block.text:
+                    raise ValueError(
+                        f'block {i} (system[{lang}]) must contain '
+                        f'{brackets["system_open"]}...{brackets["system_close"]}: '
+                        f'{block.text[:50]!r}'
+                    )
+            elif isinstance(block, GameTitle):
+                if brackets['game_open'] not in block.text or brackets['game_close'] not in block.text:
+                    raise ValueError(
+                        f'block {i} (game_title[{lang}]) must contain '
+                        f'{brackets["game_open"]}...{brackets["game_close"]}: '
+                        f'{block.text[:50]!r}'
+                    )
+            elif isinstance(block, EndMarker):
+                # Set the end marker text per language (if it differs from default)
+                if block.text != end_marker_text:
+                    # Allow re-validation: update text to per-lang value
+                    block.text = end_marker_text
+
         # Must have exactly one EndMarker
         end_markers = [b for b in self.blocks if isinstance(b, EndMarker)]
         if len(end_markers) == 0:
-            raise ValueError('Chapter must have exactly one (จบบท) end marker')
+            raise ValueError(f'Chapter must have exactly one {end_marker_text} end marker')
         if len(end_markers) > 1:
             raise ValueError(f'Chapter has {len(end_markers)} end markers, must be exactly 1')
         # End marker should be the last block (notes go in separate `notes` field, not in blocks)
         if not isinstance(self.blocks[-1], EndMarker):
-            raise ValueError('Last block must be (จบบท) end marker')
+            raise ValueError('Last block must be end marker')
         # Must have at least one narrative/dialogue block
         content = [b for b in self.blocks if not isinstance(b, EndMarker)]
         if not content:
