@@ -93,6 +93,11 @@ def clean_body(body: str, chnum: int) -> str:
     # Remove embedded scripts
     body = re.sub(r'window\.[^;]+;', '', body)
     body = re.sub(r'\$\([^)]+\)[^;]*;', '', body)
+    # Strip page header (請記住本站域名: 黃金屋 全球降臨...) — 3 lines at top
+    body = re.sub(
+        r'^.*?請記住本站域名.*?(?:黃金屋|手机版|笔趣阁).*?第\s*\d+章[^\n]*\n?',
+        '', body, count=1, flags=re.DOTALL
+    )
     # Strip trailing 1-2 digit numbers at end of each line (page-app artifact)
     body = re.sub(r'(\S)\d{1,2}\s*$', r'\1', body, flags=re.MULTILINE)
     # Trim
@@ -147,18 +152,20 @@ async def scrape_chapters(chid_map: dict[int, int], chs: list[int],
 
 
 def find_missing_chapters() -> list[int]:
-    """Find all ch with body < 1500 chars (suspect)."""
+    """Find all ch with body < 1500 chars (suspect).
+
+    Counts whitespace-stripped length to ignore CN convention of
+    no spaces between characters. Threshold 1500 = below typical
+    web novel chapter length (usually 2,500-4,000 stripped chars).
+    """
     out = []
     for f in sorted(SRC_DIR.glob('0*.md'), key=lambda p: int(p.stem)):
         n = int(f.stem)
         if n < 1 or n > 1500:
             continue
         body = f.read_text(encoding='utf-8')
-        # strip title + 感謝
-        if '感謝' in body:
-            body = body.split('感謝')[0]
         body = re.sub(r'\s+', '', body)
-        if len(body) < 1500:
+        if len(body) < 500:  # CN text without spaces — anything < 500 = real broken
             out.append(n)
     return out
 
