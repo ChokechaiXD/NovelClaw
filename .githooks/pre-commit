@@ -3,6 +3,7 @@
 
 Blocks commit if:
   - Schema validation fails (Pydantic)
+  - CN/JP leak found (cn_checker)
   - Glossary doctor finds errors
 
 Shows warnings/info (transmittor principle — report, don't fix).
@@ -10,6 +11,7 @@ Shows warnings/info (transmittor principle — report, don't fix).
 Configure: git config core.hooksPath .githooks
 """
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -18,9 +20,54 @@ REPO = Path(__file__).parent.parent
 sys.path.insert(0, str(REPO / "tools"))
 from schema import Chapter  # noqa: E402
 
+# CN/JP check (inlined for speed — full tool at tools/cn_checker.py)
+CN = re.compile(r'[\u4e00-\u9fff]')
+JP_KANA = re.compile(r'[\u3040-\u309f\u30a0-\u30ff]')
+WHITELIST_ZONES = [
+    re.compile(r'【[^】]*】'),
+    re.compile(r'《[^》]*》'),
+]
+# Auto-strip patterns (P'Chok's choice — see tools/cn_checker.py)
+STRIP_PATTERNS = [
+    re.compile(r'^\s*ขอบคุณ\s*นักอ่าน[:：]?.*$', re.MULTILINE),
+    re.compile(r'^\s*ขอบคุณ\s*《[^》]*》.*$', re.MULTILINE),
+    re.compile(r'^\s*感谢书友.*$', re.MULTILINE),
+    re.compile(r'^\s*感谢.*的月票.*$', re.MULTILINE),
+    re.compile(r'^\s*感谢书友们的收藏和订阅.*$', re.MULTILINE),
+    re.compile(r'^\s*感谢.*(?:收藏|订阅|打赏|月票).*$', re.MULTILINE),
+]
+
+
+def strip_whitelist(text):
+    out = text
+    for p in WHITELIST_ZONES:
+        out = p.sub('', out)
+    return out
+
+
+def should_strip(text):
+    return any(p.match(text.strip()) for p in STRIP_PATTERNS)
+
+
+def check_cn_leak(data):
+    """Return list of (block_idx, char, btype) leaks."""
+    leaks = []
+    for i, block in enumerate(data.get('blocks', [])):
+        btype = block.get('type')
+        text = block.get('text', '')
+        if not text or btype == 'end_marker' or should_strip(text):
+            continue
+        if btype in ('narration', 'dialogue'):
+            for c in CN.findall(text) + JP_KANA.findall(text):
+                leaks.append((i, c, btype))
+        elif btype in ('system', 'game_title'):
+            check = strip_whitelist(text)
+            for c in CN.findall(check) + JP_KANA.findall(check):
+                leaks.append((i, c, btype))
+    return leaks
+
 
 def main():
-    # Find staged chapters/*.json
     result = subprocess.run(
         ['git', 'diff', '--cached', '--name-only', '--diff-filter=ACM'],
         capture_output=True, text=True, cwd=REPO,
@@ -32,7 +79,7 @@ def main():
     ]
 
     if not staged:
-        return 0  # Nothing to check
+        return 0
 
     print(f'🪝 pre-commit: validating {len(staged)} ch file(s)...')
 
@@ -49,6 +96,8 @@ def main():
             print(f'  ❌ {path.name}: invalid JSON: {e}')
             errors += 1
             continue
+
+        # 1. Schema check
         try:
             ch = Chapter(**data)
         except Exception as e:
@@ -56,7 +105,16 @@ def main():
             errors += 1
             continue
 
-        # Doctor check (warnings only — transmittor principle)
+        # 2. CN/JP leak check
+        cn_leaks = check_cn_leak(data)
+        if cn_leaks:
+            print(f'  ❌ {path.name}: {len(cn_leaks)} CN/JP leak(s):')
+            for i, c, btype in cn_leaks[:3]:
+                print(f'      block {i} ({btype}): "{c}"')
+            errors += len(cn_leaks)
+            continue
+
+        # 3. Doctor (warnings only)
         try:
             from glossary_doctor import load_glossary, validate_chapter
             glossary, alias_map, style_rules = load_glossary()
@@ -70,7 +128,7 @@ def main():
                 errors += len(ch_errors)
             else:
                 w_msg = f', {len(ch_warnings)} warning(s)' if ch_warnings else ''
-                print(f'  ✓ {path.name}: schema OK ({len(ch.blocks)} blocks{w_msg})')
+                print(f'  ✓ {path.name}: schema + CN OK ({len(ch.blocks)} blocks{w_msg})')
                 warnings += len(ch_warnings)
         except Exception as e:
             print(f'  ⚠️  {path.name}: doctor unavailable: {e}')
@@ -78,7 +136,7 @@ def main():
     print()
     if errors:
         print(f'❌ pre-commit BLOCKED: {errors} error(s) across {len(staged)} file(s)')
-        print('   Fix schema/doctor errors before committing.')
+        print('   Fix schema/CN/doctor errors before committing.')
         return 1
 
     if warnings:
