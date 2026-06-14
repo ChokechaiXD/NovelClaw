@@ -125,7 +125,10 @@ def main():
     print('━' * 65)
     total_terms = sum(len(by_tier[t]) for t in TIERS)
     total_unused = sum(1 for t in TIERS for _, n in by_tier[t] if n == 0)
-    print(f'  Total: {total_terms} terms, {total_unused} unused ({100*total_unused/total_terms:.0f}%)')
+    if total_terms > 0:
+        print(f'  Total: {total_terms} terms, {total_unused} unused ({100*total_unused/total_terms:.0f}%)')
+    else:
+        print(f'  Total: {total_terms} terms, {total_unused} unused (N/A — empty glossary)')
     print('━' * 65)
 
 

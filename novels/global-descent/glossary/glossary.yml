@@ -4475,3 +4475,11 @@ terms:
   lock: 'auto'
   explanation: ""
   notes: 'essence'
+
+- source: '民兵'
+  thai: 'ทหารรักษาการณ์'
+  category: 'ทั่วไป'
+  priority: '3'
+  lock: 'auto'
+  explanation: ""
+  notes: 'militia / garrison soldier'
