@@ -13,7 +13,6 @@ Usage:
   python novelclaw.py clean [N...]              # check source for scrape artifacts
   python novelclaw.py stats                      # glossary usage statistics
   python novelclaw.py review N [--context]       # generate Tier-2 review checklist for ch N
-  python novelclaw.py orchestrate [N]            # full pipeline: prep → translate → proofread
   python novelclaw.py health                     # quick health: candidates + cjk + stale glossary
   python novelclaw.py scrape                     # scrape source chapters
   python novelclaw.py test [-v]                  # run pytest suite (validates parse + auto_fix)
@@ -36,8 +35,8 @@ def cmd_status():
     import re
     m = re.search(r'Last translated:\*\* ch (\d+)', text)
     last = int(m.group(1)) if m else 0
-    # Look for "/ 1,239" or "/1239" in the progress line
-    m2 = re.search(r'\*\*\s*(\d+)/([\d,]+)\s*\(', text)
+    # Look for "/ 1,239" or "/1239" in the progress line (e.g. "31/1,239 (2.50%)")
+    m2 = re.search(r'(?:Total\s+)?[Pp]rogress:?\s*(\d+)\s*/\s*([\d,]+)', text)
     if m2:
         done, total_raw = int(m2.group(1)), m2.group(2).replace(',', '')
         total = int(total_raw)
@@ -108,7 +107,10 @@ def cmd_validate_cjk(chapters=None):
 
 
 def cmd_scrape():
-    args = [sys.executable, str(ROOT / 'tools' / 'scrape_chapters.py')]
+    """Re-scrape chapters from source. Passes through --list/--ch/--missing/--all."""
+    args = [sys.executable, str(ROOT / 'tools' / 'rescrape_chapters.py')]
+    passthrough = [a for a in sys.argv[2:] if a != 'scrape']
+    args.extend(passthrough)
     sys.exit(subprocess.call(args))
 
 
@@ -127,15 +129,6 @@ def cmd_clean(chapters):
         args.extend(str(c) for c in chapters)
     if '--strict' in sys.argv:
         args.append('--strict')
-    sys.exit(subprocess.call(args))
-
-
-def cmd_orchestrate():
-    """Run full NovelClaw pipeline for a chapter."""
-    args = [sys.executable, str(ROOT / 'tools' / 'orchestrate.py')]
-    # Pass through all subcommand args (flags + positional chapter)
-    for a in sys.argv[2:]:
-        args.append(a)
     sys.exit(subprocess.call(args))
 
 
@@ -252,8 +245,6 @@ def main():
             print('Usage: python novelclaw.py review N [N...] [--context] [--checklist]')
             sys.exit(1)
         cmd_review(chapters)
-    elif sub == 'orchestrate':
-        cmd_orchestrate()
     elif sub == 'health':
         # Quick health check: candidates + cjk + stale glossary
         print('━' * 60)
@@ -298,7 +289,7 @@ def main():
     else:
         print(f'Unknown subcommand: {sub}')
         print('Available: status, prep, validate [--cjk|chapter], candidates, scrape,')
-        print('             backup, clean, stats, review, orchestrate, health, test,')
+        print('             backup, clean, stats, review, health, test,')
         print('             learn, search-index, search, audit, npc')
         sys.exit(1)
 
