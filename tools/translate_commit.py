@@ -30,6 +30,11 @@ def ch_path(num):
     return REPO / "novels" / "global-descent" / "chapters" / f"{num:04d}.json"
 
 
+def get_chapter_path(slug: str, num: int):
+    """Get chapter path for any novel (multi-novel support, Phase 2)."""
+    return REPO / "novels" / slug / "chapters" / f"{num:04d}.json"
+
+
 def fix_block_types(data):
     """Auto-fix common block type issues. Returns (changed_count, fixes)."""
     fixes = []

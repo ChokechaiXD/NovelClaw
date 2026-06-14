@@ -37,6 +37,10 @@ from constants import NOVEL_ROOT  # noqa: E402
 
 DB_FILE = NOVEL_ROOT / 'chapters' / 'fts_index.db'
 
+# Multi-novel: FTS5 index is per-novel (Phase 2 — 2026-06-14).
+# For now, the index lives in the same chapters/ dir. To support
+# multiple novels, each novel would have its own fts_index.db.
+
 
 # ── Schema ─────────────────────────────────────────────────────────
 SCHEMA = """
