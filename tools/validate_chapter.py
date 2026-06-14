@@ -147,14 +147,40 @@ def auto_fix(text: str) -> tuple[str, list[str]]:
 
 def validate(target: int, do_fix: bool = False) -> int:
     src_file = ROOT / 'chapters' / 'source' / f'{target:04d}.md'
-    tr_file = ROOT / 'chapters' / f'{target:04d}.md'
+
+    # Translation format: try .json first (current canonical), fall back to .md (legacy)
+    tr_json = ROOT / 'chapters' / f'{target:04d}.json'
+    tr_md = ROOT / 'chapters' / f'{target:04d}.md'
+    if tr_json.exists():
+        tr_file = tr_json
+    elif tr_md.exists():
+        tr_file = tr_md
+    else:
+        tr_file = tr_md  # default for error message
+
     if not src_file.exists():
         sys.exit(f'Source not found: {src_file}')
     if not tr_file.exists():
         sys.exit(f'Translation not found: {tr_file}')
 
     source = src_file.read_text(encoding='utf-8')
-    translation = tr_file.read_text(encoding='utf-8')
+
+    # Read translation: JSON → extract TH text; MD → read as-is
+    if tr_file.suffix == '.json':
+        import json as _json
+        try:
+            data = _json.loads(tr_file.read_text(encoding='utf-8'))
+            # Extract TH text from JSON blocks
+            parts = []
+            for block in data.get('blocks', []):
+                t = block.get('text', '')
+                if t:
+                    parts.append(t)
+            translation = '\n\n'.join(parts)
+        except (Exception):
+            translation = tr_file.read_text(encoding='utf-8')
+    else:
+        translation = tr_file.read_text(encoding='utf-8')
 
     # Auto-fix first if requested
     if do_fix:
