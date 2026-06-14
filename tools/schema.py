@@ -61,18 +61,24 @@ class BlockType(str, Enum):
 # ────────────────────────────────────────────────────────────────────
 
 class Dialogue(BaseModel):
-    """A character speaking line. Enforced: text must be wrapped in 「」."""
+    """A character speaking line. Enforced: must contain 「」 (full-width CJK brackets).
+
+    Allows narration prefix (e.g. "เฉาซิงพูด 「...」") which is common
+    in CN web novels where the speaker tag is inline. Use a separate
+    Narration block instead if the prefix is long or has no dialogue.
+    """
     type: BlockType = BlockType.DIALOGUE
     speaker: Optional[str] = None    # character name (e.g., "เฉาซิง") — not required
-    text: str = Field(..., min_length=1, description='Dialogue text, including 「」 brackets')
+    text: str = Field(..., min_length=1, description='Dialogue text, must contain 「」 brackets')
 
     @field_validator('text')
     @classmethod
     def validate_cjk_brackets(cls, v: str) -> str:
         v = v.strip()
-        if not (v.startswith(DialogueQuote.OPEN) and v.endswith(DialogueQuote.CLOSE)):
+        # Must contain at least one pair of 「...」
+        if not (DialogueQuote.OPEN in v and DialogueQuote.CLOSE in v):
             raise ValueError(
-                f'Dialogue must be wrapped in 「」, got: {v[:50]!r}'
+                f'Dialogue must contain 「」, got: {v[:50]!r}'
             )
         # Reject straight quotes inside dialogue
         if '"' in v or "'" in v:
@@ -81,30 +87,37 @@ class Dialogue(BaseModel):
 
 
 class SystemMessage(BaseModel):
-    """【...】 game system notification. Brackets included in text."""
+    """【...】 game system notification. Brackets included in text.
+
+    Allows inline narration prefix (e.g. "ของดรอป "【...】") for items
+    that appear in narration context.
+    """
     type: BlockType = BlockType.SYSTEM
-    text: str = Field(..., min_length=1, description='System message, including 【】 brackets')
+    text: str = Field(..., min_length=1, description='System message, must contain 【】')
 
     @field_validator('text')
     @classmethod
     def validate_cjk_brackets(cls, v: str) -> str:
         v = v.strip()
-        if not (v.startswith(SystemBracket.OPEN) and v.endswith(SystemBracket.CLOSE)):
-            raise ValueError(f'System message must be wrapped in 【】, got: {v[:50]!r}')
+        if not (SystemBracket.OPEN in v and SystemBracket.CLOSE in v):
+            raise ValueError(f'System message must contain 【】, got: {v[:50]!r}')
         return v
 
 
 class GameTitle(BaseModel):
-    """《...》 game/book title. Brackets included in text."""
+    """《...》 game/book title. Brackets included in text.
+
+    Allows inline narration prefix for titles mentioned in text.
+    """
     type: BlockType = BlockType.GAME_TITLE
-    text: str = Field(..., min_length=1, description='Game title, including 《》 brackets')
+    text: str = Field(..., min_length=1, description='Game title, must contain 《》')
 
     @field_validator('text')
     @classmethod
     def validate_cjk_brackets(cls, v: str) -> str:
         v = v.strip()
-        if not (v.startswith(GameBracket.OPEN) and v.endswith(GameBracket.CLOSE)):
-            raise ValueError(f'Game title must be wrapped in 《》, got: {v[:50]!r}')
+        if not (GameBracket.OPEN in v and GameBracket.CLOSE in v):
+            raise ValueError(f'Game title must contain 《》, got: {v[:50]!r}')
         return v
 
 
