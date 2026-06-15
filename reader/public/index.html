@@ -20,6 +20,10 @@
     <div class="topbar-left">
       <button class="icon-btn" id="toggle-sidebar" title="สลับรายการตอน (S)">☰</button>
       <h1 class="novel-title" id="novel-title">NovelClaw</h1>
+      <div class="novel-selector" id="novel-selector" hidden>
+        <a href="#" class="back-to-dash" id="back-to-dash" title="กลับหน้า Dashboard">📚</a>
+        <select id="novel-select"></select>
+      </div>
       <span class="topbar-progress" id="topbar-progress"></span>
     </div>
     <div class="topbar-right">
@@ -30,6 +34,15 @@
   </header>
 
   <div class="layout">
+    <!-- Dashboard view -->
+    <div class="dashboard" id="dashboard">
+      <h2>📚 NovelClaw Reader</h2>
+      <p class="subtitle">เลือกนิยายเพื่อเริ่มอ่าน</p>
+      <div class="novel-grid" id="novel-grid"></div>
+    </div>
+
+    <!-- Reader view (hidden by default until novel selected) -->
+    <div class="reader-layout" id="reader-layout" hidden>
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <span class="sidebar-label">รายการตอน</span>
@@ -82,7 +95,8 @@
         </nav>
       </article>
     </main>
-  </div>
+  </div><!-- end reader-layout -->
+  </div><!-- end layout -->
 
   <script src="/virtual-scroll.js"></script>
   <script src="/app.js"></script>

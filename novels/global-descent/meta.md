@@ -18,9 +18,9 @@ started: '2026-06-13'
 - **Target language:** Thai (TH)
 - **Slug:** global-descent
 - **Source URL:** https://tw.hjwzw.com/Book/Chapter/50356
-- **Status:** 52 of 1,239 chapters translated (4.20%)
-- **Last translated:** ch 111
-- **Font fix applied:** ch 101-110 (569 quotes + 16 name-dots normalized, 2026-06-14)
+- **Status:** 53 of 1,239 chapters translated (4.28%)
+- **Last translated:** ch 122
+- **Next chapter:** 123
 - **Style drift acknowledged:** ch 97-100 literary, ch 101+ mechanical (batch translation)
 - **Next chapter:** 112
 - **Started (NovelClaw):** 2026-06-13
