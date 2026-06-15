@@ -229,13 +229,23 @@ def validate(target: int, do_fix: bool = False) -> int:
         if lr < LENGTH_RATIO_OK[0] or lr > LENGTH_RATIO_OK[1]:
             errors.append(f'Length ratio: {lr:.2f} (expected {LENGTH_RATIO_OK[0]}-{LENGTH_RATIO_OK[1]})')
 
-    # 4. Glossary names
+    # 4. Glossary names — check if Thai rendering appears in translation
+    # Use word-boundary-aware matching to avoid FP on single-char terms
+    import re as _re
     glossary = load_glossary_main()
     used, missing_glossary = [], []
     for src, thai in glossary.items():
         if src in source:
             used.append((src, thai))
-            if thai not in translation:
+            # Check with word boundary: Thai terms should appear as standalone words
+            # For single-char terms, require non-Thai-char boundary (or start/end)
+            if len(thai) == 1:
+                # Single char: accept if surrounded by non-Thai or at boundary
+                pattern = r'(?<![\u0E00-\u0E7F])' + _re.escape(thai) + r'(?![\u0E00-\u0E7F])'
+            else:
+                # Multi-char: simple substring match is OK
+                pattern = _re.escape(thai)
+            if not _re.search(pattern, translation):
                 missing_glossary.append((src, thai))
     info.append(f'Glossary terms in source: {len(used)} (locked+reference)')
     if missing_glossary:
