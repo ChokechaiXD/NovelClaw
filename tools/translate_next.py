@@ -128,33 +128,39 @@ def get_style_notes() -> str:
 
 
 def main():
-    novel = NOVEL
-    ch_arg = None
-    source_arg = None
-    args = sys.argv[1:]
-    i = 0
-    while i < len(args):
-        if args[i] == "--novel" and i + 1 < len(args):
-            novel = args[i + 1]
-            global ROOT, CHAP_DIR, SUMMARY_FILE, CHAR_FILE, STYLE_FILE
-            ROOT = get_novel_root(novel)
-            CHAP_DIR = ROOT / "chapters"
-            SUMMARY_FILE = ROOT / "summary.md"
-            CHAR_FILE = ROOT / "characters.md"
-            STYLE_FILE = ROOT / "style.md"
-            i += 2
-        elif args[i] == "--novel":
-            i += 1
-        else:
-            try:
-                ch_arg = int(args[i])
-            except ValueError:
-                source_arg = args[i]
-            i += 1
+    import argparse
+    ap = argparse.ArgumentParser(description='Prepare translation context for next chapter')
+    ap.add_argument('chapter', type=int, nargs='?', help='Chapter number (default: from progress.md)')
+    ap.add_argument('source_file', nargs='?', default=None, help='Source file path (or - for stdin)')
+    ap.add_argument('--novel', type=str, default=None, help='Novel slug (default: global-descent or NOVEL_SLUG env)')
+    ap.add_argument('--clear', action='store_true', help='Clear existing translation before preparing context')
+    args = ap.parse_args()
 
-    ch = ch_arg or read_progress()
+    novel = args.novel or NOVEL
+    global ROOT, CHAP_DIR, SUMMARY_FILE, CHAR_FILE, STYLE_FILE
+    ROOT = get_novel_root(novel)
+    CHAP_DIR = ROOT / "chapters"
+    SUMMARY_FILE = ROOT / "summary.md"
+    CHAR_FILE = ROOT / "characters.md"
+    STYLE_FILE = ROOT / "style.md"
+
+    ch = args.chapter or read_progress()
+
+    # Clear existing translation if requested
+    if args.clear:
+        jp = CHAP_DIR / f"{ch:04d}.json"
+        if jp.exists():
+            data = json.loads(jp.read_text(encoding="utf-8"))
+            if "blocks" in data:
+                data["blocks"] = []
+                data["notes"] = data.get("notes", []) + [{"note": "Cleared for re-translation"}]
+                jp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+                print(f"✅ Cleared translation for ch {ch}")
+        else:
+            print(f"⚠️  No existing translation for ch {ch}")
+
     title = get_chapter_title(ch)
-    source = load_source_from_arg(ch, source_arg)
+    source = load_source_from_arg(ch, args.source_file)
     glossary_ctx = build_glossary_context(source)
     recent_summaries = get_last_summaries(2)
     characters = get_characters()
