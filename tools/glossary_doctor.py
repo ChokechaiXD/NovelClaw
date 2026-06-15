@@ -297,7 +297,10 @@ def detect_completeness(text, ch_num):
     # Better signal: check 【】 system message count matches between source and translation
     src_sys = re.findall(r'【[^】]+】', src_text)
     th_sys = re.findall(r'【[^】]+】', text)
-    if src_sys and len(th_sys) < len(src_sys) * 0.5:
+    # Skip if source file has no system messages intact (e.g. scraped from hjwzw which strips 【】)
+    if not src_sys:
+        return []
+    if len(th_sys) < len(src_sys) * 0.5:
         return [{
             'rule_type': 'completeness',
             'severity': 'error',
