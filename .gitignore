@@ -60,7 +60,11 @@ novels/*/chapters/source/
 novels/*/chapters/source_dirty/
 **/chapters/source_dirty/*.md
 
-# Auto-generated DBs (rebuild via `python novelclaw.py glossary build --apply`)
+# Legacy translations (pre-v2 format, kept for reference but not in repo)
+novels/*/chapters/legacy/
+**/chapters/legacy/
+
+# Auto-generated DBs (rebuild via `python tools/build_yaml.py`)
 # - glossary.db = rebuilt from locked.md/reference.md/auto.md
 # - fts_index.db = rebuilt via `python novelclaw.py search-index`
 **/glossary.db
