@@ -65,7 +65,7 @@ def extract_numbers(text: str) -> set[str]:
     text_clean = re.sub(r'(\d),(\d)', r'\1\2', text)
     # Use lookbehind/lookahead instead of \b — \b is ASCII-only and
     # doesn't work at CJK↔digit boundaries (e.g. 他有15个苹果).
-    return set(re.findall(r'(?<!\d)\d{2,3}(?!\d)', text_clean))
+    return set(re.findall(r'(?<!(\d|,))\d{2,}(?!(\d|,))', text_clean))
 
 
 def load_glossary_main() -> dict[str, str]:

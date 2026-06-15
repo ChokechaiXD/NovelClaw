@@ -62,6 +62,10 @@ def load_source_from_arg(ch: int, source_arg: str | None) -> str:
             src = "\n".join(src)
         if len(str(src)) > 50:  # real source, not placeholder
             return str(src)
+    # Try source/NNNN.md
+    sp = ROOT / "source" / f"{ch:04d}.md"
+    if sp.exists():
+        return sp.read_text(encoding="utf-8")
     # Try source.md in chapter folder
     sp = CHAP_DIR / f"{ch:04d}" / "source.md"
     if not sp.exists():
