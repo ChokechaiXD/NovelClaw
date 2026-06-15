@@ -52,7 +52,10 @@ def count_term_uses() -> dict[str, int]:
     Strategy: for each Source term, count literal substring matches in the Thai body.
     Returns: dict mapping term -> use_count.
     """
-    chapters = sorted(f for f in CHAPTERS_DIR.glob('[0-9]*.md') if f.is_file())
+    # Scan .json (canonical) first, fall back to .md (legacy)
+    chapters = sorted(f for f in CHAPTERS_DIR.glob('[0-9]*.json') if f.is_file())
+    if not chapters:
+        chapters = sorted(f for f in CHAPTERS_DIR.glob('[0-9]*.md') if f.is_file())
     # NOTE: explicitly scan chapters/ root only. Source files live in
     # chapters/source/ so they're already excluded by the non-recursive glob,
     # but pin the contract here in case the source layout changes.

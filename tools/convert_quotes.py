@@ -7,7 +7,8 @@ import re
 import sys
 from pathlib import Path
 
-CHAPTERS_DIR = Path("novels/global-descent/chapters")
+sys.path.insert(0, str(Path(__file__).parent))
+from constants import CHAPTERS_DIR  # noqa: E402
 
 
 def convert_quotes(text: str) -> str:
