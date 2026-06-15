@@ -505,12 +505,105 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'End') window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 });
 
+// ── Dashboard ───────────────────────────────────────────────────────────
+
+async function showDashboard() {
+  const dashboard = document.getElementById('dashboard');
+  const readerLayout = document.getElementById('reader-layout');
+  const novelSelector = document.getElementById('novel-selector');
+  const novelTitle = document.getElementById('novel-title');
+
+  dashboard.classList.add('visible');
+  readerLayout.hidden = true;
+  novelSelector.hidden = true;
+  novelTitle.textContent = 'NovelClaw';
+
+  const novels = await api('/api/novels');
+  const grid = document.getElementById('novel-grid');
+  grid.innerHTML = '';
+
+  for (const novel of novels) {
+    const card = el('div', { class: 'novel-card', onclick: () => openNovel(novel) });
+
+    const statusClass = novel.status === 'ongoing' ? 'ongoing'
+      : novel.status === 'complete' ? 'complete' : 'unknown';
+    const statusText = novel.status === 'ongoing' ? 'กำลังแปล'
+      : novel.status === 'complete' ? 'จบ' : 'ไม่ระบุ';
+
+    const readCount = novel.chapterCount || 0;
+    const totalCount = novel.totalChapters || readCount;
+    const pct = totalCount > 0 ? Math.round((readCount / totalCount) * 100) : 0;
+
+    card.innerHTML = `
+      <span class="card-status ${statusClass}">${statusText}</span>
+      <p class="card-title">${novel.title || novel.slug}</p>
+      <p class="card-slug">${novel.slug}</p>
+      <div class="card-stats">
+        <span>📖 ${readCount}/${totalCount} ตอน</span>
+        <span>🌐 ${novel.source_lang || 'cn'} → ${novel.target_lang || 'th'}</span>
+      </div>
+      <div class="card-progress">
+        <div class="card-progress-bar" style="width: ${pct}%"></div>
+      </div>
+    `;
+    grid.appendChild(card);
+  }
+}
+
+async function openNovel(novel) {
+  const dashboard = document.getElementById('dashboard');
+  const readerLayout = document.getElementById('reader-layout');
+  const novelSelector = document.getElementById('novel-selector');
+  const novelSelect = document.getElementById('novel-select');
+
+  dashboard.classList.remove('visible');
+  readerLayout.hidden = false;
+  novelSelector.hidden = false;
+
+  // Populate selector
+  const novels = await api('/api/novels');
+  novelSelect.innerHTML = '';
+  for (const n of novels) {
+    const opt = document.createElement('option');
+    opt.value = n.slug;
+    opt.textContent = n.title || n.slug;
+    if (n.slug === novel.slug) opt.selected = true;
+    novelSelect.appendChild(opt);
+  }
+
+  await loadNovel(novel);
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────
 
 (function init() {
   const saved = loadState();
   setTheme(saved.theme || 'light');
-  loadNovels().catch((err) => {
+
+  // Novel selector change
+  const novelSelect = document.getElementById('novel-select');
+  if (novelSelect) {
+    novelSelect.addEventListener('change', async (e) => {
+      const slug = e.target.value;
+      if (slug) {
+        const novels = await api('/api/novels');
+        const novel = novels.find(n => n.slug === slug);
+        if (novel) await openNovel(novel);
+      }
+    });
+  }
+
+  // Back to dashboard
+  const backBtn = document.getElementById('back-to-dash');
+  if (backBtn) {
+    backBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      showDashboard();
+    });
+  }
+
+  // Show dashboard first
+  showDashboard().catch((err) => {
     showError(`เริ่มต้นไม่สำเร็จ: ${err.message}`);
   });
 })();
