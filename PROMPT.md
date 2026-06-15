@@ -149,11 +149,36 @@ Encounter unknown term?
 4. NOT FOUND → translate, append to auto.md
 
 ## S7: OUTPUT FORMAT
-Chapter files: chapters/NNNN.json (schema v2)
+Chapter files: chapters/NNNN.json (schema v1)
+
+JSON schema:
+```json
+{
+  "schema_version": 1,
+  "num": 72,
+  "title": "ตอนที่ 72 <Thai title>",
+  "blocks": [
+    {"type": "dialogue", "text": "「...」", "speaker": null},
+    {"type": "narration", "text": "..."},
+    {"type": "system", "text": "【...】"},
+    {"type": "end", "text": "(จบบท)"}
+  ],
+  "source": "<raw CN source or placeholder>",
+  "notes": []
+}
+```
+
+Block types:
+- `dialogue`: lines with 「」 or 『』 markers — speaker: null (unknown) or name
+- `narration`: prose paragraphs
+- `system`: game/system messages in 【】
+- `end`: last block, always "(จบบท)"
+
 Title: `ตอนที่ N <Thai title>`
-End: `(จ�บท)` as last block
-Footer: `*Source: ch N*`
-Translator notes: `หมายเหตุการแปล:` section after `---`
+End: `(จบท)` as last block
+Translator notes: add to notes[] array
+
+Save with: python tools/save_translated.py <N> <file.txt>
 
 ## S8: NATURALNESS GUIDE (CN→TH)
 Reference: docs/THAI_NATURALNESS.md

@@ -33,7 +33,7 @@ from pathlib import Path
 
 # Load shared constants (LENGTH_RATIO_OK, NAME_CHECKS, NOVEL_ROOT)
 sys.path.insert(0, str(Path(__file__).parent))
-from constants import LENGTH_RATIO_OK, NAME_CHECKS, NOVEL_ROOT, GLOSSARY_DIR  # noqa: E402
+from constants import LENGTH_RATIO_OK, NAME_CHECKS, NOVEL_ROOT, GLOSSARY_DIR, get_novel_root  # noqa: E402
 
 ROOT = NOVEL_ROOT
 
@@ -305,16 +305,24 @@ def validate(target: int, do_fix: bool = False) -> int:
 
 
 def main():
-    args = sys.argv[1:]
-    do_fix = '--fix' in args
-    args = [a for a in args if a != '--fix']
+    import argparse
+    ap = argparse.ArgumentParser(description='Validate chapter')
+    ap.add_argument('chapter', type=int, nargs='?', help='Chapter number (default: last translated)')
+    ap.add_argument('--novel', type=str, default=None, help='Novel slug (default: global-descent or NOVEL_SLUG env)')
+    ap.add_argument('--fix', action='store_true', help='Apply mechanical fixes')
+    args = ap.parse_args()
 
-    if not args:
+    # Resolve novel-specific paths
+    global ROOT, GLOSSARY_DIR
+    ROOT = get_novel_root(args.novel)
+    GLOSSARY_DIR = ROOT / 'glossary'
+
+    if args.chapter is None:
         target = read_progress_last()
     else:
-        target = int(args[0])
+        target = args.chapter
 
-    sys.exit(validate(target, do_fix=do_fix))
+    sys.exit(validate(target, do_fix=args.fix))
 
 
 if __name__ == '__main__':
