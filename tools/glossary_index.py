@@ -17,10 +17,10 @@ from pathlib import Path
 from collections import defaultdict
 
 SCRIPT_DIR = Path(__file__).parent
-NOVEL_ROOT = SCRIPT_DIR.parent / "novels" / "global-descent"
-GLOSSARY_YML = NOVEL_ROOT / "glossary" / "glossary.yml"
-CHAPTERS_DIR = NOVEL_ROOT / "chapters"
-INDEX_FILE = NOVEL_ROOT / "glossary" / ".glossary_index.json"
+_NOVEL_ROOT_DEFAULT = SCRIPT_DIR.parent / "novels" / "global-descent"
+GLOSSARY_YML = _NOVEL_ROOT_DEFAULT / "glossary" / "glossary.yml"
+CHAPTERS_DIR = _NOVEL_ROOT_DEFAULT / "chapters"
+INDEX_FILE = _NOVEL_ROOT_DEFAULT / "glossary" / ".glossary_index.json"
 
 
 class GlossaryIndex:

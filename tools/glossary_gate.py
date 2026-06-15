@@ -41,7 +41,7 @@ from load_glossary import load_terms  # noqa: E402
 
 # Reuse source-path logic from constants
 sys.path.insert(0, str(Path(__file__).parent))
-from constants import GLOSSARY_DIR, NOVEL_ROOT  # noqa: E402
+from constants import GLOSSARY_DIR, NOVEL_ROOT, get_novel_root# noqa: E402
 
 SOURCE_DIR = NOVEL_ROOT / 'chapters' / 'source'
 CHAPTERS_DIR = NOVEL_ROOT / 'chapters'

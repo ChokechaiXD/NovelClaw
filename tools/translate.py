@@ -28,7 +28,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from constants import NOVEL_ROOT, CHAPTERS_DIR, GLOSSARY_DIR  # noqa: E402
+from constants import NOVEL_ROOT, CHAPTERS_DIR, GLOSSARY_DIR, get_novel_root# noqa: E402
 from schema import Chapter, save_chapter, Narration, Dialogue, SystemMessage, GameTitle, EndMarker  # noqa: E402
 
 SOURCE_DIR = NOVEL_ROOT / 'chapters' / 'source'

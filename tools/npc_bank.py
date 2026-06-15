@@ -38,7 +38,7 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from constants import NOVEL_ROOT  # noqa: E402
+from constants import NOVEL_ROOT, get_novel_root# noqa: E402
 
 NPC_DIR = NOVEL_ROOT / 'npc_bank'
 INDEX_FILE = NPC_DIR / 'index.md'
@@ -77,7 +77,7 @@ def extract_npcs(body: str, top_n: int = 20) -> list[tuple[str, int]]:
 
     For source (CN) text: count CN names directly.
     """
-    from constants import GLOSSARY_DIR
+    from constants import GLOSSARY_DIR, get_novel_root
 
     # Load known name pairs: (cn, thai) from glossary
     pairs: list[tuple[str, str]] = []
@@ -207,7 +207,7 @@ def get_dossiers_for_chapter(num: int, body: str | None = None,
     Returns paths to dossier files, sorted by relevance (count in body).
     """
     # Load CN→TH map from glossary
-    from constants import GLOSSARY_DIR
+    from constants import GLOSSARY_DIR, get_novel_root
     cn_to_th: dict[str, str] = {}
     if GLOSSARY_DIR.exists():
         for tier in ('locked.md', 'reference.md'):

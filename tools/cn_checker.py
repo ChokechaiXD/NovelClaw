@@ -25,7 +25,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from constants import CHAPTERS_DIR, get_novel_root  # noqa: E402
+from constants import CHAPTERS_DIR, get_novel_root, NOVEL_ROOT# noqa: E402
 
 # Multi-novel support: override CHAPTERS_DIR if NOVEL_SLUG set
 _NOVEL_SLUG = 'global-descent'  # default

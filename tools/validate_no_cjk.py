@@ -20,8 +20,8 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).parent.parent / 'novels' / 'global-descent'
-CHAPTERS = ROOT / 'chapters'
+_NOVEL_ROOT_DEFAULT = Path(__file__).parent.parent / 'novels' / 'global-descent'
+CHAPTERS = _NOVEL_ROOT_DEFAULT / 'chapters'
 
 # Match CJK characters: Chinese (incl. extension A), Hiragana, Katakana, Hangul.
 # EXCLUDES the bracket/punctuation markers 【】《》 (allowed by Section 1 of PROMPT).

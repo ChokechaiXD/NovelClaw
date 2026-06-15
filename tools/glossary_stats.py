@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from constants import NOVEL_ROOT  # noqa: E402
+from constants import NOVEL_ROOT, get_novel_root# noqa: E402
 
 ROOT = NOVEL_ROOT
 GLOSSARY_DIR = ROOT / 'glossary'

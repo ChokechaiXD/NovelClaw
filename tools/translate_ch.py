@@ -22,8 +22,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(ROOT / "tools"))
+_PROJECT_ROOT_DEFAULT = Path(__file__).parent.parent
+sys.path.insert(0, str(_PROJECT_ROOT_DEFAULT / "tools"))
 from load_glossary import load_terms, load_style_rules  # noqa: E402
 from schema import Chapter, save_chapter  # noqa: E402
 from translate_ch_helpers import clean_source  # noqa: E402
