@@ -164,6 +164,14 @@
 }
 
 /* Hide reader when dashboard is visible */
-.dashboard.visible ~ .layout {
+body:has(.dashboard.visible) .reader-layout {
+  display: none;
+}
+
+body:has(.dashboard.visible) .topbar .novel-title {
+  display: inline;
+}
+
+body:has(.dashboard.visible) .topbar .novel-selector {
   display: none;
 }
