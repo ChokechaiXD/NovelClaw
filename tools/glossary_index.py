@@ -32,15 +32,23 @@ class GlossaryIndex:
         self._loaded = False
 
     def build(self, force=False):
-        """Build index from glossary.yml + chapter files."""
+        """Build index from glossary.yml + chapter files.
+
+        Uses cached index if glossary.yml hasn't changed since last build.
+        """
         import json
+        import os
 
         if not force and INDEX_FILE.exists():
-            data = json.loads(INDEX_FILE.read_text(encoding='utf-8'))
-            self.terms = data.get('terms', {})
-            self.chapter_terms = {int(k): v for k, v in data.get('chapter_terms', {}).items()}
-            self._loaded = True
-            return
+            # Check if glossary.yml is newer than index
+            yml_mtime = os.path.getmtime(GLOSSARY_YML) if GLOSSARY_YML.exists() else 0
+            idx_mtime = os.path.getmtime(INDEX_FILE)
+            if idx_mtime >= yml_mtime:
+                data = json.loads(INDEX_FILE.read_text(encoding='utf-8'))
+                self.terms = data.get('terms', {})
+                self.chapter_terms = {int(k): v for k, v in data.get('chapter_terms', {}).items()}
+                self._loaded = True
+                return
 
         # Load glossary
         if not GLOSSARY_YML.exists():
