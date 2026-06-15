@@ -563,7 +563,7 @@ app.post('/api/invalidate-cache', (req, res) => {
 //
 // To revert to localhost-only: change '0.0.0.0' to '127.0.0.1'
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   const os = require('node:os');
   const ifaces = os.networkInterfaces();
   const ips = [];
@@ -581,6 +581,36 @@ app.listen(PORT, '0.0.0.0', () => {
     for (const ip of ips) console.log(ip);
   }
   console.log(`Serving novels from: ${NOVELS_DIR}`);
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`⚠️  Port ${PORT} already in use — killing old server...`);
+    const { execSync } = require('node:child_process');
+    try {
+      if (process.platform === 'win32') {
+        // Kill any node process using this port
+        const out = execSync(`netstat -ano | findstr :${PORT}`, { encoding: 'utf8' });
+        const lines = out.trim().split('\n');
+        for (const line of lines) {
+          const parts = line.trim().split(/\s+/);
+          const pid = parts[parts.length - 1];
+          if (pid && pid !== '0') {
+            execSync(`taskkill /PID ${pid} /F`, { encoding: 'utf8' });
+            console.log(`  Killed old process (PID ${pid})`);
+          }
+        }
+      } else {
+        execSync(`lsof -ti:${PORT} | xargs kill -9 2>/dev/null || true`, { encoding: 'utf8' });
+      }
+    } catch (e) { /* ignore */ }
+    // Retry after a moment
+    setTimeout(() => {
+      server.listen(PORT, '0.0.0.0');
+    }, 500);
+  } else {
+    console.error('Server error:', err);
+  }
 });
 
 // ── Exports (for testing) ─────────────────────────────────────────────
