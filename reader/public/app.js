@@ -145,12 +145,13 @@ function renderChapterList() {
   });
 
   if (visible.length === 0) {
-    if (state.list) state.list.setItems([]);
+    if (state.list) { state.list.setItems([]); state.list = null; }
     const list = document.getElementById('chapter-list');
-    list.innerHTML = '<li class="empty-list">(ไม่พบ chapter)</li>';
+    list.innerHTML = '<div class="empty-list">(ไม่พบ chapter)</div>';
   } else {
     const placeholder = document.querySelector('#chapter-list > .empty-list');
     if (placeholder) placeholder.remove();
+    // (Re)create virtual scroll if needed
     if (!state.list) state.list = createListInstance();
     state.list.setItems(visible);
   }
@@ -326,25 +327,14 @@ async function runSearch(q) {
 
 function renderSearchResults(results, q) {
   const list = document.getElementById('chapter-list');
+  // Destroy virtual scroll instance while search is active
+  if (state.list) { state.list.setItems([]); state.list = null; }
   list.innerHTML = '';
   if (results.length === 0) {
-    list.appendChild(el('li', { class: 'empty' }, `ไม่พบ "${q}"`));
+    list.appendChild(el('div', { class: 'empty' }, `ไม่พบ "${q}"`));
     document.getElementById('chapter-count').textContent = `0 / ${state.chapters.length}`;
     return;
   }
-  // Search results: use VirtualScroll if many (UX stays smooth), or a
-  // plain list if few (rendering one card with a snippet looks better
-  // than a virtualised row at that scale).
-  if (results.length <= 12) {
-    renderSearchResultsSimple(results);
-  } else {
-    renderSearchResultsVirtual(results);
-  }
-  document.getElementById('chapter-count').textContent = `${results.length} / ${state.chapters.length}`;
-}
-
-function renderSearchResultsSimple(results) {
-  const list = document.getElementById('chapter-list');
   for (const c of results) {
     const snippetText = c.snippet ? stripSnippetMarkers(c.snippet) : null;
     const rowChildren = [
@@ -361,18 +351,9 @@ function renderSearchResultsSimple(results) {
       title: c.title,
       onclick: (e) => { e.preventDefault(); loadChapter(c.num); },
     }, ...rowChildren);
-    list.appendChild(el('li', {}, a));
+    list.appendChild(a);
   }
-}
-
-function renderSearchResultsVirtual(results) {
-  if (!state.list) state.list = createListInstance();
-  // Override the list's items with search results by giving it a
-  // shallow copy where each item has the snippet/source tags. We can't
-  // reuse the main list instance cleanly (it reads state.chapters shape),
-  // so we fall back to simple render but cap at the limit. With limit=30
-  // it's still manageable.
-  renderSearchResultsSimple(results);
+  document.getElementById('chapter-count').textContent = `${results.length} / ${state.chapters.length}`;
 }
 
 // FTS5 wraps the matched substring in <<...>>. Strip them for display
@@ -517,6 +498,8 @@ async function showDashboard() {
   readerLayout.hidden = true;
   novelSelector.hidden = true;
   novelTitle.textContent = 'NovelClaw';
+  document.body.classList.add('dashboard-mode');
+  document.body.classList.remove('reader-mode');
 
   const novels = await api('/api/novels');
   const grid = document.getElementById('novel-grid');
@@ -559,6 +542,8 @@ async function openNovel(novel) {
   dashboard.classList.remove('visible');
   readerLayout.hidden = false;
   novelSelector.hidden = false;
+  document.body.classList.add('reader-mode');
+  document.body.classList.remove('dashboard-mode');
 
   // Populate selector
   const novels = await api('/api/novels');
@@ -603,6 +588,7 @@ async function openNovel(novel) {
   }
 
   // Show dashboard first
+  document.body.classList.add('dashboard-mode');
   showDashboard().catch((err) => {
     showError(`เริ่มต้นไม่สำเร็จ: ${err.message}`);
   });
