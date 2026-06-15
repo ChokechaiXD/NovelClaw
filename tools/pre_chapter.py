@@ -65,12 +65,24 @@ def load_glossary_yml() -> list[dict]:
 
 
 def find_terms_in_source(source: str, glossary: list) -> dict[str, str]:
-    """Return {source_term: thai_translation} for all glossary terms in source."""
-    found = {}
-    for src, thai, _ in glossary:
-        if src in source:
-            found[src] = thai
-    return found
+    """Return {source_term: thai_translation} for glossary terms in source.
+
+    Uses glossary_index for lazy lookup — only loads relevant terms
+    instead of full 82KB glossary.
+    """
+    try:
+        from glossary_index import GlossaryIndex
+        idx = GlossaryIndex()
+        idx.build()
+        terms = idx.lookup(text=source)
+        return {src: thai for src, thai, _ in terms}
+    except Exception:
+        # Fallback: scan all terms
+        found = {}
+        for src, thai, _ in glossary:
+            if src in source:
+                found[src] = thai
+        return found
 
 
 def clean_source(raw: str) -> str:
