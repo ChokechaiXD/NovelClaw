@@ -171,31 +171,105 @@ select { font-family: inherit; }
   color: var(--text);
 }
 .sidebar-search input:focus { outline: none; border-color: var(--accent); }
+
+/* ── Chapter list (virtual-scroll container) ──────────────────────────── */
 .chapter-list {
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden;          /* VirtualScroll owns scrolling */
   list-style: none;
-  padding: 4px 0;
+  padding: 0;
+  position: relative;
 }
-.chapter-list li a {
-  display: block;
-  padding: 8px 16px;
+
+/* VirtualScroll owns a scrollable viewport + tall spacer */
+.chapter-list .vscroll-viewport {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.chapter-list .vscroll-spacer {
+  position: relative;        /* rows are absolute inside this */
+}
+
+/* Each virtual row — flat <a>, no <li> wrapper */
+.chapter-list .vscroll-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
   font-size: 0.85rem;
   color: var(--text);
+  text-decoration: none;
   border-left: 3px solid transparent;
   transition: background 0.1s;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  box-sizing: border-box;
 }
-.chapter-list li a:hover { background: var(--border); }
-.chapter-list li a.active {
+.chapter-list .vscroll-row:hover { background: var(--border); }
+.chapter-list .vscroll-row.active {
   background: var(--accent-soft);
   border-left-color: var(--accent);
   color: var(--accent);
   font-weight: 500;
 }
-.chapter-list li a.read { color: var(--text-soft); }
+.chapter-list .vscroll-row.read { color: var(--text-soft); }
+
+.chapter-list .vscroll-row .chapter-num {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  min-width: 36px;
+  flex-shrink: 0;
+}
+
+.chapter-list .vscroll-row .chapter-label-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Search result rows (simple, non-virtual) */
+.chapter-list .search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  color: var(--text);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+.chapter-list .search-row:hover { background: var(--border); }
+.chapter-list .search-row.active {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+  color: var(--accent);
+  font-weight: 500;
+}
+.chapter-list .search-row .chapter-text-col {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.chapter-list .search-row .chapter-snippet {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chapter-list .search-row.from-content { border-left-style: dashed; }
+
+.chapter-list .empty-list,
+.chapter-list .empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-soft);
+  font-size: 0.85rem;
+}
 
 /* ── Reader ──────────────────────────────────────────────────────────── */
 .reader {
@@ -365,8 +439,12 @@ select { font-family: inherit; }
 .novel-card .card-progress-bar { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
 
 /* ── Dashboard / Reader toggle ───────────────────────────────────────── */
-body:has(.dashboard.visible) .reader-layout { display: none; }
-body:has(.dashboard.visible) .topbar .novel-selector { display: none; }
+/* JS-driven: body.reader-mode / body.dashboard-mode classes */
+.reader-layout { display: none; }
+body.reader-mode .reader-layout { display: flex; }
+body.reader-mode .dashboard { display: none; }
+body.dashboard-mode .dashboard { display: block; }
+body.dashboard-mode .reader-layout { display: none; }
 
 /* ── Mobile ──────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
