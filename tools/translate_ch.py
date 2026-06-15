@@ -28,8 +28,8 @@ from load_glossary import load_terms, load_style_rules  # noqa: E402
 from schema import Chapter, save_chapter  # noqa: E402
 from translate_ch_helpers import clean_source  # noqa: E402
 
-SOURCE_DIR = ROOT / "novels" / "global-descent" / "chapters" / "source"
-CHAPTERS_DIR = ROOT / "novels" / "global-descent" / "chapters"
+SOURCE_DIR = _PROJECT_ROOT_DEFAULT / "novels" / "global-descent" / "chapters" / "source"
+CHAPTERS_DIR = _PROJECT_ROOT_DEFAULT / "novels" / "global-descent" / "chapters"
 
 
 # === Format spec for quick reference ===

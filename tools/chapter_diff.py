@@ -77,12 +77,11 @@ def compute_diff(ch: int, window: int = 2, glossary: dict[str, str] = None) -> d
             neighbor_terms[cn].append(nb_ch)
 
     # Terms in ≥2 neighbors but missing from current = suspicious
-    missing = {
-        cn: (thai, chs) for cn, (thai, chs) in (
-            (cn, (thai, nb_chs)) for cn, thai in glossary.items()
-            if (nb_chs := neighbor_terms.get(cn, [])) and cn not in current_terms and len(nb_chs) >= 2
-        )
-    }
+    missing = {}
+    for cn, thai in glossary.items():
+        nb_chs = neighbor_terms.get(cn, [])
+        if nb_chs and cn not in current_terms and len(nb_chs) >= 2:
+            missing[cn] = (thai, nb_chs)
 
     # Terms in current and at least 1 neighbor = consistent
     consistent = {cn: thai for cn, thai in current_terms.items() if cn in neighbor_terms}
