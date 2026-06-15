@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from constants import CHAPTERS_DIR, GLOSSARY_DIR
+from constants import CHAPTERS_DIR, GLOSSARY_DIR, get_novel_root
 
 DB_PATH = GLOSSARY_DIR / 'glossary.db'
 
@@ -27,14 +27,20 @@ DB_PATH = GLOSSARY_DIR / 'glossary.db'
 def main():
     ap = argparse.ArgumentParser(description='Save + validate chapter')
     ap.add_argument('chapter', type=int, help='Chapter number')
+    ap.add_argument('--novel', type=str, default=None, help='Novel slug (default: global-descent or NOVEL_SLUG env)')
     ap.add_argument('--dry-run', action='store_true', help='Validate only, do not save')
     ap.add_argument('--strict', action='store_true', help='Block on warnings too')
     ap.add_argument('--from-md', action='store_true', help='Read from .md then convert to .json')
     args = ap.parse_args()
 
+    # Resolve novel-specific paths
+    root = get_novel_root(args.novel)
+    glossary_dir = root / 'glossary'
+    chapters_dir = root / 'chapters'
+
     ch = args.chapter
-    json_path = CHAPTERS_DIR / f'{ch:04d}.json'
-    md_path = CHAPTERS_DIR / f'{ch:04d}.md'
+    json_path = chapters_dir / f'{ch:04d}.json'
+    md_path = chapters_dir / f'{ch:04d}.md'
 
     # ── Resolve input file ────────────────────────────────────────────
     if args.from_md:
@@ -113,7 +119,7 @@ def main():
             _save(validated, json_path)
             # Also save to FTS index
             try:
-                save_to_fts(validated, ch)
+                save_to_fts(validated, ch, glossary_dir)
             except Exception:
                 pass
             print(f'\n✓ ch{ch} saved → {json_path.name}')
@@ -122,11 +128,13 @@ def main():
             print(f'\n✓ ch{ch} validated (MD — no save)')
 
 
-def save_to_fts(chapter, ch_num: int):
+def save_to_fts(chapter, ch_num: int, glossary_dir: Path = None):
     """Update FTS index for this chapter."""
     try:
         import sqlite3
-        fts_db = GLOSSARY_DIR.parent / 'chapters' / 'fts_index.db'
+        if glossary_dir is None:
+            glossary_dir = GLOSSARY_DIR
+        fts_db = glossary_dir.parent / 'chapters' / 'fts_index.db'
         conn = sqlite3.connect(str(fts_db))
         conn.execute('DELETE FROM chapters WHERE num = ?', (ch_num,))
         for block in chapter.blocks:
