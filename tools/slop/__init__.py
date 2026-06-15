@@ -1,6 +1,6 @@
 """slop — Anti-slop pattern detection for NovelClaw translations.
 
-Split from the original 858-LOC `slop_detector.py` into 4 modules:
+4 modules:
 
   - `slop.anti_ai`          — tier lists (TIER1/2/3/ADENAUFAL/MIKA) + matchers
   - `slop.text_stats`       — tokenize_th / split_sentences_th / get_ngrams

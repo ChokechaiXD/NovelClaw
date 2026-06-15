@@ -1,7 +1,7 @@
 """scan.py — Orchestrator: scan chapters, aggregate, print report.
 
 Wires together `anti_ai`, `text_stats`, and `paragraph_metrics`.
-CLI: `python tools/slop_detector.py [args]`
+CLI: `python tools/slop/scan.py [args]`
 """
 import re
 import sys
@@ -414,7 +414,7 @@ def main():
             for ch, issue in report['megumin_issues'][:5]:
                 banned.append(f"- {issue} ({ch})")
         if banned:
-            appendix = "\n\n## Auto-detected slop candidates (slop_detector v2)\n\n" + "\n".join(banned)
+            appendix = "\n\n## Auto-detected slop candidates\n\n" + "\n".join(banned)
             style_path = NOVEL_ROOT / 'style.md'
             if style_path.exists():
                 with open(style_path, 'a', encoding='utf-8') as f:

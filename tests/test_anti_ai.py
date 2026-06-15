@@ -1,8 +1,7 @@
 """test_anti_ai.py — Lock down the pattern-matching functions.
 
-The original slop_detector had 858 LOC with no tests. After splitting it
-into modules, this file locks down the behavior of `find_tier1/2/3`,
-`find_mika_patterns`, and `find_adenaufal`.
+Tests the behavior of `find_tier1/2/3`, `find_mika_patterns`, and
+`find_adenaufal` from the slop.anti_ai module.
 """
 import pytest
 from slop.anti_ai import (

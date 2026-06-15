@@ -2,7 +2,7 @@
 
 Problem: static ban lists miss crutch phrases that develop in a specific
 novel's voice. AI reuses "ยิ้มเย็น" / "ขมวดคิ้ว" / "ถอนหายใจ" 3+ times per
-chapter after translating 50+ chapters — existing slop_detector only
+chapter after translating 50+ chapters — existing slop detection only
 catches known patterns.
 
 Solution: scan translated chapters for repeated 2-grams (TH bigrams),
@@ -12,7 +12,7 @@ that list into the pre_chapter context for future translations.
 This is the post-process "self-correction loop" from Megumin's V7
 Dynamic Ban List + Nemo's Prose Polisher (n-gram evidence from rejected
 swipes) — adapted for the CN→TH translation pipeline.
-
+"""
 Usage:
     python learn_slop.py                       # scan all translated ch, update bans
     python learn_slop.py --chapter 100         # scan single ch

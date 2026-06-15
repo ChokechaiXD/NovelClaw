@@ -302,8 +302,8 @@ def generate_audit(num: int, body: str) -> str:
     lines.append('')
     lines.append('---')
     lines.append('')
-    lines.append('> For full validation: `python novelclaw.py validate ' + str(num) + '`')
-    lines.append('> For slop scan: `python tools/slop_detector.py --chapter ' + str(num) + '`')
+    lines.append('> For full validation: `python tools/validate_chapter.py ' + str(num) + '`')
+    lines.append('> For slop scan: `python tools/slop/scan.py --chapter ' + str(num) + '`')
     return '\n'.join(lines)
 
 
