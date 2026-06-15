@@ -69,9 +69,27 @@ def extract_numbers(text: str) -> set[str]:
 
 
 def load_glossary_main() -> dict[str, str]:
+    """Load glossary from glossary.yml (single source of truth).
+
+    Falls back to .md files if yml not available.
+    """
+    # Primary: glossary.yml (single source via load_glossary module)
+    try:
+        sys.path.insert(0, str(Path(__file__).parent))
+        from load_glossary import load_terms
+        terms = load_terms()
+        if terms:
+            return {t['source']: t['thai'] for t in terms}
+    except Exception:
+        pass
+
+    # Fallback: parse .md files directly
     out = {}
     for tier in ('locked.md', 'reference.md', 'auto.md'):
-        for line in (GLOSSARY_DIR / tier).read_text(encoding='utf-8').splitlines():
+        f = GLOSSARY_DIR / tier
+        if not f.exists():
+            continue
+        for line in f.read_text(encoding='utf-8').splitlines():
             if not line.startswith('| ') or line.startswith('|--') or 'Source' in line:
                 continue
             cells = [c.strip() for c in line.split('|')]

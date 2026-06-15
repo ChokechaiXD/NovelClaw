@@ -178,7 +178,16 @@ def convert_line_quotes(line: str) -> str:
 
 def reformat_one(ch_num: int, dry_run: bool = False) -> bool:
     """Reformat a single ch. Returns True if changes were made."""
-    ch_path = CHAPTERS_DIR / f'{ch_num:04d}.md'
+    # Try .json first (canonical), fall back to .md (legacy)
+    ch_json = CHAPTERS_DIR / f'{ch_num:04d}.json'
+    ch_md = CHAPTERS_DIR / f'{ch_num:04d}.md'
+    if ch_json.exists():
+        ch_path = ch_json
+    elif ch_md.exists():
+        ch_path = ch_md
+    else:
+        ch_path = ch_md  # for error message
+
     if not ch_path.exists():
         print(f'❌ ch{ch_num}: file not found')
         return False
@@ -212,10 +221,14 @@ def main():
     if args.chapter:
         reformat_one(args.chapter, dry_run=args.dry_run)
     else:
-        # All ch
-        ch_files = sorted([f for f in CHAPTERS_DIR.glob('[0-9]*.md')
+        # All ch — scan .json first, fall back to .md
+        ch_files = sorted([f for f in CHAPTERS_DIR.glob('[0-9]*.json')
                           if f.is_file() and f.stem.isdigit() and len(f.stem) == 4],
                          key=lambda p: int(p.stem))
+        if not ch_files:
+            ch_files = sorted([f for f in CHAPTERS_DIR.glob('[0-9]*.md')
+                              if f.is_file() and f.stem.isdigit() and len(f.stem) == 4],
+                             key=lambda p: int(p.stem))
         total_changed = 0
         for ch_file in ch_files:
             ch = int(ch_file.stem)

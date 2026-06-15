@@ -24,12 +24,13 @@ import re
 import sys
 from pathlib import Path
 
-CHAPTERS_DIR = Path("novels/global-descent/chapters")
+sys.path.insert(0, str(Path(__file__).parent))
+from constants import CHAPTERS_DIR, get_novel_root  # noqa: E402
 
-# Multi-novel support (Phase 2 — 2026-06-14):
-# cn_checker can target any novel via env var or by patching
-# CHAPTERS_DIR. The default is global-descent for backward compat.
-NOVEL_SLUG = 'global-descent'
+# Multi-novel support: override CHAPTERS_DIR if NOVEL_SLUG set
+_NOVEL_SLUG = 'global-descent'  # default
+if _NOVEL_SLUG != 'global-descent':
+    CHAPTERS_DIR = get_novel_root(_NOVEL_SLUG) / 'chapters'
 
 # Unicode ranges
 CN = re.compile(r'[\u4e00-\u9fff]')           # CJK Unified Ideographs (Chinese)
