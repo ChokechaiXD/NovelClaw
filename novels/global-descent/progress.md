@@ -1,7 +1,7 @@
 # NovelClaw Progress — global-descent
 
 **Last translated:** ch 121
-**Total progress:** 121/1,239 (9.77%)
+j/1239 (4.20%)
 **Next chapter:** ch 122
 **Quality gate:** transmittor principle (translator transmits, not edits)
 **Pipeline:** 2-agent (Translator 5-Phase CoT + Proofreader MQM 8-dim, read-only)
