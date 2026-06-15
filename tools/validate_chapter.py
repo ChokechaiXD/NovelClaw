@@ -310,6 +310,7 @@ def main():
     ap.add_argument('chapter', type=int, nargs='?', help='Chapter number (default: last translated)')
     ap.add_argument('--novel', type=str, default=None, help='Novel slug (default: global-descent or NOVEL_SLUG env)')
     ap.add_argument('--fix', action='store_true', help='Apply mechanical fixes')
+    ap.add_argument('--brief', action='store_true', help='Brief output for Telegram (like validate_last)')
     args = ap.parse_args()
 
     # Resolve novel-specific paths
