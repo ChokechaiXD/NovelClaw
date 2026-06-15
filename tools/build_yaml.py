@@ -11,8 +11,8 @@ import re
 import sys
 from pathlib import Path
 
-GLOSSARY_DIR = Path(__file__).parent.parent / "novels" / "global-descent" / "glossary"
-NOVEL_DIR = Path(__file__).parent.parent / "novels" / "global-descent"
+_GLOSSARY_DIR_DEFAULT = Path(__file__).parent.parent / "novels" / "global-descent" / "glossary"
+_NOVEL_DIR_DEFAULT = Path(__file__).parent.parent / "novels" / "global-descent"
 
 # === Table parser ===
 
@@ -171,10 +171,10 @@ def parse_style_rules(path: Path) -> dict:
 # === Main ===
 
 def main() -> int:
-    locked_path = GLOSSARY_DIR / "locked.md"
-    reference_path = GLOSSARY_DIR / "reference.md"
-    auto_path = GLOSSARY_DIR / "auto.md"
-    style_path = NOVEL_DIR / "style.md"
+    locked_path = _GLOSSARY_DIR_DEFAULT / "locked.md"
+    reference_path = _GLOSSARY_DIR_DEFAULT / "reference.md"
+    auto_path = _GLOSSARY_DIR_DEFAULT / "auto.md"
+    style_path = _NOVEL_DIR_DEFAULT / "style.md"
 
     # Parse all
     locked = parse_locked(locked_path)
@@ -233,8 +233,8 @@ def main() -> int:
     style_yml = "\n".join(style_yml_lines)
 
     # Write
-    glossary_out = GLOSSARY_DIR / "glossary.yml"
-    style_out = NOVEL_DIR / "style_rules.yml"
+    glossary_out = _GLOSSARY_DIR_DEFAULT / "glossary.yml"
+    style_out = _NOVEL_DIR_DEFAULT / "style_rules.yml"
 
     if "--check" in sys.argv:
         # Verify files match

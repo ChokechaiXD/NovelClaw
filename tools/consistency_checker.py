@@ -19,9 +19,9 @@ from collections import defaultdict
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
-NOVEL_ROOT = SCRIPT_DIR.parent / "novels" / "global-descent"
-CHAPTERS_DIR = NOVEL_ROOT / "chapters"
-LOCKED_MD = NOVEL_ROOT / "glossary" / "locked.md"
+_NOVEL_ROOT_DEFAULT = SCRIPT_DIR.parent / "novels" / "global-descent"
+CHAPTERS_DIR = _NOVEL_ROOT_DEFAULT / "chapters"
+LOCKED_MD = _NOVEL_ROOT_DEFAULT / "glossary" / "locked.md"
 
 
 def load_locked_terms():

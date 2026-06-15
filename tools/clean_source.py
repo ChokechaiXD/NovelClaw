@@ -19,8 +19,8 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).parent.parent
-NOVEL_DIR = ROOT / 'novels' / 'global-descent'
+_PROJECT_ROOT_DEFAULT = Path(__file__).parent.parent
+NOVEL_DIR = _PROJECT_ROOT_DEFAULT / 'novels' / 'global-descent'
 SOURCE_DIR = NOVEL_DIR / 'chapters' / 'source'
 
 # CJK Unified Ideographs + Extension A

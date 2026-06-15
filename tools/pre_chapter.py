@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from constants import NOVEL_ROOT, GLOSSARY_DIR  # noqa: E402
+from constants import NOVEL_ROOT, GLOSSARY_DIR, get_novel_root  # noqa: E402
 
 ROOT = NOVEL_ROOT
 
@@ -191,11 +191,19 @@ def load_dynamic_bans(limit: int = 10) -> list[str]:
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser(description='Prep context for next chapter')
+    ap.add_argument('chapter', type=int, nargs='?', help='Chapter number (default: from progress.md)')
+    ap.add_argument('--novel', type=str, default=None, help='Novel slug (default: global-descent or NOVEL_SLUG env)')
+    args = ap.parse_args()
+
+    # Resolve novel-specific paths
+    global ROOT, GLOSSARY_DIR
+    ROOT = get_novel_root(args.novel)
+    GLOSSARY_DIR = ROOT / 'glossary'
+
     # Determine target chapter
-    if len(sys.argv) > 1:
-        target = int(sys.argv[1])
-    else:
-        target = read_progress()
+    target = args.chapter if args.chapter else read_progress()
 
     # 1. Source
     src_file = ROOT / 'chapters' / 'source' / f'{target:04d}.md'

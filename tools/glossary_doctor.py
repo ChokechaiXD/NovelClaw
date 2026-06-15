@@ -56,7 +56,7 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from constants import NOVEL_ROOT, CHAPTERS_DIR, GLOSSARY_DIR  # noqa: E402
+from constants import NOVEL_ROOT, CHAPTERS_DIR, GLOSSARY_DIR, get_novel_root  # noqa: E402
 
 DB_PATH = GLOSSARY_DIR / 'glossary.db'
 
@@ -673,6 +673,7 @@ def print_report():
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument('--novel', type=str, default=None, help='Novel slug (default: global-descent or NOVEL_SLUG env)')
     ap.add_argument('--ch', help='Single ch or range (e.g., 50 or 50-60)')
     ap.add_argument('--all', action='store_true', help='All translated ch')
     ap.add_argument('--inconsistencies', action='store_true', help='Find CN→Thai mapping issues')
@@ -683,6 +684,13 @@ def main():
     ap.add_argument('--gate', type=int, metavar='CH', help='CI gate — exit 0=clean, 1=warn, 2=error')
     ap.add_argument('--completeness', type=int, metavar='CH', help='Check ch has all source beats')
     args = ap.parse_args()
+
+    # Resolve novel-specific paths
+    global CHAPTERS_DIR, GLOSSARY_DIR, DB_PATH
+    root = get_novel_root(args.novel)
+    CHAPTERS_DIR = root / 'chapters'
+    GLOSSARY_DIR = root / 'glossary'
+    DB_PATH = GLOSSARY_DIR / 'glossary.db'
 
     glossary, alias_map, style_rules = load_glossary()
 

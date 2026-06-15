@@ -33,7 +33,7 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from constants import GLOSSARY_DIR, CHAPTERS_DIR  # noqa: E402
+from constants import GLOSSARY_DIR, CHAPTERS_DIR, get_novel_root, NOVEL_ROOT# noqa: E402
 
 DB_PATH = GLOSSARY_DIR / 'glossary.db'
 

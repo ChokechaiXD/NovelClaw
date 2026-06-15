@@ -24,7 +24,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from constants import CHAPTERS_DIR  # noqa: E402
+from constants import CHAPTERS_DIR, get_novel_root, NOVEL_ROOT# noqa: E402
 
 
 def reformat(text: str, ch_num: int, dry_run: bool = False) -> tuple[str, list[str]]:
