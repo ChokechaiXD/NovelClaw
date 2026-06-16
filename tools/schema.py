@@ -277,7 +277,7 @@ class Chapter(BaseModel):
     the validator to pick the right bracket profile (BRACKETS config) and
     by the renderer (server.js) to apply per-language styling.
     """
-    schema_version: int = 1
+    schema_version: int = Field(default=2, description='Schema version — currently v2')
     num: int = Field(..., ge=1, le=9999, description='Chapter number')
     title: str = Field(..., min_length=1, description='Full chapter title (e.g., "ตอนที่ 112 ...")')
     blocks: List[Block] = Field(..., min_length=1, description='Ordered content blocks')
@@ -371,78 +371,3 @@ class Chapter(BaseModel):
         if not content:
             raise ValueError('Chapter has no content blocks (only end marker)')
         return self
-
-
-# ────────────────────────────────────────────────────────────────────
-# Helpers
-# ────────────────────────────────────────────────────────────────────
-
-def load_chapter(path) -> Chapter:
-    """Load a ch from a .json file. Returns validated Chapter."""
-    import json
-    from pathlib import Path
-    p = Path(path)
-    data = json.loads(p.read_text(encoding='utf-8'))
-    return Chapter(**data)
-
-
-def save_chapter(ch: Chapter, path) -> None:
-    """Save a Chapter to a .json file. Pretty-printed for git diff."""
-    import json
-    from pathlib import Path
-    p = Path(path)
-    p.write_text(
-        json.dumps(ch.model_dump(), ensure_ascii=False, indent=2) + '\n',
-        encoding='utf-8',
-    )
-
-
-def chapter_path(novel_root, num: int) -> 'Path':
-    """Get the canonical path for a ch: chapters/NNNN.json"""
-    from pathlib import Path
-    return Path(novel_root) / 'chapters' / f'{num:04d}.json'
-
-
-def md_to_blocks(md_text: str) -> List[dict]:
-    """Migrate a legacy .md file to JSON blocks (best-effort, lossy for
-    complex formatting).
-
-    Used for one-time migration of ch 1-100 from .md to .json.
-    """
-    # Strip meta footer
-    parts = re.split(r'\n---\n', md_text, maxsplit=1)
-    body = parts[0].strip()
-    meta = parts[1].strip() if len(parts) > 1 else ''
-
-    blocks = []
-    for line in body.split('\n'):
-        line = line.rstrip()
-        if not line:
-            continue
-        # Title
-        if line.startswith('# '):
-            continue  # title handled separately
-        # End marker
-        if line.strip() == '(จบบท)':
-            blocks.append({'type': 'end', 'text': '(จบบท)'})
-            continue
-        # System message
-        if line.startswith('【') and line.endswith('】'):
-            blocks.append({'type': 'system', 'text': line})
-            continue
-        # Dialogue
-        if line.startswith('「') and line.endswith('」'):
-            blocks.append({'type': 'dialogue', 'text': line})
-            continue
-        # Game title (inline) — keep as narration
-        # Otherwise narration
-        blocks.append({'type': 'narration', 'text': line})
-
-    # Extract notes from meta
-    notes = []
-    if meta:
-        for line in meta.split('\n'):
-            line = line.strip()
-            if line.startswith('- '):
-                notes.append(line[2:])
-    return blocks, notes

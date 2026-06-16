@@ -14,57 +14,59 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from constants import CHAPTERS_DIR, get_novel_root, NOVEL_ROOT# noqa: E402
-from schema import Chapter, save_chapter, Dialogue, SystemMessage, GameTitle, Narration, EndMarker  # noqa: E402
+from schema import Chapter, Dialogue, SystemMessage, GameTitle, Narration, EndMarker  # noqa: E402
+from chapter_io import save_chapter  # noqa: E402
 
 
-def md_to_blocks(md_text: str) -> tuple[list, str, list]:
-    """Parse legacy .md to (title, blocks, notes).
-
-    Returns:
-      title: extracted from # heading
-      blocks: list of dict blocks
-      notes: list of translation note strings
-
-    Strategy: line-by-line, classify each line:
-      - starts with 【 ends with 】 → system
-      - starts with 「 ends with 」 → dialogue
-      - starts with 《 ends with 》 → game_title (rare as standalone line)
-      - other non-empty → narration
-    Multi-line game titles or system messages get joined.
-    """
+def md_to_blocks(md_text: str) -> tuple[str, list, list]:
+    """Parse legacy .md to (title, blocks, notes) handling multiple dividers."""
+    md_text = md_text.replace('\r\n', '\n')
+    parts = re.split(r'\n-{3,}\n', md_text)
+    
+    body = ''
+    meta_text = ''
+    
+    if len(parts) >= 3:
+        first_part = parts[0].strip()
+        lines = first_part.split('\n')
+        if len(lines) <= 6:
+            body = parts[1].strip()
+            meta_text = '\n\n'.join(parts[2:])
+        else:
+            body = '\n\n---\n\n'.join(parts[:-1])
+            meta_text = parts[-1]
+    elif len(parts) == 2:
+        first_part = parts[0].strip()
+        lines = first_part.split('\n')
+        if len(lines) <= 6:
+            body = parts[1].strip()
+            meta_text = ''
+        else:
+            body = parts[0].strip()
+            meta_text = parts[1].strip()
+    else:
+        body = parts[0].strip()
+        meta_text = ''
+        
     title = ''
-    body_lines = []
+    # Extract title from body if present
+    m = re.match(r'^#\s+(.+)', body)
+    if m:
+        title = m.group(1).strip()
+        body = body[m.end():].strip()
+    else:
+        # Fallback to first part
+        m = re.match(r'^#\s+(.+)', parts[0].strip())
+        if m:
+            title = m.group(1).strip()
+            
     notes = []
-    in_meta = False
-    in_notes = False
-
-    for line in md_text.split('\n'):
-        # Title
-        if line.startswith('# ') and not title:
-            title = line[2:].strip()
-            continue
-        # Meta separator
-        if re.match(r'^-{3,}$', line.strip()):
-            in_meta = True
-            continue
-        # Source footer in meta
-        if in_meta and line.strip().startswith('*Source:'):
-            continue
-        # Notes section
-        if in_meta and ('หมายเหตุ' in line or 'Translation' in line.lower()):
-            in_notes = True
-            continue
-        if in_meta and in_notes and line.strip().startswith('- '):
+    for line in meta_text.split('\n'):
+        if line.strip().startswith('- '):
             notes.append(line.strip()[2:])
-            continue
-        # Skip meta lines we don't care about
-        if in_meta:
-            continue
-        body_lines.append(line)
-
-    # Classify body lines
+            
     blocks = []
-    for line in body_lines:
+    for line in body.split('\n'):
         line = line.rstrip()
         if not line:
             continue
@@ -79,11 +81,10 @@ def md_to_blocks(md_text: str) -> tuple[list, str, list]:
             blocks.append({'type': 'game_title', 'text': line})
         else:
             blocks.append({'type': 'narration', 'text': line})
-
-    # Ensure end marker
+            
     if not any(b['type'] == 'end' for b in blocks):
         blocks.append({'type': 'end', 'text': '(จบบท)'})
-
+        
     return title, blocks, notes
 
 

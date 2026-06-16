@@ -82,7 +82,8 @@ def get_source_dir(slug: str | None = None) -> Path:
 # Length ratio bounds for translation vs source (TH natural expansion)
 # Below LENGTH_RATIO_OK[0] = too short (likely truncated)
 # Above LENGTH_RATIO_OK[1] = too long (likely over-translated / padded)
-LENGTH_RATIO_OK = (1.5, 3.0)
+# PROMPT.md S1b hard floor: ≥ 60% (0.6). Upper bound: 3.5 (TH expansion).
+LENGTH_RATIO_OK = (0.6, 3.5)
 
 # Name consistency checks: (CN, correct Thai, wrong Thai variants to auto-fix)
 # If wrong is found AND correct is NOT in text → auto-fix

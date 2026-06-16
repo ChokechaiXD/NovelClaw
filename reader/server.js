@@ -41,26 +41,28 @@ function invalidateCache(slug) {
 // limit. For 1,239 ch × ~10KB rendered = 12MB worst case; cap at 200.
 
 const CHAPTER_CACHE_MAX = 200;
-const chapterHtmlCache = new Map();  // num -> { html, mtimeMs, size }
+const chapterHtmlCache = new Map();  // `${slug}:${num}` -> { html, mtimeMs, size }
 
-function getCachedChapter(num, fileMtime) {
-  const entry = chapterHtmlCache.get(num);
+function getCachedChapter(slug, num, fileMtime) {
+  const key = `${slug}:${num}`;
+  const entry = chapterHtmlCache.get(key);
   if (entry && entry.mtimeMs === fileMtime) {
     // LRU touch
-    chapterHtmlCache.delete(num);
-    chapterHtmlCache.set(num, entry);
+    chapterHtmlCache.delete(key);
+    chapterHtmlCache.set(key, entry);
     return entry.html;
   }
   return null;
 }
 
-function setCachedChapter(num, fileMtime, html) {
+function setCachedChapter(slug, num, fileMtime, html) {
+  const key = `${slug}:${num}`;
   // Evict oldest if over limit
   if (chapterHtmlCache.size >= CHAPTER_CACHE_MAX) {
     const oldest = chapterHtmlCache.keys().next().value;
     chapterHtmlCache.delete(oldest);
   }
-  chapterHtmlCache.set(num, { html, mtimeMs: fileMtime, size: html.length });
+  chapterHtmlCache.set(key, { html, mtimeMs: fileMtime, size: html.length });
 }
 
 // ── helpers ────────────────────────────────────────────────────────────
@@ -78,7 +80,22 @@ async function listNovels() {
   }
 }
 
+// ── Security helpers ──────────────────────────────────────────────────
+// Validate slug to prevent path traversal. Applied at every entry point
+// that accepts a slug from the URL.
+function assertValidSlug(slug) {
+  if (!SLUG_RE.test(slug)) throw Object.assign(new Error('Invalid slug format'), { status: 400 });
+}
+
+const esc = (s) => String(s)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
 async function readMeta(slug) {
+  assertValidSlug(slug);
   try {
     return await fs.readFile(path.join(NOVELS_DIR, slug, 'meta.md'), 'utf8');
   } catch {
@@ -98,13 +115,10 @@ async function readTextOrNull(filepath) {
   }
 }
 
-async function readJsonOrNull(filepath) {
-  const raw = await readTextOrNull(filepath);
-  if (raw === null) return null;
-  try { return JSON.parse(raw); } catch { return null; }
-}
 
 async function listChapters(slug) {
+  // Security: reject path traversal attempts
+  if (!/^[a-zA-Z0-9_-]+$/.test(slug)) return [];
   const dir = path.join(NOVELS_DIR, slug, 'chapters');
   let dirStat;
   try {
@@ -158,6 +172,7 @@ async function listChapters(slug) {
 }
 
 async function readChapter(slug, num) {
+  assertValidSlug(slug);
   const padded = String(num).padStart(4, '0');
   const file = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.md`);
   const jsonFile = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.json`);
@@ -181,7 +196,7 @@ async function readChapter(slug, num) {
   if (isJson) {
     // LRU cache hit? fileStat.mtimeMs is the cache key — content edit
     // bumps mtime automatically, no manual invalidation needed.
-    const cached = getCachedChapter(num, fileStat.mtimeMs);
+    const cached = getCachedChapter(slug, num, fileStat.mtimeMs);
     if (cached) {
       return {
         title: cached.title,
@@ -191,10 +206,15 @@ async function readChapter(slug, num) {
       };
     }
     // New format: structured JSON, render directly
-    const ch = JSON.parse(raw);
+    let ch;
+    try {
+      ch = JSON.parse(raw);
+    } catch (parseErr) {
+      throw Object.assign(new Error(`Invalid JSON in ${padded}.json: ${parseErr.message}`), { status: 500 });
+    }
     const html = renderChapterJson(ch);
     const metaHtml = (ch.meta && ch.meta.length)
-      ? `<ul>${ch.meta.map((m) => `<li>${m}</li>`).join('')}</ul>`
+      ? `<ul>${ch.meta.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>`
       : '';
     const result = {
       title: ch.title || `ตอนที่ ${ch.num}`,
@@ -202,7 +222,7 @@ async function readChapter(slug, num) {
       metaHtml,
       isJson: true,
     };
-    setCachedChapter(num, fileStat.mtimeMs, result);
+    setCachedChapter(slug, num, fileStat.mtimeMs, result);
     return result;
   }
   // Legacy .md path
@@ -265,45 +285,42 @@ const BRACKETS = {
  * apply per-language bracket profile. Missing lang defaults to 'cn'.
  */
 function renderChapterJson(ch) {
-  const esc = (s) => s;  // our text is already safe (no HTML in source)
+  if (!ch || !Array.isArray(ch.blocks)) {
+    return '<p class="error">Invalid chapter layout structure.</p>';
+  }
 
-  // Convert CN/JP kagikakko to curly Thai/EN quotes (language-agnostic)
+  // Convert CN/JP kagikakko to curly Thai/EN quotes
   const toCurly = (s) => s
-    .replace(/「/g, '\u201C')   // opening double
-    .replace(/」/g, '\u201D')   // closing double
-    .replace(/『/g, '\u2018')   // opening single
-    .replace(/』/g, '\u2019');  // closing single
+    .replace(/「/g, '\u201C')
+    .replace(/」/g, '\u201D')
+    .replace(/『/g, '\u2018')
+    .replace(/』/g, '\u2019');
+
+  // Wrap inline 【...】 inside narration/dialogue with badge span
+  const parseInline = (t) => t ? t.replace(/【([^】]+)】/g, '<span class="inline-stat-badge">【$1】</span>') : '';
 
   const lang = (ch.lang && BRACKETS[ch.lang]) ? ch.lang : 'cn';
-  const b = BRACKETS[lang];
 
-  let html = '';
-  for (const block of ch.blocks || []) {
-    if (block.type === 'narration') {
-      html += `<p>${esc(toCurly(block.text))}</p>\n`;
-    } else if (block.type === 'dialogue') {
-      // dialogue: convert kagikakko to curly quotes (per language)
-      html += `<p class="dialogue" data-lang="${lang}">${esc(toCurly(block.text))}</p>\n`;
-    } else if (block.type === 'system') {
-      // 【...】 system message — render with subtle background
-      html += `<p class="system-msg" data-lang="${lang}">${esc(block.text)}</p>\n`;
-    } else if (block.type === 'game_title') {
-      // 《...》 game title — just text (rare standalone)
-      html += `<p class="game-title" data-lang="${lang}">${esc(block.text)}</p>\n`;
-    } else if (block.type === 'end') {
-      html += `<p class="end-marker" data-lang="${lang}">${esc(block.text)}</p>\n`;
+  return ch.blocks.map(block => {
+    const text = esc(block.text || '');
+    switch (block.type) {
+      case 'system':
+        return `<p class="system-msg" data-lang="${lang}">${text}</p>`;
+      case 'dialogue':
+        // Speaker name from translator-authored JSON — must be escaped to prevent
+        // XSS in the data-speaker HTML attribute (trust boundary: same as text).
+        const sp = block.speaker ? ` data-speaker="${esc(block.speaker)}"` : '';
+        return `<p class="dialogue"${sp}>${toCurly(parseInline(text))}</p>`;
+      case 'narration':
+        return `<p>${toCurly(parseInline(text))}</p>`;
+      case 'game_title':
+        return `<p class="game-title" data-lang="${lang}">${text}</p>`;
+      case 'end':
+        return `<p class="end-marker" data-lang="${lang}">${text}</p>`;
+      default:
+        return `<p>${text}</p>`;
     }
-  }
-  // Source footer
-  if (ch.source) {
-    html += `<hr/>\n<p class="source-footer">${esc(ch.source)}</p>\n`;
-  }
-  return html;
-}
-
-async function readSource(slug, num) {
-  const padded = String(num).padStart(4, '0');
-  return readTextOrNull(path.join(NOVELS_DIR, slug, 'chapters', 'source', `${padded}.md`));
+  }).join('\n') + (ch.source ? `\n<hr/>\n<p class="source-footer">${esc(ch.source)}</p>` : '');
 }
 
 // ── marked customization ───────────────────────────────────────────────
@@ -313,8 +330,30 @@ marked.setOptions({ gfm: true, breaks: false });
 // ── routes ─────────────────────────────────────────────────────────────
 
 const app = express();
+app.use(express.json());
 
-app.use(express.static(PUBLIC_DIR));
+// Disable caching for static files during development — prevents stale JS/CSS
+// from blocking bug fixes. Remove or set maxAge for production.
+app.use(express.static(PUBLIC_DIR, {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res, filePath) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  },
+}));
+
+// ── Slug validation middleware ──────────────────────────────────────────
+// Prevents path traversal: only allow alphanumeric, hyphens, underscores.
+// Applied to every route that takes a :slug parameter.
+const SLUG_RE = /^[a-zA-Z0-9_-]+$/;
+app.param('slug', (req, res, next, slug) => {
+  if (!SLUG_RE.test(slug)) {
+    return res.status(400).json({ error: 'Invalid slug format' });
+  }
+  next();
+});
 
 // ── Novel metadata cache (Phase 2 — multi-novel support) ──────────────
 // Reads meta.md YAML frontmatter once per novel. Cached like the
@@ -330,6 +369,7 @@ app.use(express.static(PUBLIC_DIR));
 const novelMetaCache = new Map();
 
 async function readNovelMeta(slug) {
+  assertValidSlug(slug);
   if (novelMetaCache.has(slug)) return novelMetaCache.get(slug);
   const metaPath = path.join(NOVELS_DIR, slug, 'meta.md');
   let raw = '';
@@ -403,6 +443,7 @@ app.get('/api/novel/:slug/chapters/search', async (req, res) => {
   const mode = (req.query.mode || 'title').toString();
   const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
   if (!q) return res.json([]);
+  if (q.length > 200) return res.status(400).json({ error: 'Query too long (max 200 chars)' });
   if (!['title', 'content', 'all'].includes(mode)) {
     return res.status(400).json({ error: `Unknown mode '${mode}' (use title|content|all)` });
   }
@@ -480,11 +521,13 @@ async function ftsSearch(slug, query, limit) {
     '--limit', String(limit),
   ];
   return new Promise((resolve, reject) => {
-    const child = spawn(py, args, { cwd, windowsHide: true });
+    const child = spawn(py, args, { cwd, windowsHide: true, timeout: 10_000 });
     let stdout = '';
     let stderr = '';
     child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
     child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
+    child.stdout.on('error', (err) => reject(err));
+    child.stderr.on('error', (err) => reject(err));
     child.on('error', (err) => reject(err));
     child.on('close', (code) => {
       if (code !== 0) {
@@ -525,6 +568,7 @@ app.get('/api/novel/:slug/chapter/:num', async (req, res) => {
 });
 
 app.get('/api/novel/:slug/source/:num', async (req, res) => {
+  assertValidSlug(req.params.slug);
   const num = parseInt(req.params.num, 10);
   if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
   const padded = String(num).padStart(4, '0');
@@ -534,12 +578,60 @@ app.get('/api/novel/:slug/source/:num', async (req, res) => {
 });
 
 app.get('/api/novel/:slug/glossary', async (req, res) => {
+  assertValidSlug(req.params.slug);
   const raw = await readTextOrNull(path.join(NOVELS_DIR, req.params.slug, 'glossary.md'));
   if (raw === null) return res.status(404).json({ error: 'No glossary' });
   res.type('text/plain').send(raw);
 });
 
+app.get('/api/novel/:slug/glossary/data', async (req, res) => {
+  assertValidSlug(req.params.slug);
+  const slug = req.params.slug;
+  const glossaryScript = path.join(__dirname, '..', 'tools', 'glossary.py');
+  const execFileAsync = require('util').promisify(require('child_process').execFile);
+  try {
+    const { stdout } = await execFileAsync('python', [glossaryScript, '--novel', slug, '--load'], {
+      env: { ...process.env, NOVEL_SLUG: slug }
+    });
+    res.json(JSON.parse(stdout));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/novel/:slug/glossary/save', async (req, res) => {
+  assertValidSlug(req.params.slug);
+  const slug = req.params.slug;
+  const glossaryScript = path.join(__dirname, '..', 'tools', 'glossary.py');
+  const { spawn } = require('child_process');
+  
+  const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+  const args = [glossaryScript, '--novel', slug, '--save'];
+  
+  const child = spawn(py, args, { cwd: path.join(__dirname, '..'), windowsHide: true, timeout: 10_000 });
+  let stdout = '';
+  let stderr = '';
+  
+  child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
+  child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
+  
+  child.on('close', (code) => {
+    if (code !== 0) {
+      res.status(500).json({ error: `glossary.py exited ${code}: ${stderr}` });
+      return;
+    }
+    
+    invalidateCache(slug);
+    chapterHtmlCache.clear();
+    res.json({ ok: true });
+  });
+  
+  child.stdin.write(JSON.stringify(req.body));
+  child.stdin.end();
+});
+
 app.get('/api/novel/:slug/characters', async (req, res) => {
+  assertValidSlug(req.params.slug);
   const raw = await readTextOrNull(path.join(NOVELS_DIR, req.params.slug, 'characters.md'));
   if (raw === null) return res.status(404).json({ error: 'No characters' });
   res.type('text/plain').send(raw);
@@ -550,6 +642,153 @@ app.get('/api/novel/:slug/characters', async (req, res) => {
 app.post('/api/invalidate-cache', (req, res) => {
   invalidateCache();
   res.json({ ok: true });
+});
+
+// ── Admin & Translation API Endpoints (Ponytail Style) ─────────────────
+
+app.post('/api/novel/update', async (req, res) => {
+  const { slug, title, author, source_lang, target_lang, status, total_chapters } = req.body;
+  if (!slug || !SLUG_RE.test(slug)) return res.status(400).json({ error: 'Invalid slug format' });
+  const novelDir = path.join(NOVELS_DIR, slug);
+  const chaptersDir = path.join(novelDir, 'chapters');
+  try {
+    await fs.mkdir(chaptersDir, { recursive: true });
+    const metaContent = `---
+slug: ${slug}
+title: ${title || slug}
+author: ${author || ''}
+source_lang: ${source_lang || 'cn'}
+target_lang: ${target_lang || 'th'}
+status: ${status || 'ongoing'}
+total_chapters: ${total_chapters || '100'}
+---
+# ${title || slug}`;
+    await fs.writeFile(path.join(novelDir, 'meta.md'), metaContent, 'utf8');
+    novelMetaCache.delete(slug);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/novel/:slug/delete', async (req, res) => {
+  const slug = req.params.slug;
+  const novelDir = path.join(NOVELS_DIR, slug);
+  try {
+    await fs.rm(novelDir, { recursive: true, force: true });
+    novelMetaCache.delete(slug);
+    invalidateCache(slug);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+app.post('/api/novel/:slug/chapter/:num/save', async (req, res) => {
+  const slug = req.params.slug;
+  const num = parseInt(req.params.num, 10);
+  if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
+  const padded = String(num).padStart(4, '0');
+  const { title, blocks, source, lang } = req.body;
+  const jsonPath = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.json`);
+  const chapterData = {
+    num,
+    title: title || `ตอนที่ ${num}`,
+    lang: lang || 'cn',
+    blocks: blocks || [],
+    source: source || ''
+  };
+
+  // Backup old file if it exists to revert on validation failure
+  let oldContent = null;
+  try {
+    oldContent = await fs.readFile(jsonPath, 'utf8');
+  } catch (err) {
+    // File doesn't exist, which is fine
+  }
+
+  try {
+    await fs.mkdir(path.dirname(jsonPath), { recursive: true });
+    await fs.writeFile(jsonPath, JSON.stringify(chapterData, null, 2), 'utf8');
+
+    // Run Python validator
+    const execFileAsync = require('util').promisify(require('child_process').execFile);
+    const pythonScript = path.join(__dirname, '..', 'tools', 'validate_chapter.py');
+    
+    try {
+      await execFileAsync('python', [pythonScript, String(num), '--novel', slug], {
+        env: { ...process.env, NOVEL_SLUG: slug }
+      });
+    } catch (valErr) {
+      // Validation failed (non-zero exit code)
+      // Restore old file
+      if (oldContent !== null) {
+        await fs.writeFile(jsonPath, oldContent, 'utf8');
+      } else {
+        await fs.rm(jsonPath, { force: true });
+      }
+      
+      const validationOutput = valErr.stdout + valErr.stderr;
+      // Extract errors from output
+      const errorLines = validationOutput
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => l.startsWith('✗') || l.startsWith('Failed') || l.startsWith('❌'));
+      
+      return res.status(422).json({
+        error: 'Validation Error',
+        details: errorLines.join('\n') || validationOutput
+      });
+    }
+
+    invalidateCache(slug);
+    const key = `${slug}:${num}`;
+    chapterHtmlCache.delete(key);
+
+    // Live Search Index Sync
+    const searchScript = path.join(__dirname, '..', 'tools', 'chapter_search.py');
+    const novelRoot = path.join(NOVELS_DIR, slug);
+    try {
+      await execFileAsync('python', [searchScript, '--novel-root', novelRoot, 'index'], {
+        env: { ...process.env, NOVEL_SLUG: slug }
+      });
+      console.log(`[search] Re-indexed FTS5 successfully for ${slug}`);
+    } catch (searchErr) {
+      console.warn(`[search] FTS5 index update skipped/failed: ${searchErr.message}`);
+    }
+
+    // Git Auto-Commit Integration
+    try {
+      const relativePath = path.relative(path.join(__dirname, '..'), jsonPath);
+      await execFileAsync('git', ['add', relativePath], { cwd: path.join(__dirname, '..') });
+      await execFileAsync('git', ['commit', '-m', `translate: save chapter ${num} (${title})`], { cwd: path.join(__dirname, '..') });
+      console.log(`[git] Auto-committed: ${relativePath}`);
+    } catch (gitErr) {
+      console.warn(`[git] Auto-commit skipped: ${gitErr.message}`);
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/novel/:slug/chapter/:num/delete', async (req, res) => {
+  const slug = req.params.slug;
+  const num = parseInt(req.params.num, 10);
+  if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
+  const padded = String(num).padStart(4, '0');
+  const jsonPath = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.json`);
+  const mdPath = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.md`);
+  try {
+    await fs.rm(jsonPath, { force: true });
+    await fs.rm(mdPath, { force: true });
+    invalidateCache(slug);
+    const key = `${slug}:${num}`;
+    chapterHtmlCache.delete(key);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ── start ─────────────────────────────────────────────────────────────────
@@ -583,13 +822,14 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Serving novels from: ${NOVELS_DIR}`);
 });
 
+let _eaddrRetries = 0;
 server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.log(`⚠️  Port ${PORT} already in use — killing old server...`);
+  if (err.code === 'EADDRINUSE' && _eaddrRetries < 3) {
+    _eaddrRetries++;
+    console.log(`⚠️  Port ${PORT} already in use — killing old server (attempt ${_eaddrRetries}/3)...`);
     const { execSync } = require('node:child_process');
     try {
       if (process.platform === 'win32') {
-        // Kill any node process using this port
         const out = execSync(`netstat -ano | findstr :${PORT}`, { encoding: 'utf8' });
         const lines = out.trim().split('\n');
         for (const line of lines) {
@@ -604,12 +844,40 @@ server.on('error', (err) => {
         execSync(`lsof -ti:${PORT} | xargs kill -9 2>/dev/null || true`, { encoding: 'utf8' });
       }
     } catch (e) { /* ignore */ }
-    // Retry after a moment
     setTimeout(() => {
       server.listen(PORT, '0.0.0.0');
     }, 500);
   } else {
     console.error('Server error:', err);
+  }
+});
+
+const fsSync = require('node:fs');
+const START_TIME = Date.now();
+
+// ── SPA fallback ──────────────────────────────────────────────────────
+// Any route that isn't an API call or a static file serves index.html
+// so the frontend JS can handle routing via URL params.
+// Inject ?_t=START_TIME to bust browser cache for JS/CSS after server restart.
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'API not found' });
+  let html = fsSync.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
+  // Cache-bust: append server start timestamp to script src URLs
+  html = html.replace('src="/virtual-scroll.js"', `src="/virtual-scroll.js?_t=${START_TIME}"`);
+  html = html.replace('src="/app.js"', `src="/app.js?_t=${START_TIME}"`);
+  res.type('html').send(html);
+});
+
+// ── Global error handler ────────────────────────────────────────────────
+// Catches unhandled sync throws and unawaited promise rejections from
+// async route handlers. Without this, any uncaught error crashes the
+// process (Node 15+ terminates on unhandled rejections).
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  if (!res.headersSent) {
+    const status = err.status && Number.isInteger(err.status) ? err.status : 500;
+    res.status(status).json({ error: err.message || 'Internal server error' });
   }
 });
 

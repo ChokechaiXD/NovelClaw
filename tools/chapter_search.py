@@ -428,10 +428,10 @@ def main():
         if not results:
             print('No matches.')
             return
-        print(f'\\n🔍 Top {len(results)} matches for: "{args.query}"')
+        print(f'\n🔍 Top {len(results)} matches for: "{args.query}"')
         print('─' * 70)
         for r in results:
-            print(f"\\n  Ch {r['chapter_num']}: {r['title']}")
+            print(f"\n  Ch {r['chapter_num']}: {r['title']}")
             print(f"  score: {r['score']:.2f}")
             print(f"  {r['snippet']}")
 

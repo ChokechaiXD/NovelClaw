@@ -11,6 +11,7 @@ library modules (they use argparse + CLI, not library APIs).
 
 Library-level imports (available for scripts that want cleaner imports):
     from tools.constants import NOVEL_ROOT, GLOSSARY_DIR
-    from tools.schema import Chapter, load_chapter, save_chapter
+    from tools.schema import Chapter  # noqa: E402
+from tools.chapter_io import load_chapter, save_chapter  # noqa: E402
     from tools.load_glossary import load_terms
 """

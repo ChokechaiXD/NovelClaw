@@ -130,7 +130,7 @@ python tools/glossary_doctor.py --ch <N>
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "num": 113,
   "title": "ตอนที่ 113 ...",
   "lang": "cn",
