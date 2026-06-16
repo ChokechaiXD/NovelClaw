@@ -928,6 +928,130 @@ server.on('error', (err) => {
   }
 });
 
+// ── Reviews & Comments APIs (Phase B Social) ───────────────────────────
+
+app.get('/api/novel/:slug/reviews', async (req, res) => {
+  try {
+    assertValidSlug(req.params.slug);
+    const slug = req.params.slug;
+    const filePath = path.join(NOVELS_DIR, slug, 'reviews.json');
+    try {
+      const data = await fs.readFile(filePath, 'utf8');
+      res.json(JSON.parse(data));
+    } catch (err) {
+      if (err.code === 'ENOENT') {
+        res.json([]);
+      } else throw err;
+    }
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/novel/:slug/reviews/save', express.json(), async (req, res) => {
+  try {
+    assertValidSlug(req.params.slug);
+    const slug = req.params.slug;
+    const filePath = path.join(NOVELS_DIR, slug, 'reviews.json');
+    
+    let reviews = [];
+    try {
+      const data = await fs.readFile(filePath, 'utf8');
+      reviews = JSON.parse(data);
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err;
+    }
+
+    const { user, rating, text } = req.body;
+    if (!user || rating == null || !text) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    reviews.push({
+      user,
+      rating: Number(rating),
+      text,
+      ts: Date.now()
+    });
+
+    await fs.writeFile(filePath, JSON.stringify(reviews, null, 2), 'utf8');
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.get('/api/novel/:slug/chapter/:num/comments', async (req, res) => {
+  try {
+    assertValidSlug(req.params.slug);
+    const slug = req.params.slug;
+    const num = parseInt(req.params.num, 10);
+    const filePath = path.join(NOVELS_DIR, slug, 'comments', `chapter_${num}.json`);
+    try {
+      const data = await fs.readFile(filePath, 'utf8');
+      res.json(JSON.parse(data));
+    } catch (err) {
+      if (err.code === 'ENOENT') {
+        res.json([]);
+      } else throw err;
+    }
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.post('/api/novel/:slug/chapter/:num/comment', express.json(), async (req, res) => {
+  try {
+    assertValidSlug(req.params.slug);
+    const slug = req.params.slug;
+    const num = parseInt(req.params.num, 10);
+    const dirPath = path.join(NOVELS_DIR, slug, 'comments');
+    const filePath = path.join(dirPath, `chapter_${num}.json`);
+
+    await fs.mkdir(dirPath, { recursive: true });
+
+    let comments = [];
+    try {
+      const data = await fs.readFile(filePath, 'utf8');
+      comments = JSON.parse(data);
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err;
+    }
+
+    const { user, text } = req.body;
+    if (!user || !text) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    comments.push({
+      user,
+      text,
+      ts: Date.now()
+    });
+
+    await fs.writeFile(filePath, JSON.stringify(comments, null, 2), 'utf8');
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+// Notifications Mock State
+let notificationsMock = [
+  { id: 1, text: "นิยายเรื่อง 'Global Descent' อัปเดตตอนที่ 54 แล้วค่ะ!", ts: Date.now() - 3600000 * 2, read: false },
+  { id: 2, text: "พี่โชคมีผู้ติดตามใหม่ 3 คนในวันนี้ค่ะ 🦊", ts: Date.now() - 3600000 * 12, read: true },
+  { id: 3, text: "Mika อนุมัติการบันทึกคลังคำศัพท์ของ 'Global Descent' แล้วเรียบร้อย", ts: Date.now() - 3600000 * 24, read: true }
+];
+
+app.get('/api/notifications', (req, res) => {
+  res.json(notificationsMock);
+});
+
+app.post('/api/notifications/read', (req, res) => {
+  notificationsMock.forEach(n => n.read = true);
+  res.json({ ok: true });
+});
+
 const fsSync = require('node:fs');
 const START_TIME = Date.now();
 

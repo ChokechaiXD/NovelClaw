@@ -14,445 +14,219 @@
     rel="stylesheet"
   />
   <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/design-system.css" />
+    <link rel="stylesheet" href="/layout-shell.css" />
 </head>
-<body data-theme="dark" class="dashboard-mode">
+<body data-theme="dark">
+  <!-- SVG Symbols Sprite Library -->
+  <svg style="display: none;">
+    <!-- Symbol for Logo: Cute, friendly, soft, realistic-looking crab claw clutching a book -->
+    <symbol id="logo-crab-claw" viewBox="0 0 32 32">
+      <defs>
+        <linearGradient id="logo-crab-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#ff4757" stop-opacity="0.95" />
+          <stop offset="100%" stop-color="#ff7f50" stop-opacity="0.95" />
+        </linearGradient>
+      </defs>
+      <!-- Background circle glow -->
+      <circle cx="16" cy="16" r="14" fill="rgba(255, 71, 87, 0.12)" />
+      
+      <!-- Book tilted (soft colors) -->
+      <g transform="rotate(-8 18 16)">
+        <rect x="13" y="7" width="12" height="18" rx="2" fill="#a78bfa" />
+        <rect x="11.5" y="7" width="1.5" height="18" rx="0.5" fill="#8b5cf6" />
+        <rect x="14.5" y="8" width="9.5" height="16" rx="1" fill="#fffdf5" />
+        <line x1="16.5" y1="12" x2="21.5" y2="12" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round" />
+        <line x1="16.5" y1="15" x2="21.5" y2="15" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round" />
+        <line x1="16.5" y1="18" x2="20" y2="18" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round" />
+      </g>
+      
+      <!-- Crab Arm / Claw Base (organic, soft rounded curves) -->
+      <path d="M 2 28 C 3 24, 6 22, 10 21 C 11.5 22.5, 11 25, 7 28 C 5 29.5, 3 29, 2 28 Z" fill="url(#logo-crab-grad)" />
+      
+      <!-- Upper Pincer (curved over the book to clutch it) -->
+      <path d="M 8 20 C 6.5 13, 10.5 7, 18 9.5 C 16 11, 12 12, 11 16.5 C 10.5 18, 9.5 19.5, 8 20 Z" fill="url(#logo-crab-grad)" />
+      
+      <!-- Lower Pincer (clutching bottom of the book) -->
+      <path d="M 8 20 C 10 22, 12.5 24, 18 19.5 C 14.5 18, 11.5 18.5, 9.5 19 C 8.8 19.2, 8.3 19.6, 8 20 Z" fill="url(#logo-crab-grad)" />
+      
+      <!-- Adorable Eye on the Claw -->
+      <circle cx="11.5" cy="14" r="1.5" fill="#1e293b" />
+      <circle cx="11" cy="13.5" r="0.5" fill="#ffffff" />
+      
+      <!-- Adorable Rosy Blush -->
+      <ellipse cx="12.5" cy="15" rx="1" ry="0.5" fill="#ff8da1" opacity="0.8" />
+    </symbol>
+
+    <!-- Hamburger Icon -->
+    <symbol id="icon-hamburger" viewBox="0 0 24 24">
+      <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+    </symbol>
+
+    <!-- Close (Cross) Icon -->
+    <symbol id="icon-close" viewBox="0 0 24 24">
+      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+    </symbol>
+
+    <!-- Bell Icon -->
+    <symbol id="icon-bell" viewBox="0 0 24 24">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </symbol>
+
+    <!-- Chevron Left -->
+    <symbol id="icon-arrow-left" viewBox="0 0 24 24">
+      <path d="M15 19l-7-7 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </symbol>
+
+    <!-- Chevron Right -->
+    <symbol id="icon-arrow-right" viewBox="0 0 24 24">
+      <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </symbol>
+
+    <!-- Sun Icon -->
+    <symbol id="icon-sun" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2" />
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+    </symbol>
+
+    <!-- Moon Icon -->
+    <symbol id="icon-moon" viewBox="0 0 24 24">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </symbol>
+
+    <!-- Book Icon -->
+    <symbol id="icon-book" viewBox="0 0 24 24">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5v-15z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </symbol>
+
+    <!-- Minus Icon -->
+    <symbol id="icon-minus" viewBox="0 0 24 24">
+      <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+    </symbol>
+
+    <!-- Plus Icon -->
+    <symbol id="icon-plus" viewBox="0 0 24 24">
+      <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+    </symbol>
+  </svg>
   
-  <div class="app-container">
+  <div class="app-bg"></div>
+  
+  <!-- ═══ NEW LAYOUT ═══ -->
+  <div class="app" id="app-layout">
     
-    <!-- Left App Sidebar (persistent) -->
-    <aside class="app-sidebar" id="app-sidebar">
-      <div class="sidebar-brand">
-        <span class="brand-icon">⚡</span>
-        <span class="brand-text">NovelClaw</span>
-      </div>
-      
-      <nav class="app-menu">
-        <a href="#" class="menu-item active" id="menu-home" data-target="dashboard">
-          <span class="menu-icon">🏠</span>
-          <span class="menu-text">หน้าหลัก</span>
-        </a>
-        <a href="#" class="menu-item" id="menu-library">
-          <span class="menu-icon">📚</span>
-          <span class="menu-text">หอสมุดของฉัน</span>
-        </a>
-        <a href="#" class="menu-item" id="menu-history">
-          <span class="menu-icon">⏱</span>
-          <span class="menu-text">ประวัติการอ่าน</span>
-        </a>
-        <a href="#" class="menu-item" id="menu-bookmarks">
-          <span class="menu-icon">🔖</span>
-          <span class="menu-text">บุ๊กมาร์ก</span>
-        </a>
-        <a href="#" class="menu-item" id="menu-downloads">
-          <span class="menu-icon">📥</span>
-          <span class="menu-text">ดาวน์โหลด</span>
-        </a>
-        <a href="#" class="menu-item" id="menu-recommend">
-          <span class="menu-icon">📈</span>
-          <span class="menu-text">แนะนำสำหรับคุณ</span>
-        </a>
-        <a href="#" class="menu-item" id="menu-rankings">
-          <span class="menu-icon">🏆</span>
-          <span class="menu-text">อันดับยอดนิยม</span>
-        </a>
-        <a href="#" class="menu-item" id="menu-analytics">
-          <span class="menu-icon">📊</span>
-          <span class="menu-text">สถิติการอ่าน</span>
-        </a>
-        <a href="#" class="menu-item" id="menu-admin">
-          <span class="menu-icon">🛡️</span>
-          <span class="menu-text">ระบบหลังบ้าน (Admin)</span>
-        </a>
-      </nav>
-      
-      <div class="sidebar-footer">
-        <div class="premium-card">
-          <div class="premium-title">👑 Premium</div>
-          <div class="premium-desc">ปลดล็อกการอ่านไม่จำกัด ไร้โฆษณา</div>
-          <button class="premium-btn">อัปเกรด</button>
+    <!-- Left Sidebar -->
+    <nav class="sidebar">
+      <!-- Sidebar Brand Header -->
+      <div class="sidebar-brand" style="padding: 20px 16px 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border);">
+        <div class="topbar-logo" style="background: var(--bg-tertiary); border: 1px solid var(--border); width: 34px; height: 34px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(255, 71, 87, 0.15);">
+          <svg style="width: 22px; height: 22px;"><use xlink:href="#logo-crab-claw"></use></svg>
         </div>
-        
-        <div class="footer-actions">
-          <button class="footer-icon-btn" id="footer-settings" title="ตั้งค่า">⚙</button>
-          <button class="footer-icon-btn" id="footer-notifications" title="การแจ้งเตือน">🔔</button>
-          <button class="footer-icon-btn" id="theme-toggle" title="เปลี่ยนธีม (T)">🌙</button>
+        <div>
+          <div class="topbar-title" style="font-size: 16px; font-weight: 800; color: var(--text-primary); text-shadow: 0 0 8px rgba(0, 245, 212, 0.25);">NovelClaw</div>
+          <div style="font-size: 9px; color: var(--accent); letter-spacing: 0.5px; margin-top: 2px; font-weight: 600;">โลกของนักอ่าน ไม่สิ้นสุด</div>
+        </div>
+        <button class="btn btn-icon btn-ghost" id="sidebar-close" style="margin-left: auto; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);" title="ปิดแถบเมนู">
+          <svg style="width: 16px; height: 16px; color: var(--text-secondary);"><use xlink:href="#icon-close"></use></svg>
+        </button>
+      </div>
+
+      <div class="sidebar-section" style="border-bottom: none; padding-bottom: 0;">
+        <div class="section-label">เมนู</div>
+        <div class="nav-item active" data-page="home">🏠 หน้าหลัก</div>
+        <div class="nav-item" data-page="library">📚 หอสมุด</div>
+        <div class="nav-item" data-page="search">🔍 ค้นหา</div>
+        <div class="nav-item" data-page="ranking">🏆 อันดับ</div>
+        <div class="nav-divider"></div>
+        <div class="nav-item" data-page="profile">👤 โปรไฟล์</div>
+        <div class="nav-item" data-page="history">⏱ ประวัติ</div>
+        <div class="nav-item" data-page="bookmarks">🔖 บุ๊กมาร์ก</div>
+        <div class="nav-divider"></div>
+        <div class="nav-item" data-page="settings">⚙ ตั้งค่า</div>
+        <div class="nav-item" data-page="admin">🛡️ จัดการ</div>
+      </div>
+
+      <!-- Premium Upgrade Card -->
+      <div class="sidebar-section" style="margin-top: auto; border-bottom: none; padding-top: 10px; padding-bottom: 10px;">
+        <div class="premium-card" style="background: linear-gradient(135deg, rgba(0, 245, 212, 0.05) 0%, rgba(167, 139, 250, 0.05) 100%); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+          <div class="premium-title" style="font-size: 0.85rem; font-weight: 700; color: #fbbf24;">👑 Premium</div>
+          <div class="premium-desc" style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4;">ปลดล็อกการอ่านไม่จำกัด ไร้โฆษณา</div>
+          <button class="btn btn-primary btn-sm btn-full" style="margin-top: 4px;">อัปเกรด</button>
         </div>
       </div>
-    </aside>
+
+      <!-- Footer Action Toggles -->
+      <div class="sidebar-section" style="padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); border-bottom: none;">
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); font-weight: 500;">
+          <span>🌙 Dark Theme</span>
+        </div>
+        <div class="toggle active" id="theme-toggle-new"></div>
+      </div>
+
+      <div class="sidebar-section" style="padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); border-bottom: none;">
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); font-weight: 500;">
+          <span>🤖 AI Translate</span>
+        </div>
+        <div class="toggle active" id="translate-toggle-new"></div>
+      </div>
+    </nav>
     
-    <!-- Main Content Area -->
-    <div class="app-main">
-      
-      <!-- Dashboard view -->
-      <div class="dashboard visible" id="dashboard">
-        <!-- Top bar inside dashboard (Greeting, Search, Profile) -->
-        <header class="dash-header">
-          <div class="greeting-group">
-            <h2 class="dash-greeting">สวัสดีตอนเย็น 👋</h2>
-            <p class="dash-subgreeting">พร้อมออกเดินทางสู่โลกแห่งนิยายแล้วหรือยัง?</p>
+    <!-- Main Content -->
+    <main class="main">
+      <div class="main-header">
+        <h2>
+          <button class="btn btn-icon btn-ghost" id="sidebar-toggle" style="display: flex; align-items: center; justify-content: center;" title="เปิด/ปิดแถบเมนู">
+            <svg style="width: 18px; height: 18px; color: var(--text-primary);"><use xlink:href="#icon-hamburger"></use></svg>
+          </button>
+          <span id="page-title">หน้าหลัก</span>
+        </h2>
+        <div class="topbar-right">
+          <div class="topbar-status">
+            <span class="status-dot online"></span>
+            <span>online</span>
           </div>
-          
-          <div class="search-group">
-            <input type="search" id="dash-search" placeholder="🔍 ค้นหานิยายที่คุณชอบ..." aria-label="ค้นหานิยาย" />
-          </div>
-          
-          <div class="profile-group">
-            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=PChoke" alt="Profile" class="profile-avatar" />
-            <span class="profile-arrow">▼</span>
-          </div>
-        </header>
-        
-        <div class="dashboard-container">
-          <!-- Hero Banner (Featured Novel) -->
-          <div class="hero-banner" id="hero-banner">
-            <div class="hero-cover-bg" id="hero-cover-bg" style="background-image: url('/covers/global-descent.png');"></div>
-            <div class="hero-content">
-              <span class="hero-badge">🔥 ยอดนิยม</span>
-              <h2 class="hero-title" id="hero-title">—</h2>
-              <p class="hero-subtitle" id="hero-subtitle">—</p>
-              
-              <div class="hero-meta-row">
-                <span class="hero-tag lang-tag" id="hero-lang-tag">cn → th</span>
-                <span class="hero-tag" id="hero-status-tag">ไม่ระบุ</span>
-              </div>
-              
-              <div class="hero-progress-section">
-                <div class="hero-progress-info">
-                  <span class="hero-progress-text" id="hero-progress-text">0 / 0 ตอน</span>
-                  <span class="hero-progress-percent" id="hero-progress-percent">0%</span>
-                </div>
-                <div class="hero-progress-bar">
-                  <div class="hero-progress-fill" id="hero-progress-fill" style="width: 0%"></div>
-                </div>
-              </div>
-              
-              <div class="hero-actions">
-                <a href="#" class="hero-cta" id="hero-cta">อ่านต่อ →</a>
-                <div class="hero-last-read-box">
-                  <span class="last-read-label">อ่านล่าสุด</span>
-                  <span class="last-read-ch" id="hero-last-read-ch">ตอนที่ —</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Continue Reading Section -->
-          <section class="dash-section">
-            <div class="section-header">
-              <h3 class="section-title">อ่านต่อ</h3>
-              <a href="#" class="section-link">ดูทั้งหมด ❯</a>
-            </div>
-            <div class="continue-grid" id="continue-grid">
-              <!-- Dynamically populated -->
-            </div>
-          </section>
-          
-          <!-- Latest Updates Section -->
-          <section class="dash-section">
-            <div class="section-header">
-              <h3 class="section-title">อัปเดตล่าสุด</h3>
-              <a href="#" class="section-link">ดูทั้งหมด ❯</a>
-            </div>
-            <div class="updates-row" id="updates-row">
-              <!-- Dynamically populated -->
-            </div>
-          </section>
-          
-          <!-- Weekly Popular Section -->
-          <section class="dash-section">
-            <div class="section-header">
-              <h3 class="section-title">ยอดนิยมประจำสัปดาห์</h3>
-              <a href="#" class="section-link">ดูทั้งหมด ❯</a>
-            </div>
-            <div class="popular-list" id="popular-list">
-              <!-- Dynamically populated -->
-            </div>
-          </section>
+          <button class="btn btn-icon btn-ghost" id="notif-btn" style="display: flex; align-items: center; justify-content: center;" title="การแจ้งเตือน">
+            <svg style="width: 18px; height: 18px; color: var(--text-secondary);"><use xlink:href="#icon-bell"></use></svg>
+          </button>
+          <button class="btn btn-icon btn-ghost" id="rightbar-toggle" style="display: flex; align-items: center; justify-content: center;" title="เปิด/ปิดกิจกรรม">
+            <svg style="width: 18px; height: 18px; color: var(--text-secondary);"><use xlink:href="#icon-hamburger"></use></svg>
+          </button>
+          <div class="avatar" id="profile-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444);cursor:pointer">P</div>
         </div>
       </div>
-      
-      <!-- Reader view (hidden by default) -->
-      <div class="reader-layout" id="reader-layout" hidden>
-        <!-- The topbar of the reader layout -->
-        <header class="topbar">
-          <div class="topbar-left">
-            <button class="icon-btn" id="toggle-sidebar" title="สลับรายการตอน (S)" aria-label="สลับรายการตอน" aria-controls="sidebar" aria-expanded="true">☰</button>
-            <h1 class="novel-title" id="novel-title">NovelClaw</h1>
-            <div class="novel-selector" id="novel-selector" hidden>
-              <a href="#" class="back-to-dash" id="back-to-dash" title="กลับหน้า Dashboard" aria-label="กลับหน้า Dashboard">📚</a>
-              <select id="novel-select" aria-label="เลือกนิยาย"></select>
-            </div>
-            <span class="topbar-progress" id="topbar-progress"></span>
-          </div>
-          <div class="topbar-right">
-            <button class="icon-btn" id="font-smaller" title="ตัวอักษรเล็กลง" aria-label="ตัวอักษรเล็กลง">A−</button>
-            <button class="icon-btn" id="font-larger" title="ตัวอักษรใหญ่ขึ้น" aria-label="ตัวอักษรใหญ่ขึ้น">A+</button>
-            <button class="icon-btn" id="reader-theme-toggle" title="เปลี่ยนธีม" aria-label="เปลี่ยนธีม">🌙</button>
-          </div>
-        </header>
-        
-        <aside class="sidebar" id="sidebar" role="navigation" aria-label="รายการตอน">
-          <div class="sidebar-header">
-            <span class="sidebar-label">รายการตอน</span>
-            <span class="chapter-count" id="chapter-count">—</span>
-          </div>
-          <div class="sidebar-search">
-            <input
-              type="search"
-              id="chapter-search"
-              placeholder="🔍 ค้นหาตอน (เลข หรือ คำในชื่อ)"
-              aria-label="ค้นหาตอน"
-              autocomplete="off"
-              spellcheck="false"
-            />
-          </div>
-          <div class="chapter-list" id="chapter-list" role="list">
-            <div class="vscroll-viewport" id="vscroll-viewport">
-              <div class="vscroll-spacer" id="vscroll-spacer"></div>
-            </div>
-          </div>
-        </aside>
-        
-        <main class="reader" id="reader">
-          <article class="chapter" id="chapter">
-            <div class="chapter-meta-row" id="chapter-meta-row">
-              <span id="reading-time"></span>
-              <span class="divider-dot"></span>
-              <span id="chapter-pos-top"></span>
-            </div>
-            <header class="chapter-header">
-              <h2 class="chapter-title" id="chapter-title">—</h2>
-              <div class="chapter-nav">
-                <button class="nav-btn" id="prev-chapter" disabled>← ก่อนหน้า</button>
-                <span class="chapter-position" id="chapter-position">— / —</span>
-                <button class="nav-btn" id="next-chapter" disabled>ถัดไป →</button>
-              </div>
-            </header>
-            <div class="divider"></div>
-            <div class="chapter-content" id="chapter-content"></div>
-            <div class="divider"></div>
-            <footer class="chapter-footer">
-              <p class="chapter-meta" id="chapter-meta"></p>
-            </footer>
-            <nav class="chapter-nav-bottom">
-              <button class="nav-btn" id="prev-chapter-2" disabled>← ก่อนหน้า</button>
-              <button class="nav-btn" id="back-to-top">กลับขึ้นบน</button>
-              <button class="nav-btn" id="next-chapter-2" disabled>ถัดไป →</button>
-            </nav>
-          </article>
-        </main>
-      </div>
+      <div class="main-content">
+        <!-- Home Dashboard -->
+        <div class="page active" id="page-home"></div>
+        <!-- Library -->
+        <div class="page" id="page-library"></div>
+        <!-- Search -->
+        <div class="page" id="page-search"></div>
+        <!-- Ranking -->
+        <div class="page" id="page-ranking"></div>
+        <!-- Reader -->
+        <div class="page" id="page-reader"></div>
+        <!-- Novel Detail -->
+        <div class="page" id="page-novel-detail"></div>
+        <!-- Profile -->
+        <div class="page" id="page-profile"></div>
+        <!-- History -->
+        <div class="page" id="page-history"></div>
+        <!-- Bookmarks -->
+        <div class="page" id="page-bookmarks"></div>
+        <!-- Settings -->
+        <div class="page" id="page-settings"></div>
+        <!-- Notifications -->
+        <div class="page" id="page-notifications"></div>
+        <!-- Admin -->
+        <div class="page" id="page-admin"></div>
 
-      <!-- 1. Library View -->
-      <div class="dashboard" id="view-library" hidden>
-        <div class="dashboard-container">
-          <section class="dash-section">
-            <h3 class="section-title">📚 หอสมุดของฉัน</h3>
-            <div class="continue-grid" id="library-grid"></div>
-          </section>
-        </div>
-      </div>
-
-      <!-- 2. Search & Categories View -->
-      <div class="dashboard" id="view-search" hidden>
-        <div class="dashboard-container">
-          <section class="dash-section">
-            <h3 class="section-title">🔍 ค้นหา & หมวดหมู่</h3>
-            <div class="search-category-box">
-              <input type="text" id="search-input-field" placeholder="พิมพ์ชื่อนิยาย ผู้แต่ง หรือคีย์เวิร์ด..." class="search-input-large" />
-              <div class="category-tags" id="category-tags">
-                <span class="tag active" data-genre="all">ทั้งหมด</span>
-                <span class="tag" data-genre="fantasy">แฟนตาซี</span>
-                <span class="tag" data-genre="romance">โรแมนติก</span>
-                <span class="tag" data-genre="action">แอคชัน</span>
-                <span class="tag" data-genre="mystery">สืบสวน</span>
-                <span class="tag" data-genre="sci-fi">ไซไฟ</span>
-              </div>
-            </div>
-            <div class="continue-grid" id="search-results-grid"></div>
-          </section>
-        </div>
-      </div>
-
-      <!-- 3. Rankings View -->
-      <div class="dashboard" id="view-rankings" hidden>
-        <div class="dashboard-container">
-          <section class="dash-section">
-            <h3 class="section-title">🏆 อันดับยอดนิยมทั้งหมด</h3>
-            <div class="popular-list" id="rankings-list-all"></div>
-          </section>
-        </div>
-      </div>
-
-      <!-- 4. Reading History View -->
-      <div class="dashboard" id="view-history" hidden>
-        <div class="dashboard-container">
-          <section class="dash-section">
-            <h3 class="section-title">⏱ ประวัติการอ่าน</h3>
-            <div class="list-layout" id="history-list"></div>
-          </section>
-        </div>
-      </div>
-
-      <!-- 5. Bookmarks View -->
-      <div class="dashboard" id="view-bookmarks" hidden>
-        <div class="dashboard-container">
-          <section class="dash-section">
-            <h3 class="section-title">🔖 บุ๊กมาร์กตอน</h3>
-            <div class="list-layout" id="bookmarks-list"></div>
-          </section>
-        </div>
-      </div>
-
-      <!-- 6. Downloads View -->
-      <div class="dashboard" id="view-downloads" hidden>
-        <div class="dashboard-container">
-          <section class="dash-section">
-            <h3 class="section-title">📥 ดาวน์โหลดออฟไลน์</h3>
-            <div class="list-layout" id="downloads-list"></div>
-          </section>
-        </div>
-      </div>
-
-      <!-- 7. Reading Analytics View -->
-      <div class="dashboard" id="view-analytics" hidden>
-        <div class="dashboard-container">
-          <section class="dash-section">
-            <h3 class="section-title">📊 สถิติการอ่านของคุณ</h3>
-            <div class="analytics-layout">
-              <div class="stat-card-row">
-                <div class="stat-bubble">
-                  <span class="bubble-num" id="stat-reading-time">0</span>
-                  <span class="bubble-label">เวลาอ่านทั้งหมด (นาที)</span>
-                </div>
-                <div class="stat-bubble">
-                  <span class="bubble-num" id="stat-chapters-count">0</span>
-                  <span class="bubble-label">ตอนที่อ่านจบแล้ว</span>
-                </div>
-              </div>
-              <div class="chart-container">
-                <h4 class="chart-title">อัตราการอ่านรายวัน (สัปดาห์นี้)</h4>
-                <div class="bar-chart" id="daily-reading-chart">
-                  <!-- Generated with JS -->
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-
-      <!-- 8. Settings View -->
-      <div class="dashboard" id="view-settings" hidden>
-        <div class="dashboard-container">
-          <section class="dash-section">
-            <h3 class="section-title">⚙ ตั้งค่าแอปพลิเคชัน</h3>
-            <div class="settings-form">
-              <div class="settings-row">
-                <label>ธีมแอปพลิเคชัน</label>
-                <select id="settings-theme-select">
-                  <option value="dark">Dark Theme (แนะนํา)</option>
-                  <option value="light">Light Theme</option>
-                </select>
-              </div>
-              <div class="settings-row">
-                <label>ภาษาของระบบ</label>
-                <select id="settings-lang-select">
-                  <option value="th">ภาษาไทย (Thai)</option>
-                  <option value="en">English</option>
-                </select>
-              </div>
-              <div class="settings-row">
-                <label>ขนาดตัวอักษรอ่านนิยาย</label>
-                <div class="font-size-adjuster">
-                  <button class="nav-btn" id="sett-font-dec">เล็กลง</button>
-                  <span id="sett-font-val">16px</span>
-                  <button class="nav-btn" id="sett-font-inc">ใหญ่ขึ้น</button>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-
-      <!-- 9. Notifications View -->
-      <div class="dashboard" id="view-notifications" hidden>
-        <div class="dashboard-container">
-          <section class="dash-section">
-            <h3 class="section-title">🔔 การแจ้งเตือนระบบ</h3>
-            <div class="list-layout" id="notifications-list"></div>
-          </section>
-        </div>
-      </div>
-
-      <!-- 10. Novel Detail Page -->
-      <div class="dashboard" id="view-novel-detail" hidden>
-        <div class="dashboard-container">
-          <div class="detail-header-card">
-            <div class="detail-cover" id="detail-cover"></div>
-            <div class="detail-info">
-              <h2 class="detail-title" id="detail-title">—</h2>
-              <p class="detail-author" id="detail-author">—</p>
-              <div class="detail-meta">
-                <span class="hero-tag" id="detail-lang">cn → th</span>
-                <span class="hero-tag" id="detail-status">กำลังแปล</span>
-              </div>
-              <p class="detail-synopsis" id="detail-synopsis">—</p>
-              <button class="hero-cta" id="detail-start-btn">เริ่มอ่านตอนแรก</button>
-            </div>
-          </div>
-          <section class="dash-section" style="margin-top: 24px;">
-            <h3 class="section-title">รายการตอนทั้งหมด</h3>
-            <div class="detail-chapters-grid" id="detail-chapters-grid"></div>
-          </section>
-        </div>
-      </div>
-
-      <!-- 11. Admin Dashboard View -->
-      <div class="dashboard" id="view-admin-dashboard" hidden>
-        <div class="dashboard-container">
-          <div class="admin-topbar">
-            <h3 class="section-title">🛡️ ระบบหลังบ้าน (Admin Dashboard)</h3>
-            <div class="admin-nav-links">
-              <button class="nav-btn active" id="btn-admin-dash">แดชบอร์ด</button>
-              <button class="nav-btn" id="btn-admin-novels">จัดการนิยาย</button>
-              <button class="nav-btn" id="btn-admin-users">จัดการผู้ใช้</button>
-              <button class="nav-btn" id="btn-admin-glossary">จัดการ Glossary</button>
-            </div>
-          </div>
-          
-          <div class="stat-card-row">
-            <div class="stat-bubble">
-              <span class="bubble-num" id="admin-total-novels">1</span>
-              <span class="bubble-label">นิยายทั้งหมด</span>
-            </div>
-            <div class="stat-bubble">
-              <span class="bubble-num">87,412</span>
-              <span class="bubble-label">จำนวนผู้ใช้ทั้งหมด</span>
-            </div>
-            <div class="stat-bubble">
-              <span class="bubble-num">₿ 12,450</span>
-              <span class="bubble-label">ยอดธุรกรรมสัปดาห์นี้ (Token)</span>
-            </div>
-          </div>
-
-          <div class="chart-container">
-            <h4 class="chart-title">ยอดธุรกรรมและผู้ใช้ใหม่รายเดือน</h4>
-            <div class="bar-chart" id="admin-transactions-chart">
-              <!-- Generated with JS -->
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 12. Admin Novel Management View -->
-      <div class="dashboard" id="view-admin-novels" hidden>
-        <div class="dashboard-container">
+        <!-- Admin Novels -->
+        <div class="page" id="page-admin-novels">
           <div class="admin-topbar">
             <h3 class="section-title">📚 จัดการเรื่องนิยาย</h3>
             <button class="hero-cta" id="admin-btn-create-novel">+ เพิ่มนิยายใหม่</button>
           </div>
-          
-          <div class="admin-table-container">
+          <div class="admin-table-container" style="margin-top: 16px;">
             <table class="admin-table">
               <thead>
                 <tr>
@@ -470,13 +244,11 @@
             </table>
           </div>
         </div>
-      </div>
 
-      <!-- Novel Meta Edit Form -->
-      <div class="dashboard" id="view-admin-novel-edit" hidden>
-        <div class="dashboard-container">
+        <!-- Admin Novel Edit -->
+        <div class="page" id="page-admin-novel-edit">
           <h3 class="section-title" id="admin-novel-edit-title">แก้ไขข้อมูลนิยาย</h3>
-          <form class="settings-form" id="admin-novel-form" onsubmit="return false;">
+          <form class="settings-form" id="admin-novel-form" onsubmit="return false;" style="margin-top: 16px;">
             <input type="hidden" id="admin-form-old-slug" />
             <div class="settings-row">
               <label>Slug (โฟลเดอร์เก็บข้อมูล)</label>
@@ -511,27 +283,24 @@
             </div>
             <div style="display:flex; gap:12px; margin-top:20px;">
               <button class="hero-cta" id="admin-novel-form-submit">บันทึกข้อมูล</button>
-              <button class="nav-btn" id="admin-novel-form-cancel">ยกเลิก</button>
+              <button class="btn btn-sm" id="admin-novel-form-cancel">ยกเลิก</button>
             </div>
           </form>
         </div>
-      </div>
 
-      <!-- 13. Admin Chapter Manager View -->
-      <div class="dashboard" id="view-admin-chapters" hidden>
-        <div class="dashboard-container">
+        <!-- Admin Chapters -->
+        <div class="page" id="page-admin-chapters">
           <div class="admin-topbar">
             <div>
               <h3 class="section-title" id="admin-chapters-title">จัดการตอนในเรื่อง</h3>
-              <p class="dash-subgreeting" id="admin-chapters-subtitle">เรื่อง: —</p>
+              <p class="dash-subgreeting" id="admin-chapters-subtitle" style="font-size:11px; color:var(--text-muted); margin-top:4px;">เรื่อง: —</p>
             </div>
             <div style="display:flex; gap:12px;">
               <button class="hero-cta" id="admin-btn-create-chapter">+ เพิ่มตอนใหม่</button>
-              <button class="nav-btn" id="admin-btn-back-to-novels">กลับไปหน้านิยาย</button>
+              <button class="btn btn-sm" id="admin-btn-back-to-novels">กลับไปหน้านิยาย</button>
             </div>
           </div>
-          
-          <div class="admin-table-container">
+          <div class="admin-table-container" style="margin-top: 16px;">
             <table class="admin-table">
               <thead>
                 <tr>
@@ -547,52 +316,49 @@
             </table>
           </div>
         </div>
-      </div>
 
-      <!-- 14. Admin Translation Center / Chapter Editor View -->
-      <div class="dashboard" id="view-admin-translation-center" hidden style="height: 100%; display: flex; flex-direction: column;">
-        <div class="translation-header" style="flex-shrink:0; padding:16px 24px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--bg-elevated);">
-          <div>
-            <h3 class="section-title" id="trans-novel-ch-title">แปลตอนที่ 1 — Global Descent</h3>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <input type="text" id="trans-title-input" placeholder="กรอกชื่อตอนภาษาไทย..." style="background:var(--surface); border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:var(--radius-sm); font-size:0.9rem; margin-top:8px; width:300px;" />
-              <select id="trans-lang-select" style="background:var(--surface); border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:var(--radius-sm); font-size:0.9rem; margin-top:8px;">
-                <option value="cn">จีน (CN)</option>
-                <option value="en">อังกฤษ (EN)</option>
-                <option value="th">ไทย (TH)</option>
-              </select>
+        <!-- Admin Translate Workspace -->
+        <div class="page" id="page-admin-translate" style="height: 100%;">
+          <div class="translation-header" style="flex-shrink:0; padding:16px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <h3 class="section-title" id="trans-novel-ch-title">แปลตอนที่ —</h3>
+              <div style="display: flex; align-items: center; gap: 8px; margin-top:8px;">
+                <input type="text" id="trans-title-input" placeholder="กรอกชื่อตอนภาษาไทย..." style="background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:6px 12px; border-radius:var(--radius-sm); font-size:0.9rem; width:300px;" />
+                <select id="trans-lang-select" style="background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:6px 12px; border-radius:var(--radius-sm); font-size:0.9rem;">
+                  <option value="cn">จีน (CN)</option>
+                  <option value="en">อังกฤษ (EN)</option>
+                  <option value="th">ไทย (TH)</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex; gap:12px;">
+              <button class="hero-cta" id="trans-btn-save">บันทึกตอน</button>
+              <button class="btn btn-sm" id="trans-btn-cancel" style="background:rgba(239, 68, 68, 0.12); color:var(--error);">ยกเลิก</button>
             </div>
           </div>
-          <div style="display:flex; gap:12px;">
-            <button class="hero-cta" id="trans-btn-save">บันทึกตอน</button>
-            <button class="nav-btn" id="trans-btn-cancel" style="background:rgba(239, 68, 68, 0.12); color:#ef4444;">ยกเลิก</button>
+          
+          <div class="translation-body" style="flex:1; display:flex; min-height:0; overflow:hidden; margin-top:16px;">
+            <div class="translation-column" style="flex:1; display:flex; flex-direction:column; padding:0 8px 20px 0; overflow-y:auto;">
+              <h4 style="margin-bottom:12px; color:var(--text-secondary); font-size:0.85rem; text-transform:uppercase; font-weight:700;">บล็อกตอนทั้งหมด (Chapter Blocks)</h4>
+              <div id="trans-source-blocks" style="display:flex; flex-direction:column; gap:12px;">
+                <!-- Dynamically populated blocks -->
+              </div>
+              <button class="btn btn-sm" id="trans-btn-add-block" style="margin-top:16px; border:1px dashed var(--border-hover); padding: 12px; border-radius: var(--radius-sm);">+ เพิ่มย่อหน้า/บล็อก</button>
+              
+              <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
+                <label style="display:block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">ผู้แปล / เครดิตแปลไทย (Source footer)</label>
+                <input type="text" id="trans-source-footer" placeholder="e.g. แปลไทยโดย Mika" style="background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:8px 12px; border-radius:var(--radius-sm); font-size:0.9rem; width:100%;" />
+              </div>
+            </div>
           </div>
         </div>
-        
-        <div class="translation-body" style="flex:1; display:flex; min-height:0; overflow:hidden;">
-          <div class="translation-column" style="flex:1; display:flex; flex-direction:column; padding:20px; overflow-y:auto; background: #07080b;">
-            <h4 style="margin-bottom:12px; color:var(--text-soft); font-size:0.85rem; text-transform:uppercase;">บล็อกตอนทั้งหมด (Chapter Blocks)</h4>
-            <div id="trans-source-blocks" style="display:flex; flex-direction:column; gap:12px;">
-              <!-- Dynamically populated blocks -->
-            </div>
-            <button class="nav-btn" id="trans-btn-add-block" style="margin-top:16px; border:1px dashed var(--border-strong); padding: 12px; border-radius: var(--radius-sm);">+ เพิ่มย่อหน้า/บล็อก</button>
-            
-            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
-              <label style="display:block; font-size: 0.8rem; color: var(--text-soft); margin-bottom: 8px;">ผู้แปล / เครดิตแปลไทย (Source footer)</label>
-              <input type="text" id="trans-source-footer" placeholder="e.g. แปลไทยโดย Mika" style="background:var(--surface); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:var(--radius-sm); font-size:0.9rem; width:100%;" />
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- 15. Admin User Management View -->
-      <div class="dashboard" id="view-admin-users" hidden>
-        <div class="dashboard-container">
+        <!-- Admin Users -->
+        <div class="page" id="page-admin-users">
           <div class="admin-topbar">
             <h3 class="section-title">👤 จัดการสมาชิกและสิทธิ์การเข้าใช้งาน</h3>
           </div>
-          
-          <div class="admin-table-container">
+          <div class="admin-table-container" style="margin-top: 16px;">
             <table class="admin-table">
               <thead>
                 <tr>
@@ -609,26 +375,24 @@
             </table>
           </div>
         </div>
-      </div>
 
-      <!-- 16. Admin Glossary & Style Rules View -->
-      <div class="dashboard" id="view-admin-glossary" hidden>
-        <div class="dashboard-container">
+        <!-- Admin Glossary -->
+        <div class="page" id="page-admin-glossary">
           <div class="admin-topbar">
-            <h3 class="section-title">🗂️ จัดการคลังคำศัพท์และกฎ (Glossary & Style Rules)</h3>
+            <h3 class="section-title">🗂️ จัดการคลังคำศัพท์และกฎ</h3>
             <div style="display:flex; gap:12px;">
               <button class="hero-cta" id="glossary-btn-save">บันทึกข้อมูลทั้งหมด</button>
-              <button class="nav-btn" id="glossary-btn-add-term">+ เพิ่มคำศัพท์ใหม่</button>
-              <button class="nav-btn" id="glossary-btn-back-to-dash">กลับหน้าแดชบอร์ด</button>
+              <button class="btn btn-sm" id="glossary-btn-add-term">+ เพิ่มคำศัพท์ใหม่</button>
+              <button class="btn btn-sm" id="glossary-btn-back-to-dash">กลับหน้าแดชบอร์ด</button>
             </div>
           </div>
-
+          
           <div style="display:flex; gap:24px; margin-top:20px; height: 60vh;">
             <!-- Left Column: Glossary Terms Table -->
-            <div style="flex:2; display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:16px; min-height:0;">
+            <div style="flex:2; display:flex; flex-direction:column; background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius); padding:16px; min-height:0;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                 <h4 style="margin:0; font-size:1rem; font-weight:600;">คลังคำศัพท์ (Glossary Terms)</h4>
-                <input type="search" id="glossary-search" placeholder="🔍 ค้นหาในคลัง..." style="background:var(--bg-elevated); border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:var(--radius-sm); font-size:0.85rem; width:200px;" />
+                <input type="search" id="glossary-search" placeholder="🔍 ค้นหาในคลัง..." style="background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:6px 12px; border-radius:var(--radius-sm); font-size:0.85rem; width:200px;" />
               </div>
               <div style="flex:1; overflow-y:auto;">
                 <table class="admin-table" style="font-size:0.85rem;">
@@ -650,9 +414,9 @@
             </div>
 
             <!-- Right Column: Style Rules Markdown/JSON Edit -->
-            <div style="flex:1; display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:16px; min-height:0;">
+            <div style="flex:1; display:flex; flex-direction:column; background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius); padding:16px; min-height:0;">
               <h4 style="margin:0 0 12px 0; font-size:1rem; font-weight:600;">กฎและสไตล์การแปล (Style Rules)</h4>
-              <p style="font-size:0.75rem; color:var(--text-soft); margin:0 0 12px 0;">กำหนดข้อบังคับสไตล์การแปล (เขียนแยกแต่ละข้อด้วยการขึ้นบรรทัดใหม่)</p>
+              <p style="font-size:0.75rem; color:var(--text-secondary); margin:0 0 12px 0;">กำหนดข้อบังคับสไตล์การแปล (เขียนแยกแต่ละข้อด้วยการขึ้นบรรทัดใหม่)</p>
               <div style="flex:1; display:flex; flex-direction:column; gap:12px; overflow-y:auto;" id="style-rules-container">
                 <!-- Grouped rule textareas will be populated here -->
               </div>
@@ -660,14 +424,32 @@
           </div>
         </div>
       </div>
-      
-    </div> <!-- end app-main -->
-  </div> <!-- end app-container -->
+    </main>
+    
+    <!-- Right Sidebar (Activity) -->
+    <aside class="rightbar">
+      <div class="rightbar-brand" style="padding: 20px 16px 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border);">
+        <span class="section-label" style="margin: 0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted);">กิจกรรม</span>
+        <button class="btn btn-icon btn-ghost" id="rightbar-close" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);" title="ปิดแถบกิจกรรม">
+          <svg style="width: 16px; height: 16px; color: var(--text-secondary);"><use xlink:href="#icon-close"></use></svg>
+        </button>
+      </div>
+      <div class="rightbar-section" style="padding-top: 12px;">
+        <div id="activity-feed">
+          <p style="font-size:11px;color:var(--text-muted);">กำลังโหลด...</p>
+        </div>
+      </div>
+    </aside>
+    
+  </div>
+  
   
   <!-- Sidebar overlay (mobile) -->
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
   <script src="/virtual-scroll.js"></script>
+  <script src="/router.js"></script>
+  <script src="/page-renderers.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>
