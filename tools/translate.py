@@ -36,7 +36,8 @@ sys.path.insert(0, str(_PROJECT_ROOT))
 sys.path.insert(0, str(_TOOLS_DIR))
 from constants import NOVEL_ROOT, CHAPTERS_DIR, GLOSSARY_DIR, get_novel_root  # noqa: E402
 from schema import Chapter, Narration, Dialogue, SystemMessage, GameTitle, EndMarker  # noqa: E402
-from chapter_io import save_chapter  # noqa: E402
+from chapter_io import save_chapter
+from providers import get_provider  # noqa: E402
 from load_glossary import load_terms, load_style_rules  # noqa: E402
 
 # ── Inline helpers (from translate_ch_helpers.py, deleted in ponytail merge) ──
@@ -361,17 +362,19 @@ def get_chapter_context(ch_num: int, search_unknown: bool = True) -> str:
     return "\n".join(parts)
 
 
-def _call_llm(prompt: str, model: str = 'haiku') -> str:
-    """Call the LLM. Returns the raw text response.
+def _call_llm(prompt: str, model: str = "haiku") -> str:
+    """Call the LLM via provider abstraction.
 
-    For now, this is a MOCK that returns placeholder JSON. Replace with
-    real implementation:
-      - via hermes CLI subprocess, or
-      - via direct API call (anthropic, openai, etc.)
+    Uses the provider system (haiku / gemini / claude).
+    Falls back to mock output if provider is unavailable.
     """
-    # Real implementation: subprocess.run(['hermes', 'chat', '--model', model], input=prompt)
-    # For now, return mock
-    return '{"mock": "no LLM configured — pass --mock to skip LLM call"}'
+    try:
+        provider = get_provider(model)
+        return provider.translate(prompt)
+    except Exception as e:
+        print(f"⚠ LLM error ({model}): {e}")
+        print("⏭ Falling back to mock output...")
+        return '{"mock": "no LLM configured"}'
 
 
 def mock_translate(ch_num: int, source_text: str) -> dict:

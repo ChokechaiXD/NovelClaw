@@ -1,0 +1,39 @@
+{
+  "app": {
+    "title": "NovelClaw",
+    "tagline": "Web Novel Translation Toolkit",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "novels": "Novels",
+    "chapters": "Chapters",
+    "glossary": "Glossary",
+    "characters": "Characters",
+    "settings": "Settings",
+    "language": "Language"
+  },
+  "chapter": {
+    "previous": "Previous",
+    "next": "Next",
+    "list": "Chapter List",
+    "source": "Source",
+    "save": "Save",
+    "delete": "Delete",
+    "confirm_delete": "Are you sure you want to delete this chapter?"
+  },
+  "glossary": {
+    "search": "Search terms...",
+    "no_terms": "No terms found",
+    "locked": "Locked",
+    "reference": "Reference"
+  },
+  "status": {
+    "translated": "Translated",
+    "pending": "Pending",
+    "validated": "Validated",
+    "error": "Error"
+  }
+}

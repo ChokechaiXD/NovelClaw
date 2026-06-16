@@ -330,7 +330,83 @@ marked.setOptions({ gfm: true, breaks: false });
 // ── routes ─────────────────────────────────────────────────────────────
 
 const app = express();
-app.use(express.json());
+app.use(express.json())
+
+// ── i18n Middleware ─────────────────────────────────────────────
+// Load locale files for TH/EN
+const LOCALE_DIR = path.join(__dirname, 'locales');
+let locales = {};
+try {
+    const files = readdirSync(LOCALE_DIR);
+    for (const f of files) {
+        if (f.endsWith('.json')) {
+            const lang = f.replace('.json', '');
+            const content = readFileSync(path.join(LOCALE_DIR, f), 'utf-8');
+            locales[lang] = JSON.parse(content);
+            console.log(`i18n: loaded ${lang}`);
+        }
+}
+} catch (e) {
+    console.error('i18n: no locales directory, using fallback');
+}
+
+// Resolve language from cookie > Accept-Language > 'th'
+function getLang(req) {
+    // Manual cookie parsing (no cookie-parser dependency needed)
+    const rawCookie = req.headers.cookie || '';
+    const cookies = Object.fromEntries(
+        rawCookie.split(';').filter(Boolean).map(c => {
+            const parts = c.trim().split('=');
+            return [parts[0], parts.slice(1).join('=')];
+        })
+    );
+    const cookie = cookies.lang;
+    if (cookie && locales[cookie]) return cookie;
+    const accept = req.headers['accept-language'];
+    if (accept) {
+        const prefs = accept.split(',').map(s => s.split(';')[0].trim().toLowerCase());
+        for (const p of prefs) {
+            const base = p.split('-')[0];
+            if (locales[base]) return base;
+        }
+    }
+    return 'th';
+}
+
+// t() helper available in all route handlers
+app.use((req, res, next) => {
+    const lang = getLang(req);
+    const locale = locales[lang] || locales['th'] || {};
+    req.t = function (key, fallback) {
+        const parts = key.split('.');
+        let val = locale;
+        for (const p of parts) {
+            val = val?.[p];
+            if (val === undefined) break;
+        }
+        return val ?? fallback ?? key;
+    };
+    req.locale = lang;
+    next();
+});
+
+// Language switcher endpoint
+app.get('/api/lang/:lang', (req, res) => {
+    const lang = req.params.lang;
+    if (locales[lang]) {
+        res.cookie('lang', lang, { maxAge: 365 * 24 * 60 * 60 * 1000, httpOnly: false });
+        res.json({ lang, messages: locales[lang] });
+    } else {
+        res.status(404).json({ error: `Unknown locale: ${lang}` });
+    }
+});
+
+// Get current locale messages (for client-side)
+app.get('/api/lang', (req, res) => {
+    const lang = getLang(req);
+    res.json({ lang, messages: locales[lang] || locales['th'] });
+});
+;
 
 // Disable caching for static files during development — prevents stale JS/CSS
 // from blocking bug fixes. Remove or set maxAge for production.
