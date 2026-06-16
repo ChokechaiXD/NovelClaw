@@ -1,6 +1,8 @@
 // NovelClaw Reader v2 — frontend logic.
 // Vanilla JS, no framework.
 (function() {
+  // Skip if new layout is active (Phase A1 v2.0)
+  if (document.querySelector(".app-layout") || document.querySelector(".app")) return;
 const state = {
   novel: null,
   chapters: [],   // [{num, title}, ...]
