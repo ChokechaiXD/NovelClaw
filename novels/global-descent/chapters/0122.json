@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "num": 122,
-  "title": "ตอนที่ 122 การค้า กล่องกลืนปีศาจปริศนา",
+  "title": "ตอนที่ 122 (ไม่มีชื่อตอน)",
   "blocks": [
     {
       "type": "system",
@@ -954,8 +954,6 @@
     }
   ],
   "source": "ch 122",
-  "notes": [
-    "Translated ch 122 — 交易,詭異的吞魔之盒. Key plot: มารีทา (4ดา สมาคมการค้าจันทรา) buys มณีแห่งจันทรา 2ใบ for 1M โครน + misc items for ~180K. 曹星 buys 生命秘藥, 寵物口糧, 機械工廠圖紙 (315K total). Key item: 吞魔之盒 (600K) — sealed demon that can devour other demons' souls. Plot setup for 阿斯卡隆墓穴 arc with 姬心月."
-  ],
+  "notes": [],
   "lang": "cn"
 }

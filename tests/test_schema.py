@@ -17,8 +17,8 @@ import pytest  # noqa: E402
 from schema import (  # noqa: E402
     Chapter, Narration, Dialogue, SystemMessage, GameTitle, EndMarker,
     Language, BRACKETS, DialogueQuote, SystemBracket, GameBracket, BlockType,
-    load_chapter, save_chapter, chapter_path, md_to_blocks,
 )
+from chapter_io import load_chapter, save_chapter, chapter_path, md_to_blocks  # noqa: E402
 
 
 def _ch(lang='cn', dialogue='「hi」', system='【HP】', end='(จบบท)'):

@@ -26,6 +26,10 @@ class VirtualScroll {
     this.container = container;
     this.viewport = container.querySelector('.vscroll-viewport');
     this.spacer = container.querySelector('.vscroll-spacer');
+    if (!this.viewport || !this.spacer) {
+      console.warn('VirtualScroll: .vscroll-viewport or .vscroll-spacer not found');
+      return;
+    }
     this.rowHeight = opts.rowHeight;
     this.buffer = opts.buffer ?? 5;
     this.render = opts.render;
@@ -63,12 +67,19 @@ class VirtualScroll {
   }
 
   setItems(items) {
+    // Capture old count before reassignment for scroll-reset decision
+    const prevCount = this.items.length;
+    const prevScroll = this.viewport.scrollTop;
     this.items = items;
     this.spacer.style.height = `${items.length * this.rowHeight}px`;
-    // Drop everything; we will re-mount on next render
     for (const { el } of this.mounted.values()) el.remove();
     this.mounted.clear();
-    this.viewport.scrollTop = 0;
+    // Only reset to top if items changed, otherwise preserve scroll
+    if (items.length !== prevCount) {
+      this.viewport.scrollTop = 0;
+    } else {
+      this.viewport.scrollTop = prevScroll;
+    }
     this._needsRender = true;
     this._render();
   }
@@ -114,7 +125,19 @@ class VirtualScroll {
 
   _render() {
     const vh = this.viewport.clientHeight;
-    if (vh === 0) { this._needsRender = true; return; }
+    if (vh === 0) {
+      // Viewport not visible yet — observe for size changes and retry
+      this._needsRender = true;
+      if (typeof ResizeObserver !== 'undefined' && !this._retryObserver) {
+        this._retryObserver = new ResizeObserver(() => {
+          if (this.viewport.clientHeight > 0) {
+            this._schedule();
+          }
+        });
+        this._retryObserver.observe(this.viewport);
+      }
+      return;
+    }
     const scrollTop = this.viewport.scrollTop;
     const startIdx = Math.max(0, Math.floor(scrollTop / this.rowHeight) - this.buffer);
     const endIdx = Math.min(
@@ -148,6 +171,4 @@ class VirtualScroll {
   }
 }
 
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { VirtualScroll };
-}
+

@@ -36,23 +36,34 @@ def get_translated_chapters() -> list[int]:
 
 
 def validate_chapter(ch: int) -> dict:
-    """Run validate_chapter.py on a chapter and parse results."""
-    validate_script = Path(__file__).parent / "validate_chapter.py"
-    result = subprocess.run(
-        [sys.executable, str(validate_script), str(ch)],
-        capture_output=True, text=True, encoding="utf-8",
-        cwd=str(Path(__file__).parent.parent),
-        timeout=30,
-    )
-    output = result.stdout + result.stderr
+    """Run validate_chapter.py on a chapter and parse results in-process."""
+    import io
+    from contextlib import redirect_stdout, redirect_stderr
+    import validate_chapter as vc
 
-    passed = "PASSED" in output
-    failed = "FAILED" in output
+    # Sync novel paths to validate_chapter module
+    vc.ROOT = ROOT
+    vc.GLOSSARY_DIR = ROOT / "glossary"
+
+    f = io.StringIO()
+    with redirect_stdout(f), redirect_stderr(f):
+        try:
+            exit_code = vc.validate(ch, do_fix=False)
+        except SystemExit as e:
+            exit_code = e.code or 0
+        except Exception as e:
+            print(f"FAILED: {e}")
+            exit_code = 1
+
+    output = f.getvalue()
+
+    passed = exit_code == 0
+    failed = exit_code != 0
 
     warnings = []
     for line in output.splitlines():
         w = line.strip()
-        if w.startswith("⚠"):
+        if w.startswith("⚠") or w.startswith("[WARN]"):
             warnings.append(w)
 
     # Extract stats
@@ -73,8 +84,6 @@ def validate_chapter(ch: int) -> dict:
         "warning_count": len(warnings),
         "stats": stats,
     }
-
-
 def format_report(results: list[dict], failures_only: bool = False) -> str:
     total = len(results)
     passed = [r for r in results if r["passed"]]

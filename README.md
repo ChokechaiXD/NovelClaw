@@ -1,68 +1,77 @@
-# NovelClaw 🦀
+# NovelClaw 🦊
 
-> Translation workspace for web novels (CN → TH).
-> Mika translates in chat; this repo is the persistent context
-> (glossary, style, chapters) that keeps quality consistent across sessions.
+> **Cross-language web novel translation toolkit**
+> Transmittor-pipeline with validation, glossary management, and reader UI
 
-## Principles
-
-- **Transmittor, not editor** — transmit author's voice, don't "improve"
-- **Completeness is law** — every word translated, zero gaps
-- **Zero CJK leakage** — body text is pure Thai
-- **Glossary is absolute** — locked terms never deviate
-- **Validate before save** — tools catch errors AI misses
-
-## Project Layout
-
-```
-NovelClaw/
-├── PROMPT.md                  ← AI system prompt (S0-9) — Mika's prime directive
-├── TRANSLATION_MANUAL.md       ← Human reference (workflow, tools, maintenance)
-├── docs/
-│   └── THAI_NATURALNESS.md     ← Deep Thai writing guide
-├── tools/                      ← Validation + glossary scripts
-│   ├── validate_chapter.py     ← Chapter validation
-│   ├── save_chapter.py         ← Save + schema check
-│   ├── glossary_doctor.py      ← Translation quality analysis
-│   ├── translate_ch.py         ← Context loader
-│   ├── build_yaml.py           ← Rebuild glossary.yml from .md
-│   └── ...
-└── novels/
-    └── <slug>/
-        ├── style.md            ← Per-novel style choices
-        ├── format_spec.md      ← File format spec (v2 JSON)
-        ├── glossary/
-        │   ├── locked.md       ← P1: Never deviate
-        │   ├── reference.md    ← P2: Use consistently
-        │   ├── auto.md         ← P3: Suggestion only
-        │   └── glossary.yml    ← Auto-generated (build_yaml.py)
-        └── chapters/
-            └── NNNN.json       ← Translated chapters (schema v2)
-```
-
-## Translation Session
-
-1. Load `PROMPT.md` (AI rules) + `style.md` (novel-specific) + `glossary/` (terms)
-2. Read source text
-3. Translate per S1-S9 rules (transmittor principle, completeness, zero CJK)
-4. Self-review (S5 gate)
-5. Save as `chapters/NNNN.json`
-6. Run `python tools/validate_chapter.py N`
-7. Commit
-
-## Glossary
-
-| File | Priority | Rule |
-|------|----------|------|
-| `locked.md` | P1 | Never deviate |
-| `reference.md` | P2 | Use consistently |
-| `auto.md` | P3 | Suggestion only |
-
-Rebuild after edits: `python tools/build_yaml.py`
-
-## Active Novel
-
-`global-descent` — 全球降臨：帶著嫂嫂末世種田 by 一条小白蛇
+NovelClaw is a production-grade translation workspace designed for high-fidelity literary translation across multiple source languages (CN, JP, KR, EN) and genres (Xianxia, Fantasy, Horror, Romance). Built on the "Transmittor Principle" — preserve the author's voice, enforce mechanical purity.
 
 ---
-See `TRANSLATION_MANUAL.md` for detailed workflow, tools reference, and maintenance guide.
+
+## Architecture
+
+```
+novelclaw/
+├── novels/{slug}/     ← Novel data per language/genre
+│   ├── chapters/      ← Translated chapters (JSON)
+│   ├── glossary/      ← Locked + reference terms
+│   ├── format_spec.json  ← Single source of truth for formatting rules
+│   ├── style_rules.yml   ← Auto-generated from format_spec.json
+│   └── style.md       ← Novel-specific voice/tone
+├── tools/             ← Python toolkit (22 modules)
+│   ├── translate.py   ← Translation pipeline
+│   ├── validate_chapter.py  ← CJK + structure validation
+│   ├── glossary.py    ← Glossary management + --sync
+│   ├── dashboard.py   ← Translation progress dashboard
+│   ├── batch_validate.py   ← Batch validation
+│   ├── slop/          ← Anti-slop detection suite
+│   └── sites/         ← Scraper configs
+├── reader/            ← Web reader (Node.js/Express)
+├── tests/             ← 220+ test suite
+├── docs/              ← Style guides
+├── PROMPT.md          ← Global AI prompt (multi-language)
+├── pyproject.toml     ← Package config (Python >=3.11)
+└── LICENSE            ← MIT
+```
+
+## Quick Start
+
+```bash
+# Install
+pip install -e .
+
+# Translate a chapter
+python tools/translate.py --chapter 1 --novel global-descent
+
+# Validate
+python tools/validate_chapter.py 1
+
+# Sync formatting rules (after editing format_spec.json)
+python tools/glossary.py --sync
+
+# Run tests
+pip install -e .[test]
+python -m pytest tests/
+
+# Start reader UI
+cd reader && npm install && npm start
+```
+
+## Key Features
+
+- **Multi-language**: CN, JP, KR, EN → Thai (with template slots for more)
+- **Multi-genre**: Xianxia, Dark Fantasy, Lovecraft (extensible)
+- **Zero CJK leakage**: Automated detection in all source languages
+- **Transmittor Pipeline**: 5-phase workflow (Context → Comprehension → Decomposition → Reconstruction → Correction)
+- **Glossary Management**: Tiered (locked > reference > auto), with priority-based lookup
+- **Anti-Slop Detection**: 4-module analysis suite
+- **Format Consistency**: Single source of truth via `format_spec.json`
+
+## Branches
+
+- `main` — Primary development
+- `gemini` — Gemini provider configuration
+- `claude` — Claude provider configuration
+
+## License
+
+MIT © 2026 P Choke & Mika
