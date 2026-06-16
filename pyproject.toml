@@ -30,7 +30,11 @@ dependencies = [
 test = ["pytest>=8.0", "pytest-asyncio>=0.23"]
 
 [project.scripts]
-novelclaw = "tools.glossary:main"
+novelclaw = "tools.cli:main"
+novelclaw-translate = "tools.translate:main"
+novelclaw-validate = "tools.validate_chapter:main"
+novelclaw-glossary = "tools.glossary:main"
+novelclaw-search = "tools.chapter_search:main"
 
 [project.urls]
 Homepage = "https://github.com/BlankScreen/novelclaw"
@@ -48,3 +52,32 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 asyncio_mode = "auto"
 filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "ARG", "PTH", "PD", "PL"]
+ignore = ["E501", "B904", "PLR2004", "PLR0913", "PLR0915", "PLR0912", "PLR0911"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+explicit_package_bases = true
+warn_unused_configs = true
+
+[tool.coverage.run]
+source = ["tools"]
+relative_files = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 60
+

@@ -70,6 +70,8 @@ CREATE TABLE IF NOT EXISTS chapter_meta (
 def get_conn(db_file: Path | None = None) -> sqlite3.Connection:
     """Get SQLite connection (creates DB if needed).
 
+    Uses WAL mode + busy_timeout for concurrent access safety.
+
     `db_file` lets callers point at a per-novel index (e.g.
     novels/<slug>/chapters/fts_index.db). Defaults to the global NOVEL_ROOT
     index for backwards compat.
@@ -77,6 +79,8 @@ def get_conn(db_file: Path | None = None) -> sqlite3.Connection:
     target = db_file or DB_FILE
     target.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(target))
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=5000")
     conn.executescript(SCHEMA)
     return conn
 
@@ -217,7 +221,7 @@ def build_index(novel_root: Path | None = None) -> int:
             (num, title, clean_body),
         )
         cur.execute(
-            'INSERT INTO chapter_meta (chapter_num, title, summary, indexed_at) VALUES (?, ?, ?, ?)',
+            'INSERT OR REPLACE INTO chapter_meta (chapter_num, title, summary, indexed_at) VALUES (?, ?, ?, ?)',
             (num, title, summary, now),
         )
         count += 1

@@ -1,0 +1,39 @@
+{
+  "app": {
+    "title": "NovelClaw",
+    "tagline": "เครื่องมือแปลนิยายออนไลน์",
+    "loading": "กำลังโหลด...",
+    "error": "เกิดข็อผิดพลาด",
+    "retry": "ลองอีกครั้ง"
+  },
+  "nav": {
+    "dashboard": "หน้าแรก",
+    "novels": "นิยาย",
+    "chapters": "ตอน",
+    "glossary": "คำศัพท์",
+    "characters": "ตัวละคร",
+    "settings": "ตั้งค่า",
+    "language": "ภาษา"
+  },
+  "chapter": {
+    "previous": "ก่อนหน้า",
+    "next": "ถัดไป",
+    "list": "รายการตอน",
+    "source": "ต้นฉบับ",
+    "save": "บันทึก",
+    "delete": "ลบ",
+    "confirm_delete": "ยืนยันการลบตอนนี้?"
+  },
+  "glossary": {
+    "search": "ค้นหาคำศัพท์...",
+    "no_terms": "ไม่พบคำศัพท์",
+    "locked": "ล็อก",
+    "reference": "อ้างอิง"
+  },
+  "status": {
+    "translated": "แปลแล้ว",
+    "pending": "รอแปล",
+    "validated": "ผ่านตรวจแล้ว",
+    "error": "มีข้อผิดพลาด"
+  }
+}
