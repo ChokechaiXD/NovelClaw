@@ -136,7 +136,31 @@ SELF-CHECK BEFORE SAVE:
 NEVER leave Chinese characters inside 【 】 brackets. ALWAYS translate.
 NEVER use 「」 in output. ALWAYS use "" for dialogue.
 
-#### S2: TRANSCREATION ENGINE
+#### S1d: VOICE CONSISTENCY (CRITICAL)
+Each character has a fixed voice. Do NOT change pronouns or speech patterns between chapters.
+
+**Character Voice Map:**
+- **เฉาซิง (MC):** เรียกตัวเองว่า "ข้า" เรียกคนอื่นว่า "เจ้า" หรือ "นาย" (ตามบริบท) ใช้ภาษาพูดที่เป็นธรรมชาติ ไม่เป็นทางการมาก
+- **หลิวมู่เสวี่ย:** เรียกตัวเองว่า "ข้า" เรียกเฉาซิงว่า "อาซิง" ใช้ภาษาสุภาพเล็กน้อย
+- **อาซัม:** เรียกตัวเองว่า "ข้า" เรียกเฉาซิงว่า "ท่านลอร์ด" ใช้ภาษาสุภาพ
+- **ดยุคบาราติน:** เรียกตัวเองว่า "ข้า" เรียกเฉาซิงว่า "เจ้า" ใช้ภาษาสุภาพเล็กน้อย
+
+**Pronoun Rules:**
+- 他 → เขา (male) / เธอ (female) / มัน (object/creature) — เลือกตามบริบท
+- 她 → เธอ (female character only)
+- 它 → มัน (objects, creatures, non-human)
+- 你 → เจ้า (informal) / นาย (formal) — เลือกตามความสัมพันธ์
+- 我 → ข้า (MC) / ฉัน (female) / กระผม (formal male)
+
+SELF-CHECK BEFORE SAVE:
+☐ Voice consistency — pronouns match character voice map
+☐ Item descriptions — translated faithfully, no additions or omissions
+☐ Scan every 【 】 in output — ZERO raw Chinese characters allowed
+☐ Scan every "" in output — dialogue uses Thai quotes, not 「」
+☐ Skill names (สกิล) → fully translated
+☐ Status effects (สถานะ) → fully translated
+☐ Proper nouns → per glossary or transliterated
+☐ Numbers preserved, level markers → Thai format
 PRESERVE:
 - Character voice (rough/polite/lyrical stays)
 - Social register (formal ครับ/ค่ะ vs casual ก็/นะ)
