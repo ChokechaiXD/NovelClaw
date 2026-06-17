@@ -491,6 +491,47 @@
       const chapters = await getChapters(slug);
       const hue = slugToHue(slug);
 
+      // Pagination logic for large novel chapters list
+      const pageSize = 100;
+      let selectedPageIdx = 0;
+      let lastReadNum = getLastPosition(slug);
+      if (lastReadNum) {
+        const readIdx = chapters.findIndex(c => c.num === lastReadNum);
+        if (readIdx !== -1) {
+          selectedPageIdx = Math.floor(readIdx / pageSize);
+        }
+      }
+
+      function getChaptersPageHtml(pageIdx) {
+        const start = pageIdx * pageSize;
+        const end = Math.min(start + pageSize, chapters.length);
+        const pageChapters = chapters.slice(start, end);
+        let chHtml = '';
+        for (const ch of pageChapters) {
+          const read = isRead(slug, ch.num);
+          chHtml += `
+            <a href="#novel/${slug}/${ch.num}" class="detail-ch-btn" data-nav style="${read ? 'opacity:0.7;' : ''}">
+              ตอนที่ ${ch.num}
+              ${ch.title ? `<br><span style="font-size:10px;color:var(--text-muted);">${ch.title}</span>` : ''}
+              ${read ? '<br><span style="font-size:9px;color:var(--success);">✔ อ่านแล้ว</span>' : ''}
+            </a>`;
+        }
+        return chHtml;
+      }
+
+      let rangesHtml = '';
+      if (chapters.length > pageSize) {
+        rangesHtml = '<div class="chapters-pagination" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; padding:0 4px;">';
+        const numPages = Math.ceil(chapters.length / pageSize);
+        for (let i = 0; i < numPages; i++) {
+          const startCh = chapters[i * pageSize].num;
+          const endCh = chapters[Math.min((i + 1) * pageSize - 1, chapters.length - 1)].num;
+          const label = `${startCh} - ${endCh}`;
+          rangesHtml += `<button class="btn btn-sm ${i === selectedPageIdx ? 'btn-primary' : 'btn-ghost'} page-range-btn" data-page-idx="${i}" style="font-size:11px; font-weight:600; padding:6px 12px; border-radius:var(--radius-sm); border:1px solid var(--border);">${label}</button>`;
+        }
+        rangesHtml += '</div>';
+      }
+
       let html = `
       <div class="detail-header-card" style="margin-bottom:24px;">
         <div class="detail-cover" style="background:linear-gradient(135deg,hsl(${hue},70%,40%),hsl(${(hue+40)%360},60%,30%));display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;color:#000;">
@@ -515,19 +556,9 @@
 
       <div id="detail-tab-chapters-panel" class="detail-tab-panel">
         <section class="dash-section">
-          <div class="detail-chapters-grid">`;
-
-      for (const ch of chapters) {
-        const read = isRead(slug, ch.num);
-        html += `
-          <a href="#novel/${slug}/${ch.num}" class="detail-ch-btn" data-nav style="${read ? 'opacity:0.7;' : ''}">
-            ตอนที่ ${ch.num}
-            ${ch.title ? `<br><span style="font-size:10px;color:var(--text-muted);">${ch.title}</span>` : ''}
-            ${read ? '<br><span style="font-size:9px;color:var(--success);">✔ อ่านแล้ว</span>' : ''}
-          </a>`;
-      }
-
-      html += `
+          ${rangesHtml}
+          <div class="detail-chapters-grid" id="detail-chapters-grid-container">
+            ${getChaptersPageHtml(selectedPageIdx)}
           </div>
         </section>
       </div>
@@ -563,6 +594,24 @@
           }
         });
       });
+
+      // Pagination events
+      if (chapters.length > pageSize) {
+        const rangeBtns = page.querySelectorAll(".page-range-btn");
+        const gridContainer = page.querySelector("#detail-chapters-grid-container");
+        rangeBtns.forEach(btn => {
+          btn.addEventListener("click", () => {
+            rangeBtns.forEach(b => {
+              b.classList.remove("btn-primary");
+              b.classList.add("btn-ghost");
+            });
+            btn.classList.add("btn-primary");
+            btn.classList.remove("btn-ghost");
+            const pageIdx = parseInt(btn.dataset.pageIdx, 10);
+            gridContainer.innerHTML = getChaptersPageHtml(pageIdx);
+          });
+        });
+      }
 
     } catch (err) {
       page.innerHTML = `<p style="color:var(--error);">โหลดไม่สำเร็จ: ${err.message}</p>`;
@@ -722,14 +771,16 @@
           const text = container.querySelector("#review-text-input").value.trim();
 
           if (!user || !text || !rating) {
-            alert("กรุณากรอกข้อมูลให้ครบถ้วนก่อนส่งนะคะพี่โชค! 🦊");
+            showToast("กรุณากรอกข้อมูลให้ครบถ้วนก่อนส่งนะคะพี่โชค! 🦊", "warning");
             return;
           }
 
           try {
             const saveBtn = form.querySelector("button[type='submit']");
-            saveBtn.disabled = true;
-            saveBtn.textContent = "กำลังส่ง...";
+            if (saveBtn) {
+              saveBtn.disabled = true;
+              saveBtn.textContent = "กำลังส่ง...";
+            }
             
             const res = await fetch(`/api/novel/${encodeURIComponent(slug)}/reviews/save`, {
               method: "POST",
@@ -741,7 +792,12 @@
 
             loadAndRenderReviews(slug, container);
           } catch (err) {
-            alert(`ไม่สามารถส่งรีวิวได้: ${err.message}`);
+            showToast(`ไม่สามารถส่งรีวิวได้: ${err.message}`, "error");
+            const saveBtn = form.querySelector("button[type='submit']");
+            if (saveBtn) {
+              saveBtn.disabled = false;
+              saveBtn.textContent = "ส่งรีวิว";
+            }
           }
         });
       }
@@ -919,9 +975,12 @@
         loadChapterComments(slug, ch.num);
 
         // Scroll to top
-        page.scrollTop = 0;
+        const scrollContainer = document.querySelector('.main-content');
+        if (scrollContainer) scrollContainer.scrollTop = 0;
       } catch (err) {
+        const titleEl = document.getElementById("reader-title");
         const contentEl = document.getElementById("reader-content");
+        if (titleEl) titleEl.textContent = 'เกิดข้อผิดพลาด';
         if (contentEl) contentEl.innerHTML = `<p style="text-align:center;padding:2em;color:var(--error);">โหลดไม่สำเร็จ: ${err.message}</p>`;
       }
     }
@@ -980,7 +1039,10 @@
     document.getElementById("reader-next").addEventListener("click", () => { if (idx < chapters.length - 1) loadChapter(++idx); });
     document.getElementById("reader-prev-2").addEventListener("click", () => { if (idx > 0) loadChapter(--idx); });
     document.getElementById("reader-next-2").addEventListener("click", () => { if (idx < chapters.length - 1) loadChapter(++idx); });
-    document.getElementById("reader-back-top").addEventListener("click", () => { page.scrollTo({ top: 0, behavior: "smooth" }); });
+    document.getElementById("reader-back-top").addEventListener("click", () => {
+      const scrollContainer = document.querySelector('.main-content');
+      if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
+    });
 
     // Wire comment submission
     const commentForm = document.getElementById("comment-form");
@@ -997,7 +1059,7 @@
         const text = textInput ? textInput.value.trim() : "";
         
         if (!user || !text) {
-          alert("กรุณากรอกชื่อและข้อความให้ครบถ้วนก่อนส่งนะคะพี่โชค! 🦊");
+          showToast("กรุณากรอกชื่อและข้อความให้ครบถ้วนก่อนส่งนะคะพี่โชค! 🦊", "warning");
           return;
         }
         
@@ -1018,7 +1080,7 @@
           
           loadChapterComments(slug, ch.num);
         } catch (err) {
-          alert(`ไม่สามารถส่งความคิดเห็นได้: ${err.message}`);
+          showToast(`ไม่สามารถส่งความคิดเห็นได้: ${err.message}`, "error");
         } finally {
           const submitBtn = commentForm.querySelector("button[type='submit']");
           if (submitBtn) {
@@ -1041,8 +1103,8 @@
     });
 
     // Theme toggle
-    const THEMES = ["dark", "light", "sepia"];
-    const THEME_ICONS = { light: "#icon-sun", dark: "#icon-moon", sepia: "#icon-book" };
+    const THEMES = ["dark", "amoled", "light", "sepia"];
+    const THEME_ICONS = { light: "#icon-sun", dark: "#icon-moon", amoled: "#icon-moon", sepia: "#icon-book" };
     let currentTheme = document.body.dataset.theme || "dark";
     
     function updateReaderThemeIcon(theme) {
@@ -1178,7 +1240,7 @@
             const newEmail = $("prof-input-email").value.trim();
             const newRole = $("prof-input-role").value;
             if (!newName || !newEmail) {
-              alert("กรุณากรอกข้อมูลให้ครบถ้วนด้วยนะคะพี่โชค! 🦊");
+              showToast("กรุณากรอกข้อมูลให้ครบถ้วนด้วยนะคะพี่โชค! 🦊", "warning");
               return;
             }
             prof.name = newName;
@@ -1310,8 +1372,8 @@
   function renderSettings(params) {
     const page = $("page-settings");
     if (!page) return;
-    const THEMES = ["dark", "light", "sepia"];
-    const themeNames = { dark: "🌙 ดาร์ก", light: "☀️ สว่าง", sepia: "📖 ซีเปีย" };
+    const THEMES = ["dark", "amoled", "light", "sepia"];
+    const themeNames = { dark: "🌙 ดาร์ก", amoled: "🌌 อะโมเลด", light: "☀️ สว่าง", sepia: "📖 ซีเปีย" };
     const currentTheme = document.body.dataset.theme || "dark";
     page.innerHTML = `
     <section class="dash-section">
@@ -1336,7 +1398,12 @@
 
     let fontStep = 0;
     document.getElementById("settings-theme").addEventListener("change", (e) => {
-      document.body.dataset.theme = e.target.value;
+      const themeVal = e.target.value;
+      document.body.dataset.theme = themeVal;
+      const s = loadState(); s.theme = themeVal;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
+      const globalToggle = document.getElementById("theme-toggle-new");
+      if (globalToggle) globalToggle.classList.toggle("active", themeVal === "dark");
     });
     document.getElementById("sett-font-dec").addEventListener("click", () => {
       fontStep = Math.max(-2, fontStep - 1);
@@ -1503,7 +1570,7 @@
       novelsCache = null; // Clear cache
       renderAdminNovels();
     } catch (err) {
-      alert(`ลบนิยายไม่สำเร็จ: ${err.message}`);
+      showToast(`ลบนิยายไม่สำเร็จ: ${err.message}`, "error");
     }
   }
 
@@ -1572,7 +1639,7 @@
         const saveTotalChapters = parseInt(formTotalChapters.value, 10) || 100;
 
         if (!saveSlug || !saveTitle) {
-          alert('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วนด้วยค่ะพี่โชค! 🦊');
+          showToast('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วนด้วยค่ะพี่โชค! 🦊', "warning");
           return;
         }
 
@@ -1594,7 +1661,7 @@
           novelsCache = null; // Clear cache
           Router.navigate("admin/novels");
         } catch (err) {
-          alert(`บันทึกข้อมูลนิยายไม่สำเร็จ: ${err.message}`);
+          showToast(`บันทึกข้อมูลนิยายไม่สำเร็จ: ${err.message}`, "error");
         }
       };
     }
@@ -1650,6 +1717,74 @@
         tbody.appendChild(row);
       });
 
+      // Wire EPUB Import Form
+      const epubForm = $("epub-import-form");
+      const epubFileInput = $("epub-file-input");
+      const epubStartNum = $("epub-start-num");
+      const epubStatus = $("epub-import-status");
+      
+      if (epubForm) {
+        if (epubStatus) {
+          epubStatus.style.display = "none";
+          epubStatus.innerHTML = "";
+        }
+        if (epubFileInput) epubFileInput.value = "";
+        
+        epubForm.onsubmit = async (e) => {
+          e.preventDefault();
+          const file = epubFileInput ? epubFileInput.files[0] : null;
+          const startNum = epubStartNum ? parseInt(epubStartNum.value, 10) || 1 : 1;
+          
+          if (!file) {
+            showToast("กรุณาเลือกไฟล์ EPUB ก่อนนะคะพี่โชค! 🦊", "warning");
+            return;
+          }
+          
+          if (epubStatus) {
+            epubStatus.style.display = "block";
+            epubStatus.innerHTML = `<span style="color:var(--accent);">กำลังประมวลผลไฟล์ EPUB...</span>`;
+          }
+          
+          const formData = new FormData();
+          formData.append("epub", file);
+          formData.append("start_num", startNum);
+          
+          try {
+            const submitBtn = $("epub-import-submit-btn");
+            if (submitBtn) {
+              submitBtn.disabled = true;
+              submitBtn.textContent = "กำลังนำเข้า...";
+            }
+            
+            const res = await fetch(`/api/novel/${encodeURIComponent(slug)}/import-epub`, {
+              method: "POST",
+              body: formData
+            });
+            
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error || res.statusText);
+            
+            showToast(`นำเข้าเนื้อหาสำเร็จเรียบร้อยแล้วค่ะ! 🦊✨`, "success");
+            if (epubStatus) {
+              epubStatus.innerHTML = `<span style="color:var(--success);">นำเข้าสำเร็จแล้วค่ะ!</span>`;
+            }
+            if (epubFileInput) epubFileInput.value = "";
+            renderAdminChapters(params);
+          } catch (err) {
+            showToast(`นำเข้าล้มเหลว: ${err.message}`, "error");
+            if (epubStatus) {
+              epubStatus.innerHTML = `<span style="color:var(--error);">ล้มเหลว: ${err.message}</span>`;
+            }
+          } finally {
+            const submitBtn = $("epub-import-submit-btn");
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = "นำเข้าเนื้อหา";
+            }
+          }
+        };
+      }
+
       const createBtn = $("admin-btn-create-chapter");
       if (createBtn) {
         createBtn.onclick = () => {
@@ -1674,7 +1809,7 @@
         // Refresh list
         renderAdminChapters(params);
       } catch (err) {
-        alert(`ลบตอนไม่สำเร็จ: ${err.message}`);
+        showToast(`ลบตอนไม่สำเร็จ: ${err.message}`, "error");
       }
     }
   }
@@ -1710,7 +1845,15 @@
       if (res.ok) {
         const detail = await res.json();
         if (detail.title) chapterTitle = detail.title;
-        if (detail.html) {
+        if (detail.lang) lang = detail.lang;
+        if (detail.blocks && detail.blocks.length > 0) {
+          blocks = detail.blocks.map(b => ({
+            type: b.type || 'narration',
+            text: b.text || '',
+            speaker: b.speaker || ''
+          }));
+          sourceFooter = detail.source || '';
+        } else if (detail.html) {
           const parser = new DOMParser();
           const doc = parser.parseFromString(detail.html, 'text/html');
           const paragraphs = doc.querySelectorAll('p');
@@ -1843,7 +1986,6 @@
             throw new Error("Invalid response from server");
           }
         } catch (err) {
-          alert(`แปลด้วย AI ไม่สำเร็จ:\n${err.message}`);
           showToast(`แปลด้วย AI ไม่สำเร็จ: ${err.message}`, "error");
         } finally {
           autoBtn.disabled = false;
@@ -1878,7 +2020,7 @@
           delete chaptersCache[slug];
           Router.navigate(`admin/chapters/${slug}`);
         } catch (err) {
-          alert(`บันทึกตอนไม่สำเร็จ:\n${err.message}`);
+          showToast(`บันทึกตอนไม่สำเร็จ: ${err.message}`, "error");
         }
       };
     }
@@ -2131,10 +2273,10 @@
               body: JSON.stringify({ terms: saveTermsPayload, rules: saveRulesPayload })
             });
             if (!res.ok) throw new Error(res.statusText);
-            alert('บันทึกคลังคำศัพท์และกฎสำเร็จเรียบร้อยแล้วค่ะพี่โชค! 🦊✨');
+            showToast('บันทึกคลังคำศัพท์และกฎสำเร็จเรียบร้อยแล้วค่ะพี่โชค! 🦊✨', "success");
             renderAdminGlossary(params);
           } catch (saveErr) {
-            alert(`บันทึกไม่สำเร็จ: ${saveErr.message}`);
+            showToast(`บันทึกไม่สำเร็จ: ${saveErr.message}`, "error");
           } finally {
             saveBtn.disabled = false;
             saveBtn.textContent = 'บันทึกข้อมูลทั้งหมด';
@@ -2206,7 +2348,7 @@
             renderNotifications(params);
             updateNotificationBadge();
           } catch (err) {
-            alert(`ไม่สามารถทำเครื่องหมายว่าอ่านแล้วได้: ${err.message}`);
+            showToast(`ไม่สามารถทำเครื่องหมายว่าอ่านแล้วได้: ${err.message}`, "error");
           }
         };
       }
@@ -2302,6 +2444,10 @@
         document.body.dataset.theme = target;
         themeToggle.classList.toggle("active", target === "dark");
         
+        // Save to state
+        const s = loadState(); s.theme = target;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
+
         // Sync setting page dropdown if visible
         const settingsTheme = document.getElementById("settings-theme");
         if (settingsTheme) settingsTheme.value = target;
@@ -2318,6 +2464,13 @@
 
     // Initialize topbar avatar
     updateTopbarAvatar(getProfile());
+
+    // Initialize theme from localStorage on boot
+    const savedTheme = loadState().theme || "dark";
+    document.body.dataset.theme = savedTheme;
+    if (themeToggle) {
+      themeToggle.classList.toggle("active", savedTheme === "dark");
+    }
   }
 
   // Auto-init

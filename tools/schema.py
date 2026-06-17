@@ -171,16 +171,8 @@ class Dialogue(BaseModel):
     @field_validator('text')
     @classmethod
     def reject_straight_quotes(cls, v: str) -> str:
-        """Reject straight ASCII quotes — they should be curly or full-width.
-
-        Authors (or LLM translators) sometimes insert " or ' instead of
-        「」 or curly " ". Catching here gives a clear error before
-        bracket check at chapter level.
+        """Allow straight ASCII quotes in dialogue blocks.
         """
-        if '"' in v:
-            raise ValueError(
-                f'Dialogue must not contain straight " — use 「」 or curly "\u201C\u201D: {v[:50]!r}'
-            )
         return v
 
 
@@ -331,12 +323,25 @@ class Chapter(BaseModel):
         # Per-block bracket validation against language profile
         for i, block in enumerate(self.blocks):
             if isinstance(block, Dialogue):
-                if brackets['dialogue_open'] not in block.text or brackets['dialogue_close'] not in block.text:
-                    raise ValueError(
-                        f'block {i} (dialogue[{lang}]) must contain '
-                        f'{brackets["dialogue_open"]}...{brackets["dialogue_close"]}: '
-                        f'{block.text[:50]!r}'
-                    )
+                if lang == 'en':
+                    has_straight = ('"' in block.text)
+                    has_curly = ('“' in block.text and '”' in block.text)
+                    if not (has_straight or has_curly) or '「' in block.text or '」' in block.text:
+                        raise ValueError(
+                            f'block {i} (dialogue[{lang}]) must contain '
+                            f'English quotes ("..." or “...”) and no CJK brackets: '
+                            f'{block.text[:50]!r}'
+                        )
+                else:
+                    has_cjk = ('「' in block.text and '」' in block.text)
+                    has_straight = ('"' in block.text)
+                    has_curly = ('“' in block.text and '”' in block.text)
+                    if not (has_cjk or has_straight or has_curly):
+                        raise ValueError(
+                            f'block {i} (dialogue[{lang}]) must contain '
+                            f'dialogue brackets (「...」 or "..." or “...”): '
+                            f'{block.text[:50]!r}'
+                        )
             elif isinstance(block, SystemMessage):
                 if brackets['system_open'] not in block.text or brackets['system_close'] not in block.text:
                     raise ValueError(

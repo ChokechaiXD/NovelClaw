@@ -78,20 +78,34 @@ def get_source_dir(slug: str | None = None) -> Path:
 # ────────────────────────────────────────────────────────────────────
 # Translation quality constants
 # ────────────────────────────────────────────────────────────────────
+import json
 
-# Length ratio bounds for translation vs source (TH natural expansion)
-# Below LENGTH_RATIO_OK[0] = too short (likely truncated)
-# Above LENGTH_RATIO_OK[1] = too long (likely over-translated / padded)
-# PROMPT.md S1b hard floor: ≥ 60% (0.6). Upper bound: 3.5 (TH expansion).
-LENGTH_RATIO_OK = (0.6, 3.5)
+_config_path = PROJECT_ROOT / 'validation_config.json'
+if _config_path.exists():
+    try:
+        with open(_config_path, 'r', encoding='utf-8') as _f:
+            _shared_config = json.load(_f)
+        LENGTH_RATIO_OK = tuple(_shared_config['length_ratio_ok'])
+        NAME_CHECKS = [
+            (item['cn'], item['correct'], item['wrong'])
+            for item in _shared_config['name_checks']
+        ]
+    except Exception:
+        LENGTH_RATIO_OK = (0.6, 3.5)
+        NAME_CHECKS = [
+            ('曹星', 'เฉาซิง', 'โจวซิง'),
+            ('柳慕雪', 'หลิวมู่เสวี่ย', 'หลิวมู่สวี่'),
+            ('陈江', 'เฉินเจียง', 'เฉินเจียงก'),
+            ('香江', 'ฮ่องกง', 'เซียงเจียง'),
+            ('极地人', 'คนเมืองหนาว', 'ชาวโพลาร์'),
+        ]
+else:
+    LENGTH_RATIO_OK = (0.6, 3.5)
+    NAME_CHECKS = [
+        ('曹星', 'เฉาซิง', 'โจวซิง'),
+        ('柳慕雪', 'หลิวมู่เสวี่ย', 'หลิวมู่สวี่'),
+        ('陈江', 'เฉินเจียง', 'เฉินเจียงก'),
+        ('香江', 'ฮ่องกง', 'เซียงเจียง'),
+        ('极地人', 'คนเมืองหนาว', 'ชาวโพลาร์'),
+    ]
 
-# Name consistency checks: (CN, correct Thai, wrong Thai variants to auto-fix)
-# If wrong is found AND correct is NOT in text → auto-fix
-# If wrong AND correct both found → flag for manual review
-NAME_CHECKS = [
-    ('曹星', 'เฉาซิง', 'โจวซิง'),
-    ('柳慕雪', 'หลิวมู่เสวี่ย', 'หลิวมู่สวี่'),
-    ('陈江', 'เฉินเจียง', 'เฉินเจียงก'),  # stray ก suffix
-    ('香江', 'ฮ่องกง', 'เซียงเจียง'),
-    ('极地人', 'คนเมืองหนาว', 'ชาวโพลาร์'),
-]

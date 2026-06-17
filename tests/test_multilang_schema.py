@@ -176,14 +176,13 @@ class TestBackwardCompat:
 
 
 class TestBracketRejection:
-    """Wrong brackets for the chapter's language are rejected."""
+    """Verify that curly/straight quotes are accepted across languages for dialogue."""
 
-    def test_cn_rejects_english_brackets(self):
-        with __import__('pytest').raises(ValueError) as exc_info:
-            make_chapter('cn', dialogue_text='\u201Cwrong\u201D')
-        assert 'dialogue[cn]' in str(exc_info.value)
+    def test_cn_accepts_curly_quotes(self):
+        # CN chapters (default or source) translated to Thai can use curly quotes
+        ch = make_chapter('cn', dialogue_text='\u201Cสวัสดี\u201D')
+        assert ch.blocks[1].text == '\u201Cสวัสดี\u201D'
 
-    def test_jp_rejects_curly(self):
-        with __import__('pytest').raises(ValueError) as exc_info:
-            make_chapter('jp', dialogue_text='\u201Cwrong\u201D')
-        assert 'dialogue[jp]' in str(exc_info.value)
+    def test_jp_accepts_curly_quotes(self):
+        ch = make_chapter('jp', dialogue_text='\u201Cこんにちは\u201D')
+        assert ch.blocks[1].text == '\u201Cこんにちは\u201D'
