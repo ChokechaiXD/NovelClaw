@@ -2,7 +2,7 @@
 scrape_chapters.py — Scrape chapter sources from hjwzw.com using Playwright.
 
 Uses headless Chromium to execute JavaScript-rendered content,
-then extracts innerText to get the actual chapter content.
+then extracts innerText and auto-detects dialogue ("") and system【】 markers.
 
 Usage:
   python scrape_chapters.py                      # scrape all missing
@@ -33,6 +33,32 @@ SKIP_KEYWORDS = [
     "頁面執行時間", "隨機推薦", "瀏覽記錄", "聯系我們", "快捷鍵",
 ]
 
+# System message patterns (game UI text that should be wrapped in 【】)
+SYSTEM_PATTERNS = [
+    r'交易成功',
+    r'你獲得了',
+    r'伱失去了',
+    r'等級：',
+    r'生命值：',
+    r'攻擊力：',
+    r'護甲：',
+    r'技能：',
+    r'天賦：',
+    r'所屬領主：',
+    r'危險：',
+    r'地圖介紹：',
+    r'你已進入',
+    r'注意：',
+    r'為高等級區域',
+    r'建議至少',
+    r'組隊探索',
+    r'lv\d+',
+    r'LV\d+',
+    r'\d+級',
+    r'等階：',
+    r'種族：',
+]
+
 
 def get_chapter_map():
     """Parse TOC to get {ch_num: chid} mapping using urllib (TOC is static HTML)."""
@@ -50,6 +76,56 @@ def get_chapter_map():
     return {int(ch_num): int(chid) for chid, ch_num in matches}
 
 
+def is_system_message(line):
+    """Detect if a line is a game system message."""
+    for pat in SYSTEM_PATTERNS:
+        if re.search(pat, line):
+            return True
+    return False
+
+
+def is_dialogue(line):
+    """Detect if a line contains dialogue (has quotes or quote-like patterns)."""
+    # Has explicit quotes
+    if '"' in line or '"' in line or '"' in line or '"' in line:
+        return True
+    if '「' in line or '」' in line:
+        return True
+    # Starts with quote-like character
+    if line.startswith('"') or line.startswith('"') or line.startswith('「'):
+        return True
+    return False
+
+
+def format_content_line(line):
+    """Format a content line with appropriate markers."""
+    # Skip empty
+    if not line.strip():
+        return line
+    
+    # System messages → wrap in 【】
+    if is_system_message(line) and '【' not in line:
+        return f"【{line}】"
+    
+    # Dialogue → ensure it has "" markers
+    if is_dialogue(line):
+        # Already has some form of quotes
+        if '「' in line and '」' in line:
+            return line  # Keep CN quotes
+        if '"' in line or '"' in line:
+            return line  # Has curly quotes
+        # Has straight quotes — keep as is
+        if '"' in line:
+            return line
+        # Starts with quote but missing close — add closing quote
+        if line.startswith('"') and not line.endswith('"'):
+            return line + '"'
+        if line.startswith('"') and not line.endswith('"'):
+            return line + '"'
+    
+    return line
+
+
 async def scrape_chapter_playwright(chid, ch_num):
     """Scrape a single chapter using Playwright (JS-rendered content)."""
     from playwright.async_api import async_playwright
@@ -64,7 +140,7 @@ async def scrape_chapter_playwright(chid, ch_num):
 
         url = READ_TEMPLATE.format(chid=chid)
         await page.goto(url, timeout=30000, wait_until="networkidle")
-        await page.wait_for_timeout(5000)  # wait for JS render
+        await page.wait_for_timeout(5000)
 
         # Extract content via innerText
         result = await page.evaluate("""
@@ -110,42 +186,6 @@ async def scrape_chapter_playwright(chid, ch_num):
 
         await browser.close()
         return result
-
-
-def extract_content_urllib(html):
-    """Fallback: extract chapter text from hjwzw HTML using regex (old method)."""
-    # Remove script/style
-    text = re.sub(r"<script[^>]*>[\s\S]*?</script>", "", html)
-    text = re.sub(r"<style[^>]*>[\s\S]*?</style>", "", text)
-    # Strip tags
-    text = re.sub(r"<[^>]+>", "", text)
-    text = re.sub(r"&nbsp;", " ", text)
-    text = re.sub(r"&amp;", "&", text)
-    text = re.sub(r"\s+", "\n", text).strip()
-
-    lines = [l.strip() for l in text.split("\n") if l.strip()]
-    content_lines = []
-    in_content = False
-
-    for line in lines:
-        if re.search(r"第\s*\d+\s*章", line) and any(ord(c) > 0x4E00 for c in line[:30]):
-            in_content = True
-            content_lines.append(line)
-            continue
-
-        if in_content:
-            if any(kw in line for kw in SKIP_KEYWORDS):
-                continue
-            if re.match(r"^[A-Z]\s*\|", line):
-                continue
-            if len(line) < 2:
-                continue
-            content_lines.append(line)
-
-        if len(content_lines) > 500:
-            break
-
-    return "\n".join(content_lines)
 
 
 def main():
@@ -194,6 +234,8 @@ def main():
 
     # Scrape using Playwright
     ok = fail = skip = 0
+    start_time = time.time()
+    
     for i, ch_num in enumerate(to_scrape):
         chid = ch_map[ch_num]
         out = SOURCE_DIR / f"{ch_num:04d}.md"
@@ -204,30 +246,40 @@ def main():
 
         try:
             result = asyncio.run(scrape_chapter_playwright(chid, ch_num))
-            content = "\n".join(result["contentLines"])
+            content_lines = result["contentLines"]
 
-            if content and len(content) > 50:
-                # Normalize quotes: curly → straight
-                content = content.replace('"', '"').replace('"', '"')
+            if content_lines and len(content_lines) > 3:
+                # Format lines: add 【】 to system messages, "" to dialogue
+                formatted_lines = [format_content_line(line) for line in content_lines]
+                content = "\n".join(formatted_lines)
+                
                 # Write with title header
                 title = result.get("title", f"第{ch_num}章")
                 # Clean up title (remove breadcrumb prefix)
                 title = re.sub(r'.*>>\s*', '', title)
                 out.write_text(f"# {title}\n\n{content}", encoding="utf-8")
                 ok += 1
-                if ok % 10 == 0:
-                    print(f"   ✓ {ok} scraped (ch {ch_num})")
+                
+                # Progress report every 50 chapters
+                if ok % 50 == 0:
+                    elapsed = time.time() - start_time
+                    rate = ok / elapsed if elapsed > 0 else 0
+                    remaining = (len(to_scrape) - i - 1) / rate if rate > 0 else 0
+                    print(f"   ✓ {ok} scraped ({rate:.1f} ch/s, ~{remaining:.0f}s remaining)")
             else:
-                print(f"   ⚠️  ch {ch_num} content too short ({len(content)} chars)")
+                print(f"   ⚠️  ch {ch_num} content too short ({len(content_lines)} lines)")
                 fail += 1
         except Exception as e:
             print(f"   ❌ ch {ch_num} failed: {e}")
             fail += 1
 
-        time.sleep(0.3)
+        # Small delay to be polite
+        time.sleep(0.2)
 
+    elapsed = time.time() - start_time
     total = len(to_scrape) - skip
-    print(f"\n✅ Done: {ok} OK, {fail} failed, {skip} skipped (already existed)")
+    print(f"\n✅ Done: {ok} OK, {fail} failed, {skip} skipped")
+    print(f"   Time: {elapsed:.1f}s ({elapsed/max(ok,1):.1f}s per chapter)")
     print(f"   Source dir: {SOURCE_DIR} ({len(list(SOURCE_DIR.glob('*.md')))} files)")
 
 

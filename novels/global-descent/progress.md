@@ -1,8 +1,8 @@
 # NovelClaw Progress — global-descent
 
-**Last translated:** ch 131
-63/1239 (5.08%)
-**Next chapter:** ch 132
+**Last translated:** ch 135
+65/1239 (5.25%)
+**Next chapter:** ch 136
 **Quality gate:** transmittor principle (translator transmits, not edits)
 **Pipeline:** 2-agent (Translator 5-Phase CoT + Proofreader MQM 8-dim, read-only)
 **Max rework rounds per chapter:** 3 (escalate to P'Chok on round 3 FAIL)

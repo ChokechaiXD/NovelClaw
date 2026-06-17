@@ -83,7 +83,7 @@ const Router = (() => {
 
   function getNavItem(page) {
     const map = {
-      "home": "",
+      "home": "home",
       "library": "library",
       "search": "search",
       "ranking": "ranking",

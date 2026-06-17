@@ -8,6 +8,7 @@
 
 const express = require('express');
 const fs = require('node:fs/promises');
+const fsSync = require('node:fs');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { marked } = require('marked');
@@ -84,6 +85,8 @@ async function listNovels() {
 // ── Security helpers ──────────────────────────────────────────────────
 // Validate slug to prevent path traversal. Applied at every entry point
 // that accepts a slug from the URL.
+const SLUG_RE = /^[a-zA-Z0-9_-]+$/;
+
 function assertValidSlug(slug) {
   if (!SLUG_RE.test(slug)) throw Object.assign(new Error('Invalid slug format'), { status: 400 });
 }
@@ -590,15 +593,25 @@ async function loadGlossary(slug) {
   return glossary;
 }
 
-const LENGTH_RATIO_OK = [0.6, 3.5];
-
-const NAME_CHECKS = [
+const CONFIG_PATH = path.join(__dirname, '../validation_config.json');
+let LENGTH_RATIO_OK = [0.6, 3.5];
+let NAME_CHECKS = [
   { cn: '曹星', correct: 'เฉาซิง', wrong: 'โจวซิง' },
   { cn: '柳慕雪', correct: 'หลิวมู่เสวี่ย', wrong: 'หลิวมู่สวี่' },
   { cn: '陈江', correct: 'เฉินเจียง', wrong: 'เฉินเจียงก' },
   { cn: '香江', correct: 'ฮ่องกง', wrong: 'เซียงเจียง' },
   { cn: '极地人', correct: 'คนเมืองหนาว', wrong: 'ชาวโพลาร์' }
 ];
+
+try {
+  if (fsSync.existsSync(CONFIG_PATH)) {
+    const sharedConfig = JSON.parse(fsSync.readFileSync(CONFIG_PATH, 'utf8'));
+    if (sharedConfig.length_ratio_ok) LENGTH_RATIO_OK = sharedConfig.length_ratio_ok;
+    if (sharedConfig.name_checks) NAME_CHECKS = sharedConfig.name_checks;
+  }
+} catch (err) {
+  console.warn(`Could not load shared validation_config.json: ${err.message}. Using defaults.`);
+}
 
 const CJK_PATTERN = /[\u3040-\u309F\u30A0-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u{20000}-\u{2A6DF}\u{2A700}-\u{2B73F}\uAC00-\uD7AF\u1100-\u11FF]/u;
 const NON_ALLOWED_PATTERN = /[^\u0E00-\u0E7F\u0000-\u007F\u2000-\u206F\u2200-\u22FF\u2600-\u26FF\u2700-\u27BF\u3000-\u303F\uFF00-\uFFEF\s]/u;
@@ -821,15 +834,15 @@ app.use(express.json())
 const LOCALE_DIR = path.join(__dirname, 'locales');
 let locales = {};
 try {
-    const files = readdirSync(LOCALE_DIR);
+    const files = fsSync.readdirSync(LOCALE_DIR);
     for (const f of files) {
         if (f.endsWith('.json')) {
             const lang = f.replace('.json', '');
-            const content = readFileSync(path.join(LOCALE_DIR, f), 'utf-8');
+            const content = fsSync.readFileSync(path.join(LOCALE_DIR, f), 'utf-8');
             locales[lang] = JSON.parse(content);
             console.log(`i18n: loaded ${lang}`);
         }
-}
+    }
 } catch (e) {
     console.error('i18n: no locales directory, using fallback');
 }
@@ -907,7 +920,6 @@ app.use(express.static(PUBLIC_DIR, {
 // ── Slug validation middleware ──────────────────────────────────────────
 // Prevents path traversal: only allow alphanumeric, hyphens, underscores.
 // Applied to every route that takes a :slug parameter.
-const SLUG_RE = /^[a-zA-Z0-9_-]+$/;
 app.param('slug', (req, res, next, slug) => {
   if (!SLUG_RE.test(slug)) {
     return res.status(400).json({ error: 'Invalid slug format' });
@@ -1175,8 +1187,9 @@ app.get('/api/novel/:slug/glossary/data', async (req, res) => {
   const slug = req.params.slug;
   const glossaryScript = path.join(__dirname, '..', 'tools', 'glossary.py');
   const execFileAsync = require('util').promisify(require('child_process').execFile);
+  const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
   try {
-    const { stdout } = await execFileAsync('python', [glossaryScript, '--novel', slug, '--load'], {
+    const { stdout } = await execFileAsync(py, [glossaryScript, '--novel', slug, '--load'], {
       env: { ...process.env, NOVEL_SLUG: slug }
     });
     res.json(JSON.parse(stdout));
@@ -1328,8 +1341,9 @@ app.post('/api/novel/:slug/chapter/:num/save', async (req, res) => {
     const execFileAsync = require('util').promisify(require('child_process').execFile);
     const searchScript = path.join(__dirname, '..', 'tools', 'chapter_search.py');
     const novelRoot = path.join(NOVELS_DIR, slug);
+    const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
     try {
-      await execFileAsync('python', [searchScript, '--novel-root', novelRoot, 'index'], {
+      await execFileAsync(py, [searchScript, '--novel-root', novelRoot, 'index'], {
         env: { ...process.env, NOVEL_SLUG: slug }
       });
       console.log(`[search] Re-indexed FTS5 successfully for ${slug}`);
@@ -1709,7 +1723,6 @@ app.post('/api/notifications/read', (req, res) => {
   res.json({ ok: true });
 });
 
-const fsSync = require('node:fs');
 const START_TIME = Date.now();
 
 // ── SPA fallback ──────────────────────────────────────────────────────
