@@ -38,7 +38,49 @@ from constants import NOVEL_ROOT, CHAPTERS_DIR, GLOSSARY_DIR, get_novel_root  # 
 from schema import Chapter, Narration, Dialogue, SystemMessage, GameTitle, EndMarker  # noqa: E402
 from chapter_io import save_chapter
 from providers import get_provider  # noqa: E402
-from load_glossary import load_terms, load_style_rules  # noqa: E402
+from glossary import load_terms, load_style_rules  # noqa: E402
+
+# ── Language Configurations ───────────────────────────────────────────
+LANG_CONFIG = {
+    "zh": {
+        "name": "Chinese",
+        "dialogue_open": "「",
+        "dialogue_close": "」",
+        "system_open": "【",
+        "system_close": "】",
+        "game_open": "《",
+        "game_close": "》",
+        "title_regex": r'第\s*(\d+)\s*章\s*(.+)',
+        "title_format": "ตอนที่ {num} {title}"
+    },
+    "ja": {
+        "name": "Japanese",
+        "dialogue_open": "「",
+        "dialogue_close": "」",
+        "system_open": "【",
+        "system_close": "】",
+        "game_open": "『",
+        "game_close": "』",
+        "title_regex": r'第\s*(\d+)\s*[話章]\s*(.+)',
+        "title_format": "ตอนที่ {num} {title}"
+    },
+    "en": {
+        "name": "English",
+        "dialogue_open": "“",
+        "dialogue_close": "”",
+        "system_open": "[",
+        "system_close": "]",
+        "game_open": "\"",
+        "game_close": "\"",
+        "title_regex": r'(?:Chapter|ch)\s*(\d+)\s*(?::|-)?\s*(.+)',
+        "title_format": "ตอนที่ {num} {title}"
+    },
+    "th": {
+        "name": "Thai",
+        "end_marker": "(จบบท)",
+        "title_format": "ตอนที่ {num} {title}"
+    }
+}
 
 # ── Inline helpers (from translate_ch_helpers.py, deleted in ponytail merge) ──
 import re as _re
@@ -208,6 +250,30 @@ def get_format_summary() -> str:
     return FORMAT_SPEC
 
 
+def get_previous_chapter_context(ch_num: int, n: int = 3) -> str:
+    from chapter_io import load_chapter as _load_ch
+    parts = []
+    for i in range(max(1, ch_num - n), ch_num):
+        ch_path = CHAPTERS_DIR / f'{i:04d}.json'
+        if not ch_path.exists():
+            continue
+        try:
+            ch = _load_ch(ch_path)
+            parts.append(f'Ch {i}: {ch.title}')
+            for b in ch.blocks:
+                if b.type == 'narration' and len(b.text) > 20:
+                    txt = b.text[:200]
+                    if len(b.text) > 200:
+                        txt += '...'
+                    parts.append(f'  >> {txt}')
+                    break
+        except Exception:
+            continue
+    if not parts:
+        return ''
+    return 'Previous chapters:' + chr(10) + chr(10).join(parts)
+
+
 def web_search_term(cn_term: str) -> str:
     """No-op: web search is not available as a Python module.
 
@@ -228,11 +294,8 @@ def get_unknown_terms_for_ch(ch_num: int) -> list[str]:
     return extract_unknown_terms(source, known)
 
 
-def build_prompt(ch_num: int, source_text: str, unknown_terms: list[str] | None = None) -> str:
-    """Build the LLM prompt for translating one chapter.
-
-    Combines glossary (SQLite + lib), style, format spec, and unknown terms.
-    """
+def build_prompt(ch_num: int, source_text: str, unknown_terms: list[str] | None = None, source_lang: str = "zh", target_lang: str = "th", novel_title: str = "全球降臨：帶著嫂嫂末世種田") -> str:
+    """Build the LLM prompt for translating one chapter in XML format."""
     glossary_sqlite = load_glossary_context()
     glossary_lib = get_glossary_context_from_lib(ch_num)
     style = load_style_summary()
@@ -244,74 +307,85 @@ def build_prompt(ch_num: int, source_text: str, unknown_terms: list[str] | None 
     if glossary_lib:
         glossary_sections.append(glossary_lib)
     glossary = '\n\n'.join(glossary_sections) if glossary_sections else '(no glossary loaded)'
+    # Load continuity context from previous chapters
+    continuity = get_previous_chapter_context(ch_num, n=3)
 
-    # Unknown terms section
-    unknown_section = ''
+    src_cfg = LANG_CONFIG.get(source_lang, LANG_CONFIG["zh"])
+    tgt_cfg = LANG_CONFIG.get(target_lang, LANG_CONFIG["th"])
+
+    # XML configuration
+    xml_config = f"""<translation_config>
+  <source lang="{source_lang}" name="{src_cfg['name']}"/>
+  <target lang="{target_lang}" name="{tgt_cfg['name']}"/>
+  <novel>
+    <title>{novel_title}</title>
+  </novel>
+</translation_config>"""
+
+    # Unknown terms XML
+    xml_unknown = ""
     if unknown_terms:
-        unknown_lines = ['## Unknown CN terms — need Thai equivalent:']
+        xml_unknown = "<unknown_terms>\n"
         for term in unknown_terms[:15]:
-            web = web_search_term(term)
-            unknown_lines.append(f'- {term}: {web}')
-        unknown_section = '\n'.join(unknown_lines)
+            xml_unknown += f"  <term source=\"{term}\"/>\n"
+        xml_unknown += "</unknown_terms>"
 
-    return f"""You are a Thai translator for a Chinese web novel (全球降臨：帶著嫂嫂末世種田).
+    # XML Envelope prompt structure
+    prompt = f"""You are an expert translator. Follow the instructions inside the XML blocks below to translate the source chapter.
 
-# Style Guide (applies to all chapters)
+{xml_config}
+
+<style_guide>
 {style}
+</style_guide>
 
-# Locked Glossary (use these Thai translations exactly — do NOT change)
+<glossary>
 {glossary}
+</glossary>
 
-# Format Spec
-{get_format_summary()}
+<format_spec>
+- Output must be valid JSON matching the schema inside <output_schema>. Do NOT include any markdown formatting, code block ticks (like ```json), or explanatory text outside the JSON.
+- Dialogue brackets: {src_cfg['dialogue_open']}...{src_cfg['dialogue_close']}
+- System message brackets: {src_cfg['system_open']}...{src_cfg['system_close']}
+- Game title brackets: {src_cfg['game_open']}...{src_cfg['game_close']}
+- End marker text: "{tgt_cfg['end_marker']}"
+- The last block in the output list MUST be the end marker block: {{"type": "end", "text": "{tgt_cfg['end_marker']}"}}
+- Transmittor principle: TRANSMIT the source content faithfully. Do NOT summarize, edit, or omit paragraphs.
+- Zero source language characters are allowed in narration blocks.
+</format_spec>
 
-# Chapter {ch_num} source (Chinese):
-```
-{source_text}
-```
+<continuity_context>
+{continuity}
+</continuity_context>
 
-# Unknown terms in this chapter
-{unknown_section if unknown_section else '(none — all terms are in glossary)'}
-
-# Your task
-Translate the above Chinese chapter to Thai. Follow these RULES strictly:
-
-1. **Output format**: structured JSON (see schema below). NO prose, NO markdown.
-2. **Brackets** (mandatory — schema rejects otherwise):
-   - Dialogue: 「...」 (full-width)
-   - System messages: 【...】 (full-width)
-   - Game titles: 《...》 (full-width)
-3. **Translator transmittor principle**: TRANSMIT the source faithfully. Do NOT add,
-   remove, or "improve" content. Keep the author's voice (ดังนั้น, ฉายแวว, etc.).
-4. **Locked glossary**: use the exact Thai from the glossary above. Never use
-   alternative Thai for locked terms.
-5. **End marker**: include exactly one {{"type": "end", "text": "(จบบท)"}} block as the LAST block.
-6. **CN leakage forbidden**: narration text must NOT contain raw CN chars (except
-   inside 【】 system messages, which are translated as-is).
-7. **Title**: "ตอนที่ {ch_num} <thai_title>" — derive from the first line of source.
-
-# JSON schema (must match exactly):
-```json
+<output_schema>
 {{
   "schema_version": 2,
   "num": {ch_num},
-  "title": "ตอนที่ {ch_num} <thai_title>",
+  "title": "{tgt_cfg['title_format'].format(num=ch_num, title='<thai_title>')}",
   "blocks": [
     {{"type": "narration", "text": "..."}},
-    {{"type": "dialogue", "text": "「...」"}},
-    {{"type": "system", "text": "【...】"}},
-    {{"type": "end", "text": "(จบบท)"}}
+    {{"type": "dialogue", "text": "{src_cfg['dialogue_open']}...{src_cfg['dialogue_close']}"}},
+    {{"type": "system", "text": "{src_cfg['system_open']}...{src_cfg['system_close']}"}},
+    {{"type": "end", "text": "{tgt_cfg['end_marker']}"}}
   ],
   "source": "ch {ch_num}",
   "notes": ["<optional translation notes>"]
 }}
-```
+</output_schema>
 
-Output ONLY the JSON. No prose, no markdown fences.
+{xml_unknown}
+
+<source_text>
+{source_text}
+</source_text>
+
+Please output only the translated JSON. Start your response with {{ and end with }}.
 """
+    return prompt
 
 
-def get_chapter_context(ch_num: int, search_unknown: bool = True) -> str:
+def get_chapter_context(ch_num: int, search_unknown: bool = True, source_lang: str = "zh", target_lang: str = "th") -> str:
     """Build full context block for translating one chapter.
 
     Returns formatted string with:
@@ -335,7 +409,8 @@ def get_chapter_context(ch_num: int, search_unknown: bool = True) -> str:
     known = {t['source'] for t in terms}
 
     # Title
-    title_match = re.search(r'第\s*(\d+)\s*章\s*(.+)', source)
+    src_cfg = LANG_CONFIG.get(source_lang, LANG_CONFIG["zh"])
+    title_match = re.search(src_cfg['title_regex'], source)
     cn_title = title_match.group(2).strip() if title_match else f"ch {ch_num}"
 
     parts = [
@@ -378,40 +453,40 @@ def _call_llm(prompt: str, model: str = "haiku") -> str:
 
 
 def mock_translate(ch_num: int, source_text: str) -> dict:
-    """Mock translation that creates a stub JSON chapter.
-
-    Used when --mock is passed or when LLM is not configured.
-    Produces a valid schema but with placeholder translation.
-    """
-    # Try to extract title from source
-    title_match = re.match(r'# (.+)', source_text)
+    """Mock translation with glossary hints + source preview."""
+    title_match = re.search(r'[#第]\s*\d+\s*[章章節]?\s*(.+)', source_text)
     if title_match:
-        title = title_match.group(1).strip()
+        cn_title = title_match.group(1).strip()[:60]
+        title = f'ตอนที่ {ch_num} [CN: {cn_title}]'
     else:
         title = f'ตอนที่ {ch_num}'
-
-    # Convert title to Thai if it has Chinese
-    if re.search(r'[\u4e00-\u9fff]', title):
-        # Strip CN from title for now — real LLM would translate
-        title = f'ตอนที่ {ch_num} [mock — needs real translation]'
-
-    # Mock: one block saying "this is a mock"
-    # Use a placeholder title that passes schema (must have something after "ตอนที่ N)")
-    if not title or title == f'ตอนที่ {ch_num}':
-        title = f'ตอนที่ {ch_num} [mock — needs real translation]'
+    first_line = ""
+    for line in source_text.split(chr(92) + 'n')[:10]:
+        stripped = line.strip()
+        if len(stripped) > 15 and not stripped.startswith('#'):
+            first_line = stripped[:150]
+            break
+    from glossary import load_terms as _load_g
+    terms = _load_g()
+    glossary_hint = ''
+    if terms:
+        sample = [t for t in terms if t.get('priority', 3) <= 2][:5]
+        if sample:
+            glossary_hint = ' [Glossary: ' + ', '.join(f'{t["source"]}->{t["thai"]}' for t in sample) + ']'
+    narration_text = f"[MOCK - needs real] {first_line}{glossary_hint}"
+    if not first_line:
+        narration_text = f"[MOCK] ch {ch_num} - translation pending{glossary_hint}"
     return {
-        'schema_version': 1,
+        'schema_version': 2,
         'num': ch_num,
         'title': title,
         'blocks': [
-            {'type': 'narration', 'text': f'[MOCK] ch {ch_num} translation — replace with real LLM call'},
+            {'type': 'narration', 'text': narration_text},
             {'type': 'end', 'text': '(จบบท)'},
         ],
         'source': f'ch {ch_num}',
-        'notes': ['[MOCK] generated by translate.py --mock, not real translation'],
+        'notes': ['[MOCK] generated by translate.py --mock - needs real LLM translation'],
     }
-
-
 def parse_llm_output(output: str, ch_num: int) -> dict:
     """Parse LLM output (which may include prose) to extract JSON.
 
@@ -435,6 +510,8 @@ def translate_one(
     no_validate: bool = False,
     dry_run: bool = False,
     search: bool = False,
+    source_lang: str = "zh",
+    target_lang: str = "th",
 ) -> bool:
     """Translate one chapter. Returns True on success.
 
@@ -444,6 +521,8 @@ def translate_one(
         no_validate: skip schema validation
         dry_run: show context only, don't translate or save
         search: include unknown term search in context
+        source_lang: source language key
+        target_lang: target language key
     """
     src_path = SOURCE_DIR / f'{ch_num:04d}.md'
     out_path = CHAPTERS_DIR / f'{ch_num:04d}.json'
@@ -453,7 +532,7 @@ def translate_one(
         return False
 
     if dry_run:
-        print(get_chapter_context(ch_num, search_unknown=search))
+        print(get_chapter_context(ch_num, search_unknown=search, source_lang=source_lang, target_lang=target_lang))
         return True
 
     if out_path.exists():
@@ -476,7 +555,7 @@ def translate_one(
     if mock:
         ch_data = mock_translate(ch_num, source)
     else:
-        prompt = build_prompt(ch_num, source, unknown_terms=unknown_terms)
+        prompt = build_prompt(ch_num, source, unknown_terms=unknown_terms, source_lang=source_lang, target_lang=target_lang)
         output = _call_llm(prompt)
         try:
             ch_data = parse_llm_output(output, ch_num)
@@ -497,6 +576,26 @@ def translate_one(
     save_chapter(ch, out_path)
     n = len(ch.blocks)
     print(f'✓ ch{ch_num}: saved → {out_path.name} ({n} blocks)')
+        # Quality gates
+    if not mock and not no_validate:
+        quality_warnings = []
+        import re
+        for bi, b in enumerate(ch.blocks):
+            if b.type == 'dialogue' and len(b.text) > 600:
+                quality_warnings.append(f'  Warning Block {bi}: dialogue too long ({len(b.text)} chars)')
+            if b.type == 'system' and '【' not in str(b.text):
+                quality_warnings.append(f'  Warning Block {bi}: system block missing brackets')
+            if b.type == 'narration':
+                cn_found = re.findall(r'[一-鿿]{3,}', b.text)
+                if cn_found:
+                    quality_warnings.append(f'  Warning Block {bi}: CN leak: {cn_found[:3]}')
+        if quality_warnings:
+            print(f'  Quality Report for ch{ch_num}:')
+            for w in quality_warnings:
+                print(w)
+        else:
+            print(f'  OK Quality: clean')
+
     return True
 
 
@@ -520,6 +619,18 @@ def search_term(term: str) -> None:
 
 
 def main():
+    import sys
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
+    if hasattr(sys.stderr, 'reconfigure'):
+        try:
+            sys.stderr.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
+
     ap = argparse.ArgumentParser(
         description='Translate CN source chapters to TH JSON',
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -538,9 +649,11 @@ Examples:
     ap.add_argument('--mock', action='store_true', help='Use mock translation (no LLM call)')
     ap.add_argument('--no-validate', action='store_true', help='Skip schema validation')
     ap.add_argument('--dry-run', action='store_true', help='Show context only, no save')
-    ap.add_argument('--context', action='store_true', help='Print full context for first ch')
+    ap.add_argument('--context', action='store_true', help='Print full context')
     ap.add_argument('--search', type=str, metavar='TERM', help='Search Thai for a CN term')
     ap.add_argument('--search-unknown', action='store_true', help='Extract & search unknown terms during translation')
+    ap.add_argument('--source-lang', default='zh', help='Source language key (e.g. zh, ja, en)')
+    ap.add_argument('--target-lang', default='th', help='Target language key (e.g. th, en)')
     args = ap.parse_args()
 
     # Term search mode
@@ -559,7 +672,7 @@ Examples:
     if args.dry_run or args.context:
         for ch in ch_nums:
             print(f'\n{"="*70}')
-            print(get_chapter_context(ch, search_unknown=args.search_unknown))
+            print(get_chapter_context(ch, search_unknown=args.search_unknown, source_lang=args.source_lang, target_lang=args.target_lang))
             print(f'\n{"="*70}\n')
         return
 
@@ -572,6 +685,8 @@ Examples:
             mock=args.mock,
             no_validate=args.no_validate,
             search=args.search_unknown,
+            source_lang=args.source_lang,
+            target_lang=args.target_lang,
         ):
             success += 1
         else:

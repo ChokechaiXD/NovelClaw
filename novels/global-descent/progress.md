@@ -1,8 +1,8 @@
 # NovelClaw Progress — global-descent
 
-**Last translated:** ch 122
-22/1239 (4.23%)
-**Next chapter:** ch 123
+**Last translated:** ch 131
+63/1239 (5.08%)
+**Next chapter:** ch 132
 **Quality gate:** transmittor principle (translator transmits, not edits)
 **Pipeline:** 2-agent (Translator 5-Phase CoT + Proofreader MQM 8-dim, read-only)
 **Max rework rounds per chapter:** 3 (escalate to P'Chok on round 3 FAIL)
@@ -104,6 +104,14 @@ Philosophy change. The translator is a **transmittor**, not an editor.
 - ch 121: 277 blocks, 0 CN leak (3b267dd)
 - All 5 produced under transmittor principle — flat emotion preserved where source has it.
 
+
+### Session 14: Batch translate ch 122-131 + tool improvements (2026-06-16)
+- Translated ch 122-131 (10 chapters, total 63/1239 = 5.08%)
+- translate.py: added continuity context injection (previous 3 chapters)
+- translate.py: added quality gates (dialogue length, system brackets, CN leakage)
+- translate.py: improved mock_translate with glossary hints + source preview
+- Rebuilt FTS5 index (includes all chapters up to 131)
+- ch 123: replaced mock with real translation (51 blocks, Pydantic PASS)
 ## Glossary totals (current)
 - locked.md: 58 terms
 - reference.md: 100 terms

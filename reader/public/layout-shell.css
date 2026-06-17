@@ -147,17 +147,42 @@
 
 .main-header {
   padding: 0 24px;
-  height: var(--topbar-h);
+  min-height: var(--topbar-h);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
   flex-shrink: 0;
+  flex-wrap: wrap;
   background: var(--bg-primary);
+  gap: 4px;
 }
 
 .main-header h2 {
   font-size: 14px; font-weight: 700;
   display: flex; align-items: center; gap: 10px;
   color: var(--text-primary);
+}
+
+.main-header-sub {
+  display: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  padding: 2px 0;
+}
+
+body.reader-mode .main-header-sub:not([hidden]) {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .main-header-sub {
+    font-size: 12px;
+    padding: 4px 0;
+  }
 }
 
 .main-content {

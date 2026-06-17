@@ -1,0 +1,34 @@
+[
+  {
+    "name": "P'Choke",
+    "email": "chokechai@gmail.com",
+    "role": "admin",
+    "active": "เปิดใช้งาน",
+    "tokensUsed": 1,
+    "tokensLimit": -1
+  },
+  {
+    "name": "Mika",
+    "email": "mika.secretary@internal",
+    "role": "paid",
+    "active": "เปิดใช้งาน",
+    "tokensUsed": 420,
+    "tokensLimit": 1000
+  },
+  {
+    "name": "ReaderBoy",
+    "email": "reader101@outlook.com",
+    "role": "user",
+    "active": "เปิดใช้งาน",
+    "tokensUsed": 12,
+    "tokensLimit": 50
+  },
+  {
+    "name": "TranslateBot",
+    "email": "api.bot@novelclaw.net",
+    "role": "bot",
+    "active": "เปิดใช้งาน",
+    "tokensUsed": 1200,
+    "tokensLimit": 10000
+  }
+]

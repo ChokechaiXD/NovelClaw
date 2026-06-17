@@ -8,23 +8,23 @@
   --font-stack: 'Sarabun', 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --font-size: 16px;
-  --line-height: 1.85;
+  --line-height: 1.65;
 
-  /* Premium Obsidian Dark Palette */
-  --bg: #06060c;
-  --bg-elevated: #111118;
-  --surface: #16161f;
-  --surface-hover: #1c1c28;
-  --border: #222230;
-  --border-strong: #2e2e3e;
+  /* Premium Obsidian Dark Palette (Default) */
+  --bg: #121212;
+  --bg-elevated: #1a1a1a;
+  --surface: #242424;
+  --surface-hover: #2c2c2c;
+  --border: #333333;
+  --border-strong: #444444;
 
-  --text: #e8ecf1;
-  --text-secondary: #cbd5e1;
-  --text-muted: #8b93a7;
-  --text-soft: #545d72;
+  --text: #e0e0e0;
+  --text-secondary: #b3b3b3;
+  --text-muted: #808080;
+  --text-soft: #666666;
 
-  --accent: #00f5d4;
-  --accent-soft: rgba(0, 245, 212, 0.08);
+  --accent: #4d96ff;
+  --accent-soft: rgba(77, 150, 255, 0.08);
   --accent-2: #a78bfa;
   --accent-2-soft: rgba(167, 139, 250, 0.08);
 
@@ -35,40 +35,78 @@
   --radius-lg: 14px;
 }
 
+[data-theme="dark"] {
+  --bg: #121212;
+  --bg-elevated: #1a1a1a;
+  --surface: #242424;
+  --surface-hover: #2c2c2c;
+  --border: #333333;
+  --border-strong: #444444;
+
+  --text: #e0e0e0;
+  --text-secondary: #b3b3b3;
+  --text-muted: #808080;
+  --text-soft: #666666;
+
+  --accent: #4d96ff;
+  --accent-soft: rgba(77, 150, 255, 0.08);
+  --accent-2: #a78bfa;
+  --accent-2-soft: rgba(167, 139, 250, 0.08);
+}
+
+[data-theme="amoled"] {
+  --bg: #000000;
+  --bg-elevated: #101010;
+  --surface: #1c1c1c;
+  --surface-hover: #262626;
+  --border: #222222;
+  --border-strong: #333333;
+
+  --text: #ffffff;
+  --text-secondary: #cccccc;
+  --text-muted: #888888;
+  --text-soft: #666666;
+
+  --accent: #4d96ff;
+  --accent-soft: rgba(77, 150, 255, 0.08);
+  --accent-2: #a78bfa;
+  --accent-2-soft: rgba(167, 139, 250, 0.08);
+}
+
 [data-theme="light"] {
-  --bg: #f8fafc;
+  --bg: #fafafa;
   --bg-elevated: #ffffff;
-  --surface: #f1f5f9;
-  --surface-hover: #e2e8f0;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
+  --surface: #f0f0f0;
+  --surface-hover: #e5e5e5;
+  --border: #e0e0e0;
+  --border-strong: #cccccc;
 
-  --text: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
-  --text-soft: #94a3b8;
+  --text: #1a1a1a;
+  --text-secondary: #4a4a4a;
+  --text-muted: #7a7a7a;
+  --text-soft: #9a9a9a;
 
-  --accent: #0d9488;
-  --accent-soft: rgba(13, 148, 136, 0.08);
-  --accent-2: #2563eb;
-  --accent-2-soft: rgba(37, 99, 235, 0.08);
+  --accent: #1976d2;
+  --accent-soft: rgba(25, 118, 210, 0.08);
+  --accent-2: #7c4dff;
+  --accent-2-soft: rgba(124, 77, 255, 0.08);
 }
 
 [data-theme="sepia"] {
-  --bg: #f5ede0;
-  --bg-elevated: #efe5d4;
-  --surface: #e6d8c3;
-  --surface-hover: #dacbb3;
-  --border: #dacbb3;
-  --border-strong: #c8b79b;
+  --bg: #f4ecd8;
+  --bg-elevated: #fcf6e8;
+  --surface: #eadfc9;
+  --surface-hover: #dfd3bb;
+  --border: #dfd3bb;
+  --border-strong: #cfc2a9;
 
-  --text: #3c2f1f;
-  --text-secondary: #524230;
-  --text-muted: #7d6b56;
-  --text-soft: #9a8871;
+  --text: #5b4636;
+  --text-secondary: #7a6250;
+  --text-muted: #9a8270;
+  --text-soft: #b5a290;
 
-  --accent: #925828;
-  --accent-soft: rgba(146, 88, 40, 0.08);
+  --accent: #8b6914;
+  --accent-soft: rgba(139, 105, 20, 0.08);
   --accent-2: #1e457e;
   --accent-2-soft: rgba(30, 69, 126, 0.08);
 }
@@ -262,10 +300,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   outline-offset: 2px;
 }
 
-/* ── Topbar (Absolute inside reader view) ────────────────────────────── */
+/* ── Topbar (Sticky inside reader view) ──────────────────────────────── */
 .reader-layout .topbar {
-  position: absolute;
-  top: 0; left: 0; right: 0;
+  position: sticky;
+  top: 0;
+  flex-shrink: 0;
   height: var(--topbar-h);
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--border);
@@ -299,7 +338,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 200px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 .reader-layout .topbar-left > .topbar-progress {
   flex-shrink: 0;
@@ -339,10 +379,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* ── Reader Layout ───────────────────────────────────────────────────── */
 .reader-layout {
   display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   position: relative;
-  padding-top: var(--topbar-h);
   overflow: hidden;
 }
 
@@ -595,41 +635,39 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* Monospace Game/System card container */
 .chapter-content p.system-msg {
   text-indent: 0;
-  margin: 1.5rem 0;
-  font-family: var(--font-mono);
-  font-size: 0.92rem;
-  line-height: 1.75;
-  color: var(--text-secondary);
-  background: var(--bg-elevated);
-  border-left: 3px solid var(--purple);
-  padding: 14px 20px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  border-left-width: 3px;
-  border-left-color: var(--purple);
+  margin: 1.2rem 0;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--text-muted);
+  background: transparent;
+  padding: 0;
+  border: none;
+  font-style: italic;
 }
 
 /* Centered game skill/title headers */
 .chapter-content p.game-title {
   text-indent: 0;
   text-align: center;
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--accent);
-  margin: 2.5rem 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--text-secondary);
+  margin: 2rem 0;
   letter-spacing: 0.05em;
-  text-shadow: 0 0 8px rgba(0, 245, 212, 0.2);
+  text-shadow: none;
 }
 
 /* Elegant chapter end mark */
 .chapter-content p.end-marker {
   text-indent: 0;
   text-align: center;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 500;
   color: var(--text-soft);
-  margin: 4rem 0 2rem 0;
-  letter-spacing: 0.2em;
+  margin: 3.5rem 0 1.5rem 0;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
 }
 
@@ -638,9 +676,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   text-indent: 0;
   font-size: 0.85rem;
   color: var(--text-soft);
-  border-top: 1px dashed var(--border-strong);
-  padding-top: 2rem;
-  margin-top: 4rem;
+  border-top: 1px dashed var(--border);
+  padding-top: 1.5rem;
+  margin-top: 3rem;
   font-style: italic;
 }
 
@@ -648,11 +686,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .inline-stat-badge {
   background: transparent !important;
   border: none !important;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-weight: 600;
+  color: inherit !important;
+  font-family: inherit !important;
+  font-weight: inherit !important;
   padding: 0;
-  margin: 0 2px;
+  margin: 0;
 }
 
 /* ── Dashboard (Redesigned) ─────────────────────────────────────────── */
@@ -1248,6 +1286,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .reader-layout .novel-title { max-width: 120px; }
   .reader-layout .topbar-left > .topbar-progress { display: none; }
   
+  /* Prevent content from being hidden behind overlay */
+  body.sidebar-open .reader {
+    pointer-events: none;
+  }
+  body.sidebar-open .sidebar-overlay {
+    display: block;
+  }
+  
   .sidebar {
     position: fixed;
     top: var(--topbar-h);
@@ -1576,23 +1622,29 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-width: 0;
+  overflow: hidden;
 }
 .detail-title {
   font-size: 1.6rem;
   font-weight: 800;
   color: var(--text-primary);
   margin-bottom: 6px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .detail-author {
   font-size: 0.9rem;
   color: var(--text-muted);
   margin-bottom: 12px;
   font-weight: 500;
+  overflow-wrap: break-word;
 }
 .detail-meta {
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 .detail-synopsis {
   font-size: 0.85rem;
@@ -1603,6 +1655,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .detail-chapters-grid {
   display: grid;
@@ -1619,6 +1673,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
+  overflow-wrap: break-word;
 }
 .detail-ch-btn:hover {
   border-color: var(--accent);
@@ -1626,6 +1681,41 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   background: var(--surface);
   box-shadow: 0 2px 8px rgba(0, 245, 212, 0.1);
   transform: translateY(-1px);
+}
+
+/* ── Novel Detail Mobile ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .detail-header-card {
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+  }
+  .detail-cover {
+    width: 100px;
+    height: 133px;
+    font-size: 1.5rem;
+  }
+  .detail-info {
+    text-align: center;
+    align-items: center;
+  }
+  .detail-title {
+    font-size: 1.2rem;
+  }
+  .detail-author {
+    font-size: 0.8rem;
+  }
+  .detail-meta {
+    justify-content: center;
+  }
+  .detail-synopsis {
+    -webkit-line-clamp: 3;
+    text-align: left;
+  }
+  .detail-chapters-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
 }
 
 /* Admin Styling */
@@ -1797,34 +1887,93 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   transform: translateY(0);
 }
 
-/* ── Reader Toolbar (Global Standard style) ───────────────────────────── */
+/* ── Reader Toolbar ───────────────────────────────────────────────────── */
 .reader-toolbar {
-  position: sticky;
-  top: -24px;
-  margin: -24px -24px 24px -24px;
-  z-index: 100;
+  position: static;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  margin-bottom: 16px;
+}
+.toolbar-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 24px;
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border);
-  gap: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  gap: 8px;
+  min-width: 0;
+}
+.toolbar-back {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.toolbar-novel-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toolbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.toolbar-position {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  min-width: 40px;
+  text-align: center;
+}
+.toolbar-chapter-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toolbar-settings {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.toolbar-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  flex-shrink: 0;
 }
 
 @media (max-width: 576px) {
   .reader-toolbar {
-    padding: 8px 12px;
-    gap: 8px;
-    top: -24px;
-    margin: -24px -24px 16px -24px;
+    padding: 6px 0;
+    margin-bottom: 12px;
   }
-  .reader-toolbar .back-text {
-    display: none !important;
+  .toolbar-row {
+    gap: 6px;
   }
-  #reader-toolbar-novel-title {
-    max-width: 100px !important;
+  .toolbar-chapter-title {
+    font-size: 13px;
+  }
+  .toolbar-novel-title {
+    font-size: 11px;
+  }
+  .toolbar-position {
+    font-size: 10px;
+    min-width: 36px;
   }
 }
 

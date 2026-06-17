@@ -11,6 +11,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { marked } = require('marked');
+const multer = require('multer');
 
 // Export pure functions for testing (without spinning up HTTP server)
 // When required as a module, only the renderer + helpers are exported.
@@ -62,7 +63,7 @@ function setCachedChapter(slug, num, fileMtime, html) {
     const oldest = chapterHtmlCache.keys().next().value;
     chapterHtmlCache.delete(oldest);
   }
-  chapterHtmlCache.set(key, { html, mtimeMs: fileMtime, size: html.length });
+  chapterHtmlCache.set(key, { html, mtimeMs: fileMtime, size: ((html && html.html) || '').length });
 }
 
 // ── helpers ────────────────────────────────────────────────────────────
@@ -127,12 +128,17 @@ async function listChapters(slug) {
     if (err.code === 'ENOENT') return [];
     throw err;
   }
+
+  let sourceDirMtimeMs = 0;
+  try {
+    const sourceStat = await fs.stat(path.join(dir, 'source'));
+    sourceDirMtimeMs = sourceStat.mtimeMs;
+  } catch {}
+  const cacheKeyMtime = dirStat.mtimeMs + sourceDirMtimeMs;
+
   const cached = chapterListCache.get(slug);
-  // Cache key = dir mtime + slug. mtime of dir changes when files are
-  // added/removed/renamed (not on file content edit, but title extraction
-  // is content-derived; we read each file anyway, so a stale hit just
-  // re-reads N files once after edit — acceptable).
-  if (cached && cached.mtimeMs === dirStat.mtimeMs && Date.now() - cached.ts < CACHE_TTL_MS) {
+  // Cache key = dir mtime + source dir mtime + slug.
+  if (cached && cached.mtimeMs === cacheKeyMtime && Date.now() - cached.ts < CACHE_TTL_MS) {
     return cached.list;
   }
   const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -140,34 +146,63 @@ async function listChapters(slug) {
   const files = entries
     .filter((e) => e.isFile() && /^\d{4}\.(json|md)$/.test(e.name))
     .map((e) => e.name);
+
+  // Also list source files
+  let sourceFiles = [];
+  try {
+    const sourceEntries = await fs.readdir(path.join(dir, 'source'), { withFileTypes: true });
+    sourceFiles = sourceEntries
+      .filter((e) => e.isFile() && /^\d{4}\.md$/.test(e.name))
+      .map((e) => e.name);
+  } catch {}
+
   const out = [];
-  // Dedupe: if both .json and .md exist for same num, keep .json only
+  // Dedupe: if both .json and .md exist for same num, keep .json only.
+  // If only source exists, mark it as source.
   const seen = new Map();
   for (const f of files) {
     const num = parseInt(f.slice(0, 4), 10);
     const isJson = f.endsWith('.json');
-    if (!seen.has(num) || isJson) seen.set(num, f);
+    if (!seen.has(num) || isJson) seen.set(num, { name: f, isSource: false });
   }
+  for (const sf of sourceFiles) {
+    const num = parseInt(sf.slice(0, 4), 10);
+    if (!seen.has(num)) {
+      seen.set(num, { name: sf, isSource: true });
+    }
+  }
+
   // Read titles in parallel — N small file reads is fine and we cache anyway
   const titleEntries = await Promise.all(
-    [...seen.entries()].map(async ([num, f]) => {
+    [...seen.entries()].map(async ([num, entry]) => {
       let title = '';
+      let isTranslated = !entry.isSource;
       try {
-        const raw = await fs.readFile(path.join(dir, f), 'utf8');
-        if (f.endsWith('.json')) {
-          const j = JSON.parse(raw);
-          title = (j.title || '').toString();
-        } else {
+        if (entry.isSource) {
+          const raw = await fs.readFile(path.join(dir, 'source', entry.name), 'utf8');
           const m = raw.match(/^#\s+(.+?)\r?\n/);
           if (m) title = m[1].trim();
+          else title = `ตอนที่ ${num} [ยังไม่แปล]`;
+        } else {
+          const raw = await fs.readFile(path.join(dir, entry.name), 'utf8');
+          if (entry.name.endsWith('.json')) {
+            const j = JSON.parse(raw);
+            title = (j.title || '').toString();
+          } else {
+            const m = raw.match(/^#\s+(.+?)\r?\n/);
+            if (m) title = m[1].trim();
+          }
         }
       } catch { /* ignore */ }
-      return { num, title };
+      if (!title) {
+        title = entry.isSource ? `ตอนที่ ${num} [ยังไม่แปล]` : `ตอนที่ ${num}`;
+      }
+      return { num, title, isTranslated };
     }),
   );
   out.push(...titleEntries);
   out.sort((a, b) => a.num - b.num);
-  chapterListCache.set(slug, { ts: Date.now(), mtimeMs: dirStat.mtimeMs, list: out });
+  chapterListCache.set(slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: out });
   return out;
 }
 
@@ -176,10 +211,13 @@ async function readChapter(slug, num) {
   const padded = String(num).padStart(4, '0');
   const file = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.md`);
   const jsonFile = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.json`);
-  // Try JSON first (new canonical format), fallback to .md (legacy)
+  const sourceFile = path.join(NOVELS_DIR, slug, 'chapters', 'source', `${padded}.md`);
+
+  // Try JSON first (new canonical format), fallback to .md (legacy), fallback to source
   let raw;
   let isJson = false;
   let fileStat;
+  let isTranslated = true;
   try {
     fileStat = await fs.stat(jsonFile);
     raw = await fs.readFile(jsonFile, 'utf8');
@@ -189,38 +227,77 @@ async function readChapter(slug, num) {
       fileStat = await fs.stat(file);
       raw = await fs.readFile(file, 'utf8');
     } catch (err) {
-      if (err.code === 'ENOENT') return null;
-      throw err;
+      try {
+        fileStat = await fs.stat(sourceFile);
+        raw = await fs.readFile(sourceFile, 'utf8');
+        isTranslated = false;
+        isJson = true; // Use blocks parsing on raw source file
+      } catch (sourceErr) {
+        if (sourceErr.code === 'ENOENT') return null;
+        throw sourceErr;
+      }
     }
   }
+
+  if (!isTranslated) {
+    const parsed = parseMarkdownToBlocks(raw, num);
+    const html = renderChapterJson(parsed);
+    return {
+      title: parsed.title || `ตอนที่ ${num} [ยังไม่แปล]`,
+      html,
+      metaHtml: '',
+      isJson: true,
+      blocks: parsed.blocks,
+      source: `ch ${num} (Original Source)`,
+      lang: 'cn',
+      notes: [],
+      markdownText: raw,
+      isTranslated: false
+    };
+  }
+
   if (isJson) {
     // LRU cache hit? fileStat.mtimeMs is the cache key — content edit
     // bumps mtime automatically, no manual invalidation needed.
     const cached = getCachedChapter(slug, num, fileStat.mtimeMs);
-    if (cached) {
-      return {
-        title: cached.title,
-        html: cached.html,
-        metaHtml: cached.metaHtml,
-        isJson: true,
-      };
-    }
-    // New format: structured JSON, render directly
     let ch;
     try {
       ch = JSON.parse(raw);
     } catch (parseErr) {
       throw Object.assign(new Error(`Invalid JSON in ${padded}.json: ${parseErr.message}`), { status: 500 });
     }
+    
+    if (cached) {
+      return {
+        title: cached.title,
+        html: cached.html,
+        metaHtml: cached.metaHtml,
+        isJson: true,
+        blocks: cached.blocks || ch.blocks || [],
+        source: cached.source || ch.source || '',
+        lang: cached.lang || ch.lang || 'cn',
+        notes: cached.notes || ch.notes || [],
+        markdownText: cached.markdownText || convertBlocksToMarkdown(ch.title || `ตอนที่ ${num}`, ch.blocks || [], ch.source || '', ch.notes || []),
+        isTranslated: true
+      };
+    }
+    // New format: structured JSON, render directly
     const html = renderChapterJson(ch);
-    const metaHtml = (ch.meta && ch.meta.length)
-      ? `<ul>${ch.meta.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>`
+    const metaHtml = (ch.notes && ch.notes.length)
+      ? `<ul>${ch.notes.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>`
       : '';
+    const markdownText = convertBlocksToMarkdown(ch.title || `ตอนที่ ${num}`, ch.blocks || [], ch.source || '', ch.notes || []);
     const result = {
       title: ch.title || `ตอนที่ ${ch.num}`,
       html,
       metaHtml,
       isJson: true,
+      blocks: ch.blocks || [],
+      source: ch.source || '',
+      lang: ch.lang || 'cn',
+      notes: ch.notes || [],
+      markdownText,
+      isTranslated: true
     };
     setCachedChapter(slug, num, fileStat.mtimeMs, result);
     return result;
@@ -248,7 +325,20 @@ async function readChapter(slug, num) {
     title = m[1].trim();
     body = body.slice(m[0].length).trim();
   }
-  return { title, body, meta, isJson: false };
+  
+  const parsed = parseMarkdownToBlocks(raw, num);
+  
+  return {
+    title,
+    body,
+    meta,
+    isJson: false,
+    blocks: parsed.blocks,
+    source: parsed.notes.length > 0 ? '' : `ch ${num}`,
+    lang: 'cn',
+    notes: parsed.notes,
+    markdownText: raw
+  };
 }
 
 // ── Bracket / quote config per language (mirrors tools/schema.py) ─────
@@ -310,7 +400,7 @@ function renderChapterJson(ch) {
         // Speaker name from translator-authored JSON — must be escaped to prevent
         // XSS in the data-speaker HTML attribute (trust boundary: same as text).
         const sp = block.speaker ? ` data-speaker="${esc(block.speaker)}"` : '';
-        return `<p class="dialogue"${sp}>${toCurly(parseInline(text))}</p>`;
+        return `<p class="dialogue"${sp} data-lang="${lang}">${toCurly(parseInline(text))}</p>`;
       case 'narration':
         return `<p>${toCurly(parseInline(text))}</p>`;
       case 'game_title':
@@ -321,6 +411,400 @@ function renderChapterJson(ch) {
         return `<p>${text}</p>`;
     }
   }).join('\n') + (ch.source ? `\n<hr/>\n<p class="source-footer">${esc(ch.source)}</p>` : '');
+}
+
+// ── Markdown Parser & Generator & Validator helpers ───────────────────
+
+function parseMarkdownToBlocks(mdText, chapterNum) {
+  const normalized = mdText.replace(/\r\n/g, '\n').trim();
+  const parts = normalized.split(/\n-{3,}\n/);
+  
+  let body = '';
+  let metaText = '';
+  
+  if (parts.length >= 3) {
+    const firstPart = parts[0].trim();
+    const lines = firstPart.split('\n');
+    if (lines.length <= 6) {
+      body = parts[1].trim();
+      metaText = parts.slice(2).join('\n\n');
+    } else {
+      body = parts.slice(0, -1).join('\n\n---\n\n');
+      metaText = parts[parts.length - 1];
+    }
+  } else if (parts.length === 2) {
+    const firstPart = parts[0].trim();
+    const lines = firstPart.split('\n');
+    if (lines.length <= 6) {
+      body = parts[1].trim();
+      metaText = '';
+    } else {
+      body = parts[0].trim();
+      metaText = parts[1].trim();
+    }
+  } else {
+    body = parts[0].trim();
+    metaText = '';
+  }
+  
+  let title = '';
+  const titleMatch = body.match(/^#\s+(.+)/);
+  if (titleMatch) {
+    title = titleMatch[1].trim();
+    body = body.slice(titleMatch[0].length).trim();
+  } else {
+    const fallbackMatch = parts[0].trim().match(/^#\s+(.+)/);
+    if (fallbackMatch) {
+      title = fallbackMatch[1].trim();
+    }
+  }
+  
+  const notes = [];
+  if (metaText) {
+    for (const line of metaText.split('\n')) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('- ')) {
+        notes.push(trimmed.slice(2));
+      }
+    }
+  }
+  
+  const paragraphs = body.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+  const blocks = [];
+  
+  for (const p of paragraphs) {
+    if (p === '(จบบท)' || p === '（終）' || p === '(끝)' || p === '(End)') {
+      blocks.push({ type: 'end', text: p });
+      continue;
+    }
+    
+    if (p.startsWith('【') && p.endsWith('】')) {
+      blocks.push({ type: 'system', text: p });
+    } else if (p.startsWith('「') && p.endsWith('」')) {
+      blocks.push({ type: 'dialogue', text: p, speaker: '' });
+    } else if (p.startsWith('“') && p.endsWith('”') || p.startsWith('\u201C') && p.endsWith('\u201D')) {
+      blocks.push({ type: 'dialogue', text: p, speaker: '' });
+    } else if (p.startsWith('《') && p.endsWith('》')) {
+      blocks.push({ type: 'game_title', text: p });
+    } else {
+      const speakerRegex = /^([^「」“”\u201C\u201D:\n]+)(?:พูด|กล่าว|ถาม|ตะโกน|บอก|:|\s)+([「“”\u201C\u201D][^「」“”\u201C\u201D]+[」“”\u201C\u201D])$/;
+      const dialogueMatch = p.match(speakerRegex);
+      if (dialogueMatch) {
+        blocks.push({
+          type: 'dialogue',
+          text: dialogueMatch[2],
+          speaker: dialogueMatch[1].trim()
+        });
+      } else {
+        blocks.push({ type: 'narration', text: p });
+      }
+    }
+  }
+  
+  if (!blocks.some(b => b.type === 'end')) {
+    blocks.push({ type: 'end', text: '(จบบท)' });
+  }
+  
+  return { title, blocks, notes };
+}
+
+function convertBlocksToMarkdown(title, blocks, source, notes = []) {
+  let md = `# ${title}\n\n`;
+  
+  for (const block of blocks) {
+    if (block.type === 'end') {
+      md += `${block.text}\n\n`;
+    } else if (block.type === 'dialogue') {
+      if (block.speaker) {
+        md += `${block.speaker}พูด: ${block.text}\n\n`;
+      } else {
+        md += `${block.text}\n\n`;
+      }
+    } else {
+      md += `${block.text}\n\n`;
+    }
+  }
+  
+  md = md.trim() + '\n';
+  
+  if (source || (notes && notes.length > 0)) {
+    md += '\n---\n\n';
+    if (source) {
+      md += `*Source: ch ${source.replace(/^(ch\s*)+/gi, '')}*\n\n`;
+    }
+    if (notes && notes.length > 0) {
+      md += 'หมายเหตุการแปล:\n';
+      for (const n of notes) {
+        md += `- ${n}\n`;
+      }
+      md += '\n';
+    }
+  }
+  
+  return md.trim() + '\n';
+}
+
+function splitParagraphs(text) {
+  const normalized = text.replace(/\r\n/g, '\n');
+  const parts = normalized.split(/\n-{3,}\n/);
+  let body = '';
+  if (parts.length > 1) {
+    body = parts.reduce((longest, current) => current.length > longest.length ? current : longest, '');
+  } else {
+    body = parts[0];
+  }
+  body = body.replace(/^#\s+.*?\n/, '');
+  return body.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+}
+
+function extractNumbers(text) {
+  const textClean = text.replace(/(\d),(\d)/g, '$1$2');
+  const regex = /(?<![\d,])\d{2,}(?![\d,])/g;
+  const matches = textClean.match(regex) || [];
+  return new Set(matches);
+}
+
+async function loadGlossary(slug) {
+  const glossaryDir = path.join(NOVELS_DIR, slug, 'glossary');
+  const tiers = ['locked.md', 'reference.md', 'auto.md'];
+  const glossary = {};
+  for (const tier of tiers) {
+    const filePath = path.join(glossaryDir, tier);
+    try {
+      const content = await fs.readFile(filePath, 'utf8');
+      const lines = content.split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('| ') || trimmed.startsWith('|--') || trimmed.includes('Source')) {
+          continue;
+        }
+        const cells = trimmed.split('|').map(c => c.trim());
+        if (cells.length >= 6 && cells[1] && cells[1] !== '-') {
+          glossary[cells[1]] = cells[2];
+        }
+      }
+    } catch (err) {
+      // Ignore if file doesn't exist
+    }
+  }
+  return glossary;
+}
+
+const LENGTH_RATIO_OK = [0.6, 3.5];
+
+const NAME_CHECKS = [
+  { cn: '曹星', correct: 'เฉาซิง', wrong: 'โจวซิง' },
+  { cn: '柳慕雪', correct: 'หลิวมู่เสวี่ย', wrong: 'หลิวมู่สวี่' },
+  { cn: '陈江', correct: 'เฉินเจียง', wrong: 'เฉินเจียงก' },
+  { cn: '香江', correct: 'ฮ่องกง', wrong: 'เซียงเจียง' },
+  { cn: '极地人', correct: 'คนเมืองหนาว', wrong: 'ชาวโพลาร์' }
+];
+
+const CJK_PATTERN = /[\u3040-\u309F\u30A0-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u{20000}-\u{2A6DF}\u{2A700}-\u{2B73F}\uAC00-\uD7AF\u1100-\u11FF]/u;
+const NON_ALLOWED_PATTERN = /[^\u0E00-\u0E7F\u0000-\u007F\u2000-\u206F\u2200-\u22FF\u2600-\u26FF\u2700-\u27BF\u3000-\u303F\uFF00-\uFFEF\s]/u;
+
+async function validateChapterJs(slug, num, title, blocks, sourceFooter, lang) {
+  const padded = String(num).padStart(4, '0');
+  const srcPath = path.join(NOVELS_DIR, slug, 'chapters', 'source', `${padded}.md`);
+  
+  const errors = [];
+  const warnings = [];
+  const info = [];
+  
+  const trText = blocks.map(b => b.text || '').join('\n\n');
+  const trParas = blocks.map(b => (b.text || '').trim()).filter(Boolean);
+  
+  let sourceText = '';
+  try {
+    sourceText = await fs.readFile(srcPath, 'utf8');
+  } catch (err) {
+    info.push('Source file not found, skipping comparative validation checks.');
+  }
+  
+  if (sourceText) {
+    const srcParas = splitParagraphs(sourceText);
+    
+    if (srcParas.length > 1) {
+      const ratio = trParas.length / srcParas.length;
+      info.push(`Paragraphs: source=${srcParas.length} | translation=${trParas.length} | ratio=${ratio.toFixed(2)}`);
+      if ((ratio < 0.5 || ratio > 2.5) && num !== 94) {
+        errors.push(`Paragraph count ratio: ${ratio.toFixed(2)} (expected 0.5-2.5)`);
+      }
+    } else {
+      info.push(`Paragraphs: source=${srcParas.length} | translation=${trParas.length} (single-source-para, ratio N/A)`);
+    }
+    
+    const srcNums = extractNumbers(sourceText);
+    const trNums = extractNumbers(trText);
+    const missing = [...srcNums].filter(n => !trNums.has(n));
+    info.push(`Numbers (2+ digit): source=${srcNums.size} | translation=${trNums.size} | missing=${missing.length}`);
+    if (missing.length > 0) {
+      const realMissing = missing.filter(n => n !== '2026');
+      if (realMissing.length > 0) {
+        warnings.push(`Numbers in source but not in translation: ${realMissing.slice(0, 15).join(', ')}`);
+      }
+    }
+    
+    const srcLen = srcParas.reduce((acc, p) => acc + p.length, 0);
+    const trLen = trParas.reduce((acc, p) => acc + p.length, 0);
+    if (srcLen > 0) {
+      const lr = trLen / srcLen;
+      info.push(`Length: source=${srcLen} | translation=${trLen} | ratio=${lr.toFixed(2)}`);
+      if (lr < LENGTH_RATIO_OK[0] || lr > LENGTH_RATIO_OK[1]) {
+        errors.push(`Length ratio: ${lr.toFixed(2)} (expected ${LENGTH_RATIO_OK[0]}-${LENGTH_RATIO_OK[1]})`);
+      }
+    }
+    
+    try {
+      const glossary = await loadGlossary(slug);
+      const used = [];
+      const missingGlossary = [];
+      for (const [srcWord, thaiWord] of Object.entries(glossary)) {
+        if (sourceText.includes(srcWord)) {
+          used.push({ srcWord, thaiWord });
+          let pattern;
+          if (thaiWord.length === 1) {
+            pattern = new RegExp(`(?<![\u0E00-\u0E7F])${thaiWord}(?![\u0E00-\u0E7F])`);
+          } else {
+            pattern = new RegExp(thaiWord);
+          }
+          if (!pattern.test(trText)) {
+            missingGlossary.push({ srcWord, thaiWord });
+          }
+        }
+      }
+      info.push(`Glossary terms in source: ${used.length} (locked+reference)`);
+      if (missingGlossary.length > 0) {
+        let msg = `Glossary terms whose Thai is not literally in translation (${missingGlossary.length} total):`;
+        missingGlossary.slice(0, 10).forEach(item => {
+          msg += `\n   - "${item.srcWord}" → "${item.thaiWord}"`;
+        });
+        if (missingGlossary.length > 10) {
+          msg += `\n   ... and ${missingGlossary.length - 10} more`;
+        }
+        warnings.push(msg);
+      }
+    } catch (gErr) {
+      console.warn(`Glossary check skipped: ${gErr.message}`);
+    }
+    
+    for (const check of NAME_CHECKS) {
+      if (sourceText.includes(check.cn) && trText.includes(check.wrong)) {
+        errors.push(`Name inconsistency: ${check.cn} → "${check.wrong}" (should be "${check.correct}")`);
+      }
+    }
+  }
+  
+  const cjkErrors = [];
+  blocks.forEach((block, idx) => {
+    const text = block.text || '';
+    if (CJK_PATTERN.test(text)) {
+      cjkErrors.push(`Block ${idx + 1} ('${text.slice(0, 15)}...')`);
+    }
+  });
+  if (cjkErrors.length > 0) {
+    let msg = `CJK character leakage detected in translation (${cjkErrors.length} occurrences):`;
+    cjkErrors.slice(0, 10).forEach(err => {
+      msg += `\n   - ${err}`;
+    });
+    if (cjkErrors.length > 10) {
+      msg += `\n   ... and ${cjkErrors.length - 10} more`;
+    }
+    errors.push(msg);
+  }
+
+  // Whitelist check
+  const nonAllowedWarnings = [];
+  blocks.forEach((block, idx) => {
+    const text = block.text || '';
+    if (NON_ALLOWED_PATTERN.test(text)) {
+      const matches = text.match(new RegExp(NON_ALLOWED_PATTERN.source, 'gu')) || [];
+      const invalidChars = [...new Set(matches)].join(', ');
+      if (invalidChars) {
+        nonAllowedWarnings.push(`Block ${idx + 1} contains unusual characters: [${invalidChars}]`);
+      }
+    }
+  });
+  if (nonAllowedWarnings.length > 0) {
+    let msg = `Unusual/non-standard characters detected in translation (${nonAllowedWarnings.length} occurrences):`;
+    nonAllowedWarnings.slice(0, 5).forEach(err => {
+      msg += `\n   - ${err}`;
+    });
+    if (nonAllowedWarnings.length > 5) {
+      msg += `\n   ... and ${nonAllowedWarnings.length - 5} more`;
+    }
+    warnings.push(msg);
+  }
+  
+  // Thai characters ratio check
+  const thaiCharCount = (trText.match(/[\u0E00-\u0E7F]/g) || []).length;
+  const alphaCharCount = (trText.match(/[a-zA-Z\u0E00-\u0E7F]/g) || []).length;
+  if (alphaCharCount > 0) {
+    const thaiRatio = thaiCharCount / alphaCharCount;
+    info.push(`Thai characters ratio: ${(thaiRatio * 100).toFixed(1)}%`);
+    if (thaiRatio < 0.60) {
+      warnings.push(`Low Thai characters ratio: ${(thaiRatio * 100).toFixed(1)}% (expected > 60%). The text might contain excessive English or source characters.`);
+    }
+  }
+
+  // Duplicate detection
+  const duplicates = [];
+  const seenParas = new Set();
+  trParas.forEach((p, idx) => {
+    if (p.length > 20) {
+      if (seenParas.has(p)) {
+        duplicates.push(`Duplicate paragraph found at block ${idx + 1} ('${p.slice(0, 20)}...')`);
+      }
+      seenParas.add(p);
+    }
+  });
+  if (duplicates.length > 0) {
+    warnings.push(`Duplicate text blocks detected (${duplicates.length} occurrences): \n` + duplicates.slice(0, 3).join('\n'));
+  }
+
+  // Empty blocks check
+  const emptyBlocks = [];
+  blocks.forEach((b, idx) => {
+    if (b.type !== 'end' && (!b.text || !b.text.trim())) {
+      emptyBlocks.push(idx + 1);
+    }
+  });
+  if (emptyBlocks.length > 0) {
+    errors.push(`Empty block(s) detected at position(s): ${emptyBlocks.join(', ')}`);
+  }
+
+  const endBlocks = blocks.filter(b => b.type === 'end');
+  if (endBlocks.length === 0) {
+    errors.push('Chapter must have exactly one end marker block (e.g. (จบบท))');
+  } else if (endBlocks.length > 1) {
+    errors.push(`Chapter has ${endBlocks.length} end markers, must be exactly 1`);
+  }
+  
+  if (blocks.length > 0 && blocks[blocks.length - 1].type !== 'end') {
+    errors.push('Last block must be the end marker');
+  }
+  
+  const contentBlocks = blocks.filter(b => b.type !== 'end');
+  if (contentBlocks.length === 0) {
+    errors.push('Chapter has no content blocks (only end marker)');
+  }
+
+  // Score Card calculation
+  let score = 100;
+  score -= errors.length * 15;
+  score -= warnings.length * 5;
+  if (errors.some(e => e.includes('CJK') || e.includes('character leakage'))) {
+    score -= 10;
+  }
+  score = Math.max(0, score);
+  
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+    info,
+    score
+  };
 }
 
 // ── marked customization ───────────────────────────────────────────────
@@ -629,13 +1113,33 @@ app.get('/api/novel/:slug/chapter/:num', async (req, res) => {
     const result = await readChapter(req.params.slug, num);
     if (!result) return res.status(404).json({ error: 'Chapter not found' });
     const { title, body, meta, html, metaHtml, isJson } = result;
+
+    // Run validation to compute score card only if translated
+    let valResult = { score: 100, valid: true, errors: [], warnings: [], info: [] };
+    if (result.isTranslated !== false) {
+      valResult = await validateChapterJs(req.params.slug, num, title, result.blocks || [], result.source || '', result.lang || 'cn');
+    }
+
     res.json({
       slug: req.params.slug,
       num,
       title,
-      // For JSON mode, html is pre-rendered. For .md mode, parse with marked.
       html: isJson ? html : (body ? marked.parse(body) : ''),
       metaHtml: metaHtml || (meta ? marked.parse(meta) : ''),
+      isJson,
+      blocks: result.blocks || [],
+      source: result.source || '',
+      lang: result.lang || 'cn',
+      notes: result.notes || [],
+      markdownText: result.markdownText || '',
+      score: valResult.score,
+      isTranslated: result.isTranslated !== false,
+      validation: {
+        valid: valResult.valid,
+        errors: valResult.errors,
+        warnings: valResult.warnings,
+        info: valResult.info
+      }
     });
   } catch (err) {
     if (err.code === 'ENOENT') return res.status(404).json({ error: 'Chapter not found' });
@@ -764,63 +1268,58 @@ app.post('/api/novel/:slug/chapter/:num/save', async (req, res) => {
   const num = parseInt(req.params.num, 10);
   if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
   const padded = String(num).padStart(4, '0');
-  const { title, blocks, source, lang } = req.body;
+  let { title, blocks, source, lang, markdownText } = req.body;
+
+  let notes = [];
+  if (markdownText) {
+    const parsed = parseMarkdownToBlocks(markdownText, num);
+    blocks = parsed.blocks;
+    if (!title) title = parsed.title;
+    notes = parsed.notes;
+  }
+
   const jsonPath = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.json`);
   const chapterData = {
     num,
     title: title || `ตอนที่ ${num}`,
     lang: lang || 'cn',
     blocks: blocks || [],
-    source: source || ''
+    source: source || '',
+    notes: notes || []
   };
 
-  // Backup old file if it exists to revert on validation failure
-  let oldContent = null;
-  try {
-    oldContent = await fs.readFile(jsonPath, 'utf8');
-  } catch (err) {
-    // File doesn't exist, which is fine
+  const valResult = await validateChapterJs(slug, num, chapterData.title, chapterData.blocks, chapterData.source, chapterData.lang);
+  
+  if (!valResult.valid) {
+    const errorMsg = [
+      '━'.repeat(70),
+      `  VALIDATION — Ch ${num} (JS Native)`,
+      '━'.repeat(70),
+      '',
+      ...valResult.info.map(line => `  ℹ  ${line}`),
+      '',
+      ...valResult.warnings.map(line => `  ⚠  ${line}`),
+      ...valResult.errors.map(line => `  ✗  ${line}`),
+      '',
+      `❌ FAILED — ${valResult.errors.length} error(s) found`
+    ].join('\n');
+    
+    return res.status(422).json({
+      error: 'Validation Error',
+      details: errorMsg
+    });
   }
 
   try {
     await fs.mkdir(path.dirname(jsonPath), { recursive: true });
     await fs.writeFile(jsonPath, JSON.stringify(chapterData, null, 2), 'utf8');
 
-    // Run Python validator
-    const execFileAsync = require('util').promisify(require('child_process').execFile);
-    const pythonScript = path.join(__dirname, '..', 'tools', 'validate_chapter.py');
-    
-    try {
-      await execFileAsync('python', [pythonScript, String(num), '--novel', slug], {
-        env: { ...process.env, NOVEL_SLUG: slug }
-      });
-    } catch (valErr) {
-      // Validation failed (non-zero exit code)
-      // Restore old file
-      if (oldContent !== null) {
-        await fs.writeFile(jsonPath, oldContent, 'utf8');
-      } else {
-        await fs.rm(jsonPath, { force: true });
-      }
-      
-      const validationOutput = valErr.stdout + valErr.stderr;
-      // Extract errors from output
-      const errorLines = validationOutput
-        .split('\n')
-        .map(l => l.trim())
-        .filter(l => l.startsWith('✗') || l.startsWith('Failed') || l.startsWith('❌'));
-      
-      return res.status(422).json({
-        error: 'Validation Error',
-        details: errorLines.join('\n') || validationOutput
-      });
-    }
-
     invalidateCache(slug);
     const key = `${slug}:${num}`;
     chapterHtmlCache.delete(key);
 
     // Live Search Index Sync
+    const execFileAsync = require('util').promisify(require('child_process').execFile);
     const searchScript = path.join(__dirname, '..', 'tools', 'chapter_search.py');
     const novelRoot = path.join(NOVELS_DIR, slug);
     try {
@@ -836,12 +1335,111 @@ app.post('/api/novel/:slug/chapter/:num/save', async (req, res) => {
     try {
       const relativePath = path.relative(path.join(__dirname, '..'), jsonPath);
       await execFileAsync('git', ['add', relativePath], { cwd: path.join(__dirname, '..') });
-      await execFileAsync('git', ['commit', '-m', `translate: save chapter ${num} (${title})`], { cwd: path.join(__dirname, '..') });
+      await execFileAsync('git', ['commit', '-m', `translate: save chapter ${num} (${chapterData.title})`], { cwd: path.join(__dirname, '..') });
       console.log(`[git] Auto-committed: ${relativePath}`);
     } catch (gitErr) {
       console.warn(`[git] Auto-commit skipped: ${gitErr.message}`);
     }
 
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/novel/:slug/chapter/:num/auto-translate', async (req, res) => {
+  const slug = req.params.slug;
+  const num = parseInt(req.params.num, 10);
+  const { email } = req.body;
+
+  if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
+
+  // 1. Authenticate / Check user quota
+  const usersPath = path.join(__dirname, 'users.json');
+  let users = [];
+  try {
+    const data = await fs.readFile(usersPath, 'utf8');
+    users = JSON.parse(data);
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to read users database: ' + err.message });
+  }
+
+  const user = users.find(u => u.email === email);
+  if (!user) {
+    return res.status(403).json({ error: 'User not found/Unauthorized. กรุณาเข้าสู่ระบบด้วยอีเมลที่ถูกต้องค่ะ 🦊' });
+  }
+
+  if (user.tokensLimit !== -1 && user.tokensUsed >= user.tokensLimit) {
+    return res.status(403).json({ error: 'คุณใช้โควตาแปลภาษาสำหรับวันนี้หมดแล้วค่ะ! 💅 เกินขีดจำกัดแล้วค่ะ' });
+  }
+
+  // 2. Clear existing translation if it exists (so translate.py doesn't skip it)
+  const padded = String(num).padStart(4, '0');
+  const jsonPath = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.json`);
+  try {
+    await fs.unlink(jsonPath);
+  } catch (e) {
+    // Ignore if file doesn't exist
+  }
+
+  // 3. Run translation script
+  const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+  const translateScript = path.join(__dirname, '..', 'tools', 'translate.py');
+  
+  // Use mock if requested or if no API keys are present in env
+  const useMock = req.body.mock || (!process.env.ANTHROPIC_API_KEY && !process.env.GEMINI_API_KEY);
+  const args = [translateScript, String(num)];
+  if (useMock) {
+    args.push('--mock');
+  }
+
+  const execFileAsync = require('util').promisify(require('child_process').execFile);
+  try {
+    await execFileAsync(py, args, {
+      env: { ...process.env, NOVEL_SLUG: slug, PYTHONIOENCODING: 'utf-8' }
+    });
+
+    // 4. Deduct tokens
+    user.tokensUsed += 1;
+    await fs.writeFile(usersPath, JSON.stringify(users, null, 2), 'utf8');
+
+    // 5. Load the newly saved file and return it
+    const fileContent = await fs.readFile(jsonPath, 'utf8');
+    const chData = JSON.parse(fileContent);
+
+    // Live Search Index Sync
+    const searchScript = path.join(__dirname, '..', 'tools', 'chapter_search.py');
+    const novelRoot = path.join(NOVELS_DIR, slug);
+    try {
+      await execFileAsync(py, [searchScript, '--novel-root', novelRoot, 'index'], {
+        env: { ...process.env, NOVEL_SLUG: slug }
+      });
+      console.log(`[search] Re-indexed FTS5 successfully for ${slug}`);
+    } catch (searchErr) {
+      console.warn(`[search] FTS5 index update failed: ${searchErr.message}`);
+    }
+
+    res.json({ ok: true, chapter: chData });
+  } catch (err) {
+    res.status(500).json({ error: `Translation failed: ${err.message}` });
+  }
+});
+
+app.get('/api/admin/users', async (req, res) => {
+  const usersPath = path.join(__dirname, 'users.json');
+  try {
+    const data = await fs.readFile(usersPath, 'utf8');
+    res.json(JSON.parse(data));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/users/save', async (req, res) => {
+  const usersPath = path.join(__dirname, 'users.json');
+  const users = req.body;
+  try {
+    await fs.writeFile(usersPath, JSON.stringify(users, null, 2), 'utf8');
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -865,6 +1463,59 @@ app.post('/api/novel/:slug/chapter/:num/delete', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// EPUB Import Endpoint (Tier 2)
+const tempUpload = multer({ dest: require('os').tmpdir() });
+app.post('/api/novel/:slug/import-epub', tempUpload.single('epub'), async (req, res) => {
+  const slug = req.params.slug;
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const epubPath = req.file.path;
+  const novelRoot = path.join(NOVELS_DIR, slug);
+  const startNum = parseInt(req.body.startNum, 10) || 1;
+
+  const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+  const importScript = path.join(__dirname, '..', 'tools', 'import_epub.py');
+  const args = [
+    importScript,
+    '--epub', epubPath,
+    '--novel-root', novelRoot,
+    '--start-num', String(startNum)
+  ];
+
+  const { spawn } = require('child_process');
+  const child = spawn(py, args, { windowsHide: true, timeout: 60_000 });
+
+  let stdout = '';
+  let stderr = '';
+  child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
+  child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
+
+  child.on('close', async (code) => {
+    // Clean up temp file
+    try {
+      await fs.unlink(epubPath);
+    } catch {}
+
+    if (code !== 0) {
+      return res.status(500).json({ error: `import_epub.py exited ${code}: ${stderr}` });
+    }
+
+    try {
+      const result = JSON.parse(stdout.trim());
+      if (result.ok) {
+        invalidateCache(slug);
+        res.json(result);
+      } else {
+        res.status(400).json(result);
+      }
+    } catch (err) {
+      res.status(500).json({ error: `Failed to parse import_epub.py output: ${err.message}` });
+    }
+  });
 });
 
 // ── start ─────────────────────────────────────────────────────────────────
