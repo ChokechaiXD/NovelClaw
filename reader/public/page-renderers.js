@@ -544,7 +544,7 @@
             <span class="hero-tag lang-tag">${novel.source_lang||'cn'} → ${novel.target_lang||'th'}</span>
             <span class="hero-tag">${statusMap[novel.status]||'ไม่ระบุ'}</span>
           </div>
-          <p class="detail-synopsis">${novel.meta ? novel.meta.replace(/^---[\s\S]*?---\s*/, '').trim().slice(0,300)||'ยังไม่มีคำอธิบาย' : 'ยังไม่มีคำอธิบาย'}</p>
+          <p class="detail-synopsis">${novel.meta ? (typeof marked !== 'undefined' ? marked.parse(novel.meta.replace(/^---[\s\S]*?---\s*/, '').trim().slice(0,300)) : novel.meta.replace(/^---[\s\S]*?---\s*/, '').trim().slice(0,300)) : 'ยังไม่มีคำอธิบาย'}</p>
           <a href="#novel/${slug}/${chapters[0]?.num||1}" class="hero-cta" data-nav>📖 เริ่มอ่านตอนแรก</a>
         </div>
       </div>
