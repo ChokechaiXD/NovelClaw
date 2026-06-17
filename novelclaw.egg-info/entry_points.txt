@@ -1,0 +1,6 @@
+[console_scripts]
+novelclaw = tools.cli:main
+novelclaw-glossary = tools.glossary:main
+novelclaw-search = tools.chapter_search:main
+novelclaw-translate = tools.translate:main
+novelclaw-validate = tools.validate_chapter:main

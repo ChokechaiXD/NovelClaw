@@ -153,9 +153,28 @@ const Router = (() => {
       paramEl.style.display = "none";
     }
 
+    // Toggle reader-mode class on body
+    if (config.page === "reader") {
+      document.body.classList.add("reader-mode");
+      document.body.classList.remove("dashboard-mode");
+      const rn = document.getElementById("reader-novel-name");
+      if (rn) rn.hidden = false;
+    } else {
+      document.body.classList.add("dashboard-mode");
+      document.body.classList.remove("reader-mode");
+      const rn = document.getElementById("reader-novel-name");
+      if (rn) rn.hidden = true;
+    }
+
     // Call page renderer if exists
     if (pageRenderers[config.page]) {
       pageRenderers[config.page](params);
+    }
+
+    // Reset scroll of the main content container
+    const mainContent = document.querySelector(".main-content");
+    if (mainContent) {
+      mainContent.scrollTop = 0;
     }
 
     currentRoute = route;

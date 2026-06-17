@@ -764,45 +764,39 @@
 
     page.innerHTML = `
     <div class="reader-toolbar">
-      <!-- Left: Back & Title -->
-      <div style="display:flex; align-items:center; gap:12px; min-width:0; flex:1;">
-        <a href="#novel/${slug}" class="btn btn-sm btn-ghost" style="display:flex; align-items:center; gap:6px; font-weight:600; padding:6px 12px; flex-shrink:0;" data-nav>
-          <svg style="width: 14px; height: 14px; color: var(--text-secondary);"><use xlink:href="#icon-arrow-left"></use></svg>
+      <!-- Row 1: Back + Novel Title + Chapter Nav -->
+      <div class="toolbar-row">
+        <a href="#novel/${slug}" class="btn btn-sm btn-ghost toolbar-back" data-nav>
+          <svg style="width:14px;height:14px;color:var(--text-secondary);"><use xlink:href="#icon-arrow-left"></use></svg>
           <span class="back-text">กลับ</span>
         </a>
-        <div style="width: 1px; height: 16px; background: var(--border); flex-shrink:0;"></div>
-        <div style="display:flex; flex-direction:column; min-width:0;">
-          <span style="font-weight:700; font-size:13px; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="reader-toolbar-novel-title">—</span>
-          <span style="font-size:10px; color:var(--text-muted); font-weight:500;" id="reader-toolbar-chapter-num">ตอนที่ —</span>
+        <span class="toolbar-novel-title" id="reader-toolbar-novel-title">—</span>
+        <div class="toolbar-nav">
+          <button class="btn btn-icon btn-ghost" id="reader-prev" title="ตอนก่อนหน้า">
+            <svg style="width:16px;height:16px;color:var(--text-secondary);"><use xlink:href="#icon-arrow-left"></use></svg>
+          </button>
+          <span class="toolbar-position" id="reader-position">— / —</span>
+          <button class="btn btn-icon btn-ghost" id="reader-next" title="ตอนถัดไป">
+            <svg style="width:16px;height:16px;color:var(--text-secondary);"><use xlink:href="#icon-arrow-right"></use></svg>
+          </button>
         </div>
       </div>
-      
-      <!-- Center: Chapter Nav -->
-      <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
-        <button class="btn btn-icon btn-ghost" id="reader-prev" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-sm);" title="ตอนก่อนหน้า">
-          <svg style="width: 16px; height: 16px; color: var(--text-secondary);"><use xlink:href="#icon-arrow-left"></use></svg>
-        </button>
-        <span style="font-size:12px; color:var(--text-muted); font-family:var(--font-mono); font-weight:600;" id="reader-position">— / —</span>
-        <button class="btn btn-icon btn-ghost" id="reader-next" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-sm);" title="ตอนถัดไป">
-          <svg style="width: 16px; height: 16px; color: var(--text-secondary);"><use xlink:href="#icon-arrow-right"></use></svg>
-        </button>
-      </div>
-      
-      <!-- Right: Settings & Distraction Free -->
-      <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-        <button class="btn btn-icon btn-ghost" id="reader-font-sm" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-sm);" title="ลดขนาดอักษร">
-          <svg style="width: 14px; height: 14px; color: var(--text-secondary);"><use xlink:href="#icon-minus"></use></svg>
-        </button>
-        <button class="btn btn-icon btn-ghost" id="reader-font-lg" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-sm);" title="เพิ่มขนาดอักษร">
-          <svg style="width: 14px; height: 14px; color: var(--text-secondary);"><use xlink:href="#icon-plus"></use></svg>
-        </button>
-        <button class="btn btn-icon btn-ghost" id="reader-theme-toggle" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-sm);" title="เปลี่ยนธีม">
-          <!-- Will hold SVG dynamically -->
-        </button>
-        <div style="width: 1px; height: 16px; background: var(--border);"></div>
-        <button class="btn btn-icon btn-ghost" id="reader-distraction-toggle" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-sm);" title="เปิด/ปิดโหมดอ่านหนังสือเต็มจอ">
-          <svg style="width: 16px; height: 16px; color: var(--text-secondary);"><use xlink:href="#icon-hamburger"></use></svg>
-        </button>
+      <!-- Row 2: Chapter Title + Settings -->
+      <div class="toolbar-row">
+        <span class="toolbar-chapter-title" id="reader-toolbar-chapter-num">ตอนที่ —</span>
+        <div class="toolbar-settings">
+          <button class="btn btn-icon btn-ghost" id="reader-font-sm" title="ลดขนาดอักษร">
+            <svg style="width:14px;height:14px;color:var(--text-secondary);"><use xlink:href="#icon-minus"></use></svg>
+          </button>
+          <button class="btn btn-icon btn-ghost" id="reader-font-lg" title="เพิ่มขนาดอักษร">
+            <svg style="width:14px;height:14px;color:var(--text-secondary);"><use xlink:href="#icon-plus"></use></svg>
+          </button>
+          <button class="btn btn-icon btn-ghost" id="reader-theme-toggle" title="เปลี่ยนธีม"></button>
+          <div class="toolbar-divider"></div>
+          <button class="btn btn-icon btn-ghost" id="reader-distraction-toggle" title="โหมดอ่านเต็มจอ">
+            <svg style="width:16px;height:16px;color:var(--text-secondary);"><use xlink:href="#icon-hamburger"></use></svg>
+          </button>
+        </div>
       </div>
     </div>
     <div class="chapter" style="max-width:720px;margin:0 auto;">
@@ -890,13 +884,20 @@
         // Update toolbar titles
         const tbNovelTitle = document.getElementById("reader-toolbar-novel-title");
         const tbChapterNum = document.getElementById("reader-toolbar-chapter-num");
+        const novelNameEl = document.getElementById("reader-novel-name");
+        let novelTitleText = slug;
         if (tbNovelTitle) {
           const novels = await getNovels();
           const novel = novels.find(n => n.slug === slug);
-          tbNovelTitle.textContent = novel ? (novel.title || slug) : slug;
+          novelTitleText = novel ? (novel.title || slug) : slug;
+          tbNovelTitle.textContent = novelTitleText;
         }
         if (tbChapterNum) {
           tbChapterNum.textContent = data.title || `ตอนที่ ${ch.num}`;
+        }
+        if (novelNameEl) {
+          novelNameEl.textContent = novelTitleText;
+          novelNameEl.title = novelTitleText;
         }
 
         const text = (data.html || "").replace(/<[^>]+>/g, "").replace(/\s+/g, "");
@@ -1798,6 +1799,59 @@
     
     renderBlocks();
 
+    const autoBtn = $("trans-btn-auto");
+    if (autoBtn) {
+      autoBtn.onclick = async () => {
+        const prof = getProfile();
+        const email = prof ? prof.email : "";
+        if (!email) {
+          showToast("กรุณาเข้าสู่ระบบก่อนทำการแปลค่ะ 🦊", "error");
+          return;
+        }
+
+        autoBtn.disabled = true;
+        const originalText = autoBtn.innerHTML;
+        autoBtn.innerHTML = "✨ กำลังแปลด้วย AI...";
+
+        try {
+          const res = await fetch(`/api/novel/${encodeURIComponent(slug)}/chapter/${num}/auto-translate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          });
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || res.statusText);
+          }
+
+          const data = await res.json();
+          if (data.ok && data.chapter) {
+            const ch = data.chapter;
+            blocks = ch.blocks || [];
+            chapterTitle = ch.title || `ตอนที่ ${num}`;
+            sourceFooter = ch.source || '';
+            lang = ch.lang || 'cn';
+
+            if (titleInput) titleInput.value = chapterTitle;
+            if (langSelect) langSelect.value = lang;
+            if (sourceFooterInput) sourceFooterInput.value = sourceFooter;
+
+            renderBlocks();
+            showToast("แปลอัตโนมัติด้วย AI สำเร็จแล้วค่ะพี่โชค! 🦊✨", "success");
+          } else {
+            throw new Error("Invalid response from server");
+          }
+        } catch (err) {
+          alert(`แปลด้วย AI ไม่สำเร็จ:\n${err.message}`);
+          showToast(`แปลด้วย AI ไม่สำเร็จ: ${err.message}`, "error");
+        } finally {
+          autoBtn.disabled = false;
+          autoBtn.innerHTML = originalText;
+        }
+      };
+    }
+
     const saveBtn = $("trans-btn-save");
     if (saveBtn) {
       saveBtn.onclick = async () => {
@@ -1863,57 +1917,59 @@
     const tbody = $("admin-users-tbody");
     if (!tbody) return;
     
-    // Check if we already have the state of users stored, otherwise use mock defaults
-    let users = [];
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">กำลังโหลดรายชื่อผู้ใช้...</td></tr>';
+    
     try {
-      const stored = localStorage.getItem("novelclaw-admin-users");
-      if (stored) {
-        users = JSON.parse(stored);
-      }
-    } catch {}
-    
-    if (users.length === 0) {
-      users = [
-        { name: "P'Choke", email: "chokechai@gmail.com", role: "admin", active: "ออนไลน์", usage: "ไม่จำกัด" },
-        { name: "Mika", email: "mika.secretary@internal", role: "paid", active: "ออนไลน์", usage: "420 / 1,000 tokens" },
-        { name: "ReaderBoy", email: "reader101@outlook.com", role: "user", active: "ออฟไลน์", usage: "12 / 50 tokens" },
-        { name: "TranslateBot", email: "api.bot@novelclaw.net", role: "bot", active: "ออนไลน์", usage: "1,200 / 10,000 tokens" }
-      ];
-      try {
-        localStorage.setItem("novelclaw-admin-users", JSON.stringify(users));
-      } catch {}
-    }
-    
-    tbody.innerHTML = "";
-    users.forEach((u, uIdx) => {
-      const roleSelect = el("select", {
-        style: "background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:4px 8px; border-radius:var(--radius-sm); font-size:0.8rem; outline:none;",
-        onchange: (e) => {
-          const newRole = e.target.value;
-          u.role = newRole;
-          u.usage = newRole === "admin" ? "ไม่จำกัด"
-                  : newRole === "paid" ? "0 / 1,000 tokens"
-                  : newRole === "user" ? "0 / 50 tokens"
-                  : "0 / 10,000 tokens";
-          try {
-            localStorage.setItem("novelclaw-admin-users", JSON.stringify(users));
-          } catch {}
-          showToast(`เปลี่ยนบทบาทของ ${u.name} เป็น ${newRole.toUpperCase()} เรียบร้อยแล้วค่ะ! 🦊💅`);
-          renderAdminUsers(params);
-        }
-      },
-        Object.keys(ROLES_CONFIG).map(r => el("option", { value: r, selected: u.role === r }, r.toUpperCase()))
-      );
+      const res = await fetch("/api/admin/users");
+      if (!res.ok) throw new Error("Failed to load users from backend");
+      const users = await res.json();
+      
+      tbody.innerHTML = "";
+      users.forEach((u, uIdx) => {
+        const roleSelect = el("select", {
+          style: "background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:4px 8px; border-radius:var(--radius-sm); font-size:0.8rem; outline:none;",
+          onchange: async (e) => {
+            const newRole = e.target.value;
+            u.role = newRole;
+            u.tokensLimit = newRole === "admin" ? -1
+                          : newRole === "paid" ? 1000
+                          : newRole === "user" ? 50
+                          : 10000;
+            
+            // Save updated users back to backend
+            try {
+              const saveRes = await fetch("/api/admin/users/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(users)
+              });
+              if (saveRes.ok) {
+                showToast(`เปลี่ยนบทบาทของ ${u.name} เป็น ${newRole.toUpperCase()} เรียบร้อยแล้วค่ะ! 🦊💅`);
+                renderAdminUsers(params);
+              } else {
+                throw new Error("Failed to save updated users");
+              }
+            } catch (saveErr) {
+              showToast(`บันทึกการเปลี่ยนแปลงไม่สำเร็จ: ${saveErr.message}`, true);
+            }
+          }
+        },
+          Object.keys(ROLES_CONFIG).map(r => el("option", { value: r, selected: u.role === r }, r.toUpperCase()))
+        );
 
-      const row = el("tr", {},
-        el("td", { style: "font-weight:600;" }, u.name),
-        el("td", { style: "color: var(--text-secondary); font-family:var(--font-mono);" }, u.email),
-        el("td", {}, roleSelect),
-        el("td", { style: "font-family:var(--font-mono); font-size:0.8rem;" }, u.usage),
-        el("td", { style: u.active === "ออนไลน์" ? "color: var(--accent); font-weight:600;" : "color: var(--text-muted);" }, u.active)
-      );
-      tbody.appendChild(row);
-    });
+        const usageStr = u.tokensLimit === -1 ? "ไม่จำกัด" : `${u.tokensUsed.toLocaleString()} / ${u.tokensLimit.toLocaleString()} tokens`;
+        const row = el("tr", {},
+          el("td", { style: "font-weight:600;" }, u.name),
+          el("td", { style: "color: var(--text-secondary); font-family:var(--font-mono);" }, u.email),
+          el("td", {}, roleSelect),
+          el("td", { style: "font-family:var(--font-mono); font-size:0.8rem;" }, usageStr),
+          el("td", { style: u.active === "ออนไลน์" ? "color: var(--accent); font-weight:600;" : "color: var(--text-muted);" }, u.active)
+        );
+        tbody.appendChild(row);
+      });
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--error);">โหลดไม่สำเร็จ: ${err.message}</td></tr>`;
+    }
   }
 
   // ── ADMIN GLOSSARY ─────────────────────────────────────────────────────

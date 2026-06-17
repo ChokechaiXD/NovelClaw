@@ -88,13 +88,25 @@ function $(id) { return document.getElementById(id); }
 
 function setNovelTitle(slug, meta) {
   const titleEl = $('novel-title');
-  if (!titleEl) return;
-  if (meta) {
-    const m = meta.match(/\*\*Original title \(CN\):\*\*\s*(.+)/);
-    titleEl.textContent = m ? m[1].trim() : slug;
-    titleEl.title = meta.split('\n')[0].replace(/^#\s*/, '');
-  } else {
-    titleEl.textContent = slug;
+  if (titleEl) {
+    if (meta) {
+      const m = meta.match(/\*\*Original title \(CN\):\*\*\s*(.+)/);
+      titleEl.textContent = m ? m[1].trim() : slug;
+      titleEl.title = meta.split('\n')[0].replace(/^#\s*/, '');
+    } else {
+      titleEl.textContent = slug;
+    }
+  }
+  // Also update the mobile topbar novel name
+  const readerNovelName = $('reader-novel-name');
+  if (readerNovelName) {
+    let name = slug;
+    if (meta) {
+      const m = meta.match(/\*\*Original title \(CN\):\*\*\s*(.+)/);
+      name = m ? m[1].trim() : slug;
+    }
+    readerNovelName.textContent = name;
+    readerNovelName.title = name;
   }
 }
 
@@ -531,6 +543,8 @@ document.getElementById('toggle-sidebar').addEventListener('click', () => {
     const opening = !sidebar.classList.contains('open');
     sidebar.classList.toggle('open');
     document.body.classList.toggle('sidebar-open', opening);
+    const overlay = document.getElementById('sidebar-overlay');
+    if (overlay) overlay.style.display = opening ? 'block' : 'none';
     if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(opening));
   } else {
     sidebar.classList.toggle('collapsed');
@@ -567,7 +581,9 @@ document.body.addEventListener('click', (e) => {
   // Close if click target is outside the sidebar
   if (sidebar.contains(e.target)) return;
   sidebar.classList.remove('open');
-  document.getElementById('sidebar-overlay').style.display = 'none';
+  document.body.classList.remove('sidebar-open');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (overlay) overlay.style.display = 'none';
 });
 
 // Sidebar close button removed — hamburger toggle handles open/close.
@@ -888,9 +904,13 @@ function showView(viewId, params = {}) {
   if (viewId === 'reader-layout') {
     document.body.classList.add('reader-mode');
     document.body.classList.remove('dashboard-mode');
+    const rn = $('reader-novel-name');
+    if (rn) rn.hidden = false;
   } else {
     document.body.classList.add('dashboard-mode');
     document.body.classList.remove('reader-mode');
+    const rn = $('reader-novel-name');
+    if (rn) rn.hidden = true;
   }
 
   const viewEl = document.getElementById(viewId);

@@ -15,7 +15,9 @@ NOVELS_DIR = PROJECT_ROOT / "novels"
 
 
 def get_novel_root(slug: str = "global-descent") -> Path:
-    return NOVELS_DIR / slug
+    import os
+    s = os.environ.get('NOVEL_SLUG', slug) if slug == "global-descent" else slug
+    return NOVELS_DIR / s
 
 
 def get_glossary_yml_path(slug: str = "global-descent") -> Path:
