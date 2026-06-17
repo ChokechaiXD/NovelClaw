@@ -92,6 +92,17 @@ RULES:
 5. If a proper noun inside brackets is in the glossary (locked.md), use the glossary translation.
 6. Numbers and level markers (lv, ระดับ) → translate to Thai format.
 
+### S1c-DIALOGUE: "" DIALOGUE QUOTE MARKERS
+Dialogue in source text uses 「」 (Chinese quotation marks).
+In Thai translation output, use standard Thai double quotes "" instead of 「」.
+This is natural for Thai readers and matches Thai publishing conventions.
+
+RULES:
+1. Replace all 「」 with "" in dialogue output.
+2. Example: 「你好」 → "สวัสดี"
+3. Keep dialogue content 100% faithful — only change the quote markers.
+4. If source has nested quotes 「...「...」...」, use "" for outer and '' for inner.
+
 Strict Conversion Reference (COMMON PATTERNS):
 - 【萊特河】 → 【แม่น้ำเลธี】 (river name)
 - 【月神商會護衛隊長：貝尼克lv24】 → 【กัปตานองค์พิทักษ์สมาคมเทพจันทร์: เบนิค เลเวล 24】
@@ -110,15 +121,20 @@ Strict Conversion Reference (COMMON PATTERNS):
 - 【月華寶珠】 → 【แก้วมณีแสงจันทร์】
 - 【幽蘭王國：瑪麗塔·維爾加斯】 → 【อาณาจักรเยียนหลาน: มารีตา เบอร์กัส】
 - 【所屬勢力：幽藍王國】 → 【สังกัด: อาณาจักรเยียนหลาน】
+- 「你好」 → "สวัสดี"
+- 「你說什麼？」 → "เจ้าพูดอะไรนะ？"
+- 「我告訴你，這個盒子是一種邪惡的東西」 → "ขอบอกเลยนะ กล่องนี้เป็นของชั่วร้าย"
 
 SELF-CHECK BEFORE SAVE:
 ☐ Scan every 【 】 in output — ZERO raw Chinese characters allowed
+☐ Scan every "" in output — dialogue uses Thai quotes, not 「」
 ☐ Skill names (สกิล) → fully translated
 ☐ Status effects (สถานะ) → fully translated
 ☐ Proper nouns → per glossary or transliterated
 ☐ Numbers preserved, level markers → Thai format
 
 NEVER leave Chinese characters inside 【 】 brackets. ALWAYS translate.
+NEVER use 「」 in output. ALWAYS use "" for dialogue.
 
 #### S2: TRANSCREATION ENGINE
 PRESERVE:

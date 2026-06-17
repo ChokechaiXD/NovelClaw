@@ -980,6 +980,7 @@ app.get('/api/novels', async (_req, res) => {
 
 app.get('/api/novel/:slug/chapters', async (req, res) => {
   const chapters = await listChapters(req.params.slug);
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.json({ slug: req.params.slug, chapters });
 });
 
@@ -1119,6 +1120,11 @@ app.get('/api/novel/:slug/chapter/:num', async (req, res) => {
     if (result.isTranslated !== false) {
       valResult = await validateChapterJs(req.params.slug, num, title, result.blocks || [], result.source || '', result.lang || 'cn');
     }
+
+    // Cache control: always revalidate with server before using cached response
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
 
     res.json({
       slug: req.params.slug,
