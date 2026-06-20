@@ -2,7 +2,7 @@
   "schema_version": 2,
   "num": 127,
   "title": "ตอนที่ 127: วิหารโล่ การบัญชาการรบของเฉาซิง",
-  "lang": "th",
+  "lang": "cn",
   "blocks": [
     {
       "type": "narration",
@@ -141,7 +141,8 @@
     },
     {
       "type": "dialogue",
-      "text": "“พวกนายรับแรงกดดันมากที่สุด ฟังคำสั่ง”"
+      "text": "“พวกนายรับแรงกดดันมากที่สุด ฟังคำสั่ง”",
+      "speaker": null
     },
     {
       "type": "narration",
@@ -377,5 +378,6 @@
     }
   ],
   "source": "ch 127",
-  "notes": []
+  "notes": [],
+  "output_lang": "th"
 }

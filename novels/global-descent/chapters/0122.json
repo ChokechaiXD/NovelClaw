@@ -2,7 +2,7 @@
   "schema_version": 2,
   "num": 122,
   "title": "ตอนที่ 122: สมาคมการค้าจันทรา ผู้แข็งแกร่งขั้นสี่!",
-  "lang": "th",
+  "lang": "cn",
   "blocks": [
     {
       "type": "narration",
@@ -836,5 +836,6 @@
     }
   ],
   "source": "ch 122",
-  "notes": []
+  "notes": [],
+  "output_lang": "th"
 }

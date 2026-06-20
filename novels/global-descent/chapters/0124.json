@@ -2,7 +2,7 @@
   "schema_version": 2,
   "num": 124,
   "title": "ตอนที่ 124: วิญญาณกับไฟผี เข้าสู่สุสานใต้ดิน",
-  "lang": "th",
+  "lang": "cn",
   "blocks": [
     {
       "type": "narration",
@@ -1050,5 +1050,6 @@
     }
   ],
   "source": "ch 124",
-  "notes": []
+  "notes": [],
+  "output_lang": "th"
 }

@@ -12,8 +12,10 @@ What it fixes:
     - missing `source`
     - missing `notes`
     - missing `lang`
-    - missing end marker block
+    - missing `output_lang`
+    - missing end marker
     - end marker not last
+    - end marker not matching output language
 
 What it does NOT fix:
     - translation quality
@@ -21,27 +23,41 @@ What it does NOT fix:
     - quote style conversion
     - source completeness
 """
+
 from __future__ import annotations
 
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 NOVELS_DIR = PROJECT_ROOT / "novels"
 
 
-def load_json(path: Path) -> Dict[str, Any]:
+def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def dump_json(path: Path, data: Dict[str, Any]) -> None:
+def dump_json(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def normalize_chapter(data: Dict[str, Any], num: int, lang: str) -> tuple[Dict[str, Any], List[str]]:
-    changes: List[str] = []
+def expected_end_marker(output_lang: str) -> str:
+    markers = {
+        "th": "(จบบท)",
+        "en": "(End)",
+        "cn": "(จบ)",
+        "jp": "(終わり)",
+        "kr": "(끝)",
+    }
+    return markers.get(output_lang, "(จบบท)")
+
+
+def normalize_chapter(
+    data: dict[str, Any], num: int, lang: str, output_lang: str
+) -> tuple[dict[str, Any], list[str]]:
+    changes: list[str] = []
     out = dict(data)
 
     if out.get("schema_version") != 2:
@@ -71,6 +87,10 @@ def normalize_chapter(data: Dict[str, Any], num: int, lang: str) -> tuple[Dict[s
         out["lang"] = lang
         changes.append(f"set lang={lang}")
 
+    if out.get("output_lang") != output_lang:
+        out["output_lang"] = output_lang
+        changes.append(f"set output_lang={output_lang}")
+
     if not isinstance(out.get("notes"), list):
         out["notes"] = []
         changes.append("set notes=[]")
@@ -87,19 +107,24 @@ def normalize_chapter(data: Dict[str, Any], num: int, lang: str) -> tuple[Dict[s
             block["speaker"] = None
             changes.append("add missing dialogue speaker=null")
 
+    end_marker_text = expected_end_marker(output_lang)
     end_blocks = [b for b in blocks if isinstance(b, dict) and b.get("type") == "end"]
     if not end_blocks:
-        blocks.append({"type": "end", "text": "(จบบท)"})
-        changes.append("append end marker")
-    elif len(end_blocks) > 1:
+        blocks.append({"type": "end", "text": end_marker_text})
+        changes.append(f"append end marker {end_marker_text}")
+    else:
         first_end = end_blocks[0]
-        blocks[:] = [b for b in blocks if not (isinstance(b, dict) and b.get("type") == "end")]
-        blocks.append(first_end)
-        changes.append("dedupe end markers")
-    elif blocks and blocks[-1] is not end_blocks[0]:
-        blocks.remove(end_blocks[0])
-        blocks.append(end_blocks[0])
-        changes.append("move end marker to last")
+        if first_end.get("text") != end_marker_text:
+            first_end["text"] = end_marker_text
+            changes.append(f"set end marker {end_marker_text}")
+        if len(end_blocks) > 1:
+            blocks[:] = [b for b in blocks if not (isinstance(b, dict) and b.get("type") == "end")]
+            blocks.append(first_end)
+            changes.append("dedupe end markers")
+        elif blocks and blocks[-1] is not end_blocks[0]:
+            blocks.remove(end_blocks[0])
+            blocks.append(end_blocks[0])
+            changes.append("move end marker to last")
 
     return out, changes
 
@@ -118,6 +143,9 @@ def main() -> None:
     parser.add_argument("--start", type=int, required=True, help="First chapter number.")
     parser.add_argument("--end", type=int, required=True, help="Last chapter number.")
     parser.add_argument("--lang", default="cn", help="Current v2 source language field value.")
+    parser.add_argument(
+        "--output-lang", default="th", help="Output language/profile to set on translated chapters."
+    )
     parser.add_argument("--write", action="store_true", help="Write changes. Omit for dry-run.")
     args = parser.parse_args()
 
@@ -132,7 +160,7 @@ def main() -> None:
             continue
 
         original = load_json(path)
-        normalized, changes = normalize_chapter(original, num, args.lang)
+        normalized, changes = normalize_chapter(original, num, args.lang, args.output_lang)
         if changes:
             changed += 1
             print(f"CHANGE ch{num:04d}: " + "; ".join(changes))

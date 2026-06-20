@@ -809,5 +809,6 @@
     "Body language focus: มือสั่น, ตาแดง, ปากซีด, เขิน, เสียงหอบ",
     "Apply THAI_NATURALNESS.md §1-7 throughout"
   ],
-  "lang": "cn"
+  "lang": "cn",
+  "output_lang": "th"
 }

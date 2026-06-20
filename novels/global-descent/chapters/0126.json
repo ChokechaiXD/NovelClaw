@@ -2,7 +2,7 @@
   "schema_version": 2,
   "num": 126,
   "title": "ตอนที่ 126: ของมีค่าของวิญญาณ รวยแล้ว!",
-  "lang": "th",
+  "lang": "cn",
   "blocks": [
     {
       "type": "narration",
@@ -890,7 +890,8 @@
     },
     {
       "type": "dialogue",
-      "text": "“หืม?”"
+      "text": "“หืม?”",
+      "speaker": null
     },
     {
       "type": "narration",
@@ -1122,5 +1123,6 @@
     }
   ],
   "source": "ch 126",
-  "notes": []
+  "notes": [],
+  "output_lang": "th"
 }

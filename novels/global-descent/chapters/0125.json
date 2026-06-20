@@ -2,7 +2,7 @@
   "schema_version": 2,
   "num": 125,
   "title": "ตอนที่ 125: เควสท้าทาย รางวัลมากมาย",
-  "lang": "th",
+  "lang": "cn",
   "blocks": [
     {
       "type": "narration",
@@ -742,5 +742,6 @@
     }
   ],
   "source": "ch 125",
-  "notes": []
+  "notes": [],
+  "output_lang": "th"
 }
