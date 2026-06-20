@@ -1,0 +1,14 @@
+{
+  "schema_version": 2,
+  "num": 1,
+  "title": "Chapter 1 Test",
+  "lang": "cn",
+  "output_lang": "en",
+  "source": "fixture",
+  "blocks": [
+    { "type": "narration", "text": "Story" },
+    { "type": "dialogue", "text": "“Hello”" },
+    { "type": "system", "text": "[System]" },
+    { "type": "end", "text": "(End)" }
+  ]
+}
