@@ -35,7 +35,7 @@ _PROJECT_ROOT = _TOOLS_DIR.parent
 sys.path.insert(0, str(_PROJECT_ROOT))
 sys.path.insert(0, str(_TOOLS_DIR))
 from constants import NOVEL_ROOT, CHAPTERS_DIR, GLOSSARY_DIR, get_novel_root  # noqa: E402
-from schema import Chapter, Narration, Dialogue, SystemMessage, GameTitle, EndMarker  # noqa: E402
+from schema import Chapter, Narration, Dialogue, SystemMessage, GameTitle, EndMarker, BRACKETS  # noqa: E402
 from chapter_io import save_chapter
 from providers import get_provider  # noqa: E402
 from glossary import load_terms, load_style_rules  # noqa: E402
@@ -81,6 +81,28 @@ LANG_CONFIG = {
         "title_format": "ตอนที่ {num} {title}"
     }
 }
+
+# Quality gates shared with the prompt and post-translation validator.
+ALLOWED_LATIN_TOKENS = {
+    "HP", "MP", "EXP", "SSS", "SSR", "UR", "SP", "ID", "VIP",
+}
+LATIN_LEAK_RE = re.compile(r'\b[A-Za-z][A-Za-z0-9.]*\b')
+LATIN_REPLACEMENT_HINTS = {
+    "of": "ของ",
+    "Lv": "เลเวล",
+    "LVL": "เลเวล",
+    "BUFF": "บัฟ",
+    "DEBUFF": "ดีบัฟ",
+    "First Kill": "คิลแรก",
+    "militia": "กองกำลังอาสาสมัคร",
+    "avatar": "อวตาร",
+    "blacklist": "บัญชีดำ",
+    "recruiting": "รับสมัคร",
+    "peek": "ชำเลืองมอง",
+    "panic": "ตื่นตระหนก",
+}
+COMPLETENESS_MIN_RATIO = 0.90
+COMPLETENESS_MAX_RATIO = 3.20
 
 # ── Inline helpers (from translate_ch_helpers.py, deleted in ponytail merge) ──
 import re as _re
@@ -142,57 +164,35 @@ FORMAT_SPEC = """
 
 # Block types
 - narration: regular text
-- dialogue: must contain 「...」 (full-width CJK)
-- system: must contain 【...】 (full-width CJK)
-- game_title: must contain 《...》 (full-width CJK)
-- end: exactly "(จบบท)"
+- dialogue: must contain the target-language dialogue brackets from config/brackets.json
+- system: must contain the target-language system brackets from config/brackets.json
+- game_title: must contain the target-language game/title brackets from config/brackets.json
+- end: exactly the target-language end marker, default "(จบบท)"
 
 # Required structure
 - title: "ตอนที่ N <thai_title>" (space between N and title)
 - blocks: list of {type, text}
 - source: "ch N" (short form)
-- notes: optional list of translation notes
+- notes: optional list of translation notes in Thai
 
 # Rules
-- CN leakage forbidden in narration (except inside 【】/《》)
-- Dialogue: convert to 「」, never use straight "
-- Transmittor principle: TRANSMIT source faithfully, don't edit
-- Keep author's voice: ดังนั้น, ฉายแวว, เต็มไปด้วย, subject echo
-- Em dash (—) for missing numbers in source
+- CN leakage forbidden in narration/dialogue/system blocks.
+- Dialogue: use target-language quote style from config/brackets.json; for Thai this is curly quotes “...”.
+- Transmittor principle: TRANSMIT source faithfully, don't edit.
+- Keep author's voice: ดังนั้น, ฉายแวว, เต็มไปด้วย, subject echo.
+- Em dash (—) for missing numbers in source.
+- Allowed Latin tokens only: HP, MP, EXP, SSS, SSR, UR, SP, ID, VIP.
+- Translate Lv/LVL as "เลเวล", BUFF as "บัฟ", DEBUFF as "ดีบัฟ", First Kill as "คิลแรก".
+- Completeness target: Thai output length must be 0.90-3.20x the cleaned source length. Do not stop early.
 
 # Schema enforces
 - Title format: must match "ตอนที่ N ..."
-- Dialogue: must contain 「」 (not necessarily start/end with)
-- System: must contain 【】
-- End: exactly "(จบบท)"
+- Dialogue: must contain configured dialogue brackets
+- System: must contain configured system brackets
+- End: exactly configured end marker
 - Last block: end marker
 - At least 1 content block before end
 """
-
-
-def load_glossary_context() -> str:
-    """Load locked glossary terms for prompt injection (SQLite fallback)."""
-    db = GLOSSARY_DIR / 'glossary.db'
-    if not db.exists():
-        return ''
-    import sqlite3
-    conn = sqlite3.connect(db)
-    cur = conn.cursor()
-    cur.execute('''SELECT source_cn, thai, category, explanation
-                   FROM terms
-                   WHERE priority <= 2 AND status = "active"
-                   ORDER BY priority, source_cn''')
-    rows = cur.fetchall()
-    conn.close()
-    if not rows:
-        return ''
-    lines = ['## Locked Glossary (MUST USE EXACT THAI):']
-    for src, thai, cat, expl in rows:
-        line = f'- {src} → {thai}'
-        if expl:
-            line += f'  ({expl[:80]})'
-        lines.append(line)
-    return '\n'.join(lines)
 
 
 def load_style_context() -> str:
@@ -250,6 +250,69 @@ def get_format_summary() -> str:
     return FORMAT_SPEC
 
 
+def get_bracket_profile(source_lang: str, target_lang: str) -> dict[str, str]:
+    """Return the output bracket profile. Thai output uses the Thai profile."""
+    return BRACKETS.get(target_lang) or BRACKETS.get(source_lang) or BRACKETS['cn']
+
+
+def _latin_token_hint(token: str) -> str | None:
+    normalized = token.rstrip('.!?;:,)]}').lstrip('([{')
+    if normalized in LATIN_REPLACEMENT_HINTS:
+        return LATIN_REPLACEMENT_HINTS[normalized]
+
+        return LATIN_REPLACEMENT_HINTS[normalized.lower()]
+    for phrase, thai in LATIN_REPLACEMENT_HINTS.items():
+        if phrase.lower() in token.lower():
+            return thai
+    return None
+
+
+def validate_quality_gates(ch: Chapter, source_text: str) -> tuple[bool, list[str]]:
+    """Validate translation quality before saving the chapter.
+
+    Returns:
+        (is_ok, messages) where fatal messages are prefixed with "ERROR".
+    """
+    messages: list[str] = []
+    target_text = ''.join(b.text for b in ch.blocks)
+    source_len = max(1, len(source_text))
+    ratio = len(target_text) / source_len
+    if ratio < COMPLETENESS_MIN_RATIO:
+        messages.append(
+            f'ERROR ch{ch.num}: incomplete translation length ratio {ratio:.2f} '
+            f'below {COMPLETENESS_MIN_RATIO:.2f} ({len(target_text)}/{source_len} chars)'
+        )
+    elif ratio > COMPLETENESS_MAX_RATIO:
+        messages.append(
+            f'ERROR ch{ch.num}: suspiciously long translation length ratio {ratio:.2f} '
+            f'above {COMPLETENESS_MAX_RATIO:.2f} ({len(target_text)}/{source_len} chars)'
+        )
+
+    for i, block in enumerate(ch.blocks):
+        if getattr(block, 'type', '') == 'end':
+            continue
+        text = str(block.text)
+        cjk = re.findall(r'[\u4e00-\u9fff]', text)
+        if cjk:
+            messages.append(f'ERROR block {i} ({block.type}): CN leak chars {cjk[:8]}')
+        for match in LATIN_LEAK_RE.finditer(text):
+            token = match.group(0)
+            if token in ALLOWED_LATIN_TOKENS:
+                continue
+            hint = _latin_token_hint(token)
+            if hint:
+                messages.append(f'ERROR block {i} ({block.type}): Latin leak "{token}" -> {hint}')
+            else:
+                messages.append(f'WARNING block {i} ({block.type}): Latin token "{token}" is not in allowed list')
+
+    if ch.blocks and getattr(ch.blocks[-1], 'text', None) != BRACKETS.get('cn', {}).get('end_marker', '(จบบท)'):
+        # Pydantic normalizes lang-specific end markers, so this catches raw bad output.
+        if getattr(ch.blocks[-1], 'text', None) != '(จบบท)':
+            messages.append(f'ERROR ch{ch.num}: last block must be end marker "(จบบท)"')
+
+    return not any(m.startswith('ERROR') for m in messages), messages
+
+
 def get_previous_chapter_context(ch_num: int, n: int = 3) -> str:
     from chapter_io import load_chapter as _load_ch
     parts = []
@@ -296,22 +359,17 @@ def get_unknown_terms_for_ch(ch_num: int) -> list[str]:
 
 def build_prompt(ch_num: int, source_text: str, unknown_terms: list[str] | None = None, source_lang: str = "zh", target_lang: str = "th", novel_title: str = "全球降臨：帶著嫂嫂末世種田") -> str:
     """Build the LLM prompt for translating one chapter in XML format."""
-    glossary_sqlite = load_glossary_context()
     glossary_lib = get_glossary_context_from_lib(ch_num)
-    style = load_style_summary()
+    style = get_style_summary()
 
-    # Merge glossary sections (deduplicate by using both)
-    glossary_sections = []
-    if glossary_sqlite:
-        glossary_sections.append(glossary_sqlite)
-    if glossary_lib:
-        glossary_sections.append(glossary_lib)
-    glossary = '\n\n'.join(glossary_sections) if glossary_sections else '(no glossary loaded)'
+    # Use chapter-filtered glossary only (deduplicated — no SQLite fallback)
+    glossary = glossary_lib if glossary_lib else '(no glossary loaded)'
     # Load continuity context from previous chapters
     continuity = get_previous_chapter_context(ch_num, n=3)
 
     src_cfg = LANG_CONFIG.get(source_lang, LANG_CONFIG["zh"])
     tgt_cfg = LANG_CONFIG.get(target_lang, LANG_CONFIG["th"])
+    bracket_profile = get_bracket_profile(source_lang, target_lang)
 
     # XML configuration
     xml_config = f"""<translation_config>
@@ -345,13 +403,16 @@ def build_prompt(ch_num: int, source_text: str, unknown_terms: list[str] | None 
 
 <format_spec>
 - Output must be valid JSON matching the schema inside <output_schema>. Do NOT include any markdown formatting, code block ticks (like ```json), or explanatory text outside the JSON.
-- Dialogue brackets: {src_cfg['dialogue_open']}...{src_cfg['dialogue_close']}
-- System message brackets: {src_cfg['system_open']}...{src_cfg['system_close']}
-- Game title brackets: {src_cfg['game_open']}...{src_cfg['game_close']}
-- End marker text: "{tgt_cfg['end_marker']}"
-- The last block in the output list MUST be the end marker block: {{"type": "end", "text": "{tgt_cfg['end_marker']}"}}
+- Dialogue brackets: {bracket_profile['dialogue_open']}...{bracket_profile['dialogue_close']}
+- System message brackets: {bracket_profile['system_open']}...{bracket_profile['system_close']}
+- Game title brackets: {bracket_profile['game_open']}...{bracket_profile['game_close']}
+- End marker text: "{bracket_profile['end_marker']}"
+- The last block in the output list MUST be the end marker block: {{"type": "end", "text": "{bracket_profile['end_marker']}"}}
 - Transmittor principle: TRANSMIT the source content faithfully. Do NOT summarize, edit, or omit paragraphs.
-- Zero source language characters are allowed in narration blocks.
+- Zero source-language characters are allowed in narration/dialogue/system blocks.
+- ANTI-HALLUCINATION: Do NOT add any narration, description, detail, or dialogue not present in the source. Do NOT invent internal monologue, character thoughts, or scene details. If the source is ambiguous, preserve the ambiguity. If unsure, translate literally rather than inventing content.
+- Your translation must preserve the full length and detail of the source. Target {COMPLETENESS_MIN_RATIO:.2f}-{COMPLETENESS_MAX_RATIO:.2f}x source character count. Do NOT compress or summarize.
+- Allowed Latin tokens only: {', '.join(sorted(ALLOWED_LATIN_TOKENS))}. Translate Lv/LVL as "เลเวล", BUFF as "บัฟ", DEBUFF as "ดีบัฟ", First Kill as "คิลแรก".
 </format_spec>
 
 <continuity_context>
@@ -365,9 +426,9 @@ def build_prompt(ch_num: int, source_text: str, unknown_terms: list[str] | None 
   "title": "{tgt_cfg['title_format'].format(num=ch_num, title='<thai_title>')}",
   "blocks": [
     {{"type": "narration", "text": "..."}},
-    {{"type": "dialogue", "text": "{src_cfg['dialogue_open']}...{src_cfg['dialogue_close']}"}},
-    {{"type": "system", "text": "{src_cfg['system_open']}...{src_cfg['system_close']}"}},
-    {{"type": "end", "text": "{tgt_cfg['end_marker']}"}}
+    {{"type": "dialogue", "text": "{bracket_profile['dialogue_open']}...{bracket_profile['dialogue_close']}"}},
+    {{"type": "system", "text": "{bracket_profile['system_open']}...{bracket_profile['system_close']}"}},
+    {{"type": "end", "text": "{bracket_profile['end_marker']}"}}
   ],
   "source": "ch {ch_num}",
   "notes": ["<optional translation notes>"]
@@ -573,25 +634,24 @@ def translate_one(
     else:
         ch = Chapter.construct(**ch_data)  # skip validation
 
+    if not mock and not no_validate:
+        quality_ok, quality_messages = validate_quality_gates(ch, source)
+        if not quality_ok:
+            print(f'  Quality Gate failed for ch{ch_num}:')
+            for msg in quality_messages:
+                print(f'  {msg}')
+            return False
+    else:
+        quality_messages = []
+
     save_chapter(ch, out_path)
     n = len(ch.blocks)
     print(f'✓ ch{ch_num}: saved → {out_path.name} ({n} blocks)')
-        # Quality gates
     if not mock and not no_validate:
-        quality_warnings = []
-        import re
-        for bi, b in enumerate(ch.blocks):
-            if b.type == 'dialogue' and len(b.text) > 600:
-                quality_warnings.append(f'  Warning Block {bi}: dialogue too long ({len(b.text)} chars)')
-            if b.type == 'system' and '【' not in str(b.text):
-                quality_warnings.append(f'  Warning Block {bi}: system block missing brackets')
-            if b.type == 'narration':
-                cn_found = re.findall(r'[一-鿿]{3,}', b.text)
-                if cn_found:
-                    quality_warnings.append(f'  Warning Block {bi}: CN leak: {cn_found[:3]}')
-        if quality_warnings:
+        warnings = [m for m in quality_messages if m.startswith('WARNING')]
+        if warnings:
             print(f'  Quality Report for ch{ch_num}:')
-            for w in quality_warnings:
+            for w in warnings:
                 print(w)
         else:
             print(f'  OK Quality: clean')

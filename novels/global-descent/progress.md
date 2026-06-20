@@ -1,10 +1,10 @@
 # NovelClaw Progress — global-descent
 
-**Last translated:** ch 135
-65/1239 (5.25%)
-**Next chapter:** ch 136
-**Quality gate:** transmittor principle (translator transmits, not edits)
-**Pipeline:** 2-agent (Translator 5-Phase CoT + Proofreader MQM 8-dim, read-only)
+**Last translated:** ch 138
+69/1239 (5.57%)
+**Next chapter:** ch 139
+**Quality gate:** single-model transmittor pass with schema, CJK leak, Latin leak, and completeness gates
+**Pipeline:** translate.py → schema validation → quality gates → save; 2-agent pipeline is historical and no longer active
 **Max rework rounds per chapter:** 3 (escalate to P'Chok on round 3 FAIL)
 
 ## Recent activity (2026-06-13 → 2026-06-14)
@@ -113,10 +113,16 @@ Philosophy change. The translator is a **transmittor**, not an editor.
 - Rebuilt FTS5 index (includes all chapters up to 131)
 - ch 123: replaced mock with real translation (51 blocks, Pydantic PASS)
 ## Glossary totals (current)
-- locked.md: 58 terms
-- reference.md: 100 terms
-- auto.md: 414 terms
-- **Total: 572 terms**
+- locked.md: 59 terms
+- reference.md: 83 terms
+- auto.md: 388 terms
+- **Total: 530 terms**
+
+### Session 15: Translation leak hardening (2026-06-20)
+- Completed incomplete ch 136 translation through the 阿斯卡隆亡者之書 reward scene (225 blocks, Pydantic PASS, quality gate PASS).
+- Added traditional/simplified glossary aliases for recurring global-descent terms and names.
+- Updated translate.py prompt to use Thai bracket profile, strict CJK/Latin leak gates, and 0.90-3.20x completeness gate.
+- Fixed stale progress metadata: last translated ch 138, next ch 139, pipeline now single-model with quality gates.
 
 ## Tools & scripts (in tools/)
 **Translator workflow:**
@@ -194,4 +200,4 @@ Philosophy change. The translator is a **transmittor**, not an editor.
 - Soft reports (inform only): anti-patterns, subject echo, length ratio, flat emotion
 - Mechanical auto-fix: whitespace, number format, system wrapping, wrong-name variants
 
-**State of play:** pipeline stable, infra solid, transmittor principle in effect, 9.77% complete. Next: continue ch 122-130 batch under new philosophy.
+**State of play:** pipeline stable, infra solid, transmittor principle in effect, 5.57% complete. Next: translate ch 139 with glossary aliases and leak gates.

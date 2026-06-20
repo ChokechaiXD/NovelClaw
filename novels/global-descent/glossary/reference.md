@@ -96,3 +96,43 @@ but locked.md (P1) wins on conflict.
 | 腐化印記 | รอยเน่าเปื่อย | สกิล | 2 | stacking debuff |
 | 鱗片護甲 | เกราะเกล็ด | สกิล | |
 | 野豬戰士 | นักรบหมูป่า | ทั่วไป | |
+
+## Alias consistency terms
+
+Add these traditional/simplified aliases to keep recent chapters consistent.
+
+| Source | Thai | Category | Priority | Lock | Notes |
+|---|---|---|---:|---|---|
+| 惡魔 | ปีศาจ | ทั่วไป | 2 | reference | traditional alias for 恶魔 |
+| 恶魔变身 | แปลงร่างปีศาจ | สกิล | 2 | reference | traditional/simplified alias for 惡魔變身 |
+| 惡魔變身 | แปลงร่างปีศาจ | สกิล | 2 | reference | traditional alias for 恶魔变身 |
+| 惡念之火 | เปลวไฟอาฆาต | สกิล | 2 | reference | demon fire skill |
+| 靈魂凋零 | วิญญาณเสื่อมสลาย | สกิล | 2 | reference | soul decay skill |
+| 邪惡爆發 | ระเบิดชั่วร้าย | สกิล | 2 | reference | evil eruption skill |
+| 阿斯卡隆 | อัสคาลอน | ทั่วไป | 2 | reference | kingdom/region name root |
+| 阿斯卡隆人 | ชาวอัสคาลอน | ทั่วไป | 2 | reference | Ascalon people |
+| 阿斯卡隆亡靈 | วิญญาณอัสคาลอน | ตัวละคร | 2 | reference | Ascalon undead |
+| 阿斯卡隆士兵 | ทหารอัสคาลอน | ตัวละคร | 2 | reference | Ascalon soldiers |
+| 阿斯卡隆隊長 | หัวหน้าหน่วยอัสคาลอน | ตัวละคร | 2 | reference | Ascalon squad captain |
+| 阿斯卡隆上尉 | ผู้กองอัสคาลอน | ตัวละคร | 2 | reference | Ascalon lieutenant |
+| 阿斯卡隆陣營 | ฝ่ายอัสคาลอน | ทั่วไป | 2 | reference | Ascalon faction |
+| 阿斯卡隆區域 | พื้นที่อัสคาลอน | ทั่วไป | 2 | reference | Ascalon area |
+| 巴拉丁公爵 | ดยุคบาลาดิน | ตัวละคร | 1 | reference | locked personal name |
+| 巴拉丁 | บาลาดิน | ตัวละคร | 1 | reference | short name alias |
+| 卡爾漢中尉 | ร้อยโทคาร์ฮาน | ตัวละคร | 1 | reference | rank + name; 中尉 = lieutenant |
+| 卡爾漢 | คาร์ฮาน | ตัวละคร | 1 | reference | short name alias |
+| 卡莎大教堂 | มหาวิหารคาซ่า | สถานที่ | 2 | reference | Kasha Cathedral |
+| 卡莎 | คาซ่า | สถานที่ | 2 | reference | short place alias |
+| 聖光救贖 | แสงศักดิ์สิทธิ์ | สกิล | 1 | reference | holy light redemption skill |
+| 王國聖戒 | แหวนศักดิ์สิทธิ์แห่งอาณาจักร | ไอเทม | 2 | reference | kingdom holy ring |
+| 恆金錠 | แท่งทองคำนิรันดร์ | ไอเทม | 2 | reference | evergold ingot |
+| 魔紋石 | หินลายเวท | ไอเทม | 2 | reference | rune stone |
+| 亡者之書 | คัมภีร์ผู้วายชนม์ | ไอเทม | 2 | reference | book of the dead |
+| 阿斯卡隆的亡者之書 | คัมภีร์ผู้วายชนม์แห่งอัสคาลอน | ไอเทม | 2 | reference | Ascalon book of the dead |
+| 寒靈水 | น้ำวิญญาณเหมันต์ | ไอเทม | 2 | reference | cold spirit water |
+| 生命秘藥 | ยาอายุวัฒนะชีวิต | ไอเทม | 2 | reference | life potion |
+| 狂暴衝鋒 | พุ่งทะลวง | สกิล | 2 | reference | frenzied charge |
+| 猛獁踐踏 | แมมมอธเหยียบย่ำ | สกิล | 2 | reference | mammoth stomp |
+| 恐懼尖嘯 | กรีดร้องขวัญผวา | สกิล | 2 | reference | fear shriek |
+| 蛛網 | ใยแมงมุม | สกิล | 2 | reference | spider web |
+| 眩暈 | มึนงง | สถานะ | 2 | reference | stun/dizzy status |
