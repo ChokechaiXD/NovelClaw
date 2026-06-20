@@ -86,6 +86,20 @@ LANG_CONFIG = {
 ALLOWED_LATIN_TOKENS = {
     "HP", "MP", "EXP", "SSS", "SSR", "UR", "SP", "ID", "VIP",
 }
+CJK_LEAK_RE = re.compile(
+    r'[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff'
+    r'\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]'
+)
+SOURCE_ARTIFACT_RE = re.compile(
+    r'(求订阅|求追读|三更|月票|推荐票|GZ\b)',
+    re.IGNORECASE,
+)
+LOWER_LATIN_LEAK_RE = re.compile(
+    r'\b(?:of|and|the|to|a|an|in|on|for|with|by|from|'
+    r'lv|lvl|buff|debuff|first kill|militia|avatar|peek|panic|'
+    r'momentarily|hollow|continue|hp|mp|exp|sss|ssr|ur|sp|id|vip)\b',
+    re.IGNORECASE,
+)
 LATIN_LEAK_RE = re.compile(r'\b[A-Za-z][A-Za-z0-9.]*\b')
 LATIN_REPLACEMENT_HINTS = {
     "of": "ของ",
@@ -122,7 +136,11 @@ def clean_source(raw: str) -> str:
                 continue
             if _re.match(r'^第[一二三四五六七八九十百千零\d]+章', stripped):
                 continue
+            if SOURCE_ARTIFACT_RE.search(stripped):
+                continue
             in_body = True
+        if SOURCE_ARTIFACT_RE.search(stripped):
+            continue
         out.append(line)
     text = '\n'.join(out)
     text = _re.sub(r'([！？。，；：…—]+)\s*(\d{1,3})(?=\s|$)', r'\1', text)
@@ -260,7 +278,9 @@ def _latin_token_hint(token: str) -> str | None:
     if normalized in LATIN_REPLACEMENT_HINTS:
         return LATIN_REPLACEMENT_HINTS[normalized]
 
-        return LATIN_REPLACEMENT_HINTS[normalized.lower()]
+    lower = normalized.lower()
+    if lower in LATIN_REPLACEMENT_HINTS:
+        return LATIN_REPLACEMENT_HINTS[lower]
     for phrase, thai in LATIN_REPLACEMENT_HINTS.items():
         if phrase.lower() in token.lower():
             return thai
@@ -292,9 +312,11 @@ def validate_quality_gates(ch: Chapter, source_text: str) -> tuple[bool, list[st
         if getattr(block, 'type', '') == 'end':
             continue
         text = str(block.text)
-        cjk = re.findall(r'[\u4e00-\u9fff]', text)
+        cjk = CJK_LEAK_RE.findall(text)
         if cjk:
-            messages.append(f'ERROR block {i} ({block.type}): CN leak chars {cjk[:8]}')
+            messages.append(f'ERROR block {i} ({block.type}): CJK leak chars {cjk[:8]}')
+        if SOURCE_ARTIFACT_RE.search(text):
+            messages.append(f'ERROR block {i} ({block.type}): source artifact leaked into translation')
         for match in LATIN_LEAK_RE.finditer(text):
             token = match.group(0)
             if token in ALLOWED_LATIN_TOKENS:
@@ -304,6 +326,10 @@ def validate_quality_gates(ch: Chapter, source_text: str) -> tuple[bool, list[st
                 messages.append(f'ERROR block {i} ({block.type}): Latin leak "{token}" -> {hint}')
             else:
                 messages.append(f'WARNING block {i} ({block.type}): Latin token "{token}" is not in allowed list')
+        for match in LOWER_LATIN_LEAK_RE.finditer(text):
+            token = match.group(0)
+            hint = _latin_token_hint(token) or 'review/translate this token'
+            messages.append(f'ERROR block {i} ({block.type}): lowercase/mixed Latin leak "{token}" -> {hint}')
 
     if ch.blocks and getattr(ch.blocks[-1], 'text', None) != BRACKETS.get('cn', {}).get('end_marker', '(จบบท)'):
         # Pydantic normalizes lang-specific end markers, so this catches raw bad output.
