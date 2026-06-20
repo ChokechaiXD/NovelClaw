@@ -266,8 +266,8 @@ class Chapter(BaseModel):
 
     `lang` field (Phase 2 — 2026-06-14): source language of this chapter.
     Defaults to 'cn' for backward compat with existing chapters. Used by
-    the validator to pick the right bracket profile (BRACKETS config) and
-    by the renderer (server.js) to apply per-language styling.
+    the validator to pick the right bracket profile when output/profile
+    language is not present.
     """
     schema_version: int = Field(default=2, description='Schema version — currently v2')
     num: int = Field(..., ge=1, le=9999, description='Chapter number')
@@ -278,6 +278,14 @@ class Chapter(BaseModel):
     lang: Language = Field(
         default=Language.CN,
         description='Source language (cn|jp|kr|en|th). Determines bracket profile.',
+    )
+    output_lang: Language | None = Field(
+        default=None,
+        description='Output language/profile for translated chapters.',
+    )
+    profile_lang: Language | None = Field(
+        default=None,
+        description='Optional style/profile override for translated chapters.',
     )
 
     @field_validator('blocks', mode='before')
@@ -315,20 +323,29 @@ class Chapter(BaseModel):
 
     @model_validator(mode='after')
     def validate_chapter_structure(self) -> 'Chapter':
-        # Get language-specific bracket profile
+        # Get language-specific bracket profile.
+        # output_lang/profile_lang are used for translated chapters; lang remains
+        # the source-language fallback for backward compatibility.
+        profile_lang = (
+            self.profile_lang.value if isinstance(self.profile_lang, Language) else self.profile_lang
+        )
+        output_lang = (
+            self.output_lang.value if isinstance(self.output_lang, Language) else self.output_lang
+        )
         lang = self.lang.value if isinstance(self.lang, Language) else self.lang
-        brackets = BRACKETS.get(lang, BRACKETS['cn'])
+        active_lang = profile_lang or output_lang or lang
+        brackets = BRACKETS.get(active_lang, BRACKETS.get(lang, BRACKETS['cn']))
         end_marker_text = brackets['end_marker']
 
         # Per-block bracket validation against language profile
         for i, block in enumerate(self.blocks):
             if isinstance(block, Dialogue):
-                if lang == 'en':
+                if active_lang == 'en':
                     has_straight = ('"' in block.text)
                     has_curly = ('“' in block.text and '”' in block.text)
                     if not (has_straight or has_curly) or '「' in block.text or '」' in block.text:
                         raise ValueError(
-                            f'block {i} (dialogue[{lang}]) must contain '
+                            f'block {i} (dialogue[{active_lang}]) must contain '
                             f'English quotes ("..." or “...”) and no CJK brackets: '
                             f'{block.text[:50]!r}'
                         )
@@ -338,21 +355,21 @@ class Chapter(BaseModel):
                     has_curly = ('“' in block.text and '”' in block.text)
                     if not (has_cjk or has_straight or has_curly):
                         raise ValueError(
-                            f'block {i} (dialogue[{lang}]) must contain '
+                            f'block {i} (dialogue[{active_lang}]) must contain '
                             f'dialogue brackets (「...」 or "..." or “...”): '
                             f'{block.text[:50]!r}'
                         )
             elif isinstance(block, SystemMessage):
                 if brackets['system_open'] not in block.text or brackets['system_close'] not in block.text:
                     raise ValueError(
-                        f'block {i} (system[{lang}]) must contain '
+                        f'block {i} (system[{active_lang}]) must contain '
                         f'{brackets["system_open"]}...{brackets["system_close"]}: '
                         f'{block.text[:50]!r}'
                     )
             elif isinstance(block, GameTitle):
                 if brackets['game_open'] not in block.text or brackets['game_close'] not in block.text:
                     raise ValueError(
-                        f'block {i} (game_title[{lang}]) must contain '
+                        f'block {i} (game_title[{active_lang}]) must contain '
                         f'{brackets["game_open"]}...{brackets["game_close"]}: '
                         f'{block.text[:50]!r}'
                     )
