@@ -8,6 +8,9 @@ source_url: https://tw.hjwzw.com/Book/Chapter/50356
 total_chapters: 1239
 status: in_progress
 started: '2026-06-13'
+last_translated: 138
+next_chapter: 139
+translated_chapters: 138
 ---
 
 # 全球降臨：帶著嫂嫂末世種田
@@ -18,11 +21,10 @@ started: '2026-06-13'
 - **Target language:** Thai (TH)
 - **Slug:** global-descent
 - **Source URL:** https://tw.hjwzw.com/Book/Chapter/50356
-- **Status:** 53 of 1,239 chapters translated (4.28%)
-- **Last translated:** ch 122
-- **Next chapter:** 123
-- **Style drift acknowledged:** ch 97-100 literary, ch 101+ mechanical (batch translation)
-- **Next chapter:** 112
+- **Status:** 138 of 1,239 chapters translated (11.14%)
+- **Last translated:** ch 138
+- **Next chapter:** ch 139
+- **Style drift acknowledged:** ch 97-100 literary, ch 101+ mechanical/batch translation. Run normalization and mechanical QA before continuing large batch translation.
 - **Started (NovelClaw):** 2026-06-13
 
 ## Description
