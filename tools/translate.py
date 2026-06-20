@@ -543,7 +543,7 @@ def mock_translate(
         cn_title = title_match.group(1).strip()[:60]
         title = f"ตอนที่ {ch_num} [CN: {cn_title}]"
     else:
-        title = f"ตอนที่ {ch_num}"
+        title = f"ตอนที่ {ch_num} [MOCK]"
     first_line = ""
     for line in source_text.splitlines()[:10]:
         stripped = line.strip()
@@ -557,11 +557,9 @@ def mock_translate(
     if terms:
         sample = [t for t in terms if t.get("priority", 3) <= 2][:5]
         if sample:
-            glossary_hint = (
-                " [Glossary: " + ", ".join(f"{t['source']}->{t['thai']}" for t in sample) + "]"
-            )
+            glossary_hint = " [Glossary hints loaded: " + ", ".join(t["thai"] for t in sample) + "]"
     bracket_profile = get_bracket_profile(source_lang, target_lang, profile_lang)
-    narration_text = f"[MOCK - needs real] {first_line}{glossary_hint}"
+    narration_text = f"[MOCK - needs real] บทนี้มีต้นฉบับ {len(source_text)} ตัวอักษร{glossary_hint}"
     if not first_line:
         narration_text = f"[MOCK] ch {ch_num} - translation pending{glossary_hint}"
     return {
