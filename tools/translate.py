@@ -27,10 +27,13 @@ the real integration uses hermes CLI or direct API.
 import argparse
 import contextlib
 import json
+import os
 import re
 import re as _re
 import sys
+import time
 from collections.abc import Iterable as _Iterable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 _TOOLS_DIR = Path(__file__).parent
@@ -40,6 +43,18 @@ sys.path.insert(0, str(_TOOLS_DIR))
 from chapter_io import save_chapter  # noqa: E402
 from constants import CHAPTERS_DIR, NOVEL_ROOT  # noqa: E402
 from glossary import load_style_rules, load_terms  # noqa: E402
+from progress import (  # noqa: E402
+    clear_progress,
+    get_pending,
+    get_summary,
+    increment_retries,
+    init_progress,
+    load_progress,
+    mark_done,
+    mark_failed,
+    mark_running,
+    save_progress,
+)
 from providers import get_provider  # noqa: E402
 from schema import (  # noqa: E402
     Chapter,
@@ -516,19 +531,28 @@ def get_chapter_context(
     return "\n".join(parts)
 
 
-def _call_llm(prompt: str, model: str = "haiku") -> str:
-    """Call the LLM via provider abstraction.
+def _call_llm(prompt: str, model: str = "haiku", max_retries: int = 3) -> str:
+    """Call the LLM via provider abstraction with exponential backoff retry.
 
     Uses the provider system (haiku / gemini / claude).
-    Falls back to mock output if provider is unavailable.
+    Falls back to mock output if provider is unavailable after all retries.
     """
-    try:
-        provider = get_provider(model)
-        return provider.translate(prompt)
-    except Exception as e:
-        print(f"⚠ LLM error ({model}): {e}")
-        print("⏭ Falling back to mock output...")
-        return '{"mock": "no LLM configured"}'
+    last_error = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            provider = get_provider(model)
+            return provider.translate(prompt)
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries:
+                wait = 2 ** attempt  # 2s, 4s, 8s
+                print(f"⚠ LLM error ({model}) attempt {attempt}/{max_retries}: {e}")
+                print(f"  Retrying in {wait}s...")
+                time.sleep(wait)
+            else:
+                print(f"✗ LLM error ({model}) after {max_retries} attempts: {e}")
+    print("⏭ Falling back to mock output...")
+    return '{"mock": "no LLM configured"}'
 
 
 def mock_translate(
@@ -604,6 +628,8 @@ def translate_one(
     source_lang: str = "zh",
     target_lang: str = "th",
     profile_lang: str | None = None,
+    progress_state: dict | None = None,
+    progress_slug: str = "global-descent",
 ) -> bool:
     """Translate one chapter. Returns True on success.
 
@@ -624,6 +650,8 @@ def translate_one(
 
     if not src_path.exists():
         print(f"❌ ch{ch_num}: source not found at {src_path}")
+        if progress_state is not None:
+            mark_failed(ch_num, progress_slug, progress_state)
         return False
 
     if dry_run:
@@ -642,10 +670,16 @@ def translate_one(
         print(f"⚠ ch{ch_num}: output exists, skipping (delete to overwrite)")
         return False
 
+    # Mark as running in progress tracker
+    if progress_state is not None:
+        mark_running(ch_num, progress_slug, progress_state)
+
     raw_src = src_path.read_text(encoding="utf-8")
     source = clean_source(raw_src)
     if not source:
         print(f"❌ ch{ch_num}: source is empty after cleaning")
+        if progress_state is not None:
+            mark_failed(ch_num, progress_slug, progress_state)
         return False
 
     print(f"→ ch{ch_num}: source = {len(source)} chars")
@@ -677,6 +711,8 @@ def translate_one(
             ch_data = parse_llm_output(output, ch_num)
         except (json.JSONDecodeError, ValueError) as e:
             print(f"❌ ch{ch_num}: parse failed: {e}")
+            if progress_state is not None:
+                mark_failed(ch_num, progress_slug, progress_state)
             return False
 
     # Validate via Pydantic schema
@@ -705,6 +741,8 @@ def translate_one(
             print(f"  Quality Gate failed for ch{ch_num}:")
             for msg in quality_messages:
                 print(f"  {msg}")
+            if progress_state is not None:
+                mark_failed(ch_num, progress_slug, progress_state)
             return False
     else:
         quality_messages = []
@@ -712,6 +750,8 @@ def translate_one(
     save_chapter(ch, out_path)
     n = len(ch.blocks)
     print(f"✓ ch{ch_num}: saved → {out_path.name} ({n} blocks)")
+    if progress_state is not None:
+        mark_done(ch_num, progress_slug, progress_state)
     if not mock and not no_validate:
         warnings = [m for m in quality_messages if m.startswith("WARNING")]
         if warnings:
@@ -786,6 +826,23 @@ Examples:
         default=None,
         help="Override output/profile language for validation/rendering (e.g. th, en)",
     )
+    ap.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume interrupted batch from saved progress file",
+    )
+    ap.add_argument(
+        "--concurrent",
+        type=int,
+        default=1,
+        metavar="N",
+        help="Translate N chapters concurrently (default: 1, max: 5)",
+    )
+    ap.add_argument(
+        "--no-progress",
+        action="store_true",
+        help="Skip progress file tracking",
+    )
     args = ap.parse_args()
 
     # Term search mode
@@ -817,23 +874,86 @@ Examples:
         return
 
     # Translation mode
-    success = 0
-    failed = 0
-    for ch in ch_nums:
-        if translate_one(
-            ch,
-            mock=args.mock,
-            no_validate=args.no_validate,
-            search=args.search_unknown,
-            source_lang=args.source_lang,
-            target_lang=args.target_lang,
-            profile_lang=args.profile_lang,
-        ):
-            success += 1
-        else:
-            failed += 1
+    # Determine novel slug for progress tracking
+    slug = os.environ.get("NOVEL_SLUG", "global-descent")
+    
+    # Resume: filter to pending chapters
+    use_progress = not args.no_progress and not args.mock
+    progress_state = None
+    
+    if args.resume and use_progress:
+        progress_state = load_progress(slug)
+        ch_nums_orig = ch_nums
+        pending_keys = get_pending(progress_state)
+        ch_nums = sorted([int(k) for k in pending_keys if k in [str(c) for c in ch_nums_orig]])
+        if not ch_nums:
+            print("✓ All chapters already processed (nothing to resume)")
+            return
+        print(f"⏯ Resume mode: {len(ch_nums_orig)} total → {len(ch_nums)} pending")
+    elif use_progress:
+        progress_state = init_progress(ch_nums, slug)
+    
+    concurrent_n = max(1, min(args.concurrent, 5))
+    
+    if concurrent_n > 1:
+        print(f"⚡ Batch translating {len(ch_nums)} chapters ({concurrent_n} concurrent)...")
+        n_workers = min(concurrent_n, len(ch_nums))
+        success = 0
+        failed = 0
+        with ThreadPoolExecutor(max_workers=n_workers) as executor:
+            fut_to_ch = {
+                executor.submit(
+                    translate_one,
+                    ch,
+                    mock=args.mock,
+                    no_validate=args.no_validate,
+                    search=args.search_unknown,
+                    source_lang=args.source_lang,
+                    target_lang=args.target_lang,
+                    profile_lang=args.profile_lang,
+                    progress_state=progress_state,
+                    progress_slug=slug,
+                ): ch
+                for ch in ch_nums
+            }
+            for fut in as_completed(fut_to_ch):
+                ch = fut_to_ch[fut]
+                try:
+                    if fut.result():
+                        success += 1
+                    else:
+                        failed += 1
+                except Exception as e:
+                    print(f"❌ ch{ch}: unexpected error: {e}")
+                    failed += 1
+                    if progress_state is not None:
+                        mark_failed(ch, slug, progress_state)
+    else:
+        success = 0
+        failed = 0
+        for ch in ch_nums:
+            if translate_one(
+                ch,
+                mock=args.mock,
+                no_validate=args.no_validate,
+                search=args.search_unknown,
+                source_lang=args.source_lang,
+                target_lang=args.target_lang,
+                profile_lang=args.profile_lang,
+                progress_state=progress_state,
+                progress_slug=slug,
+            ):
+                success += 1
+            else:
+                failed += 1
+    
     print(f"\n{'=' * 50}")
     print(f"Total: {success} translated, {failed} failed out of {len(ch_nums)}")
+    if progress_state is not None:
+        summary = get_summary(progress_state)
+        print(f"Progress: {summary.get('done', 0)} done / "
+              f"{summary.get('failed', 0)} failed / "
+              f"{summary.get('pending', 0)} pending")
 
 
 if __name__ == "__main__":

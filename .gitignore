@@ -74,5 +74,6 @@ novels/*/chapters/legacy/
 *.db-shm
 *.db-wal
 nul
+.chprogress/
 *.egg-info/
 .venv/
