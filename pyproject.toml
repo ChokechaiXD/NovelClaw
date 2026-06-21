@@ -43,7 +43,7 @@ where = ["."]
 include = ["tools*"]
 
 [tool.setuptools.package-data]
-tools = ["sites/*.json", "slop/*.py"]
+tools = ["sites/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

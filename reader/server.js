@@ -483,70 +483,7 @@ marked.setOptions({ gfm: true, breaks: false });
 const app = express();
 app.use(express.json())
 
-// ── i18n Middleware ─────────────────────────────────────────────
-// Load locale files for TH/EN
-const LOCALE_DIR = path.join(__dirname, 'locales');
-let locales = {};
-try {
-    const files = fsSync.readdirSync(LOCALE_DIR);
-    for (const f of files) {
-        if (f.endsWith('.json')) {
-            const lang = f.replace('.json', '');
-            const content = fsSync.readFileSync(path.join(LOCALE_DIR, f), 'utf-8');
-            locales[lang] = JSON.parse(content);
-            console.log(`i18n: loaded ${lang}`);
-        }
-    }
-} catch (e) {
-    console.error('i18n: no locales directory, using fallback');
-}
-
-// Resolve language from cookie > Accept-Language > 'th'
-function getLang(req) {
-    // Manual cookie parsing (no cookie-parser dependency)
-    const raw = req.headers.cookie || '';
-    const m = raw.match(/\blang=([^;]+)/);
-    if (m && locales[m[1]]) return m[1];
-    const accept = (req.headers['accept-language'] || '').split(',')[0] || '';
-    const base = accept.split('-')[0].trim().toLowerCase();
-    if (base && locales[base]) return base;
-    return 'th';
-}
-
-// t() helper available in all route handlers
-app.use((req, res, next) => {
-    const lang = getLang(req);
-    const locale = locales[lang] || locales['th'] || {};
-    req.t = function (key, fallback) {
-        const parts = key.split('.');
-        let val = locale;
-        for (const p of parts) {
-            val = val?.[p];
-            if (val === undefined) break;
-        }
-        return val ?? fallback ?? key;
-    };
-    req.locale = lang;
-    next();
-});
-
-// Language switcher endpoint
-app.get('/api/lang/:lang', (req, res) => {
-    const lang = req.params.lang;
-    if (locales[lang]) {
-        res.cookie('lang', lang, { maxAge: 365 * 24 * 60 * 60 * 1000, httpOnly: false });
-        res.json({ lang, messages: locales[lang] });
-    } else {
-        res.status(404).json({ error: `Unknown locale: ${lang}` });
-    }
-});
-
-// Get current locale messages (for client-side)
-app.get('/api/lang', (req, res) => {
-    const lang = getLang(req);
-    res.json({ lang, messages: locales[lang] || locales['th'] });
-});
-;
+// ── Slug validation middleware ──────────────────────────────────────────
 
 // Disable caching for static files during development — prevents stale JS/CSS
 // from blocking bug fixes. Remove or set maxAge for production.
@@ -797,8 +734,7 @@ app.post('/api/novel/:slug/glossary/save', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
   const glossaryScript = path.join(__dirname, '..', 'tools', 'glossary.py');
-  const { spawn } = require('child_process');
-  
+
   const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
   const args = [glossaryScript, '--novel', slug, '--save'];
   
@@ -974,7 +910,7 @@ app.post('/api/novel/:slug/chapter/:num/delete', async (req, res) => {
   }
 });
 
-// ── Reviews & Comments APIs (Phase B Social) ───────────────────────────
+// ── Server startup + EADDRINUSE recovery ─────────────────────────────
 //
 // LAN access: bind to 0.0.0.0 (all interfaces) so phones on the same Wi-Fi
 // can reach this server. Find your PC's IP with `ipconfig` (Windows) or
