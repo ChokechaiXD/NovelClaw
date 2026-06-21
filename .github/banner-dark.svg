@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 120">
+  <defs>
+    <linearGradient id="claw" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d9488"/>
+      <stop offset="100%" stop-color="#14b8a6"/>
+    </linearGradient>
+    <linearGradient id="bookGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+  <!-- Claw mark -->
+  <g transform="translate(40, 15)">
+    <path d="M0,60 Q10,30 30,20 Q50,10 60,15 Q55,25 45,30 Q35,35 30,45 Q25,55 20,75 Z"
+          fill="url(#claw)"/>
+    <path d="M20,75 Q30,50 50,35 Q60,28 70,30 Q65,40 55,48 Q45,55 40,65 Q37,72 35,85 Z"
+          fill="url(#claw)" opacity="0.85"/>
+    <path d="M35,85 Q48,60 68,48 Q78,42 85,45 Q80,54 70,62 Q60,70 55,78 Q50,85 48,95 Z"
+          fill="url(#claw)" opacity="0.7"/>
+  </g>
+  <!-- Book mark -->
+  <g transform="translate(80, 18)">
+    <rect x="0" y="0" width="28" height="82" rx="3" fill="url(#bookGrad)"/>
+    <rect x="3" y="5" width="22" height="72" rx="1" fill="#1e1b4b" opacity="0.6"/>
+    <line x1="5" y1="18" x2="23" y2="18" stroke="#c4b5fd" stroke-width="2" opacity="0.8"/>
+    <line x1="5" y1="25" x2="20" y2="25" stroke="#c4b5fd" stroke-width="1.5" opacity="0.6"/>
+    <line x1="5" y1="32" x2="22" y2="32" stroke="#c4b5fd" stroke-width="1.5" opacity="0.6"/>
+    <line x1="5" y1="39" x2="18" y2="39" stroke="#c4b5fd" stroke-width="1.5" opacity="0.6"/>
+  </g>
+  <!-- Title -->
+  <g transform="translate(130, 42)">
+    <text font-family="system-ui, -apple-system, sans-serif" font-size="42" font-weight="800"
+          fill="#e2e8f0" letter-spacing="-0.5">Novel</text>
+    <text font-family="system-ui, -apple-system, sans-serif" font-size="42" font-weight="800"
+          fill="url(#claw)" letter-spacing="-0.5" x="156">Claw</text>
+  </g>
+  <!-- Tagline -->
+  <g transform="translate(130, 78)">
+    <text font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#64748b"
+          font-weight="400" letter-spacing="1.5">
+      ภาษาไทย · 中文 · CROSS-LANGUAGE WEB NOVEL TOOLKIT
+    </text>
+  </g>
+</svg>
