@@ -117,6 +117,68 @@
     <symbol id="icon-bookmarks" viewBox="0 0 24 24">
       <path d="M7 3h10a2 2 0 0 1 2 2v16l-7-5-7 5V5a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </symbol>
+
+    <!-- Mascot: Hermit Crab Normal -->
+    <symbol id="mascot-crab" viewBox="0 0 80 80">
+      <defs>
+        <linearGradient id="mc-body" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#e85d4a" stop-opacity="0.5"/>
+          <stop offset="100%" stop-color="#f0936b" stop-opacity="0.5"/>
+        </linearGradient>
+        <linearGradient id="mc-shell" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.25"/>
+        </linearGradient>
+      </defs>
+      <!-- Shell (round body) -->
+      <ellipse cx="40" cy="48" rx="24" ry="20" fill="url(#mc-shell)" stroke="var(--border)" stroke-width="1"/>
+      <!-- Head -->
+      <circle cx="40" cy="32" r="14" fill="url(#mc-body)" stroke="var(--border-strong)" stroke-width="0.8"/>
+      <!-- Eyes -->
+      <circle cx="34" cy="30" r="3" fill="var(--text)"/>
+      <circle cx="46" cy="30" r="3" fill="var(--text)"/>
+      <circle cx="35" cy="29" r="1.2" fill="var(--bg)"/>
+      <circle cx="47" cy="29" r="1.2" fill="var(--bg)"/>
+      <!-- Blush -->
+      <ellipse cx="28" cy="35" rx="3" ry="1.5" fill="#e85d4a" opacity="0.3"/>
+      <ellipse cx="52" cy="35" rx="3" ry="1.5" fill="#e85d4a" opacity="0.3"/>
+      <!-- Claws holding book -->
+      <path d="M18 50 Q14 42 20 38" fill="none" stroke="var(--border-strong)" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M62 50 Q66 42 60 38" fill="none" stroke="var(--border-strong)" stroke-width="2.5" stroke-linecap="round"/>
+      <!-- Book on shell -->
+      <rect x="30" y="42" width="20" height="14" rx="2" fill="var(--accent-2-soft)" stroke="var(--accent-2)" stroke-width="0.8"/>
+      <line x1="34" y1="47" x2="46" y2="47" stroke="var(--text-muted)" stroke-width="0.8"/>
+      <line x1="34" y1="50" x2="46" y2="50" stroke="var(--text-muted)" stroke-width="0.8"/>
+      <!-- Legs -->
+      <path d="M22 55 L18 62" stroke="var(--border-strong)" stroke-width="2" stroke-linecap="round"/>
+      <path d="M30 57 L28 64" stroke="var(--border-strong)" stroke-width="2" stroke-linecap="round"/>
+      <path d="M50 57 L52 64" stroke="var(--border-strong)" stroke-width="2" stroke-linecap="round"/>
+      <path d="M58 55 L62 62" stroke="var(--border-strong)" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+
+    <!-- Mascot: Hermit Crab Reading (book held up) -->
+    <symbol id="mascot-crab-reading" viewBox="0 0 80 80">
+      <use xlink:href="#mascot-crab"/>
+      <!-- Extra book held by claws in front -->
+      <rect x="28" y="20" width="24" height="18" rx="2" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="0.8"/>
+      <line x1="32" y1="26" x2="48" y2="26" stroke="var(--text-muted)" stroke-width="0.8"/>
+      <line x1="32" y1="30" x2="48" y2="30" stroke="var(--text-muted)" stroke-width="0.8"/>
+    </symbol>
+
+    <!-- Mascot: Hermit Crab Excited (surprised/alarmed) -->
+    <symbol id="mascot-crab-excited" viewBox="0 0 80 80">
+      <use xlink:href="#mascot-crab"/>
+      <!-- Bigger eyes (surprised) -->
+      <circle cx="34" cy="30" r="4" fill="var(--text)"/>
+      <circle cx="46" cy="30" r="4" fill="var(--text)"/>
+      <circle cx="34" cy="29" r="1.5" fill="var(--bg)"/>
+      <circle cx="46" cy="29" r="1.5" fill="var(--bg)"/>
+      <!-- Open mouth -->
+      <ellipse cx="40" cy="38" rx="3" ry="2" fill="var(--bg)"/>
+      <!-- Raised claws -->
+      <path d="M18 42 Q10 32 16 26" fill="none" stroke="var(--border-strong)" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M62 42 Q70 32 64 26" fill="none" stroke="var(--border-strong)" stroke-width="2.5" stroke-linecap="round"/>
+    </symbol>
   </svg>
 
   <div class="app-bg"></div>

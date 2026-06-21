@@ -29,6 +29,33 @@
 
   function $(id) { return document.getElementById(id); }
 
+  // ── UI State Helpers (Skeleton / Empty / Error) ──────────────────────────
+  function showSkeleton(container, type) {
+    if (typeof container === 'string') container = $(container);
+    if (!container) return;
+    if (type === 'card') {
+      container.innerHTML = '<div class="skel skel-card" style="margin-bottom:16px;"></div>'.repeat(3);
+    } else if (type === 'list') {
+      container.innerHTML = '<div class="skel skel-line"></div>'.repeat(6);
+    } else if (type === 'detail') {
+      container.innerHTML = '<div class="skel skel-block" style="margin-bottom:24px;"></div><div class="skel skel-line"></div><div class="skel skel-line"></div><div class="skel skel-line" style="width:45%;"></div>';
+    } else {
+      container.innerHTML = '<div class="skel skel-block" style="margin-bottom:16px;"></div><div class="skel skel-line"></div><div class="skel skel-line"></div><div class="skel skel-line" style="width:55%;"></div>';
+    }
+  }
+
+  function showEmpty(container, title, desc) {
+    if (typeof container === 'string') container = $(container);
+    if (!container) return;
+    container.innerHTML = '<div class="empty-state"><svg><use xlink:href="#mascot-crab-reading"/></svg><div class="empty-state-title">' + (title || 'ยังไม่มีข้อมูล') + '</div><div class="empty-state-desc">' + (desc || '') + '</div></div>';
+  }
+
+  function showError(container, title, desc) {
+    if (typeof container === 'string') container = $(container);
+    if (!container) return;
+    container.innerHTML = '<div class="error-state"><svg><use xlink:href="#mascot-crab-excited"/></svg><div class="error-state-title">' + (title || 'เกิดข้อผิดพลาด') + '</div><div class="error-state-desc">' + (desc || '') + '</div><button class="error-state-retry" onclick="location.reload()">ลองอีกครั้ง</button></div>';
+  }
+
   function el(tag, attrs = {}, ...children) {
     const node = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) {
@@ -147,10 +174,10 @@
           <span class="status-dot ${n.status==='ongoing'?'online':'idle'}"></span>
         </div>`;
       }
-      if (!html) html = '<p style="font-size:11px;color:var(--text-muted);">ยังไม่มีนิยาย</p>';
+      if (!html) showEmpty(feed, "ยังไม่มีนิยาย", "เพิ่มนิยายเรื่องแรกของคุณ");
       feed.innerHTML = html;
     } catch {
-      feed.innerHTML = '<p style="font-size:11px;color:var(--text-muted);">โหลดไม่สำเร็จ</p>';
+      showError(feed, "โหลดไม่สำเร็จ");
     }
   }
 
@@ -176,7 +203,7 @@
   async function renderHome(params) {
     const page = $("page-home");
     if (!page) return;
-    page.innerHTML = '<div class="section-label" style="padding:0;margin-bottom:16px;">กำลังโหลด...</div>';
+    showSkeleton('page-home');
 
     try {
       const novels = await getNovels();
@@ -305,7 +332,7 @@
       page.innerHTML = html;
 
     } catch (err) {
-      page.innerHTML = `<p style="color:var(--error);">โหลดไม่สำเร็จ: ${err.message}</p>`;
+      showError(page, "โหลดไม่สำเร็จ", err.message);
     }
   }
 
@@ -313,7 +340,7 @@
   async function renderLibrary(params) {
     const page = $("page-library");
     if (!page) return;
-    page.innerHTML = '<div class="section-label" style="padding:0;">กำลังโหลด...</div>';
+    showSkeleton(page);
 
     try {
       const novels = await getNovels();
@@ -348,7 +375,7 @@
       page.innerHTML = html;
 
     } catch (err) {
-      page.innerHTML = `<p style="color:var(--error);">โหลดไม่สำเร็จ: ${err.message}</p>`;
+      showError(page, "โหลดไม่สำเร็จ", err.message);
     }
   }
 
@@ -438,7 +465,7 @@
   async function renderRanking(params) {
     const page = $("page-ranking");
     if (!page) return;
-    page.innerHTML = '<div class="section-label" style="padding:0;">กำลังโหลด...</div>';
+    showSkeleton(page);
 
     try {
       const novels = await getNovels();
@@ -470,7 +497,7 @@
       page.innerHTML = html;
 
     } catch (err) {
-      page.innerHTML = `<p style="color:var(--error);">โหลดไม่สำเร็จ: ${err.message}</p>`;
+      showError(page, "โหลดไม่สำเร็จ", err.message);
     }
   }
 
@@ -481,7 +508,7 @@
     const slug = params.slug;
     if (!slug) { page.innerHTML = '<p style="color:var(--error);">ไม่พบ slug</p>'; return; }
 
-    page.innerHTML = '<div class="section-label" style="padding:0;">กำลังโหลด...</div>';
+    showSkeleton(page);
 
     try {
       const novels = await getNovels();
@@ -614,7 +641,7 @@
       }
 
     } catch (err) {
-      page.innerHTML = `<p style="color:var(--error);">โหลดไม่สำเร็จ: ${err.message}</p>`;
+      showError(page, "โหลดไม่สำเร็จ", err.message);
     }
   }
 
@@ -1436,7 +1463,7 @@
   async function renderAdmin(params) {
     const page = $("page-admin");
     if (!page) return;
-    page.innerHTML = '<div class="section-label" style="padding:0;">กำลังโหลด...</div>';
+    showSkeleton(page);
 
     try {
       const novels = await getNovels();
@@ -1492,7 +1519,7 @@
         });
       }
     } catch (err) {
-      page.innerHTML = `<p style="color:var(--error);">โหลดไม่สำเร็จ: ${err.message}</p>`;
+      showError(page, "โหลดไม่สำเร็จ", err.message);
     }
   }
 
@@ -2294,7 +2321,7 @@
   async function renderNotifications(params) {
     const page = $("page-notifications");
     if (!page) return;
-    page.innerHTML = '<div class="section-label" style="padding:0;">กำลังโหลด...</div>';
+    showSkeleton(page);
 
     try {
       const notifications = await api("/api/notifications");
@@ -2356,7 +2383,7 @@
       updateNotificationBadge();
 
     } catch (err) {
-      page.innerHTML = `<p style="color:var(--error);">โหลดไม่สำเร็จ: ${err.message}</p>`;
+      showError(page, "โหลดไม่สำเร็จ", err.message);
     }
   }
 
