@@ -20,7 +20,6 @@ const NovelPage = {
       const chapters = await Api.getChapters(slug);
       const enriched = Ui.enrichNovel(novel);
 
-      // Pagination
       const pageSize = 100;
       let selectedPageIdx = 0;
       if (enriched.lastRead) {
@@ -94,9 +93,11 @@ const NovelPage = {
       page.innerHTML = html;
 
       // ── Wire pagination ──────────────────────────────────────────────
-      page.querySelectorAll('.page-range-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const idx = parseInt(btn.dataset.pageIdx, 10);
+      const buttons = page.querySelectorAll('.page-range-btn');
+      for (let b = 0; b < buttons.length; b++) {
+        const btn = buttons[b];
+        btn.addEventListener('click', function() {
+          const idx = parseInt(this.dataset.pageIdx, 10);
           const pStart = idx * pageSize;
           const pEnd = Math.min(pStart + pageSize, chapters.length);
           const pChs = chapters.slice(pStart, pEnd);
@@ -107,13 +108,19 @@ const NovelPage = {
             const read = Store.isRead(slug, ch.num);
             grid.appendChild(Ui.el('a',
               { href: `#novel/${slug}/${ch.num}`, class: `c-detail__ch-btn ${read ? 'c-detail__ch-btn--read' : ''}`, 'data-nav': '' },
-              `ตอนที่ ${ch.num}${ch.title ? ch.title : ''}${read ? '✔' : ''}`
+              `ตอนที่ ${ch.num}${ch.title ? ' ' + Ui.esc(ch.title) : ''}${read ? ' ✔' : ''}`
             ));
           }
-          page.querySelectorAll('.page-range-btn').forEach(b => b.classList.remove('c-btn--primary'));
-          btn.classList.add('c-btn--primary');
+          // Swap classes: remove primary from all, add ghost; add primary to clicked, remove ghost
+          const allBtns = page.querySelectorAll('.page-range-btn');
+          for (let i = 0; i < allBtns.length; i++) {
+            allBtns[i].classList.remove('c-btn--primary');
+            allBtns[i].classList.add('c-btn--ghost');
+          }
+          this.classList.remove('c-btn--ghost');
+          this.classList.add('c-btn--primary');
         });
-      });
+      }
 
       // ── Load synopsis ────────────────────────────────────────────────
       this._loadSynopsis(slug, novel);
