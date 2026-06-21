@@ -623,6 +623,7 @@ def analysis_pass(
         "placeheld_text": pipeline_result["placeheld_text"],
         "summary": summary,
         "entity_count": pipeline_result["count"],
+        "replaced_count": pipeline_result.get("replaced_count", 0),
     }
 
 
@@ -706,7 +707,7 @@ def translate_one(
     auto_glossary: bool = False,
     use_score: bool = False,
     use_tm: bool = False,
-    agent_passes: int = 1,
+    agent_passes: int = 2,
     mock_agents: bool = False,
     json_mode: bool = False,
 ) -> bool:
@@ -1024,9 +1025,9 @@ Examples:
     ap.add_argument(
         "--passes",
         type=int,
-        default=1,
+        default=2,
         choices=[1, 2, 3],
-        help="Multi-agent passes: 1=translate, 2=translate+validate, 3=translate+validate+polish (default: 1)",
+        help="Multi-agent passes: 1=translate, 2=translate+validate (default), 3=translate+validate+polish",
     )
     ap.add_argument(
         "--mock-agents",
