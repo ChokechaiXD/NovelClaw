@@ -765,6 +765,7 @@ Examples:
   python tools/translate.py 113 --search "招募"     # search Thai for term
   python tools/translate.py 113 --context          # print full context
   python tools/translate.py 113 --no-validate      # skip schema validation
+  novelclaw-translate 113                          # via global entry point
         """,
     )
     ap.add_argument("chapters", help="Single (113) or range (113-150)")
@@ -778,8 +779,8 @@ Examples:
         action="store_true",
         help="Extract & search unknown terms during translation",
     )
-    ap.add_argument("--source-lang", default="zh", help="Source language key (e.g. zh, ja, en)")
-    ap.add_argument("--target-lang", default="th", help="Target language key (e.g. th, en)")
+    ap.add_argument("--source-lang", "--from", default="zh", help="Source language key (e.g. zh, ja, en). Short: --from.")
+    ap.add_argument("--target-lang", "--to", default="th", help="Target language key (e.g. th, en). Short: --to.")
     ap.add_argument(
         "--profile-lang",
         default=None,
