@@ -333,10 +333,9 @@ def score_translation(
         return result
 
     try:
-        from providers import get_provider
+        from providers import call_llm
         prompt = build_score_prompt(source_text, chapter_data, glossary_terms)
-        provider = get_provider()
-        llm_output = provider.translate(prompt)
+        llm_output = call_llm(prompt)
         return parse_score_response(llm_output)
     except Exception as e:
         result = ScoreResult()
