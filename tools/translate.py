@@ -708,23 +708,12 @@ def translate_one(
     use_tm: bool = False,
     agent_passes: int = 1,
     mock_agents: bool = False,
+    json_mode: bool = False,
 ) -> bool:
     """Translate one chapter. Returns True on success.
 
-    Args:
-        ch_num: chapter number
-        mock: use mock translation (no LLM call)
-        no_validate: skip schema validation
-        dry_run: show context only, don't translate or save
-        search: include unknown term search in context
-        source_lang: source language key
-        target_lang: target language key
-        profile_lang: optional override for output/profile language
-        progress_state: optional progress tracker state dict
-        progress_slug: novel slug for progress tracking
-        use_entities: enable entity placeholder pipeline
-        two_pass: enable two-pass analysis (summary + entities before translate)
-        auto_glossary: auto-discover new glossary terms from source and append to auto.md
+    When json_mode=True, prints a single JSON line per chapter result
+    instead of human-readable text.
     """
     normalized_source_lang = normalize_language_key(source_lang, "cn")
     normalized_target_lang = normalize_language_key(target_lang, "th")
@@ -733,7 +722,11 @@ def translate_one(
     out_path = CHAPTERS_DIR / f"{ch_num:04d}.json"
 
     if not src_path.exists():
-        print(f"❌ ch{ch_num}: source not found at {src_path}")
+        if json_mode:
+            print(json.dumps({"status": "failed", "ch": ch_num, "reason": "source_not_found",
+                                "path": str(src_path)}, ensure_ascii=False))
+        else:
+            print(f"❌ ch{ch_num}: source not found at {src_path}")
         if progress_state is not None:
             mark_failed(ch_num, progress_slug, progress_state)
         return False
@@ -761,12 +754,17 @@ def translate_one(
     raw_src = src_path.read_text(encoding="utf-8")
     source = clean_source(raw_src)
     if not source:
-        print(f"❌ ch{ch_num}: source is empty after cleaning")
+        if json_mode:
+            print(json.dumps({"status": "failed", "ch": ch_num, "reason": "empty_source"},
+                               ensure_ascii=False))
+        else:
+            print(f"❌ ch{ch_num}: source is empty after cleaning")
         if progress_state is not None:
             mark_failed(ch_num, progress_slug, progress_state)
         return False
 
-    print(f"→ ch{ch_num}: source = {len(source)} chars")
+    if not json_mode:
+        print(f"→ ch{ch_num}: source = {len(source)} chars")
 
     # ── Phase 2: Entity pipeline + two-pass ──────────────────────
     placeholder_map = {}
@@ -868,9 +866,15 @@ def translate_one(
             profile_lang=profile_lang,
         )
         if not quality_ok:
-            print(f"  Quality Gate failed for ch{ch_num}:")
-            for msg in quality_messages:
-                print(f"  {msg}")
+            if json_mode:
+                import json as _json
+                print(_json.dumps({"status": "failed", "ch": ch_num,
+                                    "reason": "quality_gate", "messages": quality_messages},
+                                   ensure_ascii=False))
+            else:
+                print(f"  Quality Gate failed for ch{ch_num}:")
+                for msg in quality_messages:
+                    print(f"  {msg}")
             if progress_state is not None:
                 mark_failed(ch_num, progress_slug, progress_state)
             return False
@@ -879,17 +883,23 @@ def translate_one(
 
     save_chapter(ch, out_path)
     n = len(ch.blocks)
-    print(f"✓ ch{ch_num}: saved → {out_path.name} ({n} blocks)")
+    if json_mode:
+        import json as _json
+        print(_json.dumps({"status": "ok", "ch": ch_num, "blocks": n,
+                            "path": str(out_path)}, ensure_ascii=False))
+    else:
+        print(f"✓ ch{ch_num}: saved → {out_path.name} ({n} blocks)")
     if progress_state is not None:
         mark_done(ch_num, progress_slug, progress_state)
     if not mock and not no_validate:
         warnings = [m for m in quality_messages if m.startswith("WARNING")]
-        if warnings:
-            print(f"  Quality Report for ch{ch_num}:")
-            for w in warnings:
-                print(w)
-        else:
-            print("  OK Quality: clean")
+        if not json_mode:
+            if warnings:
+                print(f"  Quality Report for ch{ch_num}:")
+                for w in warnings:
+                    print(w)
+            else:
+                print("  OK Quality: clean")
 
     # ── Post-translation steps (consolidated) ──────────────────
     _run_after(use_tm, mock, "TM", lambda: _post_tm(ch_data, progress_slug, ch_num))
@@ -963,6 +973,11 @@ Examples:
         "--profile-lang",
         default=None,
         help="Override output/profile language for validation/rendering (e.g. th, en)",
+    )
+    ap.add_argument(
+        "--json",
+        action="store_true",
+        help="Output JSON for agent consumption (parseable by MIKA)",
     )
     ap.add_argument(
         "--resume",
@@ -1062,16 +1077,21 @@ Examples:
         pending_keys = get_pending(progress_state)
         ch_nums = sorted([int(k) for k in pending_keys if k in [str(c) for c in ch_nums_orig]])
         if not ch_nums:
-            print("✓ All chapters already processed (nothing to resume)")
+            if args.json:
+                print(json.dumps({"status": "ok", "note": "nothing to resume"}, ensure_ascii=False))
+            else:
+                print("✓ All chapters already processed (nothing to resume)")
             return
-        print(f"⏯ Resume mode: {len(ch_nums_orig)} total → {len(ch_nums)} pending")
+        if not args.json:
+            print(f"⏯ Resume mode: {len(ch_nums_orig)} total → {len(ch_nums)} pending")
     elif use_progress:
         progress_state = init_progress(ch_nums, slug)
     
     concurrent_n = max(1, min(args.concurrent, 5))
     
     if concurrent_n > 1:
-        print(f"⚡ Batch translating {len(ch_nums)} chapters ({concurrent_n} concurrent)...")
+        if not args.json:
+            print(f"⚡ Batch translating {len(ch_nums)} chapters ({concurrent_n} concurrent)...")
         n_workers = min(concurrent_n, len(ch_nums))
         success = 0
         failed = 0
@@ -1093,6 +1113,7 @@ Examples:
                     auto_glossary=args.auto_glossary,
                     use_score=args.score,
                     use_tm=args.tm,
+                    json_mode=args.json,
                 ): ch
                 for ch in ch_nums
             }
@@ -1104,7 +1125,11 @@ Examples:
                     else:
                         failed += 1
                 except Exception as e:
-                    print(f"❌ ch{ch}: unexpected error: {e}")
+                    if args.json:
+                        print(json.dumps({"status": "failed", "ch": ch, "reason": "exception",
+                                            "detail": str(e)}, ensure_ascii=False))
+                    else:
+                        print(f"❌ ch{ch}: unexpected error: {e}")
                     failed += 1
                     if progress_state is not None:
                         mark_failed(ch, slug, progress_state)
@@ -1127,18 +1152,30 @@ Examples:
                 auto_glossary=args.auto_glossary,
                 use_score=args.score,
                 use_tm=args.tm,
-            ):
+                json_mode=args.json,
+                ):
                 success += 1
             else:
                 failed += 1
     
-    print(f"\n{'=' * 50}")
-    print(f"Total: {success} translated, {failed} failed out of {len(ch_nums)}")
-    if progress_state is not None:
-        summary = get_summary(progress_state)
-        print(f"Progress: {summary.get('done', 0)} done / "
-              f"{summary.get('failed', 0)} failed / "
-              f"{summary.get('pending', 0)} pending")
+    if not args.json:
+        print(f"\n{'=' * 50}")
+    if args.json:
+        import json as _json
+        batch_summary = {"status": "ok" if failed == 0 else "partial" if success > 0 else "failed",
+                          "total": len(ch_nums), "success": success, "failed": failed}
+        if progress_state is not None:
+            s = get_summary(progress_state)
+            batch_summary["progress"] = {"done": s.get("done", 0), "failed": s.get("failed", 0),
+                                          "pending": s.get("pending", 0)}
+        print(_json.dumps(batch_summary, ensure_ascii=False))
+    else:
+        print(f"Total: {success} translated, {failed} failed out of {len(ch_nums)}")
+        if progress_state is not None:
+            summary = get_summary(progress_state)
+            print(f"Progress: {summary.get('done', 0)} done / "
+                  f"{summary.get('failed', 0)} failed / "
+                  f"{summary.get('pending', 0)} pending")
 
 
 if __name__ == "__main__":
