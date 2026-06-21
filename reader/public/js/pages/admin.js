@@ -93,9 +93,13 @@ const AdminGlossaryPage = {
       if (slug) {
         html += '<div class="c-table-wrap"><table class="c-table"><thead><tr><th>จีน</th><th>ไทย</th><th>ประเภท</th><th>ระดับ</th></tr></thead><tbody>';
         try {
-          const glossRes = await fetch('/api/novel/' + slug + '/glossary');
-          const terms = await glossRes.json();
-          if (terms.length === 0) {
+          const glossRes = await fetch('/api/novel/' + slug + '/glossary/data');
+          if (!glossRes.ok) {
+            html += '<tr><td colspan="4" class="u-text-center u-text-muted">ไม่สามารถโหลดคำศัพท์ (API: ' + glossRes.status + ')</td></tr>';
+          } else {
+            const data = await glossRes.json();
+            const terms = data.terms || data || [];
+            if (terms.length === 0) {
             html += '<tr><td colspan="4" class="u-text-center u-text-muted">ไม่มีคำศัพท์</td></tr>';
           } else {
             for (const t of terms) {
