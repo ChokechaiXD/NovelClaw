@@ -1,0 +1,47 @@
+{
+  "cn": {
+    "dialogue_open": "「",
+    "dialogue_close": "」",
+    "system_open": "【",
+    "system_close": "】",
+    "game_open": "《",
+    "game_close": "》",
+    "end_marker": "(จบบท)"
+  },
+  "jp": {
+    "dialogue_open": "「",
+    "dialogue_close": "」",
+    "system_open": "【",
+    "system_close": "】",
+    "game_open": "『",
+    "game_close": "』",
+    "end_marker": "（終）"
+  },
+  "kr": {
+    "dialogue_open": "「",
+    "dialogue_close": "」",
+    "system_open": "【",
+    "system_close": "】",
+    "game_open": "《",
+    "game_close": "》",
+    "end_marker": "(끝)"
+  },
+  "en": {
+    "dialogue_open": "“",
+    "dialogue_close": "”",
+    "system_open": "[",
+    "system_close": "]",
+    "game_open": "“",
+    "game_close": "”",
+    "end_marker": "(End)"
+  },
+  "th": {
+    "dialogue_open": "“",
+    "dialogue_close": "”",
+    "system_open": "【",
+    "system_close": "】",
+    "game_open": "《",
+    "game_close": "》",
+    "end_marker": "(จบบท)"
+  }
+}
