@@ -618,7 +618,7 @@
           } else if (tab === "reviews") {
             const reviewsPanel = document.getElementById("detail-tab-reviews-panel");
             reviewsPanel.style.display = "flex";
-            loadAndRenderReviews(slug, reviewsPanel);
+            showEmpty(reviewsPanel, "รีวิว", "ฟังก์ชันรีวิวกำลังอยู่ในระหว่างการพัฒนา");
           }
         });
       });
@@ -643,195 +643,6 @@
 
     } catch (err) {
       showError(page, "โหลดไม่สำเร็จ", err.message);
-    }
-  }
-
-  async function loadAndRenderReviews(slug, container) {
-    container.innerHTML = '<div style="color:var(--text-secondary); font-size:13px;">กำลังโหลดรีวิว...</div>';
-    try {
-      const reviews = await api(`/api/novel/${encodeURIComponent(slug)}/reviews`);
-      const count = reviews.length;
-      
-      let avg = 0.0;
-      const dist = { 5:0, 4:0, 3:0, 2:0, 1:0 };
-      if (count > 0) {
-        const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
-        avg = (sum / count).toFixed(1);
-        reviews.forEach(r => {
-          const ratingKey = Math.min(5, Math.max(1, Math.round(r.rating)));
-          dist[ratingKey] = (dist[ratingKey] || 0) + 1;
-        });
-      }
-
-      const getStarsHtml = (rating) => {
-        let stars = "";
-        for (let i = 1; i <= 5; i++) {
-          stars += i <= rating ? "★" : "☆";
-        }
-        return stars;
-      };
-
-      let html = `
-      <div class="reviews-summary-card" style="display:flex; gap:32px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; flex-wrap:wrap;">
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:120px; flex:1;">
-          <span style="font-size:3rem; font-weight:800; color:var(--text-primary); line-height:1;">${avg}</span>
-          <span style="color:#fbbf24; font-size:1.5rem; margin:8px 0;">${getStarsHtml(Math.round(avg))}</span>
-          <span style="font-size:11px; color:var(--text-muted);">${count} รีวิว</span>
-        </div>
-        <div style="flex:2; display:flex; flex-direction:column; gap:8px; min-width:240px;">
-      `;
-
-      for (let star = 5; star >= 1; star--) {
-        const starCount = dist[star];
-        const pct = count > 0 ? Math.round((starCount / count) * 100) : 0;
-        html += `
-          <div style="display:flex; align-items:center; gap:12px; font-size:12px; color:var(--text-secondary);">
-            <span style="width:40px; display:flex; justify-content:flex-end; gap:2px; font-family:var(--font-mono);">${star} ★</span>
-            <div style="flex:1; height:8px; background:var(--bg-tertiary); border-radius:4px; overflow:hidden; border:1px solid var(--border);">
-              <div style="width:${pct}%; height:100%; background:linear-gradient(to right, var(--accent) 0%, var(--purple) 100%); border-radius:4px;"></div>
-            </div>
-            <span style="width:30px; text-align:right; font-family:var(--font-mono); color:var(--text-muted);">${pct}%</span>
-          </div>
-        `;
-      }
-
-      html += `
-        </div>
-      </div>
-
-      <div class="review-form-card" style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px;">
-        <h4 style="font-size:1.1rem; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:6px;">เขียนรีวิวใหม่</h4>
-        <form id="novel-review-form" onsubmit="return false;" style="display:flex; flex-direction:column; gap:16px;">
-          <div style="display:flex; align-items:center; gap:12px;">
-            <label style="font-size:13px; color:var(--text-secondary); width:80px;">เรตติ้ง</label>
-            <div class="star-rating-selector" style="display:flex; gap:6px; font-size:26px; cursor:pointer; color:var(--text-muted); user-select:none;">
-              <span data-val="1">☆</span><span data-val="2">☆</span><span data-val="3">☆</span><span data-val="4">☆</span><span data-val="5">☆</span>
-            </div>
-            <input type="hidden" id="review-rating-input" value="5" />
-          </div>
-          <div style="display:flex; align-items:center; gap:12px;">
-            <label style="font-size:13px; color:var(--text-secondary); width:80px;">ชื่อผู้ใช้</label>
-            <input type="text" id="review-user-input" value="P'Choke" placeholder="กรอกชื่อของคุณ..." style="flex:1; max-width:250px; background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:8px 12px; border-radius:var(--radius-sm); font-size:0.9rem; outline:none;" required />
-          </div>
-          <div style="display:flex; flex-direction:column; gap:6px;">
-            <label style="font-size:13px; color:var(--text-secondary);">ข้อความรีวิว</label>
-            <textarea id="review-text-input" placeholder="แชร์ความประทับใจของพี่โชคกันค่ะ..." style="width:100%; min-height:100px; background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:12px; border-radius:var(--radius-sm); font-size:0.95rem; line-height:1.6; resize:vertical; outline:none;" required></textarea>
-          </div>
-          <button type="submit" class="hero-cta" style="align-self:flex-end; padding:10px 24px; font-size:0.9rem;">ส่งรีวิว</button>
-        </form>
-      </div>
-
-      <div class="reviews-list-section" style="display:flex; flex-direction:column; gap:16px;">
-        <h4 style="font-size:1.1rem; font-weight:700; margin-bottom:8px;">รีวิวทั้งหมด (${count})</h4>
-      `;
-
-      if (count === 0) {
-        html += `
-        <div style="text-align:center; padding:48px; background:var(--bg-secondary); border:1px dashed var(--border); border-radius:var(--radius-lg); color:var(--text-muted); font-size:13px;">
-          ยังไม่มีรีวิวสำหรับนิยายเรื่องนี้ค่ะ ประเดิมคนแรกกันเลยไหมคะพี่โชค 🦊💅
-        </div>
-        `;
-      } else {
-        const sortedReviews = [...reviews].sort((a,b) => b.ts - a.ts);
-        sortedReviews.forEach(r => {
-          html += `
-          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; display:flex; flex-direction:column; gap:10px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-weight:700; font-size:0.95rem; color:var(--text-primary);">${esc(r.user)}</span>
-                <span style="color:#fbbf24; font-size:1.1rem; font-family:var(--font-mono);">${getStarsHtml(r.rating)}</span>
-              </div>
-              <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">${new Date(r.ts).toLocaleString("th-TH", {day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit"})}</span>
-            </div>
-            <p style="font-size:0.95rem; color:var(--text-primary); line-height:1.65; white-space:pre-wrap; word-break:break-word;">${esc(r.text)}</p>
-          </div>
-          `;
-        });
-      }
-
-      html += `</div>`;
-      container.innerHTML = html;
-
-      const starSpans = container.querySelectorAll(".star-rating-selector span");
-      const ratingInput = container.querySelector("#review-rating-input");
-
-      const updateStars = (val) => {
-        starSpans.forEach(span => {
-          const ratingVal = parseInt(span.dataset.val, 10);
-          if (ratingVal <= val) {
-            span.textContent = "★";
-            span.style.color = "#fbbf24";
-          } else {
-            span.textContent = "☆";
-            span.style.color = "var(--text-muted)";
-          }
-        });
-      };
-
-      updateStars(5);
-
-      starSpans.forEach(span => {
-        span.addEventListener("click", () => {
-          const val = parseInt(span.dataset.val, 10);
-          ratingInput.value = val;
-          updateStars(val);
-        });
-
-        span.addEventListener("mouseenter", () => {
-          const val = parseInt(span.dataset.val, 10);
-          updateStars(val);
-        });
-      });
-
-      const selectorContainer = container.querySelector(".star-rating-selector");
-      if (selectorContainer) {
-        selectorContainer.addEventListener("mouseleave", () => {
-          updateStars(parseInt(ratingInput.value, 10));
-        });
-      }
-
-      const form = container.querySelector("#novel-review-form");
-      if (form) {
-        form.addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const rating = parseInt(ratingInput.value, 10);
-          const user = container.querySelector("#review-user-input").value.trim();
-          const text = container.querySelector("#review-text-input").value.trim();
-
-          if (!user || !text || !rating) {
-            showToast("กรุณากรอกข้อมูลให้ครบถ้วนก่อนส่งนะคะพี่โชค! 🦊", "warning");
-            return;
-          }
-
-          try {
-            const saveBtn = form.querySelector("button[type='submit']");
-            if (saveBtn) {
-              saveBtn.disabled = true;
-              saveBtn.textContent = "กำลังส่ง...";
-            }
-            
-            const res = await fetch(`/api/novel/${encodeURIComponent(slug)}/reviews/save`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ user, rating, text })
-            });
-
-            if (!res.ok) throw new Error(res.statusText);
-
-            loadAndRenderReviews(slug, container);
-          } catch (err) {
-            showToast(`ไม่สามารถส่งรีวิวได้: ${err.message}`, "error");
-            const saveBtn = form.querySelector("button[type='submit']");
-            if (saveBtn) {
-              saveBtn.disabled = false;
-              saveBtn.textContent = "ส่งรีวิว";
-            }
-          }
-        });
-      }
-
-    } catch (err) {
-      container.innerHTML = `<p style="color:var(--error); font-size:13px;">โหลดรีวิวไม่สำเร็จ: ${err.message}</p>`;
     }
   }
 
@@ -909,32 +720,6 @@
           <svg style="width: 14px; height: 14px; color: currentColor;"><use xlink:href="#icon-arrow-right"></use></svg>
         </button>
       </nav>
-
-      <section class="chapter-comments-section" style="margin-top:48px; border-top:1px solid var(--border); padding-top:32px;">
-        <h3 id="comments-toggle-header" style="font-size:1.15rem; font-weight:700; margin-bottom:20px; display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;" title="คลิกเพื่อแสดง/ซ่อนความคิดเห็น">
-          <span>💬 ความคิดเห็นประจำตอน (<span id="comments-count">0</span>)</span>
-          <span id="comments-toggle-chevron" style="margin-left:auto; font-size: 14px; color: var(--text-muted); transition: transform 0.2s;">❯</span>
-        </h3>
-        
-        <div id="comments-collapsible-wrapper" style="display:none; flex-direction:column; gap:24px;">
-          <div id="comments-feed" style="display:flex; flex-direction:column; gap:16px; margin-bottom:24px;">
-            <!-- Comments -->
-          </div>
-          <div class="comment-form-card" style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px;">
-            <h4 style="font-size:0.95rem; font-weight:600; margin-bottom:14px;">แสดงความคิดเห็น</h4>
-            <form id="comment-form" onsubmit="return false;" style="display:flex; flex-direction:column; gap:12px;">
-              <div style="display:flex; gap:12px; align-items:center;">
-                <label style="font-size:0.8rem; color:var(--text-secondary); width:80px;">ชื่อผู้ใช้</label>
-                <input type="text" id="comment-user-input" value="P'Choke" placeholder="ชื่อของคุณ..." style="flex:1; max-width:200px; background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:8px 12px; border-radius:var(--radius-sm); font-size:0.9rem; outline:none;" required />
-              </div>
-              <div style="display:flex; flex-direction:column; gap:6px;">
-                <textarea id="comment-text-input" placeholder="พิมพ์ความคิดเห็นของพี่โชคตรงนี้..." style="width:100%; min-height:80px; background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:12px; border-radius:var(--radius-sm); font-size:0.95rem; line-height:1.5; resize:vertical; outline:none;" required></textarea>
-              </div>
-              <button type="submit" class="hero-cta" style="align-self:flex-end; padding:8px 20px; font-size:0.9rem;">ส่งความคิดเห็น</button>
-            </form>
-          </div>
-        </div>
-      </section>
     </div>`;
 
     // State
@@ -999,9 +784,6 @@
         markRead(slug, ch.num);
         setLastPosition(slug, ch.num);
 
-        // Load comments
-        loadChapterComments(slug, ch.num);
-
         // Scroll to top
         const scrollContainer = document.querySelector('.main-content');
         if (scrollContainer) scrollContainer.scrollTop = 0;
@@ -1010,43 +792,6 @@
         const contentEl = document.getElementById("reader-content");
         if (titleEl) titleEl.textContent = 'เกิดข้อผิดพลาด';
         if (contentEl) contentEl.innerHTML = `<p style="text-align:center;padding:2em;color:var(--error);">โหลดไม่สำเร็จ: ${err.message}</p>`;
-      }
-    }
-
-    async function loadChapterComments(slug, num) {
-      const feed = document.getElementById("comments-feed");
-      const countEl = document.getElementById("comments-count");
-      if (!feed) return;
-
-      feed.innerHTML = '<div style="color:var(--text-muted); font-size:12px;">กำลังโหลดความคิดเห็น...</div>';
-      try {
-        const comments = await api(`/api/novel/${encodeURIComponent(slug)}/chapter/${num}/comments`);
-        if (countEl) countEl.textContent = String(comments.length);
-
-        if (comments.length === 0) {
-          feed.innerHTML = `
-          <div style="text-align:center; padding:24px; background:var(--bg-secondary); border:1px dashed var(--border); border-radius:var(--radius-lg); color:var(--text-muted); font-size:13px;">
-            ยังไม่มีความคิดเห็นในตอนนี้ค่ะ มาร่วมประเดิมคนแรกกันไหมคะพี่โชค 🦊💅
-          </div>
-          `;
-        } else {
-          let html = "";
-          const sorted = [...comments].sort((a,b) => b.ts - a.ts);
-          sorted.forEach(c => {
-            html += `
-            <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px; display:flex; flex-direction:column; gap:8px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                <span style="font-weight:700; font-size:0.9rem; color:var(--text-primary);">${esc(c.user)}</span>
-                <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">${new Date(c.ts).toLocaleString("th-TH", {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"})}</span>
-              </div>
-              <p style="font-size:0.92rem; color:var(--text-primary); line-height:1.55; white-space:pre-wrap; word-break:break-word;">${esc(c.text)}</p>
-            </div>
-            `;
-          });
-          feed.innerHTML = html;
-        }
-      } catch (err) {
-        feed.innerHTML = `<p style="color:var(--error); font-size:12px;">โหลดความคิดเห็นไม่สำเร็จ: ${err.message}</p>`;
       }
     }
 
@@ -1071,53 +816,6 @@
       const scrollContainer = document.querySelector('.main-content');
       if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
     });
-
-    // Wire comment submission
-    const commentForm = document.getElementById("comment-form");
-    if (commentForm) {
-      commentForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const ch = chapters[idx];
-        if (!ch) return;
-        
-        const userInput = document.getElementById("comment-user-input");
-        const textInput = document.getElementById("comment-text-input");
-        
-        const user = userInput ? userInput.value.trim() : "";
-        const text = textInput ? textInput.value.trim() : "";
-        
-        if (!user || !text) {
-          showToast("กรุณากรอกชื่อและข้อความให้ครบถ้วนก่อนส่งนะคะพี่โชค! 🦊", "warning");
-          return;
-        }
-        
-        try {
-          const submitBtn = commentForm.querySelector("button[type='submit']");
-          submitBtn.disabled = true;
-          submitBtn.textContent = "กำลังส่ง...";
-          
-          const res = await fetch(`/api/novel/${encodeURIComponent(slug)}/chapter/${ch.num}/comment`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user, text })
-          });
-          
-          if (!res.ok) throw new Error(res.statusText);
-          
-          if (textInput) textInput.value = "";
-          
-          loadChapterComments(slug, ch.num);
-        } catch (err) {
-          showToast(`ไม่สามารถส่งความคิดเห็นได้: ${err.message}`, "error");
-        } finally {
-          const submitBtn = commentForm.querySelector("button[type='submit']");
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = "ส่งความคิดเห็น";
-          }
-        }
-      });
-    }
 
     // Font size
     let fontStep = 0;
@@ -1174,17 +872,6 @@
     }
 
     // Comments collapsible drawer toggle
-    const commentsHeader = document.getElementById("comments-toggle-header");
-    const commentsWrapper = document.getElementById("comments-collapsible-wrapper");
-    const commentsChevron = document.getElementById("comments-toggle-chevron");
-    if (commentsHeader && commentsWrapper && commentsChevron) {
-      commentsHeader.addEventListener("click", () => {
-        const isCollapsed = commentsWrapper.style.display === "none";
-        commentsWrapper.style.display = isCollapsed ? "flex" : "none";
-        commentsChevron.style.transform = isCollapsed ? "rotate(90deg)" : "rotate(0deg)";
-      });
-    }
-
     // Keyboard shortcuts — remove old listener first to prevent accumulation
     if (_readerKeyHandler) document.removeEventListener("keydown", _readerKeyHandler);
     _readerKeyHandler = function readerKeys(e) {
@@ -2389,27 +2076,7 @@
   }
 
   async function updateNotificationBadge() {
-    const notifBtn = $("notif-btn");
-    if (!notifBtn) return;
-    try {
-      const notifications = await api("/api/notifications");
-      const unreadCount = notifications.filter(n => !n.read).length;
-      
-      notifBtn.style.position = "relative";
-      
-      const oldBadge = notifBtn.querySelector(".notif-badge");
-      if (oldBadge) oldBadge.remove();
-      
-      if (unreadCount > 0) {
-        const badge = el("span", {
-          class: "notif-badge",
-          style: "position: absolute; top: -2px; right: -2px; background: var(--error); color: #fff; font-size: 8px; min-width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 1.5px solid var(--bg-secondary); padding: 2px;"
-        }, String(unreadCount));
-        notifBtn.appendChild(badge);
-      }
-    } catch (err) {
-      console.warn("Failed to update notification badge:", err);
-    }
+    // Notifications API removed — badge disabled
   }
 
   // ═══════════════════════════════════════════════════════════════════════
