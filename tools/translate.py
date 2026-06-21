@@ -73,6 +73,9 @@ from providers import get_provider  # noqa: E402
 from schema import (  # noqa: E402
     Chapter,
 )
+from translation_memory import (  # noqa: E402
+    TranslationMemory,
+)
 from validation import (  # noqa: E402
     ALLOWED_LATIN_TOKENS,
     COMPLETENESS_MAX_RATIO,
@@ -686,6 +689,7 @@ def translate_one(
     two_pass: bool = False,
     auto_glossary: bool = False,
     use_score: bool = False,
+    use_tm: bool = False,
 ) -> bool:
     """Translate one chapter. Returns True on success.
 
@@ -846,6 +850,19 @@ def translate_one(
         else:
             print("  OK Quality: clean")
 
+    # ── Translation Memory: cache this chapter's blocks ────────
+    if use_tm and not mock:
+        try:
+            tm = TranslationMemory(progress_slug)
+            tm.load()
+            added = tm.add_batch(ch_data.get("blocks", []), ch_num)
+            if added > 0:
+                tm.save()
+            tm_stats = tm.stats()
+            print(f"  💾 TM: +{added} new, {tm_stats['cache_entries']} total")
+        except Exception as e:
+            print(f"  ⚠ TM error: {e}")
+
     # ── Auto-glossary: extract new entities from this chapter ────
     if auto_glossary and not mock:
         try:
@@ -986,6 +1003,11 @@ Examples:
         action="store_true",
         help="Enable LLM-as-Judge quality scoring after translation",
     )
+    ap.add_argument(
+        "--tm",
+        action="store_true",
+        help="Enable Translation Memory (cache blocks for future reuse)",
+    )
     args = ap.parse_args()
 
     # Term search mode
@@ -1060,6 +1082,7 @@ Examples:
                     two_pass=args.two_pass,
                     auto_glossary=args.auto_glossary,
                     use_score=args.score,
+                    use_tm=args.tm,
                 ): ch
                 for ch in ch_nums
             }
@@ -1093,6 +1116,7 @@ Examples:
                 two_pass=args.two_pass,
                 auto_glossary=args.auto_glossary,
                 use_score=args.score,
+                use_tm=args.tm,
             ):
                 success += 1
             else:

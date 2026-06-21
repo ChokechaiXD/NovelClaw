@@ -33,6 +33,7 @@ test = ["pytest>=8.0", "pytest-asyncio>=0.23"]
 novelclaw-translate = "tools.translate:main"
 novelclaw-glossary = "tools.glossary:main"
 novelclaw-search = "tools.chapter_search:main"
+novelclaw-tm = "tools.translation_memory:main"
 
 [project.urls]
 Homepage = "https://github.com/BlankScreen/novelclaw"
