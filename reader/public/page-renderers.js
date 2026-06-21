@@ -1224,6 +1224,16 @@
     }
     navContainer.innerHTML = renderAdminNav("novels");
 
+    // Ensure table structure exists
+    let table = page.querySelector("table.admin-table");
+    if (!table) {
+      table = el("table", { class: "admin-table", style: "width:100%; border-collapse:collapse; margin-top:12px;" });
+      table.innerHTML = `<thead style="position:sticky;top:0;background:var(--bg);">
+        <tr><th>Slug</th><th>ชื่อเรื่อง</th><th>ภาษา</th><th>ตอน</th><th>สถานะ</th><th>จัดการ</th></tr>
+      </thead><tbody id="admin-novels-tbody"></tbody>`;
+      page.appendChild(table);
+    }
+
     const tbody = $("admin-novels-tbody");
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;"><div class="skel skel-line" style="margin-bottom:12px;"></div><div class="skel skel-line"></div><div class="skel skel-line" style="width:40%;"></div></td></tr>';
@@ -1390,6 +1400,26 @@
     if (!slug) {
       showError(page, "ไม่พบ Slug นิยาย");
       return;
+    }
+
+    // Inject sub nav
+    let navContainer = page.querySelector(".admin-nav-tabs");
+    if (!navContainer) {
+      navContainer = el("div", { class: "admin-nav-tabs" });
+      page.insertBefore(navContainer, page.firstChild);
+    }
+    navContainer.innerHTML = renderAdminNav("novels");
+
+    // Ensure structure exists
+    if (!$("admin-chapters-title")) {
+      const header = el("div", { style: "margin-top:16px;" },
+        el("h3", { id: "admin-chapters-title", style: "font-size:1rem;font-weight:700;" }, `จัดการตอนในเรื่อง: ${slug}`),
+        el("p", { id: "admin-chapters-subtitle", style: "font-size:0.85rem;color:var(--text-muted);" }, `Slug: ${slug}`)
+      );
+      page.appendChild(header);
+      const tableWrap = el("div", { style: "overflow-x:auto;margin-top:12px;" });
+      tableWrap.innerHTML = `<table style="width:100%;border-collapse:collapse;"><thead style="position:sticky;top:0;background:var(--bg);"><tr><th>#</th><th>ชื่อตอน</th><th>รูปแบบ</th><th>จัดการ</th></tr></thead><tbody id="admin-chapters-tbody"></tbody></table>`;
+      page.appendChild(tableWrap);
     }
 
     const titleEl = $("admin-chapters-title");
@@ -1771,6 +1801,14 @@
     }
     navContainer.innerHTML = renderAdminNav("users");
 
+    // Ensure table structure exists
+    let table = page.querySelector("table.admin-table");
+    if (!table) {
+      table = el("table", { class: "admin-table", style: "width:100%; border-collapse:collapse; margin-top:12px;" });
+      table.innerHTML = `<thead style="position:sticky;top:0;background:var(--bg);"><tr><th>ชื่อผู้ใช้</th><th>อีเมล</th><th>บทบาท</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="admin-users-tbody"></tbody>`;
+      page.appendChild(table);
+    }
+
     const tbody = $("admin-users-tbody");
     if (!tbody) return;
     
@@ -1843,6 +1881,33 @@
       page.insertBefore(navContainer, page.firstChild);
     }
     navContainer.innerHTML = renderAdminNav("glossary");
+
+    // Ensure full structure exists
+    if (!$("glossary-tbody")) {
+      const controls = el("div", { style: "display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; align-items:center;" },
+        el("input", { id: "glossary-search", type: "text", placeholder: "ค้นหาคำศัพท์...", style: "flex:1; min-width:200px; background:var(--surface); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:var(--radius-sm); font-size:0.85rem; outline:none;" }),
+        el("button", { id: "glossary-btn-add-term", class: "btn btn-ghost", style: "padding:8px 16px; font-size:0.85rem;" }, "+ เพิ่มคำศัพท์"),
+        el("button", { id: "glossary-btn-save", class: "btn btn-primary", style: "padding:8px 16px; font-size:0.85rem; background:var(--accent); color:var(--bg);" }, "💾 บันทึกทั้งหมด")
+      );
+      const layout = el("div", { style: "display:flex; gap:24px; margin-top:8px; flex-wrap:wrap;" },
+        el("div", { style: "flex:2; min-width:400px; overflow-x:auto;" },
+          el("table", { style: "width:100%; border-collapse:collapse;" },
+            el("thead", { style: "position:sticky;top:0;background:var(--bg);"},
+              el("tr", {},
+                el("th", {}, "ต้นฉบับ (CN)"), el("th", {}, "แปล (TH)"), el("th", {}, "หมวด"), el("th", {}, "Lock"), el("th", {}, "หมายเหตุ"), el("th", { style: "width:30px;" }, "")
+              )
+            ),
+            el("tbody", { id: "glossary-tbody" })
+          )
+        ),
+        el("div", { style: "flex:1; min-width:280px; display:flex; flex-direction:column; gap:12px;" },
+          el("h4", { style: "font-size:0.9rem;font-weight:600;color:var(--text-secondary);" }, "กฎการแปล"),
+          el("div", { id: "style-rules-container", style: "display:flex; flex-direction:column; gap:12px;" })
+        )
+      );
+      page.appendChild(controls);
+      page.appendChild(layout);
+    }
 
     const tbody = $("glossary-tbody");
     const rulesContainer = $("style-rules-container");
