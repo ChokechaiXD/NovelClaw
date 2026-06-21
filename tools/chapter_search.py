@@ -33,7 +33,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from constants import NOVEL_ROOT, get_novel_root# noqa: E402
+from constants import NOVEL_ROOT# noqa: E402
 
 # DB_FILE is the default. --novel-root <path> overrides (multi-novel support,
 # added 2026-06-14 for Tier 3 #12 server endpoint).

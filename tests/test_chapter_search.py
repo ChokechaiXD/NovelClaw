@@ -1,7 +1,5 @@
 """Tests for chapter_search.py (Phase 4 — FTS5 continuity)."""
-import re
 import sys
-import tempfile
 from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent.parent / 'tools'

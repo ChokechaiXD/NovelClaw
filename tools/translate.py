@@ -416,7 +416,8 @@ def build_prompt(
 - Zero source-language characters are allowed in narration/dialogue/system blocks.
 - ANTI-HALLUCINATION: Do NOT add any narration, description, detail, or dialogue not present in the source. Do NOT invent internal monologue, character thoughts, or scene details. If the source is ambiguous, preserve the ambiguity. If unsure, translate literally rather than inventing content.
 - Your translation must preserve the full length and detail of the source. Target {COMPLETENESS_MIN_RATIO:.2f}-{COMPLETENESS_MAX_RATIO:.2f}x source character count. Do NOT compress or summarize.
-- Allowed Latin tokens only: {", ".join(sorted(ALLOWED_LATIN_TOKENS))}. Translate Lv/LVL as "เลเวล", BUFF as "บัฟ", DEBUFF as "ดีบัฟ", First Kill as "คิลแรก".
+|- Allowed Latin tokens only: {", ".join(sorted(ALLOWED_LATIN_TOKENS))}. Translate Lv/LVL as "เลเวล", BUFF as "บัฟ", DEBUFF as "ดีบัฟ", First Kill as "คิลแรก".
+|- EN RETENTION FORBIDDEN: The Chinese source may contain English words (skill names, item names, interjections like "continue", "recruiting", "mean", "queen", "level", "panic", "erupt", "disrespect"). You MUST translate these to Thai. Do NOT keep any English words in the output. If unsure, translate literally.
 </format_spec>
 
 <continuity_context>

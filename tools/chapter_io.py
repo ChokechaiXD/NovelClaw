@@ -8,9 +8,8 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import List, Tuple
 
-from tools.schema import BLOCK_TYPE_MAP, Chapter
+from tools.schema import Chapter
 
 
 def load_chapter(path) -> Chapter:
@@ -34,7 +33,7 @@ def chapter_path(novel_root, num: int) -> Path:
     return Path(novel_root) / 'chapters' / f'{num:04d}.json'
 
 
-def md_to_blocks(md_text: str) -> Tuple[List[dict], List[str]]:
+def md_to_blocks(md_text: str) -> tuple[list[dict], list[str]]:
     """Migrate a legacy .md file to JSON blocks (best-effort, lossy for
     complex formatting).
 

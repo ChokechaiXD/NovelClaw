@@ -30,9 +30,7 @@ dependencies = [
 test = ["pytest>=8.0", "pytest-asyncio>=0.23"]
 
 [project.scripts]
-novelclaw = "tools.cli:main"
 novelclaw-translate = "tools.translate:main"
-novelclaw-validate = "tools.validate_chapter:main"
 novelclaw-glossary = "tools.glossary:main"
 novelclaw-search = "tools.chapter_search:main"
 

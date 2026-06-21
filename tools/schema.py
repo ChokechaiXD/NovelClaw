@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import re
 from enum import Enum
-from typing import List, Optional, Union
+from typing import Optional, Union
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -272,9 +272,9 @@ class Chapter(BaseModel):
     schema_version: int = Field(default=2, description='Schema version — currently v2')
     num: int = Field(..., ge=1, le=9999, description='Chapter number')
     title: str = Field(..., min_length=1, description='Full chapter title (e.g., "ตอนที่ 112 ...")')
-    blocks: List[Block] = Field(..., min_length=1, description='Ordered content blocks')
+    blocks: list[Block] = Field(..., min_length=1, description='Ordered content blocks')
     source: str = Field(..., pattern=r'^ch \d+$', description='Source attribution (e.g., "ch 112")')
-    notes: List[str] = Field(default_factory=list, description='Translation notes (rendered in collapsible details)')
+    notes: list[str] = Field(default_factory=list, description='Translation notes (rendered in collapsible details)')
     lang: Language = Field(
         default=Language.CN,
         description='Source language (cn|jp|kr|en|th). Determines bracket profile.',
