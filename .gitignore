@@ -78,3 +78,7 @@ nul
 .tmemory/
 *.egg-info/
 .venv/
+.ruff_cache/
+.test_tm/
+tmp/
+reader/novels/

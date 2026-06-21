@@ -118,7 +118,7 @@ def test_process_translation_candidates_no_dup(tmp_path, monkeypatch):
     """Running twice should not add duplicates."""
     novels_dir = tmp_path / "novels"
     monkeypatch.setattr("tools.constants.NOVELS_DIR", novels_dir)
-    monkeypatch.setattr("tools.cumulative_glossary.get_auto_md_path", 
+    monkeypatch.setattr("tools.cumulative_glossary._get_auto_md_path", 
         lambda slug="global-descent": novels_dir / slug / "glossary" / "auto.md")
     
     # Create slug dir

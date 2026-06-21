@@ -855,7 +855,7 @@ def translate_one(
     else:
         ch_data.setdefault("lang", normalized_source_lang)
         ch_data["output_lang"] = normalized_target_lang
-        ch = Chapter.construct(**ch_data)  # skip validation
+        ch = Chapter.model_construct(**ch_data)  # skip validation
 
     if not mock and not no_validate:
         quality_ok, quality_messages = validate_translation_quality(

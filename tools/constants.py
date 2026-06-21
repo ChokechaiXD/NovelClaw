@@ -63,16 +63,8 @@ def get_novel_root(slug: str | None = None) -> Path:
     return path
 
 
-def get_glossary_dir(slug: str | None = None) -> Path:
-    return get_novel_root(slug) / 'glossary'
-
-
 def get_chapters_dir(slug: str | None = None) -> Path:
     return get_novel_root(slug) / 'chapters'
-
-
-def get_source_dir(slug: str | None = None) -> Path:
-    return get_chapters_dir(slug) / 'source'
 
 
 # ────────────────────────────────────────────────────────────────────
