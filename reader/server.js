@@ -554,6 +554,19 @@ app.get('/api/novels', async (_req, res) => {
     slugs.map(async (slug) => {
       const meta = await readNovelMeta(slug);
       const chapters = await listChapters(slug);
+      // Count translated chapters (those with output_lang set)
+      let translatedCount = 0;
+      try {
+        const dir = path.join(NOVELS_DIR, slug, 'chapters');
+        const files = await fs.readdir(dir);
+        for (const f of files) {
+          if (!f.endsWith('.json')) continue;
+          try {
+            const chData = JSON.parse(await fs.readFile(path.join(dir, f), 'utf8'));
+            if (chData.output_lang) translatedCount++;
+          } catch { /* skip unparseable */ }
+        }
+      } catch { /* no chapters dir */ }
       return {
         slug,
         title: meta.title || slug,
@@ -561,6 +574,7 @@ app.get('/api/novels', async (_req, res) => {
         source_lang: meta.source_lang || 'cn',
         target_lang: meta.target_lang || 'th',
         chapterCount: chapters.length,
+        translatedChapters: translatedCount,
         totalChapters: parseInt(meta.total_chapters, 10) || chapters.length,
         status: meta.status || 'unknown',
         meta: await readMeta(slug),
@@ -984,8 +998,8 @@ app.get('*', (req, res) => {
   res.set('Expires', '0');
   let html = fsSync.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
   // Cache-bust: append server start timestamp to script src URLs
-  html = html.replace('src="/virtual-scroll.js"', `src="/virtual-scroll.js?_t=${START_TIME}"`);
-  html = html.replace('src="/app.js"', `src="/app.js?_t=${START_TIME}"`);
+  html = html.replace(/src="\/(js\/[^"]+)"/g, `src="/$1?_t=${START_TIME}"`);
+  html = html.replace(/href="\/(design-system\.css)"/g, `href="/$1?_t=${START_TIME}"`);
   res.send(html);
 });
 

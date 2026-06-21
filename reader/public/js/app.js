@@ -1,0 +1,202 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   app.js — Router + Theme Sync + Sidebar Events
+   NovelClaw Reader
+   ═══════════════════════════════════════════════════════════════════════ */
+
+// ── Simple Hash Router ───────────────────────────────────────────────
+const Router = {
+  _routes: {},
+  _current: null,
+
+  register(name, handler) {
+    this._routes[name] = handler;
+  },
+
+  init() {
+    window.addEventListener('hashchange', () => this._resolve());
+    this._resolve();
+  },
+
+  _resolve() {
+    const hash = window.location.hash.replace(/^#/, '') || 'home';
+    const parts = hash.split('/');
+    const page = parts[0];
+    const params = {};
+
+    // Parse params: #novel/slug, #novel/slug/num, #admin/page etc
+    if (page === 'novel' && parts.length >= 2) {
+      params.slug = parts[1];
+      if (parts.length >= 3) params.num = parts[2];
+    } else if (page === 'admin' && parts.length >= 2) {
+      params.page = parts[1];
+      if (parts.length >= 3) params.slug = parts[2];
+    }
+
+    const handler = this._routes[page];
+    if (handler && this._current !== hash) {
+      this._current = hash;
+      this._activatePage(page, params);
+      handler(params);
+    } else if (!handler && this._current !== hash) {
+      this._current = hash;
+      this._activatePage('home');
+      this._routes.home?.();
+    }
+  },
+
+  _activatePage(page, params) {
+    // Determine which page div to show
+    let pageId = 'page-' + page;
+    if (page === 'admin') {
+      const sub = (params && params.page) || '';
+      pageId = sub ? 'page-admin-' + sub : 'page-admin';
+    }
+    if (page === 'novel') {
+      pageId = params && params.num ? 'page-reader' : 'page-novel-detail';
+    }
+
+    // Hide all pages
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('page--active'));
+
+    // Show target
+    const target = document.getElementById(pageId);
+    if (target) target.classList.add('page--active');
+
+    // Update sidebar active state
+    document.querySelectorAll('.c-nav-item').forEach(n => n.classList.remove('c-nav-item--active'));
+    const navMap = { home: 'home', library: 'library', search: 'search', ranking: 'ranking', profile: 'profile', history: 'history', bookmarks: 'bookmarks', settings: 'settings', admin: 'admin' };
+    const navPage = navMap[page] || (page === 'novel' ? 'home' : null);
+    if (navPage) {
+      const navItem = document.querySelector('.c-nav-item[data-page="' + navPage + '"]');
+      if (navItem) navItem.classList.add('c-nav-item--active');
+    }
+
+    // Update page title
+    const titleEl = document.getElementById('page-title');
+    if (titleEl) {
+      const titles = { home: 'หน้าหลัก', library: 'หอสมุด', search: 'ค้นหา', ranking: 'อันดับ', profile: 'โปรไฟล์', history: 'ประวัติ', bookmarks: 'บุ๊กมาร์ก', settings: 'ตั้งค่า', admin: 'จัดการ', novel: 'รายละเอียด' };
+      titleEl.textContent = titles[page] || 'หน้าหลัก';
+    }
+  }
+};
+
+// ── Sidebar Events ───────────────────────────────────────────────────
+function initSidebar() {
+  const sidebar = document.querySelector('.c-app__sidebar');
+  const toggleBtn = document.getElementById('sidebar-toggle');
+  const closeBtn = document.getElementById('sidebar-close');
+
+  toggleBtn?.addEventListener('click', () => {
+    sidebar?.classList.toggle('c-app__sidebar--collapsed');
+    Store.setSetting('sidebarCollapsed', sidebar?.classList.contains('c-app__sidebar--collapsed'));
+  });
+
+  closeBtn?.addEventListener('click', () => {
+    sidebar?.classList.add('c-app__sidebar--collapsed');
+    Store.setSetting('sidebarCollapsed', true);
+  });
+
+  // Nav item clicks
+  document.querySelectorAll('.c-nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const page = item.dataset.page;
+      if (page) window.location.hash = '#' + page;
+    });
+  });
+}
+
+// ── Theme Initialization ────────────────────────────────────────────
+function initTheme() {
+  const settings = Store.getSettings();
+  document.body.dataset.theme = settings.theme || 'dark';
+
+  // Sidebar theme toggle
+  const themeToggle = document.getElementById('theme-toggle-new');
+  if (themeToggle) {
+    themeToggle.classList.toggle('c-toggle--active', (settings.theme || 'dark') === 'dark');
+    themeToggle.addEventListener('click', () => {
+      const current = Store.getSettings().theme || 'dark';
+      const target = current === 'dark' ? 'light' : 'dark';
+      Store.setSetting('theme', target);
+      themeToggle.classList.toggle('c-toggle--active', target === 'dark');
+
+      // Sync settings page select element
+      const settingsSel = document.getElementById('settings-theme');
+      if (settingsSel) settingsSel.value = target;
+    });
+  }
+
+  // Subscribe to theme changes
+  Store.on('setting:theme', (t) => {
+    if (themeToggle) themeToggle.classList.toggle('c-toggle--active', t === 'dark');
+  });
+}
+
+// ── Activity Feed ───────────────────────────────────────────────────
+async function updateActivityFeed() {
+  const feed = document.getElementById('activity-feed');
+  if (!feed) return;
+  try {
+    const novels = await Api.getNovels();
+    const recent = Store.getHistory().slice(0, 5);
+    if (recent.length === 0) {
+      feed.innerHTML = '<div class="c-rc__item" style="font-size:11px;color:var(--c-text-muted);padding:8px 0;">ยังไม่มีกิจกรรม</div>';
+      return;
+    }
+    feed.innerHTML = recent.map(e => {
+      const n = novels.find(n => n.slug === e.slug);
+      return '<div class="c-rc__item">' + Ui.esc(n?.title || e.slug) + ' — ตอนที่ ' + e.num + '</div>';
+    }).join('');
+  } catch { feed.innerHTML = '<div class="c-rc__item">ไม่สามารถโหลดกิจกรรม</div>'; }
+}
+
+// ── Init ────────────────────────────────────────────────────────────────
+function init() {
+  // Register routes
+  Router.register('home', (p) => HomePage.render(p));
+  Router.register('library', (p) => LibraryPage.render(p));
+  Router.register('search', (p) => SearchPage.render(p));
+  Router.register('novel', (p) => {
+    if (p.num) ReaderPage.render(p);
+    else NovelPage.render(p);
+  });
+  Router.register('ranking', (p) => RankingPage.render(p));
+  Router.register('profile', (p) => ProfilePage.render(p));
+  Router.register('history', (p) => HistoryPage.render(p));
+  Router.register('bookmarks', (p) => BookmarksPage.render(p));
+  Router.register('settings', (p) => SettingsPage.render(p));
+  Router.register('admin', (p) => {
+    const sub = p && p.page ? p.page : 'dash';
+    const adminRoutes = {
+      'dash': AdminDashboardPage,
+      'novels': AdminNovelsPage,
+      'chapters': AdminChaptersPage,
+      'glossary': AdminGlossaryPage,
+      'translate': AdminTranslatePage,
+      'translate-job': AdminTranslateJobPage,
+      'users': AdminUsersPage,
+      'novel-edit': AdminNovelEditPage,
+    };
+    const handler = adminRoutes[sub] || AdminDashboardPage;
+    handler.render(p);
+  });
+
+  // Init UI
+  initSidebar();
+  initTheme();
+  Ui.updateAvatar();
+
+  // Start router
+  Router.init();
+
+  // Activity feed
+  updateActivityFeed();
+  setInterval(updateActivityFeed, 30000);
+}
+
+// Auto-boot
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}

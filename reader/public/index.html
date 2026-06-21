@@ -6,333 +6,226 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="theme-color" content="#0a0b0e" />
-    <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="pragma" content="no-cache" />
-    <meta http-equiv="expires" content="0" />
-    <title>NovelClaw Reader</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0%25' y1='100%25' x2='100%25' y2='0%25'><stop offset='0%25' stop-color='%2306b6d4'/><stop offset='100%25' stop-color='%2314b8a6'/></linearGradient></defs><path d='M2 28C3 24 6 22 10 21 11.5 22.5 11 25 7 28 5 29.5 3 29 2 28Z' fill='url(%23g)'/><path d='M8 20C6.5 13 10.5 7 18 9.5 16 11 12 12 11 16.5 10.5 18 9.5 19.5 8 20Z' fill='url(%23g)'/><rect x='13' y='7' width='12' height='18' rx='2' fill='%23a78bfa'/><rect x='14.5' y='8' width='9.5' height='16' rx='1' fill='%23fffdf5'/></svg>" />
-    <link rel="stylesheet" href="/design-system.css?_v=20260621" />
+  <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="pragma" content="no-cache" />
+  <meta http-equiv="expires" content="0" />
+  <title>NovelClaw Reader</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0%25' y1='100%25' x2='100%25' y2='0%25'><stop offset='0%25' stop-color='%2306b6d4'/><stop offset='100%25' stop-color='%2314b8a6'/></linearGradient></defs><path d='M2 28C3 24 6 22 10 21 11.5 22.5 11 25 7 28 5 29.5 3 29 2 28Z' fill='url(%23g)'/><path d='M8 20C6.5 13 10.5 7 18 9.5 16 11 12 12 11 16.5 10.5 18 9.5 19.5 8 20Z' fill='url(%23g)'/><rect x='13' y='7' width='12' height='18' rx='2' fill='%23a78bfa'/><rect x='14.5' y='8' width='9.5' height='16' rx='1' fill='%23fffdf5'/></svg>" />
+  <link rel="stylesheet" href="/design-system.css?_v=20260621" />
 </head>
 <body data-theme="dark">
-  <!-- SVG Symbols Sprite Library -->
+  <!-- SVG Symbols -->
   <svg style="display: none;">
-    <!-- Logo: Crab Claw clutching a book (Teal claw + purple book cover) -->
     <symbol id="logo-crab-claw" viewBox="0 0 32 32">
       <defs>
-        <linearGradient id="logo-crab-grad" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.95" />
-          <stop offset="100%" stop-color="#14b8a6" stop-opacity="0.95" />
+        <linearGradient id="lcg" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.95"/>
+          <stop offset="100%" stop-color="#14b8a6" stop-opacity="0.95"/>
         </linearGradient>
       </defs>
-      <!-- Book -->
       <g transform="rotate(-8 18 16)">
-        <rect x="13" y="7" width="12" height="18" rx="2" fill="#a78bfa" />
-        <rect x="11.5" y="7" width="1.5" height="18" rx="0.5" fill="#8b5cf6" />
-        <rect x="14.5" y="8" width="9.5" height="16" rx="1" fill="#fffdf5" />
-        <line x1="16.5" y1="12" x2="21.5" y2="12" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round" />
-        <line x1="16.5" y1="15" x2="21.5" y2="15" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round" />
-        <line x1="16.5" y1="18" x2="20" y2="18" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round" />
+        <rect x="13" y="7" width="12" height="18" rx="2" fill="#a78bfa"/>
+        <rect x="11.5" y="7" width="1.5" height="18" rx="0.5" fill="#8b5cf6"/>
+        <rect x="14.5" y="8" width="9.5" height="16" rx="1" fill="#fffdf5"/>
+        <line x1="16.5" y1="12" x2="21.5" y2="12" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="16.5" y1="15" x2="21.5" y2="15" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round"/>
+        <line x1="16.5" y1="18" x2="20" y2="18" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round"/>
       </g>
-      <!-- Claw arm -->
-      <path d="M 2 28 C 3 24, 6 22, 10 21 C 11.5 22.5, 11 25, 7 28 C 5 29.5, 3 29, 2 28 Z" fill="url(#logo-crab-grad)" />
-      <!-- Upper pincer -->
-      <path d="M 8 20 C 6.5 13, 10.5 7, 18 9.5 C 16 11, 12 12, 11 16.5 C 10.5 18, 9.5 19.5, 8 20 Z" fill="url(#logo-crab-grad)" />
-      <!-- Lower pincer -->
-      <path d="M 8 20 C 10 22, 12.5 24, 18 19.5 C 14.5 18, 11.5 18.5, 9.5 19 C 8.8 19.2, 8.3 19.6, 8 20 Z" fill="url(#logo-crab-grad)" />
-      <!-- Eye -->
-      <circle cx="11.5" cy="14" r="1.5" fill="#1e293b" />
-      <circle cx="11" cy="13.5" r="0.5" fill="#ffffff" />
-      <!-- Blush -->
-      <ellipse cx="12.5" cy="15" rx="1" ry="0.5" fill="#ff8da1" opacity="0.8" />
+      <path d="M2 28C3 24 6 22 10 21 11.5 22.5 11 25 7 28 5 29.5 3 29 2 28Z" fill="url(#lcg)"/>
+      <path d="M8 20C6.5 13 10.5 7 18 9.5 16 11 12 12 11 16.5 10.5 18 9.5 19.5 8 20Z" fill="url(#lcg)"/>
+      <path d="M8 20C10 22 12.5 24 18 19.5 14.5 18 11.5 18.5 9.5 19 8.8 19.2 8.3 19.6 8 20Z" fill="url(#lcg)"/>
+      <circle cx="11.5" cy="14" r="1.5" fill="#1e293b"/>
+      <circle cx="11" cy="13.5" r="0.5" fill="#fff"/>
+      <ellipse cx="12.5" cy="15" rx="1" ry="0.5" fill="#ff8da1" opacity="0.8"/>
     </symbol>
-
-    <!-- Nav Icons (stroke-based, 24x24) -->
-    <symbol id="icon-home" viewBox="0 0 24 24">
-      <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </symbol>
-    <symbol id="icon-library" viewBox="0 0 24 24">
-      <path d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </symbol>
-    <symbol id="icon-search" viewBox="0 0 24 24">
-      <circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.35-4.35" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    </symbol>
-    <symbol id="icon-ranking" viewBox="0 0 24 24">
-      <path d="M6 9l6-6 6 6M6 9v10M6 9H4m2 0h2m10 0v10m0-10h2m-2 0h-2M8 21h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </symbol>
-    <symbol id="icon-profile" viewBox="0 0 24 24">
-      <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 21a8 8 0 00-16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    </symbol>
-    <symbol id="icon-history" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    </symbol>
-    <symbol id="icon-settings" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" fill="none" stroke="currentColor" stroke-width="2"/>
-    </symbol>
-    <symbol id="icon-shield" viewBox="0 0 24 24">
-      <path d="M12 2l7 4v5c0 5-3.5 9.7-7 11-3.5-1.3-7-6-7-11V6l7-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </symbol>
-    <symbol id="icon-crown" viewBox="0 0 24 24">
-      <path d="M2 19h20M4 10l3 3 5-8 5 8 3-3-1 9H5L4 10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </symbol>
-
-    <!-- Utility Icons -->
-    <symbol id="icon-hamburger" viewBox="0 0 24 24">
-      <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-    </symbol>
-    <symbol id="icon-close" viewBox="0 0 24 24">
-      <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-    </symbol>
-    <symbol id="icon-bell" viewBox="0 0 24 24">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-    </symbol>
-    <symbol id="icon-arrow-left" viewBox="0 0 24 24">
-      <path d="M15 19l-7-7 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-    </symbol>
-    <symbol id="icon-arrow-right" viewBox="0 0 24 24">
-      <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-    </symbol>
-    <symbol id="icon-sun" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2" />
-      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-    </symbol>
-    <symbol id="icon-moon" viewBox="0 0 24 24">
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-    </symbol>
-    <symbol id="icon-book" viewBox="0 0 24 24">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5v-15z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-    </symbol>
-    <symbol id="icon-minus" viewBox="0 0 24 24">
-      <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-    </symbol>
-    <symbol id="icon-plus" viewBox="0 0 24 24">
-      <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-    </symbol>
-    <symbol id="icon-fullscreen" viewBox="0 0 24 24">
-      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </symbol>
-    <symbol id="icon-bookmark" viewBox="0 0 24 24">
-      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </symbol>
-    <symbol id="icon-bookmark-outline" viewBox="0 0 24 24">
-      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </symbol>
-    <!-- Bookmark (filled) -->
-    <symbol id="icon-bookmarks" viewBox="0 0 24 24">
-      <path d="M7 3h10a2 2 0 0 1 2 2v16l-7-5-7 5V5a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </symbol>
-
-    <!-- Mascot: Hermit Crab Normal -->
+    <symbol id="icon-home" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-library" viewBox="0 0 24 24"><path d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.35-4.35" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="icon-ranking" viewBox="0 0 24 24"><path d="M6 9l6-6 6 6M6 9v10M6 9H4m2 0h2m10 0v10m0-10h2m-2 0h-2M8 21h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-profile" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 21a8 8 0 00-16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="icon-history" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="icon-shield" viewBox="0 0 24 24"><path d="M12 2l7 4v5c0 5-3.5 9.7-7 11-3.5-1.3-7-6-7-11V6l7-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-crown" viewBox="0 0 24 24"><path d="M2 19h20M4 10l3 3 5-8 5 8 3-3-1 9H5L4 10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-hamburger" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="icon-bell" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-arrow-left" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-arrow-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5v-15z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="icon-bookmarks" viewBox="0 0 24 24"><path d="M7 3h10a2 2 0 0 1 2 2v16l-7-5-7 5V5a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-fullscreen" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="mascot-crab" viewBox="0 0 80 80">
-      <defs>
-        <linearGradient id="mc-body" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#e85d4a" stop-opacity="0.5"/>
-          <stop offset="100%" stop-color="#f0936b" stop-opacity="0.5"/>
-        </linearGradient>
-        <linearGradient id="mc-shell" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.25"/>
-          <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.25"/>
-        </linearGradient>
-      </defs>
-      <!-- Shell (round body) -->
-      <ellipse cx="40" cy="48" rx="24" ry="20" fill="url(#mc-shell)" stroke="var(--border)" stroke-width="1"/>
-      <!-- Head -->
-      <circle cx="40" cy="32" r="14" fill="url(#mc-body)" stroke="var(--border-strong)" stroke-width="0.8"/>
-      <!-- Eyes -->
-      <circle cx="34" cy="30" r="3" fill="var(--text)"/>
-      <circle cx="46" cy="30" r="3" fill="var(--text)"/>
-      <circle cx="35" cy="29" r="1.2" fill="var(--bg)"/>
-      <circle cx="47" cy="29" r="1.2" fill="var(--bg)"/>
-      <!-- Blush -->
-      <ellipse cx="28" cy="35" rx="3" ry="1.5" fill="#e85d4a" opacity="0.3"/>
-      <ellipse cx="52" cy="35" rx="3" ry="1.5" fill="#e85d4a" opacity="0.3"/>
-      <!-- Claws holding book -->
-      <path d="M18 50 Q14 42 20 38" fill="none" stroke="var(--border-strong)" stroke-width="2.5" stroke-linecap="round"/>
-      <path d="M62 50 Q66 42 60 38" fill="none" stroke="var(--border-strong)" stroke-width="2.5" stroke-linecap="round"/>
-      <!-- Book on shell -->
-      <rect x="30" y="42" width="20" height="14" rx="2" fill="var(--accent-2-soft)" stroke="var(--accent-2)" stroke-width="0.8"/>
-      <line x1="34" y1="47" x2="46" y2="47" stroke="var(--text-muted)" stroke-width="0.8"/>
-      <line x1="34" y1="50" x2="46" y2="50" stroke="var(--text-muted)" stroke-width="0.8"/>
-      <!-- Legs -->
-      <path d="M22 55 L18 62" stroke="var(--border-strong)" stroke-width="2" stroke-linecap="round"/>
-      <path d="M30 57 L28 64" stroke="var(--border-strong)" stroke-width="2" stroke-linecap="round"/>
-      <path d="M50 57 L52 64" stroke="var(--border-strong)" stroke-width="2" stroke-linecap="round"/>
-      <path d="M58 55 L62 62" stroke="var(--border-strong)" stroke-width="2" stroke-linecap="round"/>
+      <ellipse cx="40" cy="48" rx="24" ry="20" fill="currentColor" opacity="0.15"/>
+      <circle cx="40" cy="32" r="14" fill="currentColor" opacity="0.2"/>
+      <circle cx="34" cy="30" r="3" fill="var(--c-text)"/>
+      <circle cx="46" cy="30" r="3" fill="var(--c-text)"/>
+      <circle cx="35" cy="29" r="1.2" fill="var(--c-bg)"/>
+      <circle cx="47" cy="29" r="1.2" fill="var(--c-bg)"/>
+      <path d="M18 50 Q14 42 20 38" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+      <path d="M62 50 Q66 42 60 38" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+      <rect x="30" y="42" width="20" height="14" rx="2" fill="currentColor" opacity="0.1"/>
     </symbol>
-
-    <!-- Mascot: Hermit Crab Reading (book held up) -->
     <symbol id="mascot-crab-reading" viewBox="0 0 80 80">
       <use xlink:href="#mascot-crab"/>
-      <!-- Extra book held by claws in front -->
-      <rect x="28" y="20" width="24" height="18" rx="2" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="0.8"/>
-      <line x1="32" y1="26" x2="48" y2="26" stroke="var(--text-muted)" stroke-width="0.8"/>
-      <line x1="32" y1="30" x2="48" y2="30" stroke="var(--text-muted)" stroke-width="0.8"/>
+      <rect x="28" y="20" width="24" height="18" rx="2" fill="currentColor" opacity="0.1"/>
     </symbol>
-
-    <!-- Mascot: Hermit Crab Excited (surprised/alarmed) -->
     <symbol id="mascot-crab-excited" viewBox="0 0 80 80">
       <use xlink:href="#mascot-crab"/>
-      <!-- Bigger eyes (surprised) -->
-      <circle cx="34" cy="30" r="4" fill="var(--text)"/>
-      <circle cx="46" cy="30" r="4" fill="var(--text)"/>
-      <circle cx="34" cy="29" r="1.5" fill="var(--bg)"/>
-      <circle cx="46" cy="29" r="1.5" fill="var(--bg)"/>
-      <!-- Open mouth -->
-      <ellipse cx="40" cy="38" rx="3" ry="2" fill="var(--bg)"/>
-      <!-- Raised claws -->
-      <path d="M18 42 Q10 32 16 26" fill="none" stroke="var(--border-strong)" stroke-width="2.5" stroke-linecap="round"/>
-      <path d="M62 42 Q70 32 64 26" fill="none" stroke="var(--border-strong)" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="34" cy="30" r="4" fill="var(--c-text)"/>
+      <circle cx="46" cy="30" r="4" fill="var(--c-text)"/>
+      <circle cx="34" cy="29" r="1.5" fill="var(--c-bg)"/>
+      <circle cx="46" cy="29" r="1.5" fill="var(--c-bg)"/>
+      <ellipse cx="40" cy="38" rx="3" ry="2" fill="var(--c-bg)"/>
+      <path d="M18 42 Q10 32 16 26" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+      <path d="M62 42 Q70 32 64 26" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
     </symbol>
   </svg>
 
-  <div class="app-bg"></div>
-
   <!-- ═══ LAYOUT ═══ -->
-  <div class="app" id="app-layout">
-
-    <!-- Left Sidebar -->
-    <nav class="sidebar">
-      <!-- Sidebar Brand Header -->
-      <div class="sidebar-brand">
-        <div class="topbar-logo">
-          <svg style="width: 22px; height: 22px;"><use xlink:href="#logo-crab-claw"></use></svg>
+  <div class="c-app" id="app-layout">
+    <!-- Sidebar -->
+    <nav class="c-app__sidebar" id="sidebar-nav">
+      <div class="c-sidebar__brand">
+        <div class="c-sidebar__logo">
+          <svg><use xlink:href="#logo-crab-claw"/></svg>
         </div>
         <div>
-          <div class="topbar-title">NovelClaw</div>
-          <div class="topbar-subtitle">โลกของนักอ่าน ไม่สิ้นสุด</div>
+          <div class="c-sidebar__title">NovelClaw</div>
+          <div class="c-sidebar__subtitle">โลกของนักอ่าน ไม่สิ้นสุด</div>
         </div>
-        <button class="btn btn-icon btn-ghost" id="sidebar-close" title="ปิดแถบเมนู">
-          <svg style="width: 16px; height: 16px; color: var(--text-secondary);"><use xlink:href="#icon-close"></use></svg>
+        <button class="c-btn c-btn--icon c-sidebar__close" id="sidebar-close">
+          <svg style="width:16px;height:16px;"><use xlink:href="#icon-close"/></svg>
         </button>
       </div>
 
-      <div class="sidebar-section menu">
-        <div class="section-label">เมนู</div>
-        <div class="nav-item active" data-page="home">
-          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-home"/></svg> หน้าหลัก
+      <div class="c-sidebar__nav">
+        <div class="c-section-label" style="padding:0 var(--space-md);">เมนู</div>
+        <div class="c-nav-item c-nav-item--active" data-page="home">
+          <svg class="c-nav-item__icon"><use xlink:href="#icon-home"/></svg> หน้าหลัก
         </div>
-        <div class="nav-item" data-page="library">
-          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-library"/></svg> หอสมุด
+        <div class="c-nav-item" data-page="library">
+          <svg class="c-nav-item__icon"><use xlink:href="#icon-library"/></svg> หอสมุด
         </div>
-        <div class="nav-item" data-page="search">
-          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-search"/></svg> ค้นหา
+        <div class="c-nav-item" data-page="search">
+          <svg class="c-nav-item__icon"><use xlink:href="#icon-search"/></svg> ค้นหา
         </div>
-        <div class="nav-item" data-page="ranking">
-          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-ranking"/></svg> อันดับ
+        <div class="c-nav-item" data-page="ranking">
+          <svg class="c-nav-item__icon"><use xlink:href="#icon-ranking"/></svg> อันดับ
         </div>
-        <div class="nav-divider"></div>
-        <div class="nav-item" data-page="profile">
-          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-profile"/></svg> โปรไฟล์
+        <div class="c-nav-divider"></div>
+        <div class="c-nav-item" data-page="profile">
+          <svg class="c-nav-item__icon"><use xlink:href="#icon-profile"/></svg> โปรไฟล์
         </div>
-        <div class="nav-item" data-page="history">
-          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-history"/></svg> ประวัติ
+        <div class="c-nav-item" data-page="history">
+          <svg class="c-nav-item__icon"><use xlink:href="#icon-history"/></svg> ประวัติ
         </div>
-        <div class="nav-item" data-page="bookmarks">
-          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-bookmarks"/></svg> บุ๊กมาร์ก
+        <div class="c-nav-item" data-page="bookmarks">
+          <svg class="c-nav-item__icon"><use xlink:href="#icon-bookmarks"/></svg> บุ๊กมาร์ก
         </div>
-        <div class="nav-divider"></div>
-        <div class="nav-item" data-page="settings">
-          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-settings"/></svg> ตั้งค่า
+        <div class="c-nav-divider"></div>
+        <div class="c-nav-item" data-page="settings">
+          <svg class="c-nav-item__icon"><use xlink:href="#icon-settings"/></svg> ตั้งค่า
         </div>
-        <div class="nav-item" data-page="admin">
-          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-shield"/></svg> จัดการ
+        <div class="c-nav-item" data-page="admin">
+          <svg class="c-nav-item__icon"><use xlink:href="#icon-shield"/></svg> จัดการ
         </div>
       </div>
 
-      <!-- Premium Upgrade Card -->
-      <div class="sidebar-section premium">
-        <div class="premium-card">
-          <div class="premium-title">
-            <svg style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--accent);"><use xlink:href="#icon-crown"/></svg>
-            Premium
+      <div class="c-sidebar__section" style="border-bottom:none;">
+        <div class="c-premium">
+          <div class="c-premium__title">
+            <svg style="width:16px;height:16px;margin-right:6px;"><use xlink:href="#icon-crown"/></svg> Premium
           </div>
-          <div class="premium-desc">ปลดล็อกการอ่านไม่จำกัด ไร้โฆษณา</div>
-          <button class="btn btn-primary btn-sm btn-full premium-btn">อัปเกรด</button>
+          <div class="c-premium__desc">ปลดล็อกการอ่านไม่จำกัด ไร้โฆษณา</div>
+          <button class="c-btn c-btn--primary c-btn--sm c-btn--full">อัปเกรด</button>
         </div>
       </div>
 
-      <!-- Footer Action Toggles -->
-      <div class="sidebar-section toggle-section">
-        <div class="toggle-label">
-          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-moon"/></svg>
-          <span>Dark Theme</span>
+      <div class="c-sidebar__toggles">
+        <div class="c-toggle__row">
+          <span class="c-toggle__label">
+            <svg style="width:16px;height:16px;"><use xlink:href="#icon-moon"/></svg> Dark Theme
+          </span>
+          <div class="c-toggle c-toggle--active" id="theme-toggle-new"></div>
         </div>
-        <div class="toggle active" id="theme-toggle-new"></div>
-      </div>
-
-      <div class="sidebar-section toggle-section">
-        <div class="toggle-label">
-          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-book"/></svg>
-          <span>AI Translate</span>
+        <div class="c-toggle__row">
+          <span class="c-toggle__label">
+            <svg style="width:16px;height:16px;"><use xlink:href="#icon-book"/></svg> AI Translate
+          </span>
+          <div class="c-toggle" id="translate-toggle-new"></div>
         </div>
-        <div class="toggle active" id="translate-toggle-new"></div>
       </div>
     </nav>
 
     <!-- Main Content -->
-    <main class="main">
-      <div class="main-header">
-        <h2>
-          <button class="btn btn-icon btn-ghost" id="sidebar-toggle" style="display: flex; align-items: center; justify-content: center;" title="เปิด/ปิดแถบเมนู">
-            <svg style="width: 18px; height: 18px; color: var(--text-primary);"><use xlink:href="#icon-hamburger"></use></svg>
+    <main class="c-app__main">
+      <div class="c-header">
+        <div class="c-header__left">
+          <button class="c-btn c-btn--icon" id="sidebar-toggle">
+            <svg style="width:18px;height:18px;"><use xlink:href="#icon-hamburger"/></svg>
           </button>
-          <span id="page-title">หน้าหลัก</span>
-        </h2>
-        <div class="topbar-right">
-          <div class="topbar-status">
-            <span class="status-dot online"></span>
-            <span>online</span>
+          <span class="c-header__title" id="page-title">หน้าหลัก</span>
+        </div>
+        <div class="c-header__right">
+          <div class="c-header__status">
+            <span class="c-status-dot c-status-dot--online"></span>
           </div>
-          <button class="btn btn-icon btn-ghost" id="notif-btn" style="display: flex; align-items: center; justify-content: center;" title="การแจ้งเตือน">
-            <svg style="width: 18px; height: 18px;"><use xlink:href="#icon-bell"></use></svg>
+          <button class="c-btn c-btn--icon" id="notif-btn">
+            <svg style="width:18px;height:18px;"><use xlink:href="#icon-bell"/></svg>
           </button>
-          <div id="profile-avatar" class="profile-avatar"></div>
+          <div class="c-avatar" id="profile-avatar"></div>
         </div>
       </div>
 
-      <!-- Page Content -->
-      <div class="page active" id="page-home">
-        <!-- Rendered by page-renderers.js -->
+      <div class="c-content">
+        <div class="page page--active" id="page-home"></div>
+        <div class="page" id="page-novel-detail"></div>
+        <div class="page" id="page-reader"></div>
+        <div class="page" id="page-library"></div>
+        <div class="page" id="page-search"></div>
+        <div class="page" id="page-ranking"></div>
+        <div class="page" id="page-profile"></div>
+        <div class="page" id="page-history"></div>
+        <div class="page" id="page-bookmarks"></div>
+        <div class="page" id="page-settings"></div>
+        <div class="page" id="page-admin"></div>
+        <div class="page" id="page-admin-novels"></div>
+        <div class="page" id="page-admin-chapters"></div>
+        <div class="page" id="page-admin-translate"></div>
+        <div class="page" id="page-admin-translate-job"></div>
+        <div class="page" id="page-admin-novel-edit"></div>
+        <div class="page" id="page-admin-users"></div>
+        <div class="page" id="page-admin-glossary"></div>
       </div>
-      <div class="page" id="page-novel-detail"></div>
-      <div class="page" id="page-reader"></div>
-      <div class="page" id="page-library"></div>
-      <div class="page" id="page-search"></div>
-      <div class="page" id="page-ranking"></div>
-      <div class="page" id="page-profile"></div>
-      <div class="page" id="page-history"></div>
-      <div class="page" id="page-bookmarks"></div>
-      <div class="page" id="page-downloads"></div>
-      <div class="page" id="page-notifications"></div>
-      <div class="page" id="page-settings"></div>
-      <div class="page" id="page-admin"></div>
-      <div class="page" id="page-admin-novels"></div>
-      <div class="page" id="page-admin-chapters"></div>
-      <div class="page" id="page-admin-translate"></div>
-      <div class="page" id="page-admin-translate-job"></div>
-      <div class="page" id="page-admin-novel-edit"></div>
-      <div class="page" id="page-admin-users"></div>
-      <div class="page" id="page-admin-glossary"></div>
     </main>
 
     <!-- Right Bar -->
-    <aside class="rightbar" id="rightbar">
-      <div class="rightbar-section">
-        <div class="section-label">กิจกรรมล่าสุด</div>
-        <div id="activity-feed">
-          <p style="font-size:11px;color:var(--text-muted);">กำลังโหลด...</p>
+    <aside class="c-app__rightbar" id="rightbar">
+      <div class="c-rc">
+        <div class="c-rc__section">
+          <div class="c-section-label">กิจกรรมล่าสุด</div>
+          <div id="activity-feed">
+            <div class="c-rc__item">กำลังโหลด...</div>
+          </div>
         </div>
-      </div>
-      <div class="rightbar-section">
-        <div class="section-label">ข้อมูล</div>
-        <div id="route-params" style="font-size:11px;color:var(--text-muted);display:none;"></div>
       </div>
     </aside>
   </div>
 
-  <!-- Toast container -->
-  <div id="toast-container"></div>
-  <script src="/router.js"></script>
-  <script src="/page-renderers.js"></script>
-  <script src="/app.js"></script>
+  <div id="toast-container" class="c-toast-container"></div>
+
+  <!-- ═══ SCRIPTS (order matters) ═══ -->
+  <script src="/js/state.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/components.js"></script>
+  <script src="/js/pages/home.js"></script>
+  <script src="/js/pages/novel.js"></script>
+  <script src="/js/pages/reader.js"></script>
+  <script src="/js/pages/pages.js"></script>
+  <script src="/js/pages/admin.js"></script>
+  <script src="/js/app.js"></script>
 </body>
 </html>
