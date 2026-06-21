@@ -25,8 +25,10 @@ Multi-language support (Phase 2 — 2026-06-14):
 """
 from __future__ import annotations
 
+import json
 import re
 from enum import Enum
+from pathlib import Path
 from typing import Optional, Union
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -55,63 +57,14 @@ class Language(str, Enum):
     TH = 'th'    # Thai source — same as CN brackets, (จบบท)
 
 
-# Bracket profile per language. Keys = block semantic role.
-# Values = (open_char, close_char) or end-marker text.
-#
-# For 'en' and 'th', dialogue uses straight ASCII " which the renderer
-# converts to curly U+201C/U+201D at render time. We store the curly
-# form in the bracket config so validator can check for it.
-BRACKETS: dict[str, dict[str, str]] = {
-    'cn': {
-        'dialogue_open': '「',
-        'dialogue_close': '」',
-        'system_open': '【',
-        'system_close': '】',
-        'game_open': '《',
-        'game_close': '》',
-        'end_marker': '(จบบท)',
-    },
-    'jp': {
-        'dialogue_open': '「',
-        'dialogue_close': '」',
-        'system_open': '【',
-        'system_close': '】',
-        'game_open': '『',
-        'game_close': '』',
-        'end_marker': '（終）',
-    },
-    'kr': {
-        'dialogue_open': '「',
-        'dialogue_close': '」',
-        'system_open': '【',
-        'system_close': '】',
-        'game_open': '《',
-        'game_close': '》',
-        'end_marker': '(끝)',
-    },
-    'en': {
-        # EN: curly quotes U+201C/U+201D (renderer converts ASCII " → curly)
-        'dialogue_open': '\u201C',
-        'dialogue_close': '\u201D',
-        'system_open': '[',
-        'system_close': ']',
-        'game_open': '\u201C',
-        'game_close': '\u201D',
-        'end_marker': '(End)',
-    },
-    'th': {
-        # TH novels translated from CN/JP keep CN brackets. TH originals
-        # would use curly quotes. The source-language detection happens
-        # at translation time; for now default to curly quotes.
-        'dialogue_open': '\u201C',
-        'dialogue_close': '\u201D',
-        'system_open': '【',
-        'system_close': '】',
-        'game_open': '《',
-        'game_close': '》',
-        'end_marker': '(จบบท)',
-    },
-}
+# ── Bracket profiles from reader/config/brackets.json (single source of truth) ──
+_BRACKETS_PATH = Path(__file__).resolve().parent.parent / "reader" / "config" / "brackets.json"
+if _BRACKETS_PATH.exists():
+    BRACKETS: dict[str, dict[str, str]] = json.loads(_BRACKETS_PATH.read_text(encoding="utf-8"))
+else:
+    BRACKETS = {
+        'cn': {'dialogue_open': '「', 'dialogue_close': '」', 'system_open': '【', 'system_close': '】', 'game_open': '《', 'game_close': '》', 'end_marker': '(จบบท)'},
+    }
 
 
 # ────────────────────────────────────────────────────────────────────
