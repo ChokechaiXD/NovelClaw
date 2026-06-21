@@ -83,6 +83,7 @@ def call_llm(prompt: str, max_retries: int = 3) -> str:
 
     Tries API Server first (fast), falls back to CLI subprocess.
     All credentials managed by Hermes — no API keys in NovelClaw.
+    Handles retry internally.
 
     Args:
         prompt: The full prompt to send to the LLM
