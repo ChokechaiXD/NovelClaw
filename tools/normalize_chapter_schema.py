@@ -44,15 +44,21 @@ def dump_json(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+# Single source of truth for bracket/end-marker config
+BRACKETS_PATH = PROJECT_ROOT / "reader" / "config" / "brackets.json"
+
+if BRACKETS_PATH.exists():
+    _brackets_data: dict[str, dict[str, str]] = json.loads(
+        BRACKETS_PATH.read_text(encoding="utf-8")
+    )
+else:
+    _brackets_data = {}
+
+
 def expected_end_marker(output_lang: str) -> str:
-    markers = {
-        "th": "(จบบท)",
-        "en": "(End)",
-        "cn": "(จบ)",
-        "jp": "(終わり)",
-        "kr": "(끝)",
-    }
-    return markers.get(output_lang, "(จบบท)")
+    """Read end marker from brackets.json (single source of truth)."""
+    profile = _brackets_data.get(output_lang, {})
+    return profile.get("end_marker", "(จบบท)")
 
 
 def normalize_chapter(
