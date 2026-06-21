@@ -55,6 +55,12 @@ from progress import (  # noqa: E402
     mark_running,
     save_progress,
 )
+from extract_entities import (  # noqa: E402
+    entity_extraction_pipeline,
+    PLACEHOLDER_RE,
+    restore_entities_from_map,
+    verify_no_leaked_entities,
+)
 from providers import get_provider  # noqa: E402
 from schema import (  # noqa: E402
     Chapter,
@@ -555,6 +561,44 @@ def _call_llm(prompt: str, model: str = "haiku", max_retries: int = 3) -> str:
     return '{"mock": "no LLM configured"}'
 
 
+def analysis_pass(
+    ch_num: int,
+    source_text: str,
+    source_lang: str = "zh",
+    target_lang: str = "th",
+) -> dict:
+    """Pass 1: Analyze chapter content, extract entities, generate summary.
+
+    This builds the context for Pass 2 translation by:
+    1. Extracting entities (bracket-based + frequency)
+    2. Cross-referencing with glossary
+    3. Generating a short summary in target language style
+
+    Returns dict with:
+      - entities: list of detected proper nouns
+      - placeholder_map: {placeholder: entity_info}
+      - placeheld_text: source with entities replaced
+      - summary: short chapter summary
+    """
+    glossary_terms = load_terms()
+
+    # Run entity pipeline
+    pipeline_result = entity_extraction_pipeline(
+        ch_num, source_text, glossary_terms, min_freq=2,
+    )
+
+    # Generate summary (first ~500 chars as summary)
+    summary = source_text[:300] + ("..." if len(source_text) > 300 else "")
+
+    return {
+        "entities": pipeline_result["entities"],
+        "placeholder_map": pipeline_result["placeholder_map"],
+        "placeheld_text": pipeline_result["placeheld_text"],
+        "summary": summary,
+        "entity_count": pipeline_result["count"],
+    }
+
+
 def mock_translate(
     ch_num: int,
     source_text: str,
@@ -630,6 +674,8 @@ def translate_one(
     profile_lang: str | None = None,
     progress_state: dict | None = None,
     progress_slug: str = "global-descent",
+    use_entities: bool = False,
+    two_pass: bool = False,
 ) -> bool:
     """Translate one chapter. Returns True on success.
 
@@ -642,11 +688,16 @@ def translate_one(
         source_lang: source language key
         target_lang: target language key
         profile_lang: optional override for output/profile language
+        progress_state: optional progress tracker state dict
+        progress_slug: novel slug for progress tracking
+        use_entities: enable entity placeholder pipeline
+        two_pass: enable two-pass analysis (summary + entities before translate)
     """
-    src_path = SOURCE_DIR / f"{ch_num:04d}.md"
-    out_path = CHAPTERS_DIR / f"{ch_num:04d}.json"
     normalized_source_lang = normalize_language_key(source_lang, "cn")
     normalized_target_lang = normalize_language_key(target_lang, "th")
+
+    src_path = SOURCE_DIR / f"{ch_num:04d}.md"
+    out_path = CHAPTERS_DIR / f"{ch_num:04d}.json"
 
     if not src_path.exists():
         print(f"❌ ch{ch_num}: source not found at {src_path}")
@@ -684,6 +735,18 @@ def translate_one(
 
     print(f"→ ch{ch_num}: source = {len(source)} chars")
 
+    # ── Phase 2: Entity pipeline + two-pass ──────────────────────
+    placeholder_map = {}
+    translate_source = source
+    if two_pass or use_entities:
+        analysis = analysis_pass(ch_num, source, source_lang, target_lang)
+        if analysis["entity_count"] > 0:
+            print(f"  → {analysis['entity_count']} entities detected ({analysis.get('replaced_count', 0)} non-glossary)")
+        if use_entities and analysis["placeholder_map"]:
+            placeholder_map = analysis["placeholder_map"]
+            translate_source = analysis["placeheld_text"]
+            print(f"  → {len(placeholder_map)} entities replaced with placeholders")
+
     # Extract unknown terms for context
     unknown_terms = get_unknown_terms_for_ch(ch_num) if search else None
     if unknown_terms:
@@ -700,7 +763,7 @@ def translate_one(
     else:
         prompt = build_prompt(
             ch_num,
-            source,
+            translate_source,
             unknown_terms=unknown_terms,
             source_lang=source_lang,
             target_lang=target_lang,
@@ -714,6 +777,17 @@ def translate_one(
             if progress_state is not None:
                 mark_failed(ch_num, progress_slug, progress_state)
             return False
+
+    # ── Restore entities from placeholder map ────────────────────
+    if placeholder_map and not mock:
+        for block in ch_data.get("blocks", []):
+            if block.get("text"):
+                block["text"] = restore_entities_from_map(block["text"], placeholder_map)
+        # Verify no leaked entities
+        all_text = "".join(b.get("text", "") for b in ch_data.get("blocks", []))
+        leaked = verify_no_leaked_entities(all_text, placeholder_map)
+        if leaked:
+            print(f"  ⚠ {len(leaked)} entities leaked: {leaked[:3]}")
 
     # Validate via Pydantic schema
     if not no_validate:
@@ -843,6 +917,16 @@ Examples:
         action="store_true",
         help="Skip progress file tracking",
     )
+    ap.add_argument(
+        "--entities",
+        action="store_true",
+        help="Enable entity placeholder pipeline (extract → hash → translate → restore)",
+    )
+    ap.add_argument(
+        "--two-pass",
+        action="store_true",
+        help="Enable two-pass translation (analysis → summary + entities → translate)",
+    )
     args = ap.parse_args()
 
     # Term search mode
@@ -913,6 +997,8 @@ Examples:
                     profile_lang=args.profile_lang,
                     progress_state=progress_state,
                     progress_slug=slug,
+                    use_entities=args.entities,
+                    two_pass=args.two_pass,
                 ): ch
                 for ch in ch_nums
             }
@@ -942,6 +1028,8 @@ Examples:
                 profile_lang=args.profile_lang,
                 progress_state=progress_state,
                 progress_slug=slug,
+                use_entities=args.entities,
+                two_pass=args.two_pass,
             ):
                 success += 1
             else:
