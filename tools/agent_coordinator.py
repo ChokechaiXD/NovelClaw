@@ -311,7 +311,7 @@ def validator_agent(
             source_text, chapter_data, glossary_terms,
             source_lang, target_lang, profile_lang,
         )
-        provider = get_provider(model)
+        provider = get_provider()
         output = provider.translate(prompt)
 
         # Parse response
@@ -383,7 +383,7 @@ def polisher_agent(
         prompt = _build_polisher_prompt(
             source_text, chapter_data, source_lang, target_lang, profile_lang,
         )
-        provider = get_provider(model)
+        provider = get_provider()
         output = provider.translate(prompt)
 
         # Parse the full chapter JSON response

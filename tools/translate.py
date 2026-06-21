@@ -579,7 +579,7 @@ def _call_llm(prompt: str, model: str = "haiku", max_retries: int = 3) -> str:
     last_error = None
     for attempt in range(1, max_retries + 1):
         try:
-            provider = get_provider(model)
+            provider = get_provider()
             return provider.translate(prompt)
         except Exception as e:
             last_error = e
