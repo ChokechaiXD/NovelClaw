@@ -570,27 +570,22 @@ def _run_after(flag: bool, mock: bool, name: str, fn: Callable[[], None]) -> Non
             print(f"  ⚠ {name} error: {e}")
 
 
-def _call_llm(prompt: str, model: str = "haiku", max_retries: int = 3) -> str:
-    """Call the LLM via provider abstraction with exponential backoff retry.
+def _call_llm(prompt: str, max_retries: int = 3) -> str:
+    """Call the LLM via Hermes (api.py handles retry + fallback).
 
-    Uses the provider system (haiku / gemini / claude).
-    Falls back to mock output if provider is unavailable after all retries.
+    api.py already retries 3 times internally and has CLI fallback.
+    No need for additional retry loop here.
     """
-    last_error = None
-    for attempt in range(1, max_retries + 1):
-        try:
-            return call_llm(prompt)
-        except Exception as e:
-            last_error = e
-            if attempt < max_retries:
-                wait = 2 ** attempt  # 2s, 4s, 8s
-                print(f"⚠ LLM error ({model}) attempt {attempt}/{max_retries}: {e}")
-                print(f"  Retrying in {wait}s...")
-                time.sleep(wait)
-            else:
-                print(f"✗ LLM error ({model}) after {max_retries} attempts: {e}")
-    print("⏭ Falling back to mock output...")
-    return '{"mock": "no LLM configured"}'
+    try:
+        return call_llm(prompt, max_retries=max_retries)
+    except RuntimeError as e:
+        print(f"✗ LLM error after all retries: {e}")
+        print("⏭ Falling back to mock output...")
+        return '{"mock": "no LLM configured"}'
+    except Exception as e:
+        print(f"✗ Unexpected LLM error: {e}")
+        print("⏭ Falling back to mock output...")
+        return '{"mock": "no LLM configured"}'
 
 
 def analysis_pass(
