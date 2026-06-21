@@ -771,17 +771,17 @@ def translate_one(
     if not json_mode:
         print(f"→ ch{ch_num}: source = {len(source)} chars")
 
-    # ── Phase 2: Entity pipeline + two-pass ──────────────────────
-    placeholder_map = {}
-    translate_source = source
-    if two_pass or use_entities:
+    # ── Entity detection (logging only) ──────────────────────────
+    # DeepSeek V4 Flash is Chinese-native — it understands CN names without placeholders.
+    # Entity placeholder replacement HURTS more than helps (46 placeholders destroy context).
+    # We keep detection for stats/reference only. No placeholder replacement.
+    # ponytail: entity placeholder replacement disabled for DeepSeek workflow
+    if use_entities or search:
         analysis = analysis_pass(ch_num, source, source_lang, target_lang)
         if analysis["entity_count"] > 0:
             print(f"  → {analysis['entity_count']} entities detected ({analysis.get('replaced_count', 0)} non-glossary)")
-        if use_entities and analysis["placeholder_map"]:
-            placeholder_map = analysis["placeholder_map"]
-            translate_source = analysis["placeheld_text"]
-            print(f"  → {len(placeholder_map)} entities replaced with placeholders")
+    placeholder_map = {}
+    translate_source = source
 
     # Extract unknown terms for context
     unknown_terms = get_unknown_terms_for_ch(ch_num, source=source) if search else None
@@ -847,16 +847,34 @@ def translate_one(
                 except Exception:
                     pass
 
-    # ── Restore entities from placeholder map ────────────────────
-    if placeholder_map and not mock:
-        for block in ch_data.get("blocks", []):
-            if block.get("text"):
-                block["text"] = restore_entities_from_map(block["text"], placeholder_map)
-        # Verify no leaked entities
-        all_text = "".join(b.get("text", "") for b in ch_data.get("blocks", []))
-        leaked = verify_no_leaked_entities(all_text, placeholder_map)
-        if leaked:
-            print(f"  ⚠ {len(leaked)} entities leaked: {leaked[:3]}")
+    # ── Post-process: end marker + CN strip ──────────────────────
+    # 1. Ensure last block is an end marker
+    blocks = ch_data.get("blocks", [])
+    # Read end marker from brackets.json (single source of truth)
+    try:
+        _br_path = Path(__file__).resolve().parent.parent / "reader" / "config" / "brackets.json"
+        _br_data = json.loads(_br_path.read_text(encoding="utf-8"))
+        _br_profile = _br_data.get(normalized_target_lang or "th", {})
+        end_marker_text = _br_profile.get("end_marker", "(จบบท)")
+    except Exception:
+        end_marker_text = "(จบบท)"
+    if not blocks or blocks[-1].get("type") != "end":
+        blocks.append({"type": "end", "text": end_marker_text})
+        print(f"  🏁 Appended missing end marker '{end_marker_text}'")
+
+    # 2. Strip remaining CN chars from narration/dialogue blocks.
+    #    DeepSeek sometimes leaves stray CN characters even after instruction.
+    #    ponytail: only clean narration/dialogue — system blocks may keep CN terms
+    _cn_re = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf]')
+    _cn_cleaned = 0
+    for block in blocks:
+        if block.get("type") in ("narration", "dialogue") and block.get("text"):
+            old = block["text"]
+            block["text"] = _cn_re.sub("", old)
+            if block["text"] != old:
+                _cn_cleaned += 1
+    if _cn_cleaned > 0:
+        print(f"  🧹 Cleaned CN chars from {_cn_cleaned} narration/dialogue blocks")
 
     # Validate via Pydantic schema
     if not no_validate:
