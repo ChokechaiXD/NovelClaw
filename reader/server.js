@@ -766,7 +766,6 @@ app.post('/api/novel/:slug/glossary/save', async (req, res) => {
     }
     
     invalidateCache(slug);
-    invalidateCache(slug);
     res.json({ ok: true });
   });
   

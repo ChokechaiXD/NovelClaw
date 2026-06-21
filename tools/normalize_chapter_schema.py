@@ -35,15 +35,6 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 NOVELS_DIR = PROJECT_ROOT / "novels"
 
-
-def load_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def dump_json(path: Path, data: dict[str, Any]) -> None:
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
 # Single source of truth for bracket/end-marker config
 BRACKETS_PATH = PROJECT_ROOT / "reader" / "config" / "brackets.json"
 
@@ -82,7 +73,6 @@ def normalize_chapter(
         out["title"] = f"ตอนที่ {num} (ไม่มีชื่อตอน)"
         changes.append("set fallback title")
     elif not title.startswith(f"ตอนที่ {num}"):
-        # Keep existing title text, but make the chapter number explicit.
         out["title"] = f"ตอนที่ {num}: {title}"
         changes.append("prefix title with chapter number")
 
@@ -108,7 +98,6 @@ def normalize_chapter(
         blocks = out["blocks"]
         changes.append("set blocks=[]")
 
-    # Normalize empty speaker fields on dialogue blocks only enough to keep JSON stable.
     for block in blocks:
         if isinstance(block, dict) and block.get("type") == "dialogue" and "speaker" not in block:
             block["speaker"] = None
@@ -134,14 +123,6 @@ def normalize_chapter(
             changes.append("move end marker to last")
 
     return out, changes
-
-
-def iter_chapter_paths(novel: str, start: int, end: int):
-    chapters_dir = NOVELS_DIR / novel / "chapters"
-    for num in range(start, end + 1):
-        path = chapters_dir / f"{num:04d}.json"
-        if path.exists():
-            yield num, path
 
 
 def main() -> None:
@@ -170,13 +151,13 @@ def main() -> None:
             print(f"MISSING ch{num:04d}: {path}")
             continue
 
-        original = load_json(path)
+        original = json.loads(path.read_text(encoding="utf-8"))
         normalized, changes = normalize_chapter(original, num, args.lang, args.output_lang)
         if changes:
             changed += 1
             print(f"CHANGE ch{num:04d}: " + "; ".join(changes))
             if args.write:
-                dump_json(path, normalized)
+                path.write_text(json.dumps(normalized, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         else:
             print(f"OK ch{num:04d}")
 
