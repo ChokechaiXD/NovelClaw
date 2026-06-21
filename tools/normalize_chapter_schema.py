@@ -35,12 +35,13 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 NOVELS_DIR = PROJECT_ROOT / "novels"
 
-# Single source of truth for bracket/end-marker config
-BRACKETS_PATH = PROJECT_ROOT / "reader" / "config" / "brackets.json"
+# single source of truth for bracket/end-marker config
+# ponytail: not importing from schema.py to avoid pydantic dependency in CLI scripts
+_BRACKETS_PATH = PROJECT_ROOT / "reader" / "config" / "brackets.json"
 
-if BRACKETS_PATH.exists():
+if _BRACKETS_PATH.exists():
     _brackets_data: dict[str, dict[str, str]] = json.loads(
-        BRACKETS_PATH.read_text(encoding="utf-8")
+        _BRACKETS_PATH.read_text(encoding="utf-8")
     )
 else:
     _brackets_data = {}
