@@ -1,0 +1,20 @@
+{
+  "schema_version": 2,
+  "num": 42,
+  "title": "ตอนที่ 42 การค้นพบ",
+  "blocks": [
+    {
+      "type": "narration",
+      "text": "หวังหมิงเปิดแผงระบบขึ้นมา พบว่าแหวนมิติกำลังส่องแสงอ่อนๆ"
+    },
+    {
+      "type": "end",
+      "text": "(จบบท)"
+    }
+  ],
+  "source": "ch 42",
+  "notes": [],
+  "lang": "cn",
+  "output_lang": "th",
+  "profile_lang": null
+}
