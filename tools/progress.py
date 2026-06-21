@@ -23,6 +23,7 @@ PROGRESS_DIR = Path(__file__).parent.parent / ".chprogress"
 # Per-slug thread locks for concurrent safety
 _locks: dict[str, threading.Lock] = {}
 
+
 def _get_lock(slug: str) -> threading.Lock:
     if slug not in _locks:
         _locks[slug] = threading.Lock()
@@ -32,10 +33,6 @@ def _get_lock(slug: str) -> threading.Lock:
 def _get_path(slug: str = "global-descent") -> Path:
     PROGRESS_DIR.mkdir(parents=True, exist_ok=True)
     return PROGRESS_DIR / f"{slug}.json"
-
-
-def _default_state(chapters: list[int]) -> dict:
-    return {str(c): {"status": "pending", "retries": 0, "updated": None} for c in chapters}
 
 
 def load_progress(slug: str = "global-descent") -> dict:
