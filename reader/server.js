@@ -22,48 +22,50 @@ const NOVELS_DIR = process.env.NOVELCLAW_ROOT
   : path.resolve(__dirname, '../novels');
 const PUBLIC_DIR = path.resolve(__dirname, 'public');
 
-// ── Chapter list cache ─────────────────────────────────────────────────
+// ── Cache (unified) ──────────────────────────────────────────────────────
+// Single Map with prefixed keys: 'list:{slug}', 'html:{slug}:{num}', 'meta:{slug}'
 // For 1,239 chapters the title-extraction is N file reads per page load.
 // Cache the result; invalidate when the chapters/ dir mtime changes (new
 // file added/touched) or after 5 minutes (defensive TTL). Per-file mtime
 // is also folded into the cache key so touching a single file invalidates.
+// For HTML: parsed chapter JSON is expensive (file read + JSON.parse + render).
+// Cache the rendered HTML by chapter num, LRU-evicted when size exceeds limit.
 
-const chapterListCache = new Map();
+const cache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000;
+const CHAPTER_CACHE_MAX = 200;
 
 function invalidateCache(slug) {
-  if (slug) chapterListCache.delete(slug);
-  else chapterListCache.clear();
+  if (slug) {
+    cache.delete('list:' + slug);
+    cache.delete('meta:' + slug);
+    // Clear HTML entries for this slug
+    for (const k of cache.keys()) {
+      if (k.startsWith('html:' + slug + ':')) cache.delete(k);
+    }
+  } else {
+    cache.clear();
+  }
 }
 
-// ── Chapter content cache (LRU) ────────────────────────────────────────
-// Parsed chapter JSON is expensive (file read + JSON.parse + render).
-// Cache the rendered HTML by chapter num, LRU-evicted when size exceeds
-// limit. For 1,239 ch × ~10KB rendered = 12MB worst case; cap at 200.
-
-const CHAPTER_CACHE_MAX = 200;
-const chapterHtmlCache = new Map();  // `${slug}:${num}` -> { html, mtimeMs, size }
-
 function getCachedChapter(slug, num, fileMtime) {
-  const key = `${slug}:${num}`;
-  const entry = chapterHtmlCache.get(key);
+  const key = 'html:' + slug + ':' + num;
+  const entry = cache.get(key);
   if (entry && entry.mtimeMs === fileMtime) {
-    // LRU touch
-    chapterHtmlCache.delete(key);
-    chapterHtmlCache.set(key, entry);
+    cache.delete(key);
+    cache.set(key, entry);
     return entry.html;
   }
   return null;
 }
 
 function setCachedChapter(slug, num, fileMtime, html) {
-  const key = `${slug}:${num}`;
-  // Evict oldest if over limit
-  if (chapterHtmlCache.size >= CHAPTER_CACHE_MAX) {
-    const oldest = chapterHtmlCache.keys().next().value;
-    chapterHtmlCache.delete(oldest);
+  const key = 'html:' + slug + ':' + num;
+  if (cache.size >= CHAPTER_CACHE_MAX) {
+    const oldest = cache.keys().next().value;
+    cache.delete(oldest);
   }
-  chapterHtmlCache.set(key, { html, mtimeMs: fileMtime, size: ((html && html.html) || '').length });
+  cache.set(key, { html, mtimeMs: fileMtime, size: ((html && html.html) || '').length });
 }
 
 // ── helpers ────────────────────────────────────────────────────────────
@@ -89,13 +91,6 @@ const SLUG_RE = /^[a-zA-Z0-9_-]+$/;
 function assertValidSlug(slug) {
   if (!SLUG_RE.test(slug)) throw Object.assign(new Error('Invalid slug format'), { status: 400 });
 }
-
-const esc = (s) => String(s)
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#39;');
 
 async function readMeta(slug) {
   assertValidSlug(slug);
@@ -138,7 +133,7 @@ async function listChapters(slug) {
   } catch {}
   const cacheKeyMtime = dirStat.mtimeMs + sourceDirMtimeMs;
 
-  const cached = chapterListCache.get(slug);
+  const cached = cache.get('list:' + slug);
   // Cache key = dir mtime + source dir mtime + slug.
   if (cached && cached.mtimeMs === cacheKeyMtime && Date.now() - cached.ts < CACHE_TTL_MS) {
     return cached.list;
@@ -204,7 +199,7 @@ async function listChapters(slug) {
   );
   out.push(...titleEntries);
   out.sort((a, b) => a.num - b.num);
-  chapterListCache.set(slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: out });
+  cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: out });
   return out;
 }
 
@@ -345,6 +340,7 @@ async function readChapter(slug, num) {
 
 // ── Chapter rendering (delegated to lib/render.js for profile support) ──
 const { renderChapterJson } = require('./lib/render');
+const { esc } = require('./lib/helpers');
 const { getBracketProfile } = require('./lib/brackets');
 
 // ── Markdown Parser & Generator helpers ───────────────────────────
@@ -789,24 +785,13 @@ try {
 
 // Resolve language from cookie > Accept-Language > 'th'
 function getLang(req) {
-    // Manual cookie parsing (no cookie-parser dependency needed)
-    const rawCookie = req.headers.cookie || '';
-    const cookies = Object.fromEntries(
-        rawCookie.split(';').filter(Boolean).map(c => {
-            const parts = c.trim().split('=');
-            return [parts[0], parts.slice(1).join('=')];
-        })
-    );
-    const cookie = cookies.lang;
-    if (cookie && locales[cookie]) return cookie;
-    const accept = req.headers['accept-language'];
-    if (accept) {
-        const prefs = accept.split(',').map(s => s.split(';')[0].trim().toLowerCase());
-        for (const p of prefs) {
-            const base = p.split('-')[0];
-            if (locales[base]) return base;
-        }
-    }
+    // Manual cookie parsing (no cookie-parser dependency)
+    const raw = req.headers.cookie || '';
+    const m = raw.match(/\blang=([^;]+)/);
+    if (m && locales[m[1]]) return m[1];
+    const accept = (req.headers['accept-language'] || '').split(',')[0] || '';
+    const base = accept.split('-')[0].trim().toLowerCase();
+    if (base && locales[base]) return base;
     return 'th';
 }
 
@@ -878,18 +863,18 @@ app.param('slug', (req, res, next, slug) => {
 //   ...
 //   ---
 
-const novelMetaCache = new Map();
+
 
 async function readNovelMeta(slug) {
   assertValidSlug(slug);
-  if (novelMetaCache.has(slug)) return novelMetaCache.get(slug);
+  const mk = "meta:" + slug; if (cache.has(mk)) return cache.get(mk);
   const metaPath = path.join(NOVELS_DIR, slug, 'meta.md');
   let raw = '';
   try {
     raw = await fs.readFile(metaPath, 'utf8');
   } catch {
     const fallback = { slug, title: slug, source_lang: 'cn', target_lang: 'th' };
-    novelMetaCache.set(slug, fallback);
+    cache.set(mk, fallback);
     return fallback;
   }
   // Parse YAML frontmatter
@@ -904,7 +889,7 @@ async function readNovelMeta(slug) {
       }
     }
   }
-  novelMetaCache.set(slug, meta);
+  cache.set(mk, meta);
   return meta;
 }
 
@@ -1161,7 +1146,7 @@ app.post('/api/novel/:slug/glossary/save', async (req, res) => {
     }
     
     invalidateCache(slug);
-    chapterHtmlCache.clear();
+    invalidateCache(slug);
     res.json({ ok: true });
   });
   
@@ -1203,7 +1188,7 @@ total_chapters: ${total_chapters || '100'}
 ---
 # ${title || slug}`;
     await fs.writeFile(path.join(novelDir, 'meta.md'), metaContent, 'utf8');
-    novelMetaCache.delete(slug);
+    cache.delete("meta:" + slug);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1215,7 +1200,7 @@ app.post('/api/novel/:slug/delete', async (req, res) => {
   const novelDir = path.join(NOVELS_DIR, slug);
   try {
     await fs.rm(novelDir, { recursive: true, force: true });
-    novelMetaCache.delete(slug);
+    cache.delete("meta:" + slug);
     invalidateCache(slug);
     res.json({ ok: true });
   } catch (err) {
@@ -1274,8 +1259,6 @@ app.post('/api/novel/:slug/chapter/:num/save', async (req, res) => {
     await fs.writeFile(jsonPath, JSON.stringify(chapterData, null, 2), 'utf8');
 
     invalidateCache(slug);
-    const key = `${slug}:${num}`;
-    chapterHtmlCache.delete(key);
 
     // Live Search Index Sync
     const execFileAsync = require('util').promisify(require('child_process').execFile);
@@ -1339,8 +1322,6 @@ app.post('/api/novel/:slug/chapter/:num/delete', async (req, res) => {
     await fs.rm(jsonPath, { force: true });
     await fs.rm(mdPath, { force: true });
     invalidateCache(slug);
-    const key = `${slug}:${num}`;
-    chapterHtmlCache.delete(key);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
