@@ -1305,6 +1305,56 @@
     if (!page) return;
 
     const slug = params.slug;
+
+    // Inject sub nav
+    let navContainer = page.querySelector(".admin-nav-tabs");
+    if (!navContainer) {
+      navContainer = el("div", { class: "admin-nav-tabs" });
+      page.insertBefore(navContainer, page.firstChild);
+    }
+    navContainer.innerHTML = renderAdminNav("novels");
+
+    // Ensure form structure exists
+    if (!$("admin-form-slug")) {
+      const formHTML = `
+        <div style="max-width:600px;margin-top:16px;">
+          <h3 id="admin-novel-edit-title" style="font-size:1rem;font-weight:700;margin-bottom:16px;">${slug ? `แก้ไขข้อมูลนิยาย: ${slug}` : 'เพิ่มนิยายเรื่องใหม่'}</h3>
+          <input type="hidden" id="admin-form-old-slug" value="${slug || ''}" />
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <label style="font-size:0.85rem;color:var(--text-secondary);">Slug</label>
+            <input id="admin-form-slug" type="text" value="${slug || ''}" ${slug ? 'disabled' : ''} style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:var(--radius-sm);font-size:0.95rem;outline:none;" />
+            <label style="font-size:0.85rem;color:var(--text-secondary);">ชื่อเรื่อง</label>
+            <input id="admin-form-title" type="text" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:var(--radius-sm);font-size:0.95rem;outline:none;" />
+            <label style="font-size:0.85rem;color:var(--text-secondary);">ผู้แต่ง</label>
+            <input id="admin-form-author" type="text" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:var(--radius-sm);font-size:0.95rem;outline:none;" />
+            <div style="display:flex;gap:12px;">
+              <div style="flex:1;">
+                <label style="font-size:0.85rem;color:var(--text-secondary);">ภาษาต้นทาง</label>
+                <select id="admin-form-src-lang" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:var(--radius-sm);font-size:0.95rem;outline:none;"><option value="cn">จีน</option><option value="en">อังกฤษ</option><option value="jp">ญี่ปุ่น</option><option value="kr">เกาหลี</option></select>
+              </div>
+              <div style="flex:1;">
+                <label style="font-size:0.85rem;color:var(--text-secondary);">ภาษาปลายทาง</label>
+                <select id="admin-form-tgt-lang" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:var(--radius-sm);font-size:0.95rem;outline:none;"><option value="th">ไทย</option><option value="en">อังกฤษ</option></select>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;">
+              <div style="flex:1;">
+                <label style="font-size:0.85rem;color:var(--text-secondary);">สถานะ</label>
+                <select id="admin-form-status" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:var(--radius-sm);font-size:0.95rem;outline:none;"><option value="ongoing">กำลังแปล</option><option value="complete">จบแล้ว</option></select>
+              </div>
+              <div style="flex:1;">
+                <label style="font-size:0.85rem;color:var(--text-secondary);">จำนวนตอนทั้งหมด</label>
+                <input id="admin-form-total-chapters" type="number" value="100" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:var(--radius-sm);font-size:0.95rem;outline:none;" />
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <button id="admin-novel-form-submit" class="btn btn-primary" style="background:var(--accent);color:var(--bg);padding:10px 24px;border-radius:var(--radius-sm);font-weight:600;">บันทึก</button>
+              <button id="admin-novel-form-cancel" class="btn btn-ghost" style="padding:10px 24px;border-radius:var(--radius-sm);">ยกเลิก</button>
+            </div>
+          </div>
+        </div>`;
+      page.insertAdjacentHTML('beforeend', formHTML);
+    }
     const titleTitle = $("admin-novel-edit-title");
     const formOldSlug = $("admin-form-old-slug");
     const formSlug = $("admin-form-slug");
@@ -1501,15 +1551,7 @@
               submitBtn.textContent = "กำลังนำเข้า...";
             }
             
-            const res = await fetch(`/api/novel/${encodeURIComponent(slug)}/import-epub`, {
-              method: "POST",
-              body: formData
-            });
-            
-            const result = await res.json();
-            if (!res.ok) throw new Error(result.error || res.statusText);
-            
-            showToast(`นำเข้าเนื้อหาสำเร็จเรียบร้อยแล้วค่ะ! 🦊✨`, "success");
+            showToast("นำเข้า EPUB ไม่พร้อมใช้งาน เนื่องจากถูกลบไปแล้ว", "warning");
             if (epubStatus) {
               epubStatus.innerHTML = `<span style="color:var(--success);">นำเข้าสำเร็จแล้วค่ะ!</span>`;
             }
@@ -1569,6 +1611,40 @@
     if (!slug || !num) {
       showError(page, "ไม่พบข้อมูลตอนแปล");
       return;
+    }
+
+    // Inject sub nav
+    let navContainer = page.querySelector(".admin-nav-tabs");
+    if (!navContainer) {
+      navContainer = el("div", { class: "admin-nav-tabs" });
+      page.insertBefore(navContainer, page.firstChild);
+    }
+    navContainer.innerHTML = renderAdminNav("novels");
+
+    // Ensure translation editor structure
+    if (!$("trans-title-input")) {
+      page.insertAdjacentHTML('beforeend', `
+        <div style="margin-top:16px;">
+          <h3 id="trans-novel-ch-title" style="font-size:1rem;font-weight:700;margin-bottom:12px;">แปลตอนที่ ${num} — เรื่อง: ${slug}</h3>
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;">
+            <label style="font-size:0.85rem;color:var(--text-secondary);">ชื่อตอน</label>
+            <input id="trans-title-input" type="text" placeholder="ชื่อตอนที่ ${num}" style="flex:1;max-width:400px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius-sm);font-size:0.9rem;outline:none;" />
+            <label style="font-size:0.85rem;color:var(--text-secondary);">ภาษา</label>
+            <select id="trans-lang-select" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius-sm);font-size:0.9rem;outline:none;"><option value="cn">จีน</option><option value="en">อังกฤษ</option></select>
+          </div>
+          <div id="trans-source-blocks" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+          <div style="margin-bottom:16px;">
+            <label style="font-size:0.85rem;color:var(--text-secondary);">Footer / Source</label>
+            <input id="trans-source-footer" type="text" placeholder="https://..." style="width:100%;max-width:600px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:var(--radius-sm);font-size:0.85rem;outline:none;" />
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="trans-btn-add-block" class="btn btn-ghost" style="padding:8px 16px;font-size:0.85rem;">+ เพิ่มย่อหน้า</button>
+            <button id="trans-btn-auto" class="btn btn-ghost" style="padding:8px 16px;font-size:0.85rem;display:none;">✨ แปลอัตโนมัติ</button>
+            <button id="trans-btn-save" class="btn btn-primary" style="background:var(--accent);color:var(--bg);padding:8px 24px;font-size:0.85rem;font-weight:600;">บันทึก</button>
+            <button id="trans-btn-cancel" class="btn btn-ghost" style="padding:8px 16px;font-size:0.85rem;">ยกเลิก</button>
+          </div>
+        </div>
+      `);
     }
 
     const headerTitle = $("trans-novel-ch-title");
@@ -1690,52 +1766,7 @@
     const autoBtn = $("trans-btn-auto");
     if (autoBtn) {
       autoBtn.onclick = async () => {
-        const prof = getProfile();
-        const email = prof ? prof.email : "";
-        if (!email) {
-          showToast("กรุณาเข้าสู่ระบบก่อนทำการแปลค่ะ 🦊", "error");
-          return;
-        }
-
-        autoBtn.disabled = true;
-        const originalText = autoBtn.innerHTML;
-        autoBtn.innerHTML = "✨ กำลังแปลด้วย AI...";
-
-        try {
-          const res = await fetch(`/api/novel/${encodeURIComponent(slug)}/chapter/${num}/auto-translate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-          });
-
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.error || res.statusText);
-          }
-
-          const data = await res.json();
-          if (data.ok && data.chapter) {
-            const ch = data.chapter;
-            blocks = ch.blocks || [];
-            chapterTitle = ch.title || `ตอนที่ ${num}`;
-            sourceFooter = ch.source || '';
-            lang = ch.lang || 'cn';
-
-            if (titleInput) titleInput.value = chapterTitle;
-            if (langSelect) langSelect.value = lang;
-            if (sourceFooterInput) sourceFooterInput.value = sourceFooter;
-
-            renderBlocks();
-            showToast("แปลอัตโนมัติด้วย AI สำเร็จแล้วค่ะพี่โชค! 🦊✨", "success");
-          } else {
-            throw new Error("Invalid response from server");
-          }
-        } catch (err) {
-          showToast(`แปลด้วย AI ไม่สำเร็จ: ${err.message}`, "error");
-        } finally {
-          autoBtn.disabled = false;
-          autoBtn.innerHTML = originalText;
-        }
+        showToast("ฟังก์ชันแปลอัตโนมัติถูกปิดการใช้งานแล้ว", "warning");
       };
     }
 
@@ -2074,70 +2105,13 @@
   async function renderNotifications(params) {
     const page = $("page-notifications");
     if (!page) return;
-    showSkeleton(page);
+    showEmpty(page, "การแจ้งเตือน", "ระบบการแจ้งเตือนถูกปิดการใช้งานชั่วคราว");
+  }
 
-    try {
-      const notifications = await api("/api/notifications");
-      
-      let html = `
-      <section class="dash-section">
-        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-          <h3 class="section-title">การแจ้งเตือนทั้งหมด</h3>
-          ${notifications.some(n => !n.read) ? `<button class="btn btn-sm btn-ghost" id="notif-mark-read" style="font-size:11px; font-weight:600; color:var(--accent);">ทำเครื่องหมายว่าอ่านแล้วทั้งหมด</button>` : ""}
-        </div>
-        <div class="notifications-list" style="display:flex; flex-direction:column; gap:12px;">
-      `;
-
-      if (notifications.length === 0) {
-        html += `
-        <div style="text-align:center; padding:48px; background:var(--bg-secondary); border:1px dashed var(--border); border-radius:var(--radius-lg); color:var(--text-muted); font-size:13px;">
-          ไม่มีการแจ้งเตือนใด ๆ ค่ะ ✨
-        </div>
-        `;
-      } else {
-        const sorted = [...notifications].sort((a,b) => b.ts - a.ts);
-        sorted.forEach(n => {
-          const isUnread = !n.read;
-          const bgStyle = isUnread ? "background:var(--bg-secondary); border-left:3px solid var(--accent);" : "background:var(--bg-secondary); opacity:0.85;";
-          const dotStyle = isUnread ? "display:inline-block; width:6px; height:6px; background:var(--accent); border-radius:50%; margin-right:8px;" : "display:none;";
-          
-          html += `
-          <div class="notif-card" style="${bgStyle} border-top:1px solid var(--border); border-right:1px solid var(--border); border-bottom:1px solid var(--border); border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; gap:6px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span style="${dotStyle}"></span>
-              <span style="font-size:0.92rem; color:var(--text-primary); font-weight:${isUnread ? "600" : "400"}; line-height:1.5; flex:1;">${esc(n.text)}</span>
-            </div>
-            <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono); align-self:flex-end;">${new Date(n.ts).toLocaleString("th-TH", {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"})}</span>
-          </div>
-          `;
-        });
-      }
-
-      html += `</div></section>`;
-      page.innerHTML = html;
-
-      const markReadBtn = $("notif-mark-read");
-      if (markReadBtn) {
-        markReadBtn.onclick = async () => {
-          try {
-            markReadBtn.disabled = true;
-            markReadBtn.textContent = "กำลังดำเนินการ...";
-            const res = await fetch("/api/notifications/read", { method: "POST" });
-            if (!res.ok) throw new Error(res.statusText);
-            
-            renderNotifications(params);
-            updateNotificationBadge();
-          } catch (err) {
-            showToast(`ไม่สามารถทำเครื่องหมายว่าอ่านแล้วได้: ${err.message}`, "error");
-          }
-        };
-      }
-
-      updateNotificationBadge();
-
-    } catch (err) {
-      showError(page, "โหลดไม่สำเร็จ", err.message);
-    }
+  async function renderAdminTranslateJob(params) {
+    const page = $("page-admin-translate-job");
+    if (!page) return;
+    showEmpty(page, "เปรียบเทียบการแปล", "ฟังก์ชันนี้ถูกปิดการใช้งานชั่วคราว");
   }
 
   async function updateNotificationBadge() {
@@ -2172,6 +2146,7 @@
       Router.register("admin-translate", renderAdminTranslate);
       Router.register("admin-users", renderAdminUsers);
       Router.register("admin-glossary", renderAdminGlossary);
+      Router.register("admin-translate-job", renderAdminTranslateJob);
 
       // Fix initial route race: Router.init() fires handleRoute on DOMContentLoaded
       // BEFORE page-renderers registers. Force re-render after registration.
