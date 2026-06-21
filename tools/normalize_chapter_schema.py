@@ -16,11 +16,12 @@ What it fixes:
     - missing end marker
     - end marker not last
     - end marker not matching output language
+    - **dialogue quote brackets converted to target language profile**
+        - e.g. CN「」→ TH"" when output_lang=th
 
 What it does NOT fix:
     - translation quality
     - glossary drift
-    - quote style conversion
     - source completeness
 """
 
@@ -51,6 +52,28 @@ def expected_end_marker(output_lang: str) -> str:
     """Read end marker from brackets.json (single source of truth)."""
     profile = _brackets_data.get(output_lang, {})
     return profile.get("end_marker", "(จบบท)")
+
+
+def _convert_dialogue_quotes(
+    text: str,
+    src_open: str,
+    src_close: str,
+    tgt_open: str,
+    tgt_close: str,
+) -> tuple[str, bool]:
+    """Convert dialogue quotes from source bracket style to target style.
+
+    Converts ALL occurrences of src_open/src_close in the text,
+    regardless of position (covers mixed and partial brackets).
+    """
+    changed = False
+    if src_open in text:
+        text = text.replace(src_open, tgt_open)
+        changed = True
+    if src_close in text:
+        text = text.replace(src_close, tgt_close)
+        changed = True
+    return text, changed
 
 
 def normalize_chapter(
@@ -98,6 +121,28 @@ def normalize_chapter(
         out["blocks"] = []
         blocks = out["blocks"]
         changes.append("set blocks=[]")
+
+    # ── Dialogue bracket conversion ──────────────────────────────
+    src_profile = _brackets_data.get(lang, {})
+    tgt_profile = _brackets_data.get(output_lang, {})
+    src_open = src_profile.get("dialogue_open", "")
+    src_close = src_profile.get("dialogue_close", "")
+    tgt_open = tgt_profile.get("dialogue_open", "")
+    tgt_close = tgt_profile.get("dialogue_close", "")
+
+    if src_open and tgt_open and src_open != tgt_open:
+        quote_changed = 0
+        for block in blocks:
+            if isinstance(block, dict) and block.get("type") == "dialogue":
+                original = block.get("text", "")
+                converted, was_changed = _convert_dialogue_quotes(
+                    original, src_open, src_close, tgt_open, tgt_close
+                )
+                if was_changed:
+                    block["text"] = converted
+                    quote_changed += 1
+        if quote_changed:
+            changes.append(f"converted {quote_changed} dialogue quotes from {lang}→{output_lang}")
 
     for block in blocks:
         if isinstance(block, dict) and block.get("type") == "dialogue" and "speaker" not in block:
