@@ -12,9 +12,8 @@ const fsSync = require('node:fs');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { marked } = require('marked');
-const multer = require('multer');
 
-// Export pure functions for testing (without spinning up HTTP server)
+// Export pure functions for testing
 // When required as a module, only the renderer + helpers are exported.
 // When run directly (`node server.js`), the server starts.
 const PORT = Number(process.env.PORT) || 4173;
@@ -1308,84 +1307,6 @@ app.post('/api/novel/:slug/chapter/:num/save', async (req, res) => {
   }
 });
 
-app.post('/api/novel/:slug/chapter/:num/auto-translate', async (req, res) => {
-  const slug = req.params.slug;
-  const num = parseInt(req.params.num, 10);
-  const { email } = req.body;
-
-  if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
-
-  // 1. Authenticate / Check user quota
-  const usersPath = path.join(__dirname, 'users.json');
-  let users = [];
-  try {
-    const data = await fs.readFile(usersPath, 'utf8');
-    users = JSON.parse(data);
-  } catch (err) {
-    return res.status(500).json({ error: 'Failed to read users database: ' + err.message });
-  }
-
-  const user = users.find(u => u.email === email);
-  if (!user) {
-    return res.status(403).json({ error: 'User not found/Unauthorized. กรุณาเข้าสู่ระบบด้วยอีเมลที่ถูกต้องค่ะ 🦊' });
-  }
-
-  if (user.tokensLimit !== -1 && user.tokensUsed >= user.tokensLimit) {
-    return res.status(403).json({ error: 'คุณใช้โควตาแปลภาษาสำหรับวันนี้หมดแล้วค่ะ! 💅 เกินขีดจำกัดแล้วค่ะ' });
-  }
-
-  // 2. Clear existing translation if it exists (so translate.py doesn't skip it)
-  const padded = String(num).padStart(4, '0');
-  const jsonPath = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.json`);
-  try {
-    await fs.unlink(jsonPath);
-  } catch (e) {
-    // Ignore if file doesn't exist
-  }
-
-  // 3. Run translation script
-  const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
-  const translateScript = path.join(__dirname, '..', 'tools', 'translate.py');
-  
-  // Use mock if requested or if no API keys are present in env
-  const useMock = req.body.mock || (!process.env.ANTHROPIC_API_KEY && !process.env.GEMINI_API_KEY);
-  const args = [translateScript, String(num)];
-  if (useMock) {
-    args.push('--mock');
-  }
-
-  const execFileAsync = require('util').promisify(require('child_process').execFile);
-  try {
-    await execFileAsync(py, args, {
-      env: { ...process.env, NOVEL_SLUG: slug, PYTHONIOENCODING: 'utf-8' }
-    });
-
-    // 4. Deduct tokens
-    user.tokensUsed += 1;
-    await fs.writeFile(usersPath, JSON.stringify(users, null, 2), 'utf8');
-
-    // 5. Load the newly saved file and return it
-    const fileContent = await fs.readFile(jsonPath, 'utf8');
-    const chData = JSON.parse(fileContent);
-
-    // Live Search Index Sync
-    const searchScript = path.join(__dirname, '..', 'tools', 'chapter_search.py');
-    const novelRoot = path.join(NOVELS_DIR, slug);
-    try {
-      await execFileAsync(py, [searchScript, '--novel-root', novelRoot, 'index'], {
-        env: { ...process.env, NOVEL_SLUG: slug }
-      });
-      console.log(`[search] Re-indexed FTS5 successfully for ${slug}`);
-    } catch (searchErr) {
-      console.warn(`[search] FTS5 index update failed: ${searchErr.message}`);
-    }
-
-    res.json({ ok: true, chapter: chData });
-  } catch (err) {
-    res.status(500).json({ error: `Translation failed: ${err.message}` });
-  }
-});
-
 app.get('/api/admin/users', async (req, res) => {
   const usersPath = path.join(__dirname, 'users.json');
   try {
@@ -1485,130 +1406,6 @@ server.on('error', (err) => {
   } else {
     console.error('Server error:', err);
   }
-});
-
-// ── Reviews & Comments APIs (Phase B Social) ───────────────────────────
-
-app.get('/api/novel/:slug/reviews', async (req, res) => {
-  try {
-    assertValidSlug(req.params.slug);
-    const slug = req.params.slug;
-    const filePath = path.join(NOVELS_DIR, slug, 'reviews.json');
-    try {
-      const data = await fs.readFile(filePath, 'utf8');
-      res.json(JSON.parse(data));
-    } catch (err) {
-      if (err.code === 'ENOENT') {
-        res.json([]);
-      } else throw err;
-    }
-  } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
-  }
-});
-
-app.post('/api/novel/:slug/reviews/save', express.json(), async (req, res) => {
-  try {
-    assertValidSlug(req.params.slug);
-    const slug = req.params.slug;
-    const filePath = path.join(NOVELS_DIR, slug, 'reviews.json');
-    
-    let reviews = [];
-    try {
-      const data = await fs.readFile(filePath, 'utf8');
-      reviews = JSON.parse(data);
-    } catch (err) {
-      if (err.code !== 'ENOENT') throw err;
-    }
-
-    const { user, rating, text } = req.body;
-    if (!user || rating == null || !text) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    reviews.push({
-      user,
-      rating: Number(rating),
-      text,
-      ts: Date.now()
-    });
-
-    await fs.writeFile(filePath, JSON.stringify(reviews, null, 2), 'utf8');
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
-  }
-});
-
-app.get('/api/novel/:slug/chapter/:num/comments', async (req, res) => {
-  try {
-    assertValidSlug(req.params.slug);
-    const slug = req.params.slug;
-    const num = parseInt(req.params.num, 10);
-    const filePath = path.join(NOVELS_DIR, slug, 'comments', `chapter_${num}.json`);
-    try {
-      const data = await fs.readFile(filePath, 'utf8');
-      res.json(JSON.parse(data));
-    } catch (err) {
-      if (err.code === 'ENOENT') {
-        res.json([]);
-      } else throw err;
-    }
-  } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
-  }
-});
-
-app.post('/api/novel/:slug/chapter/:num/comment', express.json(), async (req, res) => {
-  try {
-    assertValidSlug(req.params.slug);
-    const slug = req.params.slug;
-    const num = parseInt(req.params.num, 10);
-    const dirPath = path.join(NOVELS_DIR, slug, 'comments');
-    const filePath = path.join(dirPath, `chapter_${num}.json`);
-
-    await fs.mkdir(dirPath, { recursive: true });
-
-    let comments = [];
-    try {
-      const data = await fs.readFile(filePath, 'utf8');
-      comments = JSON.parse(data);
-    } catch (err) {
-      if (err.code !== 'ENOENT') throw err;
-    }
-
-    const { user, text } = req.body;
-    if (!user || !text) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    comments.push({
-      user,
-      text,
-      ts: Date.now()
-    });
-
-    await fs.writeFile(filePath, JSON.stringify(comments, null, 2), 'utf8');
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(err.status || 500).json({ error: err.message });
-  }
-});
-
-// Notifications Mock State
-let notificationsMock = [
-  { id: 1, text: "นิยายเรื่อง 'Global Descent' อัปเดตตอนที่ 54 แล้วค่ะ!", ts: Date.now() - 3600000 * 2, read: false },
-  { id: 2, text: "พี่โชคมีผู้ติดตามใหม่ 3 คนในวันนี้ค่ะ 🦊", ts: Date.now() - 3600000 * 12, read: true },
-  { id: 3, text: "Mika อนุมัติการบันทึกคลังคำศัพท์ของ 'Global Descent' แล้วเรียบร้อย", ts: Date.now() - 3600000 * 24, read: true }
-];
-
-app.get('/api/notifications', (req, res) => {
-  res.json(notificationsMock);
-});
-
-app.post('/api/notifications/read', (req, res) => {
-  notificationsMock.forEach(n => n.read = true);
-  res.json({ ok: true });
 });
 
 const START_TIME = Date.now();
