@@ -11,7 +11,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: var(--font-size); -webkit-text-size-adjust: 100%; }
 body {
-  font-family: var(--font-stack);
+  font-family: var(--font-sans);
   background: var(--bg);
   color: var(--text);
   line-height: var(--line-height);
@@ -101,7 +101,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   margin-bottom: 2.5rem;
   font-size: 0.85rem;
   color: var(--text-muted);
-  font-family: var(--font-stack);
+  font-family: var(--font-sans);
 }
 
 .divider-dot {
@@ -1546,8 +1546,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* ── Design Tokens ───────────────────────────────────────── */
 :root {
   /* Layout sizes, fonts, radius, and shadows (constants across all themes) */
-  --font-sans: 'Inter', 'Sarabun', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  --font-sans: 'Sarabun', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Thai', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
 
   --radius-sm: 6px;
   --radius: 10px;
@@ -1562,23 +1562,23 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
 
-  /* Default theme values (Obisidian Dark) */
-  --bg: #121212;
-  --bg-elevated: #1a1a1a;
-  --surface: #242424;
-  --surface-hover: #2c2c2c;
-  --border: #333333;
-  --border-strong: #444444;
+  /* Default theme values (Obsidian Dark) */
+  --bg: #0f0f12;
+  --bg-elevated: #16181f;
+  --surface: #1e2029;
+  --surface-hover: #262833;
+  --border: #2a2c38;
+  --border-strong: #383b48;
 
-  --text: #e0e0e0;
-  --text-secondary: #b3b3b3;
-  --text-muted: #808080;
-  --text-soft: #666666;
+  --text: #e2e4ed;
+  --text-secondary: #a0a4b5;
+  --text-muted: #6b7085;
+  --text-soft: #52576b;
 
-  --accent: #4d96ff;
-  --accent-soft: rgba(77, 150, 255, 0.08);
+  --accent: #14b8a6;
+  --accent-soft: rgba(20, 184, 166, 0.1);
   --accent-2: #a78bfa;
-  --accent-2-soft: rgba(167, 139, 250, 0.08);
+  --accent-2-soft: rgba(167, 139, 250, 0.1);
 
   /* Design System v2 tokens (Mapped to Dark Theme) */
   --bg-deep: #06060c;
@@ -1611,20 +1611,20 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 [data-theme="dark"] {
-  --bg: #121212;
-  --bg-elevated: #1a1a1a;
-  --surface: #242424;
-  --surface-hover: #2c2c2c;
-  --border: #333333;
-  --border-strong: #444444;
-  --text: #e0e0e0;
-  --text-secondary: #b3b3b3;
-  --text-muted: #808080;
-  --text-soft: #666666;
-  --accent: #4d96ff;
-  --accent-soft: rgba(77, 150, 255, 0.08);
+  --bg: #0f0f12;
+  --bg-elevated: #16181f;
+  --surface: #1e2029;
+  --surface-hover: #262833;
+  --border: #2a2c38;
+  --border-strong: #383b48;
+  --text: #e2e4ed;
+  --text-secondary: #a0a4b5;
+  --text-muted: #6b7085;
+  --text-soft: #52576b;
+  --accent: #14b8a6;
+  --accent-soft: rgba(20, 184, 166, 0.1);
   --accent-2: #a78bfa;
-  --accent-2-soft: rgba(167, 139, 250, 0.08);
+  --accent-2-soft: rgba(167, 139, 250, 0.1);
 
   /* Design System v2 */
   --bg-deep: #06060c;
@@ -1644,20 +1644,20 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 [data-theme="amoled"] {
-  --bg: #000000;
-  --bg-elevated: #101010;
-  --surface: #1c1c1c;
-  --surface-hover: #262626;
-  --border: #222222;
-  --border-strong: #333333;
-  --text: #ffffff;
-  --text-secondary: #cccccc;
-  --text-muted: #888888;
-  --text-soft: #666666;
-  --accent: #4d96ff;
-  --accent-soft: rgba(77, 150, 255, 0.08);
+  --bg: #010104;
+  --bg-elevated: #0a0a0e;
+  --surface: #121218;
+  --surface-hover: #1a1a22;
+  --border: #1a1c26;
+  --border-strong: #282a38;
+  --text: #e2e4ed;
+  --text-secondary: #a0a4b5;
+  --text-muted: #5a5e72;
+  --text-soft: #42465a;
+  --accent: #14b8a6;
+  --accent-soft: rgba(20, 184, 166, 0.1);
   --accent-2: #a78bfa;
-  --accent-2-soft: rgba(167, 139, 250, 0.08);
+  --accent-2-soft: rgba(167, 139, 250, 0.1);
 
   /* Design System v2 */
   --bg-deep: #000000;
