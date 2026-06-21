@@ -29,16 +29,9 @@ dependencies = [
 [project.optional-dependencies]
 test = ["pytest>=8.0", "pytest-asyncio>=0.23"]
 
-[project.scripts]
-novelclaw-translate = "tools.translate:main"
-novelclaw-glossary = "tools.glossary:main"
-novelclaw-search = "tools.chapter_search:main"
-novelclaw-tm = "tools.translation_memory:main"
-novelclaw-quality-report = "tools.quality_report:main"
-
 [project.urls]
-Homepage = "https://github.com/BlankScreen/novelclaw"
-Documentation = "https://github.com/BlankScreen/novelclaw"
+Homepage = "https://github.com/ChokechaiXD/NovelClaw"
+Documentation = "https://github.com/ChokechaiXD/NovelClaw"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -80,4 +73,3 @@ relative_files = true
 [tool.coverage.report]
 show_missing = true
 fail_under = 60
-
