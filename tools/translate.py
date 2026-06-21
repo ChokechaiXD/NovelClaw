@@ -406,8 +406,9 @@ def build_prompt(
 - The last block in the output list MUST be the end marker block: {{"type": "end", "text": "{bracket_profile["end_marker"]}"}}
 - Transmittor principle: TRANSMIT the source content faithfully. Do NOT summarize, edit, or omit paragraphs.
 - Zero source-language characters are allowed in narration/dialogue/system blocks.
-- ANTI-HALLUCINATION: Do NOT add any narration, description, detail, or dialogue not present in the source. Do NOT invent internal monologue, character thoughts, or scene details. If the source is ambiguous, preserve the ambiguity. If unsure, translate literally rather than inventing content.
-- Your translation must preserve the full length and detail of the source. Target {COMPLETENESS_MIN_RATIO:.2f}-{COMPLETENESS_MAX_RATIO:.2f}x source character count. Do NOT compress or summarize.
+|- ANTI-HALLUCINATION: Do NOT add any narration, description, detail, or dialogue not present in the source. Do NOT invent internal monologue, character thoughts, or scene details. If the source is ambiguous, preserve the ambiguity. If unsure, translate literally rather than inventing content.
+|- ZERO Chinese characters in the output. Every Chinese character (汉字) in the source MUST be translated to Thai. If you are unsure how to translate a term, use the glossary. If not in glossary, transliterate phonetically to Thai. Leaving Chinese characters in the output is a CRITICAL error.
+|- Your translation must preserve the full length and detail of the source. Target {COMPLETENESS_MIN_RATIO:.2f}-{COMPLETENESS_MAX_RATIO:.2f}x source character count. Do NOT compress or summarize.
 |- Allowed Latin tokens only: {", ".join(sorted(ALLOWED_LATIN_TOKENS))}. Translate Lv/LVL as "เลเวล", BUFF as "บัฟ", DEBUFF as "ดีบัฟ", First Kill as "คิลแรก".
 |- EN RETENTION FORBIDDEN: The Chinese source may contain English words (skill names, item names, interjections like "continue", "recruiting", "mean", "queen", "level", "panic", "erupt", "disrespect"). You MUST translate these to Thai. Do NOT keep any English words in the output. If unsure, translate literally.
 </format_spec>
@@ -438,7 +439,8 @@ def build_prompt(
 {source_text}
 </source_text>
 
-Please output only the translated JSON. Start your response with {{ and end with }}.
+Please output only the translated JSON. Start your response with:
+{{"title": "ตอนที่ {ch_num}
 """
     return prompt
 
@@ -570,14 +572,10 @@ def _run_after(flag: bool, mock: bool, name: str, fn: Callable[[], None]) -> Non
             print(f"  ⚠ {name} error: {e}")
 
 
-def _call_llm(prompt: str, max_retries: int = 3) -> str:
-    """Call the LLM via Hermes (api.py handles retry + fallback).
-
-    api.py already retries 3 times internally and has CLI fallback.
-    No need for additional retry loop here.
-    """
+def _call_llm(prompt: str, max_retries: int = 3, system: str | None = None) -> str:
+    """Call the LLM via Hermes (api.py handles retry + fallback)."""
     try:
-        return call_llm(prompt, max_retries=max_retries)
+        return call_llm(prompt, max_retries=max_retries, system=system)
     except RuntimeError as e:
         print(f"✗ LLM error after all retries: {e}")
         print("⏭ Falling back to mock output...")
@@ -678,16 +676,22 @@ def parse_llm_output(output: str, _ch_num: int) -> dict:
     """Parse LLM output (which may include prose) to extract JSON.
 
     LLM may output ```json ... ``` or just raw JSON or with prose around it.
+    Strips control characters that choke json.loads.
     """
     # Strip markdown fences if present
     output = re.sub(r"^```(?:json)?\s*\n?", "", output.strip())
     output = re.sub(r"\n?```\s*$", "", output)
+    # Strip control characters (except newline/tab) that break json.loads
+    output = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", output, flags=re.DOTALL)
     # Find first { and last }
     start = output.find("{")
     end = output.rfind("}")
     if start == -1 or end == -1:
         raise ValueError(f"No JSON braces found in LLM output:\n{output[:200]}")
     json_str = output[start : end + 1]
+    # Fix common LLM escape sequence issues before parsing
+    # DeepSeek sometimes outputs invalid escape sequences like \e or \_
+    json_str = re.sub(r'\\([^"\\/bfnrtu])', r'\\\1', json_str)
     return json.loads(json_str)
 
 
@@ -816,7 +820,17 @@ def translate_one(
                 profile_lang=profile_lang,
                 source_cleaned=source,
             )
-            output = _call_llm(prompt)
+            # Extract system prompt (rules + glossary) and user prompt (source + anchor)
+            # System = everything before <continuity_context>
+            # This separation uses the API's `system` field for better instruction following
+            sys_end = prompt.find("<continuity_context>")
+            if sys_end > 0:
+                system_text = prompt[:sys_end].strip()
+                user_text = prompt[sys_end:].strip()
+            else:
+                system_text = None
+                user_text = prompt
+            output = _call_llm(user_text, system=system_text)
             try:
                 ch_data = parse_llm_output(output, ch_num)
             except (json.JSONDecodeError, ValueError) as e:

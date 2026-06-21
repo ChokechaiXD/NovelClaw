@@ -8,6 +8,15 @@ in NovelClaw source code or .env.
 Mode order (fastest first):
   1. Direct HTTP → configured model API (~5s per call)
   2. Hermes CLI fallback (slower, subprocess overhead)
+
+Research-informed fixes (2026-06-22):
+- DeepSeek V4 Flash defaults to thinking mode when using Anthropic Messages API.
+  Thinking consumes output tokens from the same max_tokens budget, leaving
+  ~2000 tokens for actual translation — not enough for full chapters.
+  Fix: explicit thinking: {"type": "disabled"} and max_tokens=32000.
+- Use `system` field (Anthropic format) for language constraints, not
+  inline in user message — gives better control.
+- Source: api-docs.deepseek.com/guides/thinking_mode + community testing.
 """
 
 import json
@@ -23,7 +32,6 @@ from pathlib import Path
 _HERMES_CONFIG = None
 
 def _load_hermes_config() -> dict:
-    """Load API credentials from Hermes config.yaml (read-only, no copy made)."""
     global _HERMES_CONFIG
     if _HERMES_CONFIG is not None:
         return _HERMES_CONFIG
@@ -44,7 +52,6 @@ def _load_hermes_config() -> dict:
             except Exception:
                 continue
 
-    # Fallback: minimal defaults
     _HERMES_CONFIG = {
         "model": {
             "base_url": "https://api.openmodel.ai/v1",
@@ -57,8 +64,7 @@ def _load_hermes_config() -> dict:
 
 
 def _get_model_config() -> dict:
-    cfg = _load_hermes_config()
-    return cfg.get("model", {})
+    return _load_hermes_config().get("model", {})
 
 
 def _get_api_key() -> str:
@@ -80,10 +86,21 @@ def _get_api_mode() -> str:
 # ── Direct HTTP call ──────────────────────────────────────────────────
 
 
-def _direct_call(prompt: str, max_retries: int = 2) -> str | None:
-    """Call the model API directly via HTTP (Anthropic Messages or OpenAI format).
+def _direct_call(prompt: str, max_retries: int = 2, system: str | None = None) -> str | None:
+    """Call the model API directly via HTTP.
 
-    Reads credentials from Hermes config. ~5s per call when working.
+    Args:
+        prompt: User message content
+        max_retries: Retry attempts
+        system: Optional system prompt (used as Anthropic `system` field,
+                or prepended to user message for OpenAI format)
+
+    Research notes (2026-06-22):
+    - DeepSeek V4 Flash uses thinking mode by default with Anthropic API.
+      This eats output tokens — up to 6K tokens just for thinking.
+      Explicit `thinking: {"type": "disabled"}` forces non-thinking mode,
+      giving the full max_tokens budget to translation output.
+    - max_tokens=32000 for full chapter translation (~3K-8K output tokens).
     """
     import urllib.request
     import urllib.error
@@ -96,14 +113,19 @@ def _direct_call(prompt: str, max_retries: int = 2) -> str | None:
     if not api_key:
         return None
 
+    REQUEST_TIMEOUT = 600  # chapters can take 1-5 minutes
+
     if api_mode == "anthropic_messages":
-        # Anthropic Messages API format (used by openmodel.ai proxy)
         url = f"{base_url}/messages"
-        body = json.dumps({
+        body_parts = {
             "model": model,
-            "max_tokens": 8192,
+            "max_tokens": 32000,
+            "thinking": {"type": "disabled"},
             "messages": [{"role": "user", "content": prompt}],
-        }).encode()
+        }
+        if system:
+            body_parts["system"] = system
+        body = json.dumps(body_parts).encode()
         headers = {
             "x-api-key": api_key,
             "Content-Type": "application/json",
@@ -111,12 +133,15 @@ def _direct_call(prompt: str, max_retries: int = 2) -> str | None:
         }
         _parse = _parse_anthropic_response
     else:
-        # OpenAI-compatible format (OpenRouter, standard)
         url = f"{base_url}/chat/completions"
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
         body = json.dumps({
             "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 8192,
+            "messages": messages,
+            "max_tokens": 32000,
         }).encode()
         headers = {
             "Authorization": f"Bearer {api_key}",
@@ -127,7 +152,7 @@ def _direct_call(prompt: str, max_retries: int = 2) -> str | None:
     for attempt in range(max_retries):
         try:
             req = urllib.request.Request(url, data=body, headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
                 data = json.loads(resp.read().decode())
                 return _parse(data)
         except (urllib.error.HTTPError, urllib.error.URLError,
@@ -143,23 +168,18 @@ def _direct_call(prompt: str, max_retries: int = 2) -> str | None:
 def _parse_anthropic_response(data: dict) -> str:
     """Extract text from Anthropic Messages API response.
 
-    Response format:
-    {"content": [{"type": "thinking", ...}, {"type": "text", "text": "..."}], ...}
+    DeepSeek V4 with thinking disabled returns content as text blocks.
+    Response: {"content": [{"type": "text", "text": "..."}], ...}
     """
     for block in data.get("content", []):
         if block.get("type") == "text":
             return block["text"]
-    # Fallback: return all content blocks joined
     parts = [b.get("text", b.get("thinking", "")) for b in data.get("content", [])]
     return "\n".join(parts)
 
 
 def _parse_openai_response(data: dict) -> str:
-    """Extract text from OpenAI-compatible API response."""
     return data["choices"][0]["message"]["content"]
-
-
-# ── CLI fallback ──────────────────────────────────────────────────────
 
 
 def _cli_call(prompt: str, max_retries: int = 2) -> str | None:
@@ -172,7 +192,7 @@ def _cli_call(prompt: str, max_retries: int = 2) -> str | None:
             )
             if result.returncode == 0 and result.stdout.strip():
                 return result.stdout.strip()
-        except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             if attempt < max_retries - 1:
                 time.sleep(2)
                 continue
@@ -183,7 +203,7 @@ def _cli_call(prompt: str, max_retries: int = 2) -> str | None:
 # ── Public API ────────────────────────────────────────────────────────
 
 
-def call_llm(prompt: str, max_retries: int = 3) -> str:
+def call_llm(prompt: str, max_retries: int = 3, system: str | None = None) -> str:
     """Translate a prompt using the configured LLM.
 
     Priority: direct HTTP → CLI fallback.
@@ -192,6 +212,7 @@ def call_llm(prompt: str, max_retries: int = 3) -> str:
     Args:
         prompt: The full prompt to send to the LLM
         max_retries: Max retry attempts shared across all modes
+        system: Optional system prompt (used for language constraints)
 
     Returns:
         LLM response text
@@ -201,13 +222,11 @@ def call_llm(prompt: str, max_retries: int = 3) -> str:
     """
     errors = []
 
-    # Try 1: Direct HTTP (fastest, ~5s)
-    result = _direct_call(prompt, max_retries=max_retries)
+    result = _direct_call(prompt, max_retries=max_retries, system=system)
     if result is not None:
         return result
     errors.append("direct HTTP call failed")
 
-    # Try 2: CLI fallback
     result = _cli_call(prompt, max_retries=max_retries)
     if result is not None:
         return result
