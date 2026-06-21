@@ -60,7 +60,22 @@ function extractNumbers(text) {
   return new Set(matches);
 }
 
+// ── Glossary cache (module-level, TTL 60s) ────────────────────────────
+// ponytail: avoid 3-4 file reads per chapter API call
+const GLOSSARY_CACHE = new Map();
+const GLOSSARY_TTL = 60_000; // 60 seconds
+
+function invalidateGlossaryCache(slug) {
+  GLOSSARY_CACHE.delete(slug);
+}
+
 async function loadGlossary(slug, novelRoot) {
+  // Check cache first
+  const cached = GLOSSARY_CACHE.get(slug);
+  if (cached && Date.now() - cached.ts < GLOSSARY_TTL) {
+    return cached.data;
+  }
+
   const glossaryDir = path.join(novelRoot, slug, 'glossary');
   // Try glossary.yml first (modern), fallback to .md tables (legacy)
   try {
@@ -97,6 +112,8 @@ async function loadGlossary(slug, novelRoot) {
       }
     } catch { /* skip missing */ }
   }
+  // Cache result
+  GLOSSARY_CACHE.set(slug, { data: glossary, ts: Date.now() });
   return glossary;
 }
 
@@ -317,4 +334,4 @@ async function validateChapterJs(slug, num, title, blocks, sourceFooter, lang, o
   };
 }
 
-module.exports = { validateChapterJs };
+module.exports = { invalidateGlossaryCache, validateChapterJs };
