@@ -224,7 +224,7 @@
         html += `
         <div class="hero-banner" style="margin-bottom:24px;background:linear-gradient(135deg,hsl(${featured.hue},60%,30%),hsl(${(featured.hue+40)%360},50%,20%));">
           <div class="hero-content">
-            <span class="hero-badge">🔥 ยอดนิยม</span>
+            <span class="hero-badge"><svg style="width:14px;height:14px;margin-right:4px;vertical-align:-2px;"><use xlink:href="#icon-ranking"/></svg>ยอดนิยม</span>
             <h2 class="hero-title">${featured.title || featured.slug}</h2>
             <p class="hero-subtitle">${featured.slug} • ${featured.source_lang||'cn'} → ${featured.target_lang||'th'}</p>
             <div class="hero-meta-row">
@@ -255,7 +255,7 @@
       html += `
       <section class="dash-section" style="margin-bottom:28px;">
         <div class="section-header">
-          <h3 class="section-title">📖 อ่านต่อ</h3>
+          <h3 class="section-title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-book"/></svg>อ่านต่อ</h3>
           <a href="#library" class="section-link" data-nav>ดูทั้งหมด ❯</a>
         </div>
         <div class="continue-grid">`;
@@ -287,7 +287,7 @@
       html += `
       <section class="dash-section" style="margin-bottom:28px;">
         <div class="section-header">
-          <h3 class="section-title">🆕 อัปเดตล่าสุด</h3>
+          <h3 class="section-title">อัปเดตล่าสุด</h3>
         </div>
         <div class="updates-row">`;
 
@@ -309,7 +309,7 @@
       html += `
       <section class="dash-section">
         <div class="section-header">
-          <h3 class="section-title">🏆 ยอดนิยมประจำสัปดาห์</h3>
+          <h3 class="section-title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-ranking"/></svg>ยอดนิยมประจำสัปดาห์</h3>
         </div>
         <div class="popular-list">`;
 
@@ -323,7 +323,7 @@
             <div class="popular-info">
               <span class="popular-title">${n.title||n.slug}</span>
               <span class="popular-meta">${n.source_lang||'cn'} → ${n.target_lang||'th'} • โดย ${n.author||'ไม่ระบุ'}</span>
-              <span class="popular-views">📖 ${n.readCount}+ ตอน</span>
+              <span class="popular-views"><svg style="width:12px;height:12px;margin-right:4px;vertical-align:-2px;"><use xlink:href="#icon-book"/></svg>${n.readCount}+ ตอน</span>
             </div>
           </a>`;
       }
@@ -349,7 +349,7 @@
       let html = `
       <section class="dash-section">
         <div class="section-header">
-          <h3 class="section-title">📚 หอสมุดของฉัน</h3>
+          <h3 class="section-title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-library"/></svg>หอสมุด</h3>
           <span style="font-size:11px;color:var(--text-muted);">${library.length} เรื่อง</span>
         </div>
         <div class="continue-grid">`;
@@ -387,7 +387,7 @@
     page.innerHTML = `
     <section class="dash-section">
       <div class="section-header">
-        <h3 class="section-title">🔍 ค้นหานิยาย</h3>
+        <h3 class="section-title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-search"/></svg>ค้นหานิยาย</h3>
       </div>
       <div class="search-category-box">
         <input type="text" id="search-input-field" placeholder="พิมพ์ชื่อนิยาย ผู้แต่ง หรือคีย์เวิร์ด..." class="search-input-large" />
@@ -475,7 +475,7 @@
       let html = `
       <section class="dash-section">
         <div class="section-header">
-          <h3 class="section-title">🏆 อันดับนิยายทั้งหมด</h3>
+          <h3 class="section-title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-ranking"/></svg>อันดับนิยายทั้งหมด</h3>
         </div>
         <div class="popular-list">`;
 
@@ -490,7 +490,7 @@
           <div class="popular-info">
             <span class="popular-title">${n.title||n.slug}</span>
             <span class="popular-meta">${n.source_lang||'cn'} → ${n.target_lang||'th'} • โดย ${n.author||'ไม่ระบุ'}</span>
-            <span class="popular-views">📖 ${n.chapterCount||0} ตอน</span>
+            <span class="popular-views"><svg style="width:12px;height:12px;margin-right:4px;vertical-align:-2px;"><use xlink:href="#icon-book"/></svg>${n.chapterCount||0} ตอน</span>
           </div>
         </a>`;
       }
@@ -573,13 +573,13 @@
             <span class="hero-tag">${statusMap[novel.status]||'ไม่ระบุ'}</span>
           </div>
           <p class="detail-synopsis">${novel.meta ? (typeof marked !== 'undefined' ? marked.parse(novel.meta.replace(/^---[\s\S]*?---\s*/, '').trim().slice(0,300)) : novel.meta.replace(/^---[\s\S]*?---\s*/, '').trim().slice(0,300)) : 'ยังไม่มีคำอธิบาย'}</p>
-          <a href="#novel/${slug}/${chapters[0]?.num||1}" class="hero-cta" data-nav>📖 เริ่มอ่านตอนแรก</a>
+          <a href="#novel/${slug}/${chapters[0]?.num||1}" class="hero-cta" data-nav>เริ่มอ่านตอนแรก</a>
         </div>
       </div>
       
       <div class="detail-tabs-bar" style="display:flex; gap:12px; margin-bottom:24px; border-bottom:1px solid var(--border); padding-bottom:8px;">
-        <button class="btn btn-primary detail-tab-btn active" data-tab="chapters" style="font-size:13px; font-weight:600; padding:8px 16px;">📑 รายการตอน (${chapters.length})</button>
-        <button class="btn btn-ghost detail-tab-btn" data-tab="reviews" style="font-size:13px; font-weight:600; padding:8px 16px;">⭐ รีวิวและเรตติ้ง</button>
+        <button class="btn btn-primary detail-tab-btn active" data-tab="chapters" style="font-size:13px; font-weight:600; padding:8px 16px;">รายการตอน (${chapters.length})</button>
+        <button class="btn btn-ghost detail-tab-btn" data-tab="reviews" style="font-size:13px; font-weight:600; padding:8px 16px;">รีวิว</button>
       </div>
 
       <div id="detail-tab-chapters-panel" class="detail-tab-panel">
@@ -899,7 +899,7 @@
     
     // Profile section container
     const section = el("section", { class: "dash-section" },
-      el("div", { class: "section-header" }, el("h3", { class: "section-title" }, "👤 โปรไฟล์ของฉัน")),
+      el("div", { class: "section-header" }, [el("h3", { class: "section-title" }, "โปรไฟล์ของฉัน")]),
       
       // User Card View
       el("div", { style: "display:flex;gap:24px;align-items:center;padding:24px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:24px;flex-wrap:wrap;" },
@@ -920,7 +920,7 @@
       
       // Edit Form
       el("div", { class: "settings-form", style: "margin-bottom:24px;" },
-        el("h4", { style: "font-size: 14px; font-weight:700; margin-bottom: 12px; color:var(--text-primary);" }, "📝 แก้ไขข้อมูลโปรไฟล์"),
+        el("h4", { style: "font-size: 14px; font-weight:700; margin-bottom: 12px; color:var(--text-primary);" }, "แก้ไขข้อมูลโปรไฟล์"),
         
         el("div", { class: "settings-row" },
           el("label", {}, "ชื่อผู้ใช้งาน"),
@@ -1061,7 +1061,7 @@
       const list = JSON.parse(localStorage.getItem("nc-bookmarks")) || [];
       let html = `
       <section class="dash-section">
-        <div class="section-header"><h3 class="section-title">🔖 บุ๊กมาร์ก</h3></div>
+        <div class="section-header"><h3 class="section-title">บุ๊กมาร์ก</h3></div>
         <div class="list-layout">`;
       if (list.length === 0) {
         html += '<p style="text-align:center;padding:32px;color:var(--text-muted);">ไม่มีบุ๊กมาร์ก</p>';
@@ -1088,11 +1088,11 @@
     const page = $("page-settings");
     if (!page) return;
     const THEMES = ["dark", "amoled", "light", "sepia"];
-    const themeNames = { dark: "🌙 ดาร์ก", amoled: "🌌 อะโมเลด", light: "☀️ สว่าง", sepia: "📖 ซีเปีย" };
+    const themeNames = { dark: "ดาร์ก", amoled: "อะโมเลด", light: "สว่าง", sepia: "ซีเปีย" };
     const currentTheme = document.body.dataset.theme || "dark";
     page.innerHTML = `
     <section class="dash-section">
-      <div class="section-header"><h3 class="section-title">⚙️ ตั้งค่า</h3></div>
+      <div class="section-header"><h3 class="section-title">ตั้งค่า</h3></div>
       <div class="settings-form">
         <div class="settings-row">
           <label>ธีม</label>
@@ -1137,10 +1137,10 @@
   // ── ADMIN NAV HELPER ───────────────────────────────────────────────────
   function renderAdminNav(activeTab) {
     const tabs = [
-      { id: "dash", label: "📊 แดชบอร์ด", hash: "#admin" },
-      { id: "novels", label: "📚 จัดการนิยาย", hash: "#admin/novels" },
-      { id: "users", label: "👤 จัดการผู้ใช้", hash: "#admin/users" },
-      { id: "glossary", label: "🗂️ จัดการ Glossary", hash: "#admin/glossary/global-descent" }
+      { id: "dash", label: "แดชบอร์ด", hash: "#admin" },
+      { id: "novels", label: "จัดการนิยาย", hash: "#admin/novels" },
+      { id: "users", label: "จัดการผู้ใช้", hash: "#admin/users" },
+      { id: "glossary", label: "จัดการ Glossary", hash: "#admin/glossary/global-descent" }
     ];
     return `<div class="admin-nav-links" style="display:flex; gap:8px; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:12px;">
       ${tabs.map(t => `<a href="${t.hash}" class="btn ${activeTab === t.id ? 'btn-primary' : 'btn-ghost'}" style="font-size:11px; font-weight:600; padding:6px 12px; border-radius:var(--radius-sm);">${t.label}</a>`).join("")}
@@ -1160,7 +1160,7 @@
       let html = `
       ${renderAdminNav("dash")}
       <div class="admin-topbar" style="margin-top: 12px;">
-        <h3 class="section-title" style="margin:0;">🛡️ ระบบหลังบ้าน</h3>
+        <h3 class="section-title" style="margin:0;">ระบบหลังบ้าน</h3>
       </div>
       
       <div class="stat-card-row" style="margin-top: 16px; margin-bottom: 20px;">
@@ -1176,7 +1176,7 @@
       
       <div class="chart-container" style="margin-top:24px; background:var(--bg-card); border:1px solid var(--border); padding:20px; border-radius:var(--radius-lg);">
         <div class="chart-header" style="margin-bottom:16px;">
-          <h4 class="chart-title" style="font-size:12px; font-weight:600; color:var(--text-secondary);">📊 สถิติการใช้งานระบบแปล (6 เดือนย้อนหลัง)</h4>
+          <h4 class="chart-title" style="font-size:12px; font-weight:600; color:var(--text-secondary);">สถิติการใช้งานระบบแปล (6 เดือนย้อนหลัง)</h4>
         </div>
         <div class="bar-chart" id="admin-transactions-chart" style="display:flex; align-items:flex-end; gap:20px; height:200px; padding:10px 0;">
           <!-- Dynamically populated -->
@@ -2017,7 +2017,7 @@
       let html = `
       <section class="dash-section">
         <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-          <h3 class="section-title">🔔 การแจ้งเตือนทั้งหมด</h3>
+          <h3 class="section-title">การแจ้งเตือนทั้งหมด</h3>
           ${notifications.some(n => !n.read) ? `<button class="btn btn-sm btn-ghost" id="notif-mark-read" style="font-size:11px; font-weight:600; color:var(--accent);">ทำเครื่องหมายว่าอ่านแล้วทั้งหมด</button>` : ""}
         </div>
         <div class="notifications-list" style="display:flex; flex-direction:column; gap:12px;">
