@@ -30,7 +30,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「ท่านลอร์ดระวัง」"
+      "text": "“ท่านลอร์ดระวัง”"
     },
     {
       "type": "narration",
@@ -39,7 +39,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「ตั้ม!」"
+      "text": "“ตั้ม!”"
     },
     {
       "type": "narration",
@@ -128,7 +128,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「จี๊ด! จี๊ดจี๊ด!」"
+      "text": "“จี๊ด! จี๊ดจี๊ด!”"
     },
     {
       "type": "narration",
@@ -141,7 +141,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「อะ?」"
+      "text": "“อะ?”"
     },
     {
       "type": "narration",
@@ -162,7 +162,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「จี๊ด! จี๊ดจี๊ดจี๊ด!」"
+      "text": "“จี๊ด! จี๊ดจี๊ดจี๊ด!”"
     },
     {
       "type": "narration",
@@ -219,7 +219,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「ซู่! ซู่ซู่ซู่!」"
+      "text": "“ซู่! ซู่ซู่ซู่!”"
     },
     {
       "type": "narration",

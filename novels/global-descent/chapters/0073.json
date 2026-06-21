@@ -86,7 +86,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「แต่ว่า จำนวนรอยเท้าเยอะมาก เกะกะ ผมไม่แน่ใจว่านี่เป็นรอยเท้าของพี่สาวนีฟหรือเปล่า」"
+      "text": "“แต่ว่า จำนวนรอยเท้าเยอะมาก เกะกะ ผมไม่แน่ใจว่านี่เป็นรอยเท้าของพี่สาวนีฟหรือเปล่า”"
     },
     {
       "type": "narration",
@@ -159,7 +159,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「ค้นหาต่อไปรอบๆ อย่าพลาดแม้แต่มุมเดียว」"
+      "text": "“ค้นหาต่อไปรอบๆ อย่าพลาดแม้แต่มุมเดียว”"
     },
     {
       "type": "narration",
@@ -180,12 +180,12 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「ท่านลอร์ด ผมไม่พบอะไรเลย」"
+      "text": "“ท่านลอร์ด ผมไม่พบอะไรเลย”"
     },
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「ฝั่งผมก็เหมือนกัน」"
+      "text": "“ฝั่งผมก็เหมือนกัน”"
     },
     {
       "type": "narration",
@@ -210,7 +210,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「ฉันรู้สึกถึงคลื่นพลังเวทอ่อนๆ แถวนี้」"
+      "text": "“ฉันรู้สึกถึงคลื่นพลังเวทอ่อนๆ แถวนี้”"
     },
     {
       "type": "narration",
@@ -239,7 +239,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「อะไรนะ?」"
+      "text": "“อะไรนะ?”"
     },
     {
       "type": "narration",
@@ -260,7 +260,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「เลนนิส เธอมีดวงตาเทียบเท่าเทพ ทำได้ดี」"
+      "text": "“เลนนิส เธอมีดวงตาเทียบเท่าเทพ ทำได้ดี”"
     },
     {
       "type": "narration",
@@ -273,7 +273,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「ท่านชมเกินไปแล้ว ท่านลอร์ด」"
+      "text": "“ท่านชมเกินไปแล้ว ท่านลอร์ด”"
     },
     {
       "type": "narration",
@@ -306,7 +306,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「รวมพล! ตามฉันไป!」"
+      "text": "“รวมพล! ตามฉันไป!”"
     },
     {
       "type": "narration",
@@ -351,7 +351,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「ซาร่า รื้อกับดักนี้ที」"
+      "text": "“ซาร่า รื้อกับดักนี้ที”"
     },
     {
       "type": "narration",
@@ -404,7 +404,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「คนอื่น อยู่ข้างบน!」"
+      "text": "“คนอื่น อยู่ข้างบน!”"
     },
     {
       "type": "narration",
@@ -413,7 +413,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「เชื่อฟังคำสั่งของท่าน ท่านลอร์ดผู้เคารพ」"
+      "text": "“เชื่อฟังคำสั่งของท่าน ท่านลอร์ดผู้เคารพ”"
     },
     {
       "type": "narration",
@@ -454,7 +454,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「อ่า? ที่นี่เป็นพื้นที่ซ่อน」"
+      "text": "“อ่า? ที่นี่เป็นพื้นที่ซ่อน”"
     },
     {
       "type": "narration",
@@ -483,12 +483,12 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「โอ๊ะ! โอ๊ะ!」"
+      "text": "“โอ๊ะ! โอ๊ะ!”"
     },
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「อู้ว」"
+      "text": "“อู้ว”"
     },
     {
       "type": "narration",
@@ -525,7 +525,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「โครก!」"
+      "text": "“โครก!”"
     },
     {
       "type": "narration",
@@ -538,7 +538,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「ว้า มาเข้าห้องนอนของมนุษย์ถ้ำเหรอเนี่ย?」"
+      "text": "“ว้า มาเข้าห้องนอนของมนุษย์ถ้ำเหรอเนี่ย?”"
     },
     {
       "type": "narration",
@@ -583,7 +583,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「เพิ่มกำลัง 2 แต้ม ก็ไม่เลว」"
+      "text": "“เพิ่มกำลัง 2 แต้ม ก็ไม่เลว”"
     },
     {
       "type": "narration",
@@ -672,12 +672,12 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「โอ๊ะ! โอ๊ะ!」"
+      "text": "“โอ๊ะ! โอ๊ะ!”"
     },
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「เป็นมนุษย์ ห้ามปล่อยให้พวกเขารบกวนการบวงสรวงเทพเขา จับพวกเขา!」"
+      "text": "“เป็นมนุษย์ ห้ามปล่อยให้พวกเขารบกวนการบวงสรวงเทพเขา จับพวกเขา!”"
     },
     {
       "type": "narration",
@@ -718,7 +718,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「ปุ!」"
+      "text": "“ปุ!”"
     },
     {
       "type": "narration",
@@ -727,7 +727,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「โอ๊าว!」"
+      "text": "“โอ๊าว!”"
     },
     {
       "type": "narration",
@@ -744,7 +744,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「ซู่! ซู่!」"
+      "text": "“ซู่! ซู่!”"
     },
     {
       "type": "narration",
@@ -773,7 +773,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「บาห์นามาตาย! แก้แค้นให้มัน!」"
+      "text": "“บาห์นามาตาย! แก้แค้นให้มัน!”"
     },
     {
       "type": "narration",
@@ -846,7 +846,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「ทำได้ดี พวกคุณคือนักรบที่ยอดเยี่ยมที่สุด!」"
+      "text": "“ทำได้ดี พวกคุณคือนักรบที่ยอดเยี่ยมที่สุด!”"
     },
     {
       "type": "narration",

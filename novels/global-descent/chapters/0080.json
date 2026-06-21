@@ -30,7 +30,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「โฮ่... โฮ่...」"
+      "text": "“โฮ่... โฮ่...”"
     },
     {
       "type": "narration",
@@ -43,7 +43,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「มอ—!」"
+      "text": "“มอ—!”"
     },
     {
       "type": "narration",
@@ -76,7 +76,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「โฮ่!」"
+      "text": "“โฮ่!”"
     },
     {
       "type": "narration",
@@ -117,7 +117,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「มอ—!」"
+      "text": "“มอ—!”"
     },
     {
       "type": "narration",
@@ -190,7 +190,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「บรูนท์ ขว้างรูปสลัก 2 อัน แล้วสังเกต HP ของเพื่อนร่วมทาง」"
+      "text": "“บรูนท์ ขว้างรูปสลัก 2 อัน แล้วสังเกต HP ของเพื่อนร่วมทาง”"
     },
     {
       "type": "narration",
@@ -311,7 +311,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「แม้ว่าจะโยนเวทชำระล้างไม่ทันก็ไม่เป็นไร พวกมัน HP หนามาก ทนได้แน่นอน รอจบศึกแล้วค่อยขับไล่ก็เหมือนกัน」"
+      "text": "“แม้ว่าจะโยนเวทชำระล้างไม่ทันก็ไม่เป็นไร พวกมัน HP หนามาก ทนได้แน่นอน รอจบศึกแล้วค่อยขับไล่ก็เหมือนกัน”"
     },
     {
       "type": "narration",
@@ -404,7 +404,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「ตู้ม!」"
+      "text": "“ตู้ม!”"
     },
     {
       "type": "narration",
@@ -461,7 +461,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「มอ!」"
+      "text": "“มอ!”"
     },
     {
       "type": "narration",
@@ -534,7 +534,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「เปิดหีบสมบัติกัน!」"
+      "text": "“เปิดหีบสมบัติกัน!”"
     },
     {
       "type": "narration",
@@ -619,7 +619,7 @@
     {
       "type": "dialogue",
       "speaker": null,
-      "text": "「ใช่」"
+      "text": "“ใช่”"
     },
     {
       "type": "narration",
