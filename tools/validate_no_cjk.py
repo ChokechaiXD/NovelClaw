@@ -17,6 +17,7 @@ Usage:
 """
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -269,7 +270,7 @@ def main():
     parser = argparse.ArgumentParser(description="CJK leakage checker")
     parser.add_argument("chapter", nargs="?", type=int, help="Chapter number to check")
     parser.add_argument("--all", action="store_true", help="Check all chapters")
-    parser.add_argument("--novel", type=str, default="global-descent", help="Novel slug")
+    parser.add_argument("--novel", type=str, default=os.environ.get("NOVEL_SLUG", "global-descent"), help="Novel slug. Uses $NOVEL_SLUG env var or 'global-descent'.")
     parser.add_argument("--strip", action="store_true", help="Strip donor-thanks blocks")
     parser.add_argument("--fix-en", action="store_true", help="Auto-fix EN terms")
     args = parser.parse_args()

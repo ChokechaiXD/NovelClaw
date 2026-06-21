@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -139,7 +140,11 @@ def iter_chapter_paths(novel: str, start: int, end: int):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Normalize chapter JSON metadata to NovelClaw v2.")
-    parser.add_argument("--novel", default="global-descent", help="Novel slug under novels/.")
+    parser.add_argument(
+        "--novel",
+        default=os.environ.get("NOVEL_SLUG", "global-descent"),
+        help="Novel slug under novels/. Uses $NOVEL_SLUG env var or default 'global-descent'.",
+    )
     parser.add_argument("--start", type=int, required=True, help="First chapter number.")
     parser.add_argument("--end", type=int, required=True, help="Last chapter number.")
     parser.add_argument("--lang", default="cn", help="Current v2 source language field value.")
