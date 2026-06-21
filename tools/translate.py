@@ -55,6 +55,9 @@ from progress import (  # noqa: E402
     mark_running,
     save_progress,
 )
+from cumulative_glossary import (  # noqa: E402
+    process_translation_candidates,
+)
 from extract_entities import (  # noqa: E402
     entity_extraction_pipeline,
     PLACEHOLDER_RE,
@@ -676,6 +679,7 @@ def translate_one(
     progress_slug: str = "global-descent",
     use_entities: bool = False,
     two_pass: bool = False,
+    auto_glossary: bool = False,
 ) -> bool:
     """Translate one chapter. Returns True on success.
 
@@ -692,6 +696,7 @@ def translate_one(
         progress_slug: novel slug for progress tracking
         use_entities: enable entity placeholder pipeline
         two_pass: enable two-pass analysis (summary + entities before translate)
+        auto_glossary: auto-discover new glossary terms from source and append to auto.md
     """
     normalized_source_lang = normalize_language_key(source_lang, "cn")
     normalized_target_lang = normalize_language_key(target_lang, "th")
@@ -835,6 +840,23 @@ def translate_one(
         else:
             print("  OK Quality: clean")
 
+    # ── Auto-glossary: extract new entities from this chapter ────
+    if auto_glossary and not mock:
+        try:
+            from glossary import load_terms as _gl
+            glossary_terms = _gl()
+            result = process_translation_candidates(
+                ch_num=ch_num,
+                source_text=source,
+                glossary_terms=glossary_terms,
+                slug=progress_slug,
+                auto_rebuild=True,
+            )
+            if result["added"] > 0:
+                print(f"  📖 +{result['added']} new glossary candidates (auto.md)")
+        except Exception as e:
+            print(f"  ⚠ auto-glossary error: {e}")
+
     return True
 
 
@@ -927,6 +949,11 @@ Examples:
         action="store_true",
         help="Enable two-pass translation (analysis → summary + entities → translate)",
     )
+    ap.add_argument(
+        "--auto-glossary",
+        action="store_true",
+        help="Auto-discover new glossary terms from translated chapters and append to auto.md",
+    )
     args = ap.parse_args()
 
     # Term search mode
@@ -999,6 +1026,7 @@ Examples:
                     progress_slug=slug,
                     use_entities=args.entities,
                     two_pass=args.two_pass,
+                    auto_glossary=args.auto_glossary,
                 ): ch
                 for ch in ch_nums
             }
@@ -1030,6 +1058,7 @@ Examples:
                 progress_slug=slug,
                 use_entities=args.entities,
                 two_pass=args.two_pass,
+                auto_glossary=args.auto_glossary,
             ):
                 success += 1
             else:
