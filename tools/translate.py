@@ -1,27 +1,7 @@
 """translate.py — Translate CN source chapters to TH JSON (end-to-end pipeline).
 
-This is the unified translation tool combining the best of translate.py and translate_ch.py.
-
-Pipeline:
-  1. Read source/XXXX.md (cleaned CN)
-  2. Auto-extract unknown CN terms (not in glossary)
-  3. Build context: format spec + style + locked glossary + unknown terms
-  4. Call LLM (or use mock translation)
-  5. Parse LLM output → JSON blocks
-  6. Validate via Pydantic schema
-  7. Save chapters/NNNN.json
-
-Usage:
-  python tools/translate.py 113                    # translate ch 113
-  python tools/translate.py 113-150                # batch translate range
-  python tools/translate.py 113 --mock             # don't call LLM, use placeholder
-  python tools/translate.py 113 --no-validate      # skip schema validation
-  python tools/translate.py 113 --dry-run          # show context only, no save
-  python tools/translate.py 113 --search "招募"     # search Thai for a term
-  python tools/translate.py 113 --context          # print full context for ch
-
-The LLM integration point is `_call_llm()`. The mock returns a placeholder;
-the real integration uses hermes CLI or direct API.
+Pipeline: read source → extract entities → LLM → parse → validate → save.
+Uses argparse for CLI. Run `python tools/translate.py --help` for usage.
 """
 
 import argparse
@@ -29,10 +9,9 @@ import contextlib
 import json
 import os
 import re
-import re as _re
 import sys
 import time
-from collections.abc import Iterable as _Iterable
+from collections.abc import Callable, Iterable as _Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -90,6 +69,7 @@ from validation import (  # noqa: E402
     normalize_language_key,
     validate_translation_quality,
 )
+validate_quality_gates = validate_translation_quality  # backward compat
 
 # ── Language Configurations ───────────────────────────────────────────
 LANG_CONFIG = {
@@ -153,7 +133,7 @@ def clean_source(raw: str) -> str:
         if not in_body:
             if stripped == "" or "全球降臨" in stripped:
                 continue
-            if _re.match(r"^第[一二三四五六七八九十百千零\d]+章", stripped):
+            if re.match(r"^第[一二三四五六七八九十百千零\d]+章", stripped):
                 continue
             if SOURCE_ARTIFACT_RE.search(stripped):
                 continue
@@ -162,9 +142,9 @@ def clean_source(raw: str) -> str:
             continue
         out.append(line)
     text = "\n".join(out)
-    text = _re.sub(r"([！？。，；：…—]+)\s*(\d{1,3})(?=\s|$)", r"\1", text)
-    text = _re.sub(r"^[^\n\u4e00-\u9fff\u0e00-\u0e7f]{1,40}$", "", text, flags=_re.MULTILINE)
-    text = _re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r"([！？。，；：…—]+)\s*(\d{1,3})(?=\s|$)", r"\1", text)
+    text = re.sub(r"^[^\n\u4e00-\u9fff\u0e00-\u0e7f]{1,40}$", "", text, flags=re.MULTILINE)
+    text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
 
@@ -222,10 +202,10 @@ def extract_unknown_terms(source_text: str, known_sources: _Iterable[str]) -> li
         "卷",
     }
     known |= ui_noise
-    cleaned = _re.sub(r"【[^】]*】", "", source_text)
-    cleaned = _re.sub(r"《[^》]*》", "", cleaned)
-    cleaned = _re.sub(r"「[^」]*」", "", cleaned)
-    cn_terms = _re.findall(r"[\u4e00-\u9fff]{2,}", cleaned)
+    cleaned = re.sub(r"【[^】]*】", "", source_text)
+    cleaned = re.sub(r"《[^》]*》", "", cleaned)
+    cleaned = re.sub(r"「[^」]*」", "", cleaned)
+    cn_terms = re.findall(r"[\u4e00-\u9fff]{2,}", cleaned)
     seen = set()
     unknown = []
     for term in cn_terms:
@@ -330,17 +310,6 @@ def get_format_summary() -> str:
     return FORMAT_SPEC
 
 
-def validate_quality_gates(
-    ch: Chapter,
-    source_text: str,
-    source_lang: str = "zh",
-    target_lang: str = "th",
-    profile_lang: str | None = None,
-) -> tuple[bool, list[str]]:
-    """Validate translation quality using the shared validator."""
-    return validate_translation_quality(ch, source_text, source_lang, target_lang, profile_lang)
-
-
 def get_previous_chapter_context(ch_num: int, n: int = 3) -> str:
     from chapter_io import load_chapter as _load_ch  # noqa: PLC0415
 
@@ -366,13 +335,6 @@ def get_previous_chapter_context(ch_num: int, n: int = 3) -> str:
     return "Previous chapters:" + chr(10) + chr(10).join(parts)
 
 
-def web_search_term(_cn_term: str) -> str:
-    """No-op: web search is not available as a Python module.
-
-    Mika should use the cheatsheet in TRANSLATION_GUIDE.md or
-    the chat web_search tool directly.
-    """
-    return "(use web_search tool or check TRANSLATION_GUIDE.md cheatsheet)"
 
 
 def get_unknown_terms_for_ch(ch_num: int) -> list[str]:
@@ -543,13 +505,18 @@ def get_chapter_context(
         parts.append(f"\n## Unknown CN terms ({len(unknown)}) — need Thai equivalent:")
         for term in unknown[:15]:
             parts.append(f"\n### {term}")
-            web = web_search_term(term)
-            if web:
-                parts.append(web)
-            else:
-                parts.append("(no web result — use Thai transliteration or best guess)")
+            parts.append("(use web_search tool or check TRANSLATION_GUIDE.md cheatsheet)")
 
     return "\n".join(parts)
+
+
+def _run_after(flag: bool, mock: bool, name: str, fn: Callable[[], None]) -> None:
+    """Run a post-translation step if flag is set and not mock."""
+    if flag and not mock:
+        try:
+            fn()
+        except Exception as e:
+            print(f"  ⚠ {name} error: {e}")
 
 
 def _call_llm(prompt: str, model: str = "haiku", max_retries: int = 3) -> str:
@@ -825,7 +792,7 @@ def translate_one(
         ch = Chapter.construct(**ch_data)  # skip validation
 
     if not mock and not no_validate:
-        quality_ok, quality_messages = validate_quality_gates(
+        quality_ok, quality_messages = validate_translation_quality(
             ch,
             source,
             source_lang=source_lang,
@@ -856,88 +823,47 @@ def translate_one(
         else:
             print("  OK Quality: clean")
 
-    # ── Translation Memory: cache this chapter's blocks ────────
-    if use_tm and not mock:
-        try:
-            tm = TranslationMemory(progress_slug)
-            tm.load()
-            added = tm.add_batch(ch_data.get("blocks", []), ch_num)
-            if added > 0:
-                tm.save()
-            tm_stats = tm.stats()
-            print(f"  💾 TM: +{added} new, {tm_stats['cache_entries']} total")
-        except Exception as e:
-            print(f"  ⚠ TM error: {e}")
+    # ── Post-translation steps (consolidated) ──────────────────
+    _run_after(use_tm, mock, "TM", lambda: (
+        tm := TranslationMemory(progress_slug),
+        tm.load(),
+        (added := tm.add_batch(ch_data.get("blocks", []), ch_num)),
+        added > 0 and tm.save(),
+        print(f"  💾 TM: +{added} new, {tm.stats()['cache_entries']} total")
+    )[-1])
 
-    # ── Auto-glossary: extract new entities from this chapter ────
-    if auto_glossary and not mock:
-        try:
-            from glossary import load_terms as _gl
-            glossary_terms = _gl()
-            result = process_translation_candidates(
-                ch_num=ch_num,
-                source_text=source,
-                glossary_terms=glossary_terms,
-                slug=progress_slug,
-                auto_rebuild=True,
-            )
-            if result["added"] > 0:
-                print(f"  📖 +{result['added']} new glossary candidates (auto.md)")
-        except Exception as e:
-            print(f"  ⚠ auto-glossary error: {e}")
+    _run_after(auto_glossary, mock, "auto-glossary", lambda: (
+        gt := load_terms(),
+        result := process_translation_candidates(
+            ch_num=ch_num, source_text=source, glossary_terms=gt,
+            slug=progress_slug, auto_rebuild=True,
+        ),
+        result["added"] > 0 and print(f"  📖 +{result['added']} new glossary candidates"),
+    )[-1])
 
-    # ── LLM-as-Judge scoring (Phase 3) ──────────────────────────
-    if use_score and not mock and not no_validate:
-        try:
-            from glossary import load_terms as _gl2
-            gt = _gl2()
-            score_result = score_translation(
-                source_text=source,
-                chapter_data=ch_data,
-                glossary_terms=gt,
-                mock=False,
-                model="haiku",
-            )
-            if score_result.parse_error:
-                print(f"  ⚠ LLM Judge error: {score_result.parse_error[:100]}")
-            elif score_result.passed:
-                print(f"  🏆 LLM Judge: {score_result.summary_string()}")
-            else:
-                print(f"  ⚠ LLM Judge: {score_result.summary_string()}")
-        except Exception as e:
-            print(f"  ⚠ LLM Judge exception: {e}")
+    _run_after(use_score and not no_validate, mock, "LLM Judge", lambda: (
+        gt2 := load_terms(),
+        sr := score_translation(source, ch_data, gt2, mock=False, model="haiku"),
+        print(f"  {'🏆' if sr.passed else '⚠'} LLM Judge: {sr.summary_string()}")
+        if not sr.parse_error
+        else print(f"  ⚠ LLM Judge: {sr.parse_error[:100]}"),
+    )[-1])
 
-    # ── Multi-agent: validate/polish (Phase 5) ─────────────────
-    if agent_passes >= 2 and not mock and not no_validate and ch_data:
-        try:
-            from glossary import load_terms as _gl3
-            gt = _gl3()
-            glossary_terms_for_agent = gt
-
-            success, agent_results, final_ch = run_agent_chain(
-                ch_num=ch_num,
-                translate_fn=lambda *a, **kw: True,  # already translated
-                source_text=source,
-                chapter_data=ch_data,
-                glossary_terms=glossary_terms_for_agent,
-                passes=agent_passes,
-                source_lang=source_lang,
-                target_lang=target_lang,
-                profile_lang=profile_lang,
-                mock=mock_agents,
-                model="haiku",
-            )
-            if not success:
-                print(f"  ⚠ Agent chain flagged issues for ch{ch_num}")
-            print_agent_report(agent_results)
-            if final_ch and final_ch is not ch_data:
-                # Chapter was modified by polisher — re-save
-                from constants import CHAPTERS_DIR as _ch_dir
-                from chapter_io import save_chapter as _sv
-                _sv(Chapter(**final_ch), _ch_dir / f"{ch_num:04d}.json")
-                print(f"  ✓ Re-saved polished version")
-        except Exception as e:
-            print(f"  ⚠ Agent chain error: {e}")
+    _run_after(agent_passes >= 2 and not no_validate and bool(ch_data), mock, "agent-chain", lambda: (
+        gt3 := load_terms(),
+        success, agent_results, final_ch := run_agent_chain(
+            ch_num, lambda *a, **kw: True, source, ch_data, gt3,
+            passes=agent_passes, source_lang=source_lang,
+            target_lang=target_lang, profile_lang=profile_lang,
+            mock=mock_agents, model="haiku",
+        ),
+        not success and print(f"  ⚠ Agent chain flagged issues"),
+        print_agent_report(agent_results),
+        final_ch is not ch_data and (
+            save_chapter(Chapter(**final_ch), CHAPTERS_DIR / f"{ch_num:04d}.json"),
+            print(f"  ✓ Re-saved polished version"),
+        ),
+    )[-1])
 
     return True
 
@@ -957,8 +883,7 @@ def search_term(term: str) -> None:
             print(f"  `{t['source']}` → {t['thai']}" + (f" — {expl[:80]}" if expl else ""))
     else:
         print(f'✗ "{term}" not found in glossary.')
-        web = web_search_term(term)
-        print(f"  {web}")
+        print("  Use web_search tool or check TRANSLATION_GUIDE.md cheatsheet")
 
 
 def main():
