@@ -23,6 +23,7 @@ import hashlib
 import json
 import os
 import re
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -89,13 +90,17 @@ class TranslationMemory:
     
     Structure:
       .tmemory/<slug>.json = {
-        "meta": {"version": 1, "built": "ISO timestamp", "chapters_scanned": N, "blocks": N},
+        "meta": {},
         "exact_cache": {"<hash>": {"text": "...", "count": N, "first_ch": N}},
-        "blocks": [
-          {"hash": "...", "source": "...", "translation": "...", "ch": N, "block_type": "..."},
-        ]
+        "source_cache": {"<source_hash>": {"title": "...", "blocks": [...]}},
+        "blocks": [...]
     }
+
+    Thread-safe: uses threading.Lock per slug for concurrent writes.
     """
+    
+    # Per-slug locks for thread-safe saves
+    _locks: dict[str, threading.Lock] = {}
     
     def __init__(self, slug: str = "global-descent"):
         self.slug = slug
@@ -103,9 +108,13 @@ class TranslationMemory:
         self._tm_dir.mkdir(parents=True, exist_ok=True)
         self._path = self._tm_dir / f"{slug}.json"
         self._exact_cache: dict[str, dict[str, Any]] = {}
+        self._source_cache: dict[str, dict[str, Any]] = {}
         self._blocks: list[dict[str, Any]] = []
         self._loaded = False
         self._dirty = False
+        # Thread lock per slug
+        if slug not in self._locks:
+            self._locks[slug] = threading.Lock()
     
     # ── Path ──────────────────────────────────────────────────────
     
@@ -123,35 +132,42 @@ class TranslationMemory:
             try:
                 data = json.loads(self._path.read_text(encoding="utf-8"))
                 self._exact_cache = data.get("exact_cache", {})
+                self._source_cache = data.get("source_cache", {})
                 self._blocks = data.get("blocks", [])
             except (json.JSONDecodeError, KeyError):
                 self._exact_cache = {}
+                self._source_cache = {}
                 self._blocks = []
         else:
             self._exact_cache = {}
+            self._source_cache = {}
             self._blocks = []
         self._loaded = True
     
     def save(self) -> None:
-        """Save TM to disk if dirty."""
+        """Save TM to disk if dirty. Thread-safe via per-slug lock."""
         if not self._dirty:
             return
-        data = {
-            "meta": {
-                "version": 1,
-                "slug": self.slug,
-                "blocks": len(self._blocks),
-                "cache_entries": len(self._exact_cache),
-            },
-            "exact_cache": self._exact_cache,
-            "blocks": self._blocks,
-        }
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._path.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-        self._dirty = False
+        lock = self._locks[self.slug]
+        with lock:
+            data = {
+                "meta": {
+                    "version": 2,
+                    "slug": self.slug,
+                    "blocks": len(self._blocks),
+                    "cache_entries": len(self._exact_cache),
+                    "source_entries": len(self._source_cache),
+                },
+                "exact_cache": self._exact_cache,
+                "source_cache": self._source_cache,
+                "blocks": self._blocks,
+            }
+            self._path.parent.mkdir(parents=True, exist_ok=True)
+            self._path.write_text(
+                json.dumps(data, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            self._dirty = False
     
     def force_save(self) -> None:
         """Save regardless of dirty flag."""
@@ -321,6 +337,38 @@ class TranslationMemory:
         if added > 0:
             self.save()
         return added
+
+    # ── Source→Translation cache (skip LLM) ───────────────────────
+
+    def _source_hash_key(self, source_text: str) -> str:
+        """SHA-256 hash of source text for full-chapter caching."""
+        return hashlib.sha256(source_text.encode("utf-8")).hexdigest()[:16]
+
+    def get_source_translation(self, source_text: str) -> dict[str, Any] | None:
+        """Look up cached chapter translation by source text hash.
+        
+        Returns chapter dict (num, title, blocks) if cached, else None.
+        """
+        self.load()
+        key = self._source_hash_key(source_text)
+        return self._source_cache.get(key)
+
+    def put_source_translation(self, source_text: str, chapter_data: dict[str, Any]) -> None:
+        """Cache a chapter translation by source text hash."""
+        self.load()
+        key = self._source_hash_key(source_text)
+        # Store minimal chapter data (blocks + title + num)
+        cached = {
+            "num": chapter_data.get("num"),
+            "title": chapter_data.get("title"),
+            "blocks": chapter_data.get("blocks", []),
+            "source": chapter_data.get("source"),
+            "lang": chapter_data.get("lang"),
+            "output_lang": chapter_data.get("output_lang"),
+        }
+        self._source_cache[key] = cached
+        self._dirty = True
+        self.save()
     
     # ── Statistics ─────────────────────────────────────────────────
     

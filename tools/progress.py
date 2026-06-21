@@ -12,12 +12,21 @@ File location: .chprogress/<slug>.json
 from __future__ import annotations
 
 import json
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
 
 
 PROGRESS_DIR = Path(__file__).parent.parent / ".chprogress"
+
+# Per-slug thread locks for concurrent safety
+_locks: dict[str, threading.Lock] = {}
+
+def _get_lock(slug: str) -> threading.Lock:
+    if slug not in _locks:
+        _locks[slug] = threading.Lock()
+    return _locks[slug]
 
 
 def _ensure_dir() -> None:
@@ -45,11 +54,13 @@ def load_progress(slug: str = "global-descent") -> dict:
 
 
 def save_progress(state: dict, slug: str = "global-descent") -> None:
-    """Save progress state to file."""
-    path = _get_path(slug)
-    path.write_text(
-        json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    """Save progress state to file. Thread-safe."""
+    lock = _get_lock(slug)
+    with lock:
+        path = _get_path(slug)
+        path.write_text(
+            json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
 
 def init_progress(chapters: list[int], slug: str = "global-descent") -> dict:

@@ -749,22 +749,44 @@ def translate_one(
             profile_lang=profile_lang,
         )
     else:
-        prompt = build_prompt(
-            ch_num,
-            translate_source,
-            unknown_terms=unknown_terms,
-            source_lang=source_lang,
-            target_lang=target_lang,
-            profile_lang=profile_lang,
-        )
-        output = _call_llm(prompt)
-        try:
-            ch_data = parse_llm_output(output, ch_num)
-        except (json.JSONDecodeError, ValueError) as e:
-            print(f"❌ ch{ch_num}: parse failed: {e}")
-            if progress_state is not None:
-                mark_failed(ch_num, progress_slug, progress_state)
-            return False
+        # ── TM skip-LLM: check if source already translated ────
+        tm_cached = None
+        if use_tm:
+            try:
+                tm_check = TranslationMemory(progress_slug)
+                tm_cached = tm_check.get_source_translation(translate_source)
+                if tm_cached:
+                    print(f"  💡 TM cache HIT — skipping LLM for ch{ch_num}")
+                    ch_data = tm_cached
+                    ch_data["num"] = ch_num  # ensure num is correct
+            except Exception:
+                pass  # TM fail → just call LLM
+
+        if tm_cached is None:
+            prompt = build_prompt(
+                ch_num,
+                translate_source,
+                unknown_terms=unknown_terms,
+                source_lang=source_lang,
+                target_lang=target_lang,
+                profile_lang=profile_lang,
+            )
+            output = _call_llm(prompt)
+            try:
+                ch_data = parse_llm_output(output, ch_num)
+            except (json.JSONDecodeError, ValueError) as e:
+                print(f"❌ ch{ch_num}: parse failed: {e}")
+                if progress_state is not None:
+                    mark_failed(ch_num, progress_slug, progress_state)
+                return False
+
+            # Cache translation for future skip-LLM
+            if use_tm:
+                try:
+                    tm_put = TranslationMemory(progress_slug)
+                    tm_put.put_source_translation(translate_source, ch_data)
+                except Exception:
+                    pass
 
     # ── Restore entities from placeholder map ────────────────────
     if placeholder_map and not mock:
