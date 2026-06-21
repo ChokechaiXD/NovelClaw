@@ -36,6 +36,7 @@ LOWER_LATIN_LEAK_RE = re.compile(
     r"\b(?:of|and|the|to|a|an|in|on|for|with|by|from|"
     r"lv|lvl|buff|debuff|first kill|militia|avatar|peek|panic|"
     r"level|recruiting|disrespect|mean|queen|erupt|continue|"
+    r"blacklist|"
     r"momentarily|hollow|continue|hp|mp|exp|sss|ssr|ur|sp|id|vip)\b",
     re.IGNORECASE,
 )
