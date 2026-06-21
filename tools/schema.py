@@ -115,29 +115,8 @@ BRACKETS: dict[str, dict[str, str]] = {
 
 
 # ────────────────────────────────────────────────────────────────────
-# Enums (the "format spec" is now a code-enforced contract)
+# Content block types
 # ────────────────────────────────────────────────────────────────────
-
-class DialogueQuote(str, Enum):
-    """CJK bracket pair for dialogue (per-language, see BRACKETS).
-
-    Kept for backward compat — these are the CN defaults.
-    """
-    OPEN = '「'
-    CLOSE = '」'
-
-
-class SystemBracket(str, Enum):
-    """CJK bracket pair for system messages."""
-    OPEN = '【'
-    CLOSE = '】'
-
-
-class GameBracket(str, Enum):
-    """CJK bracket pair for game titles."""
-    OPEN = '《'
-    CLOSE = '》'
-
 
 class BlockType(str, Enum):
     """Type of content block in a chapter."""
@@ -165,15 +144,8 @@ class Dialogue(BaseModel):
     rejects straight ASCII quotes (common author error).
     """
     type: BlockType = BlockType.DIALOGUE
-    speaker: Optional[str] = None    # character name (e.g., "เฉาซิง") — not required
+    speaker: Optional[str] = None
     text: str = Field(..., min_length=1, description='Dialogue text, brackets per language')
-
-    @field_validator('text')
-    @classmethod
-    def reject_straight_quotes(cls, v: str) -> str:
-        """Allow straight ASCII quotes in dialogue blocks.
-        """
-        return v
 
 
 class SystemMessage(BaseModel):

@@ -56,14 +56,6 @@ def test_mark_failed():
     assert state["1"]["status"] == "failed"
 
 
-def test_increment_retries():
-    state = progress_mod.init_progress([1], "test-slug")
-    r1 = progress_mod.increment_retries(1, "test-slug", state)
-    assert r1 == 1
-    r2 = progress_mod.increment_retries(1, "test-slug", state)
-    assert r2 == 2
-
-
 def test_get_pending():
     state = {
         "1": {"status": "pending"},

@@ -26,7 +26,6 @@ from progress import (  # noqa: E402
     clear_progress,
     get_pending,
     get_summary,
-    increment_retries,
     init_progress,
     load_progress,
     mark_done,

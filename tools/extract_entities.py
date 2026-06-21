@@ -317,10 +317,6 @@ def restore_entities_from_map(
     return result
 
 
-def count_placeholders_in_text(text: str) -> int:
-    """Count how many placeholders appear in a text (for verification)."""
-    return len(PLACEHOLDER_RE.findall(text))
-
 
 def verify_no_leaked_entities(
     text: str,

@@ -29,12 +29,8 @@ def _get_lock(slug: str) -> threading.Lock:
     return _locks[slug]
 
 
-def _ensure_dir() -> None:
-    PROGRESS_DIR.mkdir(parents=True, exist_ok=True)
-
-
 def _get_path(slug: str = "global-descent") -> Path:
-    _ensure_dir()
+    PROGRESS_DIR.mkdir(parents=True, exist_ok=True)
     return PROGRESS_DIR / f"{slug}.json"
 
 
@@ -96,17 +92,6 @@ def mark_failed(ch_num: int, slug: str = "global-descent", state: dict | None = 
     state[str(ch_num)] = {"status": "failed", "retries": state.get(str(ch_num), {}).get("retries", 0), "updated": datetime.now().isoformat()}
     save_progress(state, slug)
     return state
-
-
-def increment_retries(ch_num: int, slug: str = "global-descent", state: dict | None = None) -> int:
-    if state is None:
-        state = load_progress(slug)
-    key = str(ch_num)
-    current = state.get(key, {}).get("retries", 0)
-    new_retries = current + 1
-    state[key] = {"status": "pending", "retries": new_retries, "updated": datetime.now().isoformat()}
-    save_progress(state, slug)
-    return new_retries
 
 
 def get_pending(state: dict) -> list[str]:
