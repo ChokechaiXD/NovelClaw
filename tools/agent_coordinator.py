@@ -382,8 +382,7 @@ def polisher_agent(
         prompt = _build_polisher_prompt(
             source_text, chapter_data, source_lang, target_lang, profile_lang,
         )
-        provider = get_provider()
-        output = provider.translate(prompt)
+        output = call_llm(prompt)
 
         # Parse the full chapter JSON response
         cleaned = output.strip()
