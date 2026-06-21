@@ -171,6 +171,7 @@ def save_terms(terms: list[dict], slug: str = "global-descent") -> None:
 def save_style_rules(rules: dict[str, list[dict]], slug: str = "global-descent") -> None:
     """Save style rules back to style_rules.yml."""
     yml_path = get_style_yml_path(slug)
+    yml_path.parent.mkdir(parents=True, exist_ok=True)
     cleaned_rules = {}
     for key, items in rules.items():
         if isinstance(items, list):
