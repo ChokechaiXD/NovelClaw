@@ -64,6 +64,11 @@ from extract_entities import (  # noqa: E402
     restore_entities_from_map,
     verify_no_leaked_entities,
 )
+from quality_scorer import (  # noqa: E402
+    build_quality_report,
+    quality_gate_v2,
+    score_translation,
+)
 from providers import get_provider  # noqa: E402
 from schema import (  # noqa: E402
     Chapter,
@@ -680,6 +685,7 @@ def translate_one(
     use_entities: bool = False,
     two_pass: bool = False,
     auto_glossary: bool = False,
+    use_score: bool = False,
 ) -> bool:
     """Translate one chapter. Returns True on success.
 
@@ -857,6 +863,27 @@ def translate_one(
         except Exception as e:
             print(f"  ⚠ auto-glossary error: {e}")
 
+    # ── LLM-as-Judge scoring (Phase 3) ──────────────────────────
+    if use_score and not mock and not no_validate:
+        try:
+            from glossary import load_terms as _gl2
+            gt = _gl2()
+            score_result = score_translation(
+                source_text=source,
+                chapter_data=ch_data,
+                glossary_terms=gt,
+                mock=False,
+                model="haiku",
+            )
+            if score_result.parse_error:
+                print(f"  ⚠ LLM Judge error: {score_result.parse_error[:100]}")
+            elif score_result.passed:
+                print(f"  🏆 LLM Judge: {score_result.summary_string()}")
+            else:
+                print(f"  ⚠ LLM Judge: {score_result.summary_string()}")
+        except Exception as e:
+            print(f"  ⚠ LLM Judge exception: {e}")
+
     return True
 
 
@@ -954,6 +981,11 @@ Examples:
         action="store_true",
         help="Auto-discover new glossary terms from translated chapters and append to auto.md",
     )
+    ap.add_argument(
+        "--score",
+        action="store_true",
+        help="Enable LLM-as-Judge quality scoring after translation",
+    )
     args = ap.parse_args()
 
     # Term search mode
@@ -1027,6 +1059,7 @@ Examples:
                     use_entities=args.entities,
                     two_pass=args.two_pass,
                     auto_glossary=args.auto_glossary,
+                    use_score=args.score,
                 ): ch
                 for ch in ch_nums
             }
@@ -1059,6 +1092,7 @@ Examples:
                 use_entities=args.entities,
                 two_pass=args.two_pass,
                 auto_glossary=args.auto_glossary,
+                use_score=args.score,
             ):
                 success += 1
             else:
