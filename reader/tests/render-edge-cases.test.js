@@ -152,7 +152,7 @@ test('validateChapterJs passes for correct output_lang', async () => {
     { type: 'narration', text: 'เล่าเรื่อง' },
     { type: 'dialogue', text: '\u201cHello\u201d' },
     { type: 'end', text: '(End)' },
-  ], 'ch 1', 'cn', { output_lang: 'en' });
+  ], 'ch 1', 'cn', { output_lang: 'en', novelRoot: '/nonexistent' });
   assert.equal(r.valid, true);
 });
 
@@ -160,7 +160,7 @@ test('validateChapterJs warns for wrong output_lang', async () => {
   const r = await validateChapterJs('global-descent', 1, 'ตอนที่ 1 T', [
     { type: 'narration', text: 'เล่าเรื่อง' },
     { type: 'end', text: '(\u0e08\u0e1a\u0e1a\u0e17)' },
-  ], 'ch 1', 'cn', { output_lang: 'en' });
+  ], 'ch 1', 'cn', { output_lang: 'en', novelRoot: '/nonexistent' });
   const hasEndMarkerWarning = r.warnings.some(w => w.includes('end marker') || w.includes('lang=en'));
   assert(hasEndMarkerWarning, `Expected end marker warning, got warnings: ${JSON.stringify(r.warnings)}`);
 });
