@@ -19,7 +19,7 @@ import re
 from pathlib import Path
 from typing import Any, Callable
 
-from providers import get_provider
+from providers import call_llm
 from validation import (
     get_bracket_profile,
     get_profile_lang,
@@ -311,8 +311,7 @@ def validator_agent(
             source_text, chapter_data, glossary_terms,
             source_lang, target_lang, profile_lang,
         )
-        provider = get_provider()
-        output = provider.translate(prompt)
+        output = call_llm(prompt)
 
         # Parse response
         cleaned = output.strip()

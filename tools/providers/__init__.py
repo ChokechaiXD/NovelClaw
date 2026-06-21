@@ -1,13 +1,9 @@
-from .base import LLMProvider
-from .haiku import HaikuProvider
+"""providers — Single Hermes LLM provider.
 
-__all__ = ["LLMProvider", "HaikuProvider", "get_provider"]
+All LLM calls go through the local Hermes Agent.
+No API keys managed in NovelClaw.
+"""
 
+from .api import call_llm, test_connection
 
-def get_provider() -> "LLMProvider":
-    """Return HaikuProvider (the only active provider).
-
-    Callers should not pass a model name; routing will be added when
-    there is more than one provider.
-    """
-    return HaikuProvider()
+__all__ = ["call_llm", "test_connection"]

@@ -39,7 +39,7 @@ from extract_entities import (  # noqa: E402
     restore_entities_from_map,
     verify_no_leaked_entities,
 )
-from providers import get_provider  # noqa: E402
+from providers import call_llm  # noqa: E402
 from schema import (  # noqa: E402
     Chapter,
 )
@@ -579,8 +579,7 @@ def _call_llm(prompt: str, model: str = "haiku", max_retries: int = 3) -> str:
     last_error = None
     for attempt in range(1, max_retries + 1):
         try:
-            provider = get_provider()
-            return provider.translate(prompt)
+            return call_llm(prompt)
         except Exception as e:
             last_error = e
             if attempt < max_retries:
