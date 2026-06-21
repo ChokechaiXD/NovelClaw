@@ -404,8 +404,15 @@ def build_prompt(
 - Game title brackets: {bracket_profile["game_open"]}...{bracket_profile["game_close"]}
 - End marker text: "{bracket_profile["end_marker"]}"
 - The last block in the output list MUST be the end marker block: {{"type": "end", "text": "{bracket_profile["end_marker"]}"}}
-- Transmittor principle: TRANSMIT the source content faithfully. Do NOT summarize, edit, or omit paragraphs.
-- Zero source-language characters are allowed in narration/dialogue/system blocks.
+|- Transmittor principle: TRANSMIT the source content faithfully. Do NOT summarize, edit, or omit paragraphs.
+|- Zero source-language characters are allowed in narration/dialogue/system blocks.
+|- BLOCK TYPE RULES (CRITICAL):
+  → Text inside dialogue quotes ("..." or "...") → type="dialogue"
+  → Spoken lines, shouts, whispers, telepathic speech → type="dialogue"
+  → Text inside system brackets 【...】 → type="system"
+  → Game UI, system notifications, skill/item descriptions → type="system"
+  → Actions, descriptions, thoughts, scene setting → type="narration"
+  → Do NOT put spoken dialogue inside type="narration".
 |- ANTI-HALLUCINATION: Do NOT add any narration, description, detail, or dialogue not present in the source. Do NOT invent internal monologue, character thoughts, or scene details. If the source is ambiguous, preserve the ambiguity. If unsure, translate literally rather than inventing content.
 |- ZERO Chinese characters in the output. Every Chinese character (汉字) in the source MUST be translated to Thai. If you are unsure how to translate a term, use the glossary. If not in glossary, transliterate phonetically to Thai. Leaving Chinese characters in the output is a CRITICAL error.
 |- Your translation must preserve the full length and detail of the source. Target {COMPLETENESS_MIN_RATIO:.2f}-{COMPLETENESS_MAX_RATIO:.2f}x source character count. Do NOT compress or summarize.
@@ -875,6 +882,21 @@ def translate_one(
                 _cn_cleaned += 1
     if _cn_cleaned > 0:
         print(f"  🧹 Cleaned CN chars from {_cn_cleaned} narration/dialogue blocks")
+
+    # 3. Reclassify misclassified dialogue blocks.
+    #    LLM often types spoken dialogue with quotes as "narration".
+    #    Detect by checking for dialogue quote patterns.
+    #    ponytail: only reclassify if text has TH dialogue quotes and isn't pure narration
+    _reclassified = 0
+    for block in blocks:
+        if block.get("type") == "narration" and block.get("text"):
+            t = block["text"]
+            # Has Thai dialogue quotes? → should be dialogue
+            if re.search(r'["\u201c\u201d]', t) and len(t) > 10:
+                block["type"] = "dialogue"
+                _reclassified += 1
+    if _reclassified > 0:
+        print(f"  🏷 Reclassified {_reclassified} mislabeled blocks (narration→dialogue)")
 
     # Validate via Pydantic schema
     if not no_validate:
