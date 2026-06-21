@@ -3,7 +3,6 @@
 Locks down the Chapter schema, BRACKETS config, helpers, and edge cases.
 The schema is the contract between translator (Mika) and reader (server).
 """
-import json
 import sys
 import shutil
 import tempfile
@@ -15,8 +14,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
 import pytest  # noqa: E402
 
 from schema import (  # noqa: E402
-    Chapter, Narration, Dialogue, SystemMessage, GameTitle, EndMarker,
-    Language, BRACKETS, DialogueQuote, SystemBracket, GameBracket, BlockType,
+    Chapter, Narration, Dialogue, SystemMessage, EndMarker,
+    Language, BlockType,
 )
 from chapter_io import load_chapter, save_chapter, chapter_path, md_to_blocks  # noqa: E402
 

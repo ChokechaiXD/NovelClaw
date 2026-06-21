@@ -35,10 +35,18 @@ CJK_LEAK_RE = re.compile(
 LOWER_LATIN_LEAK_RE = re.compile(
     r"\b(?:of|and|the|to|a|an|in|on|for|with|by|from|"
     r"lv|lvl|buff|debuff|first kill|militia|avatar|peek|panic|"
+    r"level|recruiting|disrespect|mean|queen|erupt|continue|"
     r"momentarily|hollow|continue|hp|mp|exp|sss|ssr|ur|sp|id|vip)\b",
     re.IGNORECASE,
 )
 LATIN_LEAK_RE = re.compile(r"\b[A-Za-z][A-Za-z0-9.]*\b")
+# EN words retained from Chinese source text (CN novels often embed EN words
+# like skill/item names). The LLM must translate these, not keep them.
+EN_RETENTION_RE = re.compile(
+    r"\b(?:recruiting|level|disrespect|mean|queen|erupt|continue|"
+    r"panic|momentarily|hollow|militia|avatar|blacklist|peek)\b",
+    re.IGNORECASE,
+)
 LATIN_REPLACEMENT_HINTS = {
     "of": "ของ",
     "Lv": "เลเวล",
@@ -52,6 +60,14 @@ LATIN_REPLACEMENT_HINTS = {
     "recruiting": "รับสมัคร",
     "peek": "ชำเลืองมอง",
     "panic": "ตื่นตระหนก",
+    "level": "ระดับ",
+    "disrespect": "ดูหมิ่น",
+    "mean": "หมายถึง",
+    "queen": "ราชินี",
+    "erupt": "ปะทุ",
+    "continue": "กล่าวต่อ",
+    "momentarily": "ชั่วขณะ",
+    "hollow": "กลวง",
 }
 ALLOWED_LATIN_TOKENS = {
     "HP",

@@ -5,7 +5,7 @@ completely replacing the legacy SQLite glossary.db database.
 """
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import Optional
 
 import yaml
 import json
@@ -89,7 +89,7 @@ def generate_style_rules_from_spec(slug: str = "global-descent") -> dict:
 
 
 @lru_cache(maxsize=16)
-def load_terms(slug: str = "global-descent") -> List[Dict]:
+def load_terms(slug: str = "global-descent") -> list[dict]:
     """Load all terms from glossary.yml."""
     yml_path = get_glossary_yml_path(slug)
     if not yml_path.exists():
@@ -110,7 +110,7 @@ def load_terms(slug: str = "global-descent") -> List[Dict]:
 
 
 @lru_cache(maxsize=16)
-def load_style_rules(slug: str = "global-descent") -> Dict[str, List[Dict]]:
+def load_style_rules(slug: str = "global-descent") -> dict[str, list[dict]]:
     """Load style rules grouped by section."""
     yml_path = get_style_yml_path(slug)
     if not yml_path.exists():
@@ -122,7 +122,7 @@ def load_style_rules(slug: str = "global-descent") -> Dict[str, List[Dict]]:
         return {}
 
 
-def find_term(source: str, terms: List[Dict] = None, slug: str = "global-descent") -> Optional[Dict]:
+def find_term(source: str, terms: list[dict] = None, slug: str = "global-descent") -> Optional[dict]:
     """Find term by CN source (case-sensitive)."""
     terms = terms or load_terms(slug)
     for t in terms:
@@ -131,22 +131,22 @@ def find_term(source: str, terms: List[Dict] = None, slug: str = "global-descent
     return None
 
 
-def search_terms(query: str, terms: List[Dict] = None, slug: str = "global-descent") -> List[Dict]:
+def search_terms(query: str, terms: list[dict] = None, slug: str = "global-descent") -> list[dict]:
     """Search by CN source or Thai translation (case-insensitive)."""
     terms = terms or load_terms(slug)
     q = query.lower()
     return [t for t in terms if q in t["source"].lower() or q in t["thai"].lower()]
 
 
-def locked_terms(terms: List[Dict] = None, slug: str = "global-descent") -> List[Dict]:
+def locked_terms(terms: list[dict] = None, slug: str = "global-descent") -> list[dict]:
     """Return only locked (lock == 'locked') terms."""
     terms = terms or load_terms(slug)
     return [t for t in terms if t.get("lock") == "locked"]
-def save_terms(terms: List[Dict], slug: str = "global-descent") -> None:
+def save_terms(terms: list[dict], slug: str = "global-descent") -> None:
     """Save terms list back to glossary.yml."""
     yml_path = get_glossary_yml_path(slug)
     yml_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     cleaned_terms = []
     for t in terms:
         cleaned_term = {
@@ -160,7 +160,7 @@ def save_terms(terms: List[Dict], slug: str = "global-descent") -> None:
         }
         if cleaned_term["source"] and cleaned_term["thai"]:
             cleaned_terms.append(cleaned_term)
-            
+
     data = {"terms": cleaned_terms}
     with open(yml_path, "w", encoding="utf-8") as f:
         yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
@@ -168,7 +168,7 @@ def save_terms(terms: List[Dict], slug: str = "global-descent") -> None:
     load_terms.cache_clear()
 
 
-def save_style_rules(rules: Dict[str, List[Dict]], slug: str = "global-descent") -> None:
+def save_style_rules(rules: dict[str, list[dict]], slug: str = "global-descent") -> None:
     """Save style rules back to style_rules.yml."""
     yml_path = get_style_yml_path(slug)
     cleaned_rules = {}
@@ -181,7 +181,7 @@ def save_style_rules(rules: Dict[str, List[Dict]], slug: str = "global-descent")
                 elif isinstance(item, str):
                     cleaned_items.append({"text": item.strip()})
             cleaned_rules[key] = cleaned_items
-            
+
     with open(yml_path, "w", encoding="utf-8") as f:
         yaml.safe_dump(cleaned_rules, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
     # Clear the LRU cache
@@ -217,7 +217,7 @@ def main():
         rules = load_style_rules(args.novel)
         print(json.dumps({"terms": terms, "rules": rules}, ensure_ascii=False))
         sys.exit(0)
-        
+
     elif args.save:
         try:
             payload = json.load(sys.stdin)
