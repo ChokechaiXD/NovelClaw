@@ -355,7 +355,8 @@
         <div class="continue-grid">`;
 
       if (library.length === 0) {
-        html += '<p style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);">หอสมุดว่างเปล่า เริ่มอ่านนิยายกันเลย! 📚</p>';
+        showEmpty(page, "หอสมุดว่างเปล่า", "เริ่มอ่านนิยายกันเลย!");
+        return; // showEmpty set innerHTML already
       } else {
         for (const n of library) {
           const hue = slugToHue(n.slug);
@@ -436,7 +437,7 @@
         });
         grid.innerHTML = "";
         if (filtered.length === 0 && q) {
-          grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-muted);">ไม่พบนิยายตามคำค้นหาค่ะ 🔍</p>';
+          showEmpty(grid, "ไม่พบนิยายตามคำค้นหา", "ลองเปลี่ยนคำค้นหาดูใหม่");
           return;
         }
         if (!q) {
@@ -506,14 +507,14 @@
     const page = $("page-novel-detail");
     if (!page) return;
     const slug = params.slug;
-    if (!slug) { page.innerHTML = '<p style="color:var(--error);">ไม่พบ slug</p>'; return; }
+    if (!slug) { showError(page, "ไม่พบ Slug"); return; }
 
     showSkeleton(page);
 
     try {
       const novels = await getNovels();
       const novel = novels.find(n => n.slug === slug);
-      if (!novel) { page.innerHTML = '<p style="color:var(--error);">ไม่พบนิยาย</p>'; return; }
+      if (!novel) { showError(page, "ไม่พบนิยาย"); return; }
 
       const chapters = await getChapters(slug);
       const hue = slugToHue(slug);
@@ -841,7 +842,7 @@
     const slug = params.slug;
     const chapterNum = parseInt(params.chapter, 10);
     if (!slug || !chapterNum) {
-      page.innerHTML = '<p style="color:var(--error);">ไม่พบข้อมูลตอน</p>';
+      showError(page, "ไม่พบข้อมูลตอน");
       return;
     }
 
@@ -1538,7 +1539,7 @@
 
     const tbody = $("admin-novels-tbody");
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">กำลังโหลดนิยาย...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;"><div class="skel skel-line" style="margin-bottom:12px;"></div><div class="skel skel-line"></div><div class="skel skel-line" style="width:40%;"></div></td></tr>';
     
     try {
       const novels = await getNovels();
@@ -1700,7 +1701,7 @@
     if (!page) return;
     const slug = params.slug;
     if (!slug) {
-      page.innerHTML = '<p style="color:var(--error);">ไม่พบ slug นิยาย</p>';
+      showError(page, "ไม่พบ Slug นิยาย");
       return;
     }
 
@@ -1712,7 +1713,7 @@
     if (subtitleEl) subtitleEl.textContent = `Slug: ${slug}`;
     
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">กำลังโหลดตอน...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:32px;"><div class="skel skel-line" style="margin-bottom:12px;"></div><div class="skel skel-line"></div><div class="skel skel-line" style="width:50%;"></div></td></tr>';
     
     try {
       const data = await api(`/api/novel/${encodeURIComponent(slug)}/chapters`);
@@ -1720,7 +1721,7 @@
       tbody.innerHTML = '';
       
       if (chapters.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding: 24px;">ยังไม่มีตอนแปลใด ๆ ในเรื่องนี้ เริ่มเพิ่มตอนใหม่ได้เลยค่ะ! 📝</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding: 32px;"><div class="empty-state" style="padding:24px;"><svg style="width:48px;height:48px;"><use xlink:href="#mascot-crab-reading"/></svg><div class="empty-state-title">ยังไม่มีตอนแปล</div></div></td></tr>';
       }
       
       chapters.forEach(ch => {
@@ -1849,7 +1850,7 @@
     const slug = params.slug;
     const num = parseInt(params.num, 10);
     if (!slug || !num) {
-      page.innerHTML = '<p style="color:var(--error);">ไม่พบข้อมูลตอนแปล</p>';
+      showError(page, "ไม่พบข้อมูลตอนแปล");
       return;
     }
 
@@ -1860,7 +1861,7 @@
     const sourceFooterInput = $("trans-source-footer");
 
     if (headerTitle) headerTitle.textContent = `แปลตอนที่ ${num} — เรื่อง: ${slug}`;
-    if (sourceBlocksContainer) sourceBlocksContainer.innerHTML = '<p class="loading-placeholder" style="color:var(--text-muted);">กำลังโหลดโครงสร้างตอน...</p>';
+    if (sourceBlocksContainer) sourceBlocksContainer.innerHTML = '<div class="skel skel-block" style="height:60px;"></div>';
 
     let chapterTitle = `ตอนที่ ${num}`;
     let lang = 'cn';
@@ -2086,7 +2087,7 @@
     const tbody = $("admin-users-tbody");
     if (!tbody) return;
     
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">กำลังโหลดรายชื่อผู้ใช้...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;"><div class="skel skel-line" style="margin-bottom:12px;"></div><div class="skel skel-line"></div></td></tr>';
     
     try {
       const res = await fetch("/api/admin/users");
@@ -2160,8 +2161,8 @@
     const rulesContainer = $("style-rules-container");
     if (!tbody || !rulesContainer) return;
 
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">กำลังโหลดคลังคำศัพท์...</td></tr>';
-    rulesContainer.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">กำลังโหลดกฎ...</p>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;"><div class="skel skel-line" style="margin-bottom:12px;"></div><div class="skel skel-line"></div><div class="skel skel-line" style="width:40%;"></div></td></tr>';
+    rulesContainer.innerHTML = '<div class="skel skel-line" style="margin-bottom:12px;"></div><div class="skel skel-line"></div>';
 
     try {
       const data = await api(`/api/novel/${encodeURIComponent(slug)}/glossary/data`);
