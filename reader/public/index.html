@@ -5,32 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="theme-color" content="#07080b" />
+  <meta name="theme-color" content="#0a0b0e" />
   <title>NovelClaw Reader</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>🦊</text></svg>" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-    rel="stylesheet"
-  />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0%25' y1='100%25' x2='100%25' y2='0%25'><stop offset='0%25' stop-color='%2306b6d4'/><stop offset='100%25' stop-color='%2314b8a6'/></linearGradient></defs><path d='M2 28C3 24 6 22 10 21 11.5 22.5 11 25 7 28 5 29.5 3 29 2 28Z' fill='url(%23g)'/><path d='M8 20C6.5 13 10.5 7 18 9.5 16 11 12 12 11 16.5 10.5 18 9.5 19.5 8 20Z' fill='url(%23g)'/><rect x='13' y='7' width='12' height='18' rx='2' fill='%23a78bfa'/><rect x='14.5' y='8' width='9.5' height='16' rx='1' fill='%23fffdf5'/></svg>" />
   <link rel="stylesheet" href="/design-system.css" />
 </head>
 <body data-theme="dark">
   <!-- SVG Symbols Sprite Library -->
   <svg style="display: none;">
-    <!-- Symbol for Logo: Cute, friendly, soft, realistic-looking crab claw clutching a book -->
+    <!-- Logo: Crab Claw clutching a book (Teal claw + purple book cover) -->
     <symbol id="logo-crab-claw" viewBox="0 0 32 32">
       <defs>
         <linearGradient id="logo-crab-grad" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#ff4757" stop-opacity="0.95" />
-          <stop offset="100%" stop-color="#ff7f50" stop-opacity="0.95" />
+          <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.95" />
+          <stop offset="100%" stop-color="#14b8a6" stop-opacity="0.95" />
         </linearGradient>
       </defs>
-      <!-- Background circle glow -->
-      <circle cx="16" cy="16" r="14" fill="rgba(255, 71, 87, 0.12)" />
-      
-      <!-- Book tilted (soft colors) -->
+      <!-- Book -->
       <g transform="rotate(-8 18 16)">
         <rect x="13" y="7" width="12" height="18" rx="2" fill="#a78bfa" />
         <rect x="11.5" y="7" width="1.5" height="18" rx="0.5" fill="#8b5cf6" />
@@ -39,94 +30,100 @@
         <line x1="16.5" y1="15" x2="21.5" y2="15" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round" />
         <line x1="16.5" y1="18" x2="20" y2="18" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round" />
       </g>
-      
-      <!-- Crab Arm / Claw Base (organic, soft rounded curves) -->
+      <!-- Claw arm -->
       <path d="M 2 28 C 3 24, 6 22, 10 21 C 11.5 22.5, 11 25, 7 28 C 5 29.5, 3 29, 2 28 Z" fill="url(#logo-crab-grad)" />
-      
-      <!-- Upper Pincer (curved over the book to clutch it) -->
+      <!-- Upper pincer -->
       <path d="M 8 20 C 6.5 13, 10.5 7, 18 9.5 C 16 11, 12 12, 11 16.5 C 10.5 18, 9.5 19.5, 8 20 Z" fill="url(#logo-crab-grad)" />
-      
-      <!-- Lower Pincer (clutching bottom of the book) -->
+      <!-- Lower pincer -->
       <path d="M 8 20 C 10 22, 12.5 24, 18 19.5 C 14.5 18, 11.5 18.5, 9.5 19 C 8.8 19.2, 8.3 19.6, 8 20 Z" fill="url(#logo-crab-grad)" />
-      
-      <!-- Adorable Eye on the Claw -->
+      <!-- Eye -->
       <circle cx="11.5" cy="14" r="1.5" fill="#1e293b" />
       <circle cx="11" cy="13.5" r="0.5" fill="#ffffff" />
-      
-      <!-- Adorable Rosy Blush -->
+      <!-- Blush -->
       <ellipse cx="12.5" cy="15" rx="1" ry="0.5" fill="#ff8da1" opacity="0.8" />
     </symbol>
 
-    <!-- Hamburger Icon -->
+    <!-- Nav Icons (stroke-based, 24x24) -->
+    <symbol id="icon-home" viewBox="0 0 24 24">
+      <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-library" viewBox="0 0 24 24">
+      <path d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.35-4.35" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-ranking" viewBox="0 0 24 24">
+      <path d="M6 9l6-6 6 6M6 9v10M6 9H4m2 0h2m10 0v10m0-10h2m-2 0h-2M8 21h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-profile" viewBox="0 0 24 24">
+      <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 21a8 8 0 00-16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-history" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" fill="none" stroke="currentColor" stroke-width="2"/>
+    </symbol>
+    <symbol id="icon-shield" viewBox="0 0 24 24">
+      <path d="M12 2l7 4v5c0 5-3.5 9.7-7 11-3.5-1.3-7-6-7-11V6l7-4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-crown" viewBox="0 0 24 24">
+      <path d="M2 19h20M4 10l3 3 5-8 5 8 3-3-1 9H5L4 10z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- Utility Icons -->
     <symbol id="icon-hamburger" viewBox="0 0 24 24">
       <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
     </symbol>
-
-    <!-- Close (Cross) Icon -->
     <symbol id="icon-close" viewBox="0 0 24 24">
       <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
     </symbol>
-
-    <!-- Bell Icon -->
     <symbol id="icon-bell" viewBox="0 0 24 24">
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
     </symbol>
-
-    <!-- Chevron Left -->
     <symbol id="icon-arrow-left" viewBox="0 0 24 24">
       <path d="M15 19l-7-7 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
     </symbol>
-
-    <!-- Chevron Right -->
     <symbol id="icon-arrow-right" viewBox="0 0 24 24">
       <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
     </symbol>
-
-    <!-- Sun Icon -->
     <symbol id="icon-sun" viewBox="0 0 24 24">
       <circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2" />
       <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
     </symbol>
-
-    <!-- Moon Icon -->
     <symbol id="icon-moon" viewBox="0 0 24 24">
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
     </symbol>
-
-    <!-- Book Icon -->
     <symbol id="icon-book" viewBox="0 0 24 24">
       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5v-15z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
     </symbol>
-
-    <!-- Minus Icon -->
     <symbol id="icon-minus" viewBox="0 0 24 24">
       <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
     </symbol>
-
-    <!-- Plus Icon -->
     <symbol id="icon-plus" viewBox="0 0 24 24">
       <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
     </symbol>
-
-    <!-- Fullscreen Icon -->
     <symbol id="icon-fullscreen" viewBox="0 0 24 24">
       <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </symbol>
-
-    <!-- Bookmark Icons -->
     <symbol id="icon-bookmark" viewBox="0 0 24 24">
       <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </symbol>
     <symbol id="icon-bookmark-outline" viewBox="0 0 24 24">
       <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </symbol>
+    <!-- Bookmark (filled) -->
+    <symbol id="icon-bookmarks" viewBox="0 0 24 24">
+      <path d="M7 3h10a2 2 0 0 1 2 2v16l-7-5-7 5V5a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
   </svg>
-  
+
   <div class="app-bg"></div>
-  
-  <!-- ═══ NEW LAYOUT ═══ -->
+
+  <!-- ═══ LAYOUT ═══ -->
   <div class="app" id="app-layout">
-    
+
     <!-- Left Sidebar -->
     <nav class="sidebar">
       <!-- Sidebar Brand Header -->
@@ -145,23 +142,44 @@
 
       <div class="sidebar-section menu">
         <div class="section-label">เมนู</div>
-        <div class="nav-item active" data-page="home">🏠 หน้าหลัก</div>
-        <div class="nav-item" data-page="library">📚 หอสมุด</div>
-        <div class="nav-item" data-page="search">🔍 ค้นหา</div>
-        <div class="nav-item" data-page="ranking">🏆 อันดับ</div>
+        <div class="nav-item active" data-page="home">
+          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-home"/></svg> หน้าหลัก
+        </div>
+        <div class="nav-item" data-page="library">
+          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-library"/></svg> หอสมุด
+        </div>
+        <div class="nav-item" data-page="search">
+          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-search"/></svg> ค้นหา
+        </div>
+        <div class="nav-item" data-page="ranking">
+          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-ranking"/></svg> อันดับ
+        </div>
         <div class="nav-divider"></div>
-        <div class="nav-item" data-page="profile">👤 โปรไฟล์</div>
-        <div class="nav-item" data-page="history">⏱ ประวัติ</div>
-        <div class="nav-item" data-page="bookmarks">🔖 บุ๊กมาร์ก</div>
+        <div class="nav-item" data-page="profile">
+          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-profile"/></svg> โปรไฟล์
+        </div>
+        <div class="nav-item" data-page="history">
+          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-history"/></svg> ประวัติ
+        </div>
+        <div class="nav-item" data-page="bookmarks">
+          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-bookmarks"/></svg> บุ๊กมาร์ก
+        </div>
         <div class="nav-divider"></div>
-        <div class="nav-item" data-page="settings">⚙ ตั้งค่า</div>
-        <div class="nav-item" data-page="admin">🛡️ จัดการ</div>
+        <div class="nav-item" data-page="settings">
+          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-settings"/></svg> ตั้งค่า
+        </div>
+        <div class="nav-item" data-page="admin">
+          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-shield"/></svg> จัดการ
+        </div>
       </div>
 
       <!-- Premium Upgrade Card -->
       <div class="sidebar-section premium">
         <div class="premium-card">
-          <div class="premium-title">👑 Premium</div>
+          <div class="premium-title">
+            <svg style="width:16px;height:16px;margin-right:6px;vertical-align:middle;color:var(--accent);"><use xlink:href="#icon-crown"/></svg>
+            Premium
+          </div>
           <div class="premium-desc">ปลดล็อกการอ่านไม่จำกัด ไร้โฆษณา</div>
           <button class="btn btn-primary btn-sm btn-full premium-btn">อัปเกรด</button>
         </div>
@@ -170,19 +188,21 @@
       <!-- Footer Action Toggles -->
       <div class="sidebar-section toggle-section">
         <div class="toggle-label">
-          <span>🌙 Dark Theme</span>
+          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-moon"/></svg>
+          <span>Dark Theme</span>
         </div>
         <div class="toggle active" id="theme-toggle-new"></div>
       </div>
 
       <div class="sidebar-section toggle-section">
         <div class="toggle-label">
-          <span>🤖 AI Translate</span>
+          <svg style="width:16px;height:16px;margin-right:8px;"><use xlink:href="#icon-book"/></svg>
+          <span>AI Translate</span>
         </div>
         <div class="toggle active" id="translate-toggle-new"></div>
       </div>
     </nav>
-    
+
     <!-- Main Content -->
     <main class="main">
       <div class="main-header">
@@ -198,291 +218,56 @@
             <span>online</span>
           </div>
           <button class="btn btn-icon btn-ghost" id="notif-btn" style="display: flex; align-items: center; justify-content: center;" title="การแจ้งเตือน">
-            <svg style="width: 18px; height: 18px; color: var(--text-secondary);"><use xlink:href="#icon-bell"></use></svg>
+            <svg style="width: 18px; height: 18px;"><use xlink:href="#icon-bell"></use></svg>
           </button>
-          <button class="btn btn-icon btn-ghost" id="rightbar-toggle" style="display: flex; align-items: center; justify-content: center;" title="เปิด/ปิดกิจกรรม">
-            <svg style="width: 18px; height: 18px; color: var(--text-secondary);"><use xlink:href="#icon-hamburger"></use></svg>
-          </button>
-          <div class="avatar" id="profile-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444);cursor:pointer">P</div>
+          <div id="profile-avatar" class="profile-avatar"></div>
         </div>
       </div>
-      <div class="main-content">
-        <!-- Home Dashboard -->
-        <div class="page active" id="page-home"></div>
-        <!-- Library -->
-        <div class="page" id="page-library"></div>
-        <!-- Search -->
-        <div class="page" id="page-search"></div>
-        <!-- Ranking -->
-        <div class="page" id="page-ranking"></div>
-        <!-- Reader -->
-        <div class="page" id="page-reader"></div>
-        <!-- Novel Detail -->
-        <div class="page" id="page-novel-detail"></div>
-        <!-- Profile -->
-        <div class="page" id="page-profile"></div>
-        <!-- History -->
-        <div class="page" id="page-history"></div>
-        <!-- Bookmarks -->
-        <div class="page" id="page-bookmarks"></div>
-        <!-- Settings -->
-        <div class="page" id="page-settings"></div>
-        <!-- Notifications -->
-        <div class="page" id="page-notifications"></div>
-        <!-- Admin -->
-        <div class="page" id="page-admin"></div>
 
-        <!-- Admin Novels -->
-        <div class="page" id="page-admin-novels">
-          <div class="admin-topbar">
-            <h3 class="section-title">📚 จัดการเรื่องนิยาย</h3>
-            <button class="hero-cta" id="admin-btn-create-novel">+ เพิ่มนิยายใหม่</button>
-          </div>
-          <div class="admin-table-container" style="margin-top: 16px;">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>ชื่อเรื่อง (Slug)</th>
-                  <th>ชื่อแปลไทย</th>
-                  <th>ภาษา</th>
-                  <th>จำนวนตอน</th>
-                  <th>สถานะ</th>
-                  <th>จัดการ</th>
-                </tr>
-              </thead>
-              <tbody id="admin-novels-tbody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Admin Novel Edit -->
-        <div class="page" id="page-admin-novel-edit">
-          <h3 class="section-title" id="admin-novel-edit-title">แก้ไขข้อมูลนิยาย</h3>
-          <form class="settings-form" id="admin-novel-form" onsubmit="return false;" style="margin-top: 16px;">
-            <input type="hidden" id="admin-form-old-slug" />
-            <div class="settings-row">
-              <label>Slug (โฟลเดอร์เก็บข้อมูล)</label>
-              <input type="text" id="admin-form-slug" placeholder="e.g. global-descent" required />
-            </div>
-            <div class="settings-row">
-              <label>ชื่อเรื่องภาษาไทย</label>
-              <input type="text" id="admin-form-title" placeholder="e.g. การลงมาครั้งใหญ่ระดับโลก" required />
-            </div>
-            <div class="settings-row">
-              <label>ผู้แต่ง (Author)</label>
-              <input type="text" id="admin-form-author" placeholder="e.g. 三九音域" />
-            </div>
-            <div class="settings-row">
-              <label>ภาษาต้นฉบับ</label>
-              <input type="text" id="admin-form-src-lang" placeholder="cn" value="cn" />
-            </div>
-            <div class="settings-row">
-              <label>ภาษาปลายทาง</label>
-              <input type="text" id="admin-form-tgt-lang" placeholder="th" value="th" />
-            </div>
-            <div class="settings-row">
-              <label>สถานะ</label>
-              <select id="admin-form-status">
-                <option value="ongoing">กำลังแปล (Ongoing)</option>
-                <option value="complete">จบแล้ว (Complete)</option>
-              </select>
-            </div>
-            <div class="settings-row">
-              <label>จำนวนตอนทั้งหมดที่คาดการณ์</label>
-              <input type="number" id="admin-form-total-chapters" value="100" />
-            </div>
-            <div style="display:flex; gap:12px; margin-top:20px;">
-              <button class="hero-cta" id="admin-novel-form-submit">บันทึกข้อมูล</button>
-              <button class="btn btn-sm" id="admin-novel-form-cancel">ยกเลิก</button>
-            </div>
-          </form>
-        </div>
-
-        <!-- Admin Chapters -->
-        <div class="page" id="page-admin-chapters">
-          <div class="admin-topbar">
-            <div>
-              <h3 class="section-title" id="admin-chapters-title">จัดการตอนในเรื่อง</h3>
-              <p class="dash-subgreeting" id="admin-chapters-subtitle" style="font-size:11px; color:var(--text-muted); margin-top:4px;">เรื่อง: —</p>
-            </div>
-            <div style="display:flex; gap:12px;">
-              <button class="hero-cta" id="admin-btn-create-chapter">+ เพิ่มตอนใหม่</button>
-              <button class="btn btn-sm" id="admin-btn-back-to-novels">กลับไปหน้านิยาย</button>
-            </div>
-          </div>
-
-          <!-- EPUB Import Container -->
-          <div class="epub-import-container" style="margin-top: 16px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px;">
-            <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; color:var(--text);">
-              <span>📦 นำเข้าตอนจากไฟล์ EPUB (EPUB Import Center)</span>
-            </h4>
-            <form id="epub-import-form" onsubmit="return false;" style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end;">
-              <div style="display:flex; flex-direction:column; gap:6px; flex:1; min-width:200px;">
-                <label style="font-size:0.8rem; color:var(--text-secondary);">เลือกไฟล์ EPUB (.epub)</label>
-                <input type="file" id="epub-file-input" accept=".epub" style="background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:8px 12px; border-radius:var(--radius-sm); font-size:0.9rem; width:100%; outline:none;" required />
-              </div>
-              <div style="display:flex; flex-direction:column; gap:6px; width:120px;">
-                <label style="font-size:0.8rem; color:var(--text-secondary);">ตอนเริ่มต้นที่</label>
-                <input type="number" id="epub-start-num" min="1" value="1" style="background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:8px 12px; border-radius:var(--radius-sm); font-size:0.9rem; width:100%; outline:none;" required />
-              </div>
-              <button type="submit" class="hero-cta" id="epub-import-submit-btn" style="padding:10px 20px; font-size:0.9rem; height:40px;">นำเข้าเนื้อหา</button>
-            </form>
-            <div id="epub-import-status" style="margin-top:12px; font-size:0.85rem; color:var(--text-secondary); display:none;">
-              <!-- Progress message -->
-            </div>
-          </div>
-
-          <div class="admin-table-container" style="margin-top: 16px;">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>เลขตอน</th>
-                  <th>ชื่อตอนแปลไทย</th>
-                  <th>ชนิดบท</th>
-                  <th>จัดการ</th>
-                </tr>
-              </thead>
-              <tbody id="admin-chapters-tbody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Admin Translate Workspace -->
-        <div class="page" id="page-admin-translate" style="height: 100%;">
-          <div class="translation-header" style="flex-shrink:0; padding:16px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-            <div>
-              <h3 class="section-title" id="trans-novel-ch-title">แปลตอนที่ —</h3>
-              <div style="display: flex; align-items: center; gap: 8px; margin-top:8px;">
-                <input type="text" id="trans-title-input" placeholder="กรอกชื่อตอนภาษาไทย..." style="background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:6px 12px; border-radius:var(--radius-sm); font-size:0.9rem; width:300px;" />
-                <select id="trans-lang-select" style="background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:6px 12px; border-radius:var(--radius-sm); font-size:0.9rem;">
-                  <option value="cn">จีน (CN)</option>
-                  <option value="en">อังกฤษ (EN)</option>
-                  <option value="th">ไทย (TH)</option>
-                </select>
-              </div>
-            </div>
-            <div style="display:flex; gap:12px; align-items:center;">
-              <button class="btn btn-sm hero-cta" id="trans-btn-auto" style="padding: 8px 16px; font-size:12px; background:var(--accent); color:#fff; border:none; display:flex; align-items:center; gap:6px;" title="แปลอัตโนมัติด้วย AI pipeline">✨ แปลอัตโนมัติ (AI)</button>
-              <button class="hero-cta" id="trans-btn-save">บันทึกตอน</button>
-              <button class="btn btn-sm" id="trans-btn-cancel" style="background:rgba(239, 68, 68, 0.12); color:var(--error);">ยกเลิก</button>
-            </div>
-          </div>
-          
-          <div class="translation-body" style="flex:1; display:flex; min-height:0; overflow:hidden; margin-top:16px;">
-            <div class="translation-column" style="flex:1; display:flex; flex-direction:column; padding:0 8px 20px 0; overflow-y:auto;">
-              <h4 style="margin-bottom:12px; color:var(--text-secondary); font-size:0.85rem; text-transform:uppercase; font-weight:700;">บล็อกตอนทั้งหมด (Chapter Blocks)</h4>
-              <div id="trans-source-blocks" style="display:flex; flex-direction:column; gap:12px;">
-                <!-- Dynamically populated blocks -->
-              </div>
-              <button class="btn btn-sm" id="trans-btn-add-block" style="margin-top:16px; border:1px dashed var(--border-hover); padding: 12px; border-radius: var(--radius-sm);">+ เพิ่มย่อหน้า/บล็อก</button>
-              
-              <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
-                <label style="display:block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">ผู้แปล / เครดิตแปลไทย (Source footer)</label>
-                <input type="text" id="trans-source-footer" placeholder="e.g. แปลไทยโดย Mika" style="background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:8px 12px; border-radius:var(--radius-sm); font-size:0.9rem; width:100%;" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Admin Users -->
-        <div class="page" id="page-admin-users">
-          <div class="admin-topbar">
-            <h3 class="section-title">👤 จัดการสมาชิกและสิทธิ์การเข้าใช้งาน</h3>
-          </div>
-          <div class="admin-table-container" style="margin-top: 16px;">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>ชื่อผู้ใช้งาน</th>
-                  <th>อีเมล</th>
-                  <th>ระดับสิทธิ์ (Role)</th>
-                  <th>การใช้งานสะสม</th>
-                  <th>สถานะ</th>
-                </tr>
-              </thead>
-              <tbody id="admin-users-tbody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Admin Glossary -->
-        <div class="page" id="page-admin-glossary">
-          <div class="admin-topbar">
-            <h3 class="section-title">🗂️ จัดการคลังคำศัพท์และกฎ</h3>
-            <div style="display:flex; gap:12px;">
-              <button class="hero-cta" id="glossary-btn-save">บันทึกข้อมูลทั้งหมด</button>
-              <button class="btn btn-sm" id="glossary-btn-add-term">+ เพิ่มคำศัพท์ใหม่</button>
-              <button class="btn btn-sm" id="glossary-btn-back-to-dash">กลับหน้าแดชบอร์ด</button>
-            </div>
-          </div>
-          
-          <div style="display:flex; gap:24px; margin-top:20px; height: 60vh;">
-            <!-- Left Column: Glossary Terms Table -->
-            <div style="flex:2; display:flex; flex-direction:column; background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius); padding:16px; min-height:0;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <h4 style="margin:0; font-size:1rem; font-weight:600;">คลังคำศัพท์ (Glossary Terms)</h4>
-                <input type="search" id="glossary-search" placeholder="🔍 ค้นหาในคลัง..." style="background:var(--bg-tertiary); border:1px solid var(--border); color:var(--text-primary); padding:6px 12px; border-radius:var(--radius-sm); font-size:0.85rem; width:200px;" />
-              </div>
-              <div style="flex:1; overflow-y:auto;">
-                <table class="admin-table" style="font-size:0.85rem;">
-                  <thead>
-                    <tr>
-                      <th style="width:120px;">ภาษาจีน (Source)</th>
-                      <th style="width:120px;">ภาษาไทย (Thai)</th>
-                      <th style="width:80px;">หมวดหมู่</th>
-                      <th style="width:80px;">Lock Level</th>
-                      <th style="width:120px;">หมายเหตุ / Notes</th>
-                      <th style="width:60px;">ลบ</th>
-                    </tr>
-                  </thead>
-                  <tbody id="glossary-tbody">
-                    <!-- Dynamically populated -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Right Column: Style Rules Markdown/JSON Edit -->
-            <div style="flex:1; display:flex; flex-direction:column; background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius); padding:16px; min-height:0;">
-              <h4 style="margin:0 0 12px 0; font-size:1rem; font-weight:600;">กฎและสไตล์การแปล (Style Rules)</h4>
-              <p style="font-size:0.75rem; color:var(--text-secondary); margin:0 0 12px 0;">กำหนดข้อบังคับสไตล์การแปล (เขียนแยกแต่ละข้อด้วยการขึ้นบรรทัดใหม่)</p>
-              <div style="flex:1; display:flex; flex-direction:column; gap:12px; overflow-y:auto;" id="style-rules-container">
-                <!-- Grouped rule textareas will be populated here -->
-              </div>
-            </div>
-          </div>
-        </div>
+      <!-- Page Content -->
+      <div class="page active" id="page-home">
+        <!-- Rendered by page-renderers.js -->
       </div>
+      <div class="page" id="page-novel-detail"></div>
+      <div class="page" id="page-reader"></div>
+      <div class="page" id="page-library"></div>
+      <div class="page" id="page-search"></div>
+      <div class="page" id="page-ranking"></div>
+      <div class="page" id="page-profile"></div>
+      <div class="page" id="page-history"></div>
+      <div class="page" id="page-bookmarks"></div>
+      <div class="page" id="page-downloads"></div>
+      <div class="page" id="page-notifications"></div>
+      <div class="page" id="page-settings"></div>
+      <div class="page" id="page-admin"></div>
+      <div class="page" id="page-admin-novels"></div>
+      <div class="page" id="page-admin-chapters"></div>
+      <div class="page" id="page-admin-translate"></div>
+      <div class="page" id="page-admin-translate-job"></div>
+      <div class="page" id="page-admin-novel-edit"></div>
+      <div class="page" id="page-admin-users"></div>
+      <div class="page" id="page-admin-glossary"></div>
     </main>
-    
-    <!-- Right Sidebar (Activity) -->
-    <aside class="rightbar">
-      <div class="rightbar-brand" style="padding: 20px 16px 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border);">
-        <span class="section-label" style="margin: 0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted);">กิจกรรม</span>
-        <button class="btn btn-icon btn-ghost" id="rightbar-close" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);" title="ปิดแถบกิจกรรม">
-          <svg style="width: 16px; height: 16px; color: var(--text-secondary);"><use xlink:href="#icon-close"></use></svg>
-        </button>
-      </div>
-      <div class="rightbar-section" style="padding-top: 12px;">
+
+    <!-- Right Bar -->
+    <aside class="rightbar" id="rightbar">
+      <div class="rightbar-section">
+        <div class="section-label">กิจกรรมล่าสุด</div>
         <div id="activity-feed">
           <p style="font-size:11px;color:var(--text-muted);">กำลังโหลด...</p>
         </div>
       </div>
+      <div class="rightbar-section">
+        <div class="section-label">ข้อมูล</div>
+        <div id="route-params" style="font-size:11px;color:var(--text-muted);display:none;"></div>
+      </div>
     </aside>
-    
   </div>
-  
-  
-  <!-- Sidebar overlay (mobile) -->
-  <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
+  <!-- Toast container -->
+  <div id="toast-container"></div>
   <script src="/router.js"></script>
   <script src="/page-renderers.js"></script>
+  <script src="/app.js"></script>
 </body>
 </html>
