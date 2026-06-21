@@ -64,6 +64,10 @@ from extract_entities import (  # noqa: E402
     restore_entities_from_map,
     verify_no_leaked_entities,
 )
+from agent_coordinator import (  # noqa: E402
+    run_agent_chain,
+    print_agent_report,
+)
 from quality_scorer import (  # noqa: E402
     build_quality_report,
     quality_gate_v2,
@@ -690,6 +694,8 @@ def translate_one(
     auto_glossary: bool = False,
     use_score: bool = False,
     use_tm: bool = False,
+    agent_passes: int = 1,
+    mock_agents: bool = False,
 ) -> bool:
     """Translate one chapter. Returns True on success.
 
@@ -901,6 +907,38 @@ def translate_one(
         except Exception as e:
             print(f"  ⚠ LLM Judge exception: {e}")
 
+    # ── Multi-agent: validate/polish (Phase 5) ─────────────────
+    if agent_passes >= 2 and not mock and not no_validate and ch_data:
+        try:
+            from glossary import load_terms as _gl3
+            gt = _gl3()
+            glossary_terms_for_agent = gt
+
+            success, agent_results, final_ch = run_agent_chain(
+                ch_num=ch_num,
+                translate_fn=lambda *a, **kw: True,  # already translated
+                source_text=source,
+                chapter_data=ch_data,
+                glossary_terms=glossary_terms_for_agent,
+                passes=agent_passes,
+                source_lang=source_lang,
+                target_lang=target_lang,
+                profile_lang=profile_lang,
+                mock=mock_agents,
+                model="haiku",
+            )
+            if not success:
+                print(f"  ⚠ Agent chain flagged issues for ch{ch_num}")
+            print_agent_report(agent_results)
+            if final_ch and final_ch is not ch_data:
+                # Chapter was modified by polisher — re-save
+                from constants import CHAPTERS_DIR as _ch_dir
+                from chapter_io import save_chapter as _sv
+                _sv(Chapter(**final_ch), _ch_dir / f"{ch_num:04d}.json")
+                print(f"  ✓ Re-saved polished version")
+        except Exception as e:
+            print(f"  ⚠ Agent chain error: {e}")
+
     return True
 
 
@@ -1007,6 +1045,18 @@ Examples:
         "--tm",
         action="store_true",
         help="Enable Translation Memory (cache blocks for future reuse)",
+    )
+    ap.add_argument(
+        "--passes",
+        type=int,
+        default=1,
+        choices=[1, 2, 3],
+        help="Multi-agent passes: 1=translate, 2=translate+validate, 3=translate+validate+polish (default: 1)",
+    )
+    ap.add_argument(
+        "--mock-agents",
+        action="store_true",
+        help="Use mock agent responses (no LLM calls for validate/polish)",
     )
     args = ap.parse_args()
 
