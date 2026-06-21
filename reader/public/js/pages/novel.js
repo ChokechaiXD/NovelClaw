@@ -76,7 +76,7 @@ const NovelPage = {
       html += `
       <div class="c-section">
         ${rangesHtml}
-        <div class="c-detail__chapters">`;
+        <div class="c-detail__chapters" id="detail-chapters-grid-container">`;
 
       for (const ch of pageChapters) {
         const read = Store.isRead(slug, ch.num);
