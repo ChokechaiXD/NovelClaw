@@ -2,35 +2,31 @@
  * lib/render.js — Chapter JSON → HTML renderer.
  *
  * Converts a Chapter object (with blocks array) into HTML string.
- * Handles all block types: narration, dialogue, system, game_title, end.
+ * Uses the active language profile (output_lang / profile_lang / lang)
+ * for bracket styling and end-marker display.
+ *
+ * CSS classes match design-system.css:
+ *   narration  → <p> (no class)
+ *   dialogue   → class="dialogue"  data-lang, data-speaker
+ *   system     → class="system-msg"  data-lang
+ *   game_title → class="game-title"  data-lang
+ *   end        → class="end-marker"  data-lang
  */
-const { getBracketProfile } = require('./brackets');
+const { getBracketProfile, resolveProfileLang } = require('./brackets');
 const { esc } = require('./helpers');
 
+// Convert CN/JP kagikakko to curly Thai/EN quotes
 function toCurly(s) {
   return s
     .replace(/\u300c/g, '\u201C')
     .replace(/\u300d/g, '\u201D')
     .replace(/\u300e/g, '\u2018')
-    .replace(/\u300f/g, '\u2019')
-    .replace(/^"(.*)"$/s, '\u201C$1\u201D')
-    .replace(/^'(.*)'$/s, '\u2018$1\u2019');
+    .replace(/\u300f/g, '\u2019');
 }
 
-function renderDialogue(text, brackets) {
-  const dialogueOpen = brackets.dialogueOpen || '\u201C';
-  const dialogueClose = brackets.dialogueClose || '\u201D';
-
-  if (dialogueOpen === '\u300c' && text.startsWith('\u300c') && text.endsWith('\u300d')) {
-    return `<p class="block-dialogue">${esc(text)}</p>`;
-  }
-
-  const normalized = toCurly(text);
-  if (normalized.startsWith(dialogueOpen) && normalized.endsWith(dialogueClose)) {
-    return `<p class="block-dialogue">${esc(normalized)}</p>`;
-  }
-
-  return `<p class="block-dialogue">${esc(dialogueOpen)}${esc(normalized)}${esc(dialogueClose)}</p>`;
+// Wrap inline 【...】 inside narration/dialogue with badge span
+function parseInline(t) {
+  return t ? t.replace(/【([^】]+)】/g, '<span class="inline-stat-badge">【$1】</span>') : '';
 }
 
 function renderChapterJson(ch) {
@@ -38,24 +34,29 @@ function renderChapterJson(ch) {
     return '<p class="error">Invalid chapter layout structure.</p>';
   }
 
-  const brackets = getBracketProfile(ch);
+  const activeLang = resolveProfileLang(ch);
 
-  return ch.blocks.map(block => {
-    const text = block.text || '';
+  const html = ch.blocks.map(block => {
+    const text = esc(block.text || '');
     switch (block.type) {
-      case 'end':
-        return `<p class="end-marker">${esc(brackets.endMarker || '(จบบท)')}</p>`;
       case 'system':
-        return `<p class="block-system">${esc(text).replace(/\u3010([^\u3011]+)\u3011/g, '<span class="inline-stat-badge">\u3010$1\u3011</span>')}</p>`;
-      case 'game_title':
-        return `<p class="block-gametitle">${esc(brackets.gameOpen || '\u300a')}${esc(text).replace(/\u3010([^\u3011]+)\u3011/g, '<span class="inline-stat-badge">\u3010$1\u3011</span>')}${esc(brackets.gameClose || '\u300b')}</p>`;
-      case 'dialogue':
-        return renderDialogue(text, brackets);
+        return '<p class="system-msg" data-lang="' + activeLang + '">' + parseInline(text) + '</p>';
+      case 'dialogue': {
+        const sp = block.speaker ? ' data-speaker="' + esc(block.speaker) + '"' : '';
+        return '<p class="dialogue"' + sp + ' data-lang="' + activeLang + '">' + toCurly(parseInline(text)) + '</p>';
+      }
       case 'narration':
+        return '<p>' + toCurly(parseInline(text)) + '</p>';
+      case 'game_title':
+        return '<p class="game-title" data-lang="' + activeLang + '">' + text + '</p>';
+      case 'end':
+        return '<p class="end-marker" data-lang="' + activeLang + '">' + text + '</p>';
       default:
-        return `<p class="block-narration">${esc(text).replace(/\u3010([^\u3011]+)\u3011/g, '<span class="inline-stat-badge">\u3010$1\u3011</span>').replace(/\u300c/g, '\u201C').replace(/\u300d/g, '\u201D').replace(/\u300e/g, '\u2018').replace(/\u300f/g, '\u2019')}</p>`;
+        return '<p>' + text + '</p>';
     }
-  }).join('\n');
+  }).join('\n') + (ch.source ? '\n<hr/>\n<p class="source-footer">' + esc(ch.source) + '</p>' : '');
+
+  return html;
 }
 
 module.exports = { renderChapterJson };

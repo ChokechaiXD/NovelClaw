@@ -344,79 +344,11 @@ async function readChapter(slug, num) {
   };
 }
 
-// ── Bracket / quote config per language (mirrors tools/schema.py) ─────
-//
-// Each source language has its own bracket convention. The renderer
-// picks the right profile from ch.lang. For 'en' and 'th', dialogue
-// uses curly "..." (U+201C/U+201D). For 'cn'/'jp'/'kr', it uses 「...」
-// (converted at render time to curly for readability).
-//
-// The `toCurly` kagikakko conversion is language-agnostic: 「 → ", 」 → ",
-// 『 → ', 』 → '.
+// ── Chapter rendering (delegated to lib/render.js for profile support) ──
+const { renderChapterJson } = require('./lib/render');
+const { getBracketProfile } = require('./lib/brackets');
 
-const BRACKETS = {
-  cn: { dialogueOpen: '「', dialogueClose: '」', systemOpen: '【', systemClose: '】', gameOpen: '《', gameClose: '》', endMarker: '(จบบท)' },
-  jp: { dialogueOpen: '「', dialogueClose: '」', systemOpen: '【', systemClose: '】', gameOpen: '『', gameClose: '』', endMarker: '（終）' },
-  kr: { dialogueOpen: '「', dialogueClose: '」', systemOpen: '【', systemClose: '】', gameOpen: '《', gameClose: '》', endMarker: '(끝)' },
-  en: { dialogueOpen: '\u201C', dialogueClose: '\u201D', systemOpen: '[', systemClose: ']', gameOpen: '\u201C', gameClose: '\u201D', endMarker: '(End)' },
-  th: { dialogueOpen: '\u201C', dialogueClose: '\u201D', systemOpen: '【', systemClose: '】', gameOpen: '《', gameClose: '》', endMarker: '(จบบท)' },
-};
-
-/**
- * Render a Chapter JSON object directly to HTML.
- * Replaces marked.js for the new format — no parsing, just block-by-block DOM.
- *
- * Quote style (P'Chok's choice, 2026-06-14):
- *   Dialogue   → "..." (curly U+201C / U+201D) — Thai standard
- *   Nested     → '...' (curly U+2018 / U+2019) — inside curly double
- *   System msg → 【...】 (game UI, kept)
- *   Title      → 《...》 (kept)
- *   End        → per language (see BRACKETS)
- *
- * Source blocks may use 「...」 (CN-style kagikakko); renderer converts to curly.
- * Multi-language (Phase 2 — 2026-06-14): renderer switches on ch.lang to
- * apply per-language bracket profile. Missing lang defaults to 'cn'.
- */
-function renderChapterJson(ch) {
-  if (!ch || !Array.isArray(ch.blocks)) {
-    return '<p class="error">Invalid chapter layout structure.</p>';
-  }
-
-  // Convert CN/JP kagikakko to curly Thai/EN quotes
-  const toCurly = (s) => s
-    .replace(/「/g, '\u201C')
-    .replace(/」/g, '\u201D')
-    .replace(/『/g, '\u2018')
-    .replace(/』/g, '\u2019');
-
-  // Wrap inline 【...】 inside narration/dialogue with badge span
-  const parseInline = (t) => t ? t.replace(/【([^】]+)】/g, '<span class="inline-stat-badge">【$1】</span>') : '';
-
-  const lang = (ch.lang && BRACKETS[ch.lang]) ? ch.lang : 'cn';
-
-  return ch.blocks.map(block => {
-    const text = esc(block.text || '');
-    switch (block.type) {
-      case 'system':
-        return `<p class="system-msg" data-lang="${lang}">${text}</p>`;
-      case 'dialogue':
-        // Speaker name from translator-authored JSON — must be escaped to prevent
-        // XSS in the data-speaker HTML attribute (trust boundary: same as text).
-        const sp = block.speaker ? ` data-speaker="${esc(block.speaker)}"` : '';
-        return `<p class="dialogue"${sp} data-lang="${lang}">${toCurly(parseInline(text))}</p>`;
-      case 'narration':
-        return `<p>${toCurly(parseInline(text))}</p>`;
-      case 'game_title':
-        return `<p class="game-title" data-lang="${lang}">${text}</p>`;
-      case 'end':
-        return `<p class="end-marker" data-lang="${lang}">${text}</p>`;
-      default:
-        return `<p>${text}</p>`;
-    }
-  }).join('\n') + (ch.source ? `\n<hr/>\n<p class="source-footer">${esc(ch.source)}</p>` : '');
-}
-
-// ── Markdown Parser & Generator & Validator helpers ───────────────────
+// ── Markdown Parser & Generator helpers ───────────────────────────
 
 function parseMarkdownToBlocks(mdText, chapterNum) {
   const normalized = mdText.replace(/\r\n/g, '\n').trim();
@@ -800,6 +732,15 @@ async function validateChapterJs(slug, num, title, blocks, sourceFooter, lang) {
   const contentBlocks = blocks.filter(b => b.type !== 'end');
   if (contentBlocks.length === 0) {
     errors.push('Chapter has no content blocks (only end marker)');
+  }
+
+  // Profile-aware end marker text check — uses lang + (future: output_lang)
+  if (endBlocks.length === 1) {
+    const bp = getBracketProfile({ lang });
+    const expectedEnd = bp.endMarker;
+    if (expectedEnd && endBlocks[0].text !== expectedEnd) {
+      warnings.push(`End marker text "${endBlocks[0].text}" does not match expected "${expectedEnd}" for lang=${lang}`);
+    }
   }
 
   // Score Card calculation
@@ -1485,60 +1426,7 @@ app.post('/api/novel/:slug/chapter/:num/delete', async (req, res) => {
   }
 });
 
-// EPUB Import Endpoint (Tier 2)
-const tempUpload = multer({ dest: require('os').tmpdir() });
-app.post('/api/novel/:slug/import-epub', tempUpload.single('epub'), async (req, res) => {
-  const slug = req.params.slug;
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
-  }
-
-  const epubPath = req.file.path;
-  const novelRoot = path.join(NOVELS_DIR, slug);
-  const startNum = parseInt(req.body.startNum, 10) || 1;
-
-  const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
-  const importScript = path.join(__dirname, '..', 'tools', 'import_epub.py');
-  const args = [
-    importScript,
-    '--epub', epubPath,
-    '--novel-root', novelRoot,
-    '--start-num', String(startNum)
-  ];
-
-  const { spawn } = require('child_process');
-  const child = spawn(py, args, { windowsHide: true, timeout: 60_000 });
-
-  let stdout = '';
-  let stderr = '';
-  child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
-  child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
-
-  child.on('close', async (code) => {
-    // Clean up temp file
-    try {
-      await fs.unlink(epubPath);
-    } catch {}
-
-    if (code !== 0) {
-      return res.status(500).json({ error: `import_epub.py exited ${code}: ${stderr}` });
-    }
-
-    try {
-      const result = JSON.parse(stdout.trim());
-      if (result.ok) {
-        invalidateCache(slug);
-        res.json(result);
-      } else {
-        res.status(400).json(result);
-      }
-    } catch (err) {
-      res.status(500).json({ error: `Failed to parse import_epub.py output: ${err.message}` });
-    }
-  });
-});
-
-// ── start ─────────────────────────────────────────────────────────────────
+// ── Reviews & Comments APIs (Phase B Social) ───────────────────────────
 //
 // LAN access: bind to 0.0.0.0 (all interfaces) so phones on the same Wi-Fi
 // can reach this server. Find your PC's IP with `ipconfig` (Windows) or
@@ -1756,4 +1644,4 @@ app.use((err, req, res, next) => {
 // in-process consumers), export the pure functions. When run via
 // `node server.js`, the app.listen above is the entry point.
 
-module.exports = { BRACKETS, renderChapterJson };
+module.exports = { renderChapterJson };

@@ -16,9 +16,9 @@ test('renderChapterJson uses output_lang bracket profile', () => {
     ],
   });
 
-  assert.match(html, /<p class="block-dialogue">“Hello”<\/p>/);
-  assert.match(html, /<p class="block-system">\[System\]<\/p>/);
-  assert.match(html, /<p class="end-marker">\(End\)<\/p>/);
+  assert.match(html, /<p class="dialogue".*data-lang="en"/);
+  assert.match(html, /<p class="system-msg".*data-lang="en"/);
+  assert.match(html, /<p class="end-marker".*data-lang="en">\(End\)<\/p>/);
 });
 
 test('renderChapterJson allows explicit profile_lang override', () => {
@@ -34,6 +34,6 @@ test('renderChapterJson allows explicit profile_lang override', () => {
     ],
   });
 
-  assert.match(html, /<p class="block-dialogue">「Hello」<\/p>/);
-  assert.match(html, /<p class="end-marker">\(จบบท\)<\/p>/);
+  assert.match(html, /<p class="dialogue".*data-lang="cn"/);
+  assert.match(html, /<p class="end-marker".*data-lang="cn">\(จบบท\)<\/p>/);
 });
