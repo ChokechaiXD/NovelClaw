@@ -33,23 +33,11 @@ from progress import (  # noqa: E402
     mark_running,
     save_progress,
 )
-from cumulative_glossary import (  # noqa: E402
-    process_translation_candidates,
-)
 from extract_entities import (  # noqa: E402
     entity_extraction_pipeline,
     PLACEHOLDER_RE,
     restore_entities_from_map,
     verify_no_leaked_entities,
-)
-from agent_coordinator import (  # noqa: E402
-    run_agent_chain,
-    print_agent_report,
-)
-from quality_scorer import (  # noqa: E402
-    build_quality_report,
-    quality_gate_v2,
-    score_translation,
 )
 from providers import get_provider  # noqa: E402
 from schema import (  # noqa: E402
@@ -262,15 +250,17 @@ def load_style_context() -> str:
     return style_path.read_text(encoding="utf-8")[:3000]  # truncate to fit
 
 
-def get_glossary_context_from_lib(ch_num: int) -> str:
+def get_glossary_context_from_lib(ch_num: int, source: str | None = None) -> str:
     """Get glossary terms that appear in this chapter (filtered for relevance).
 
     Uses the load_glossary library for richer term data.
+    If `source` is provided, skip reading/cleaning the file (avoid duplicate I/O).
     """
-    src_path = SOURCE_DIR / f"{ch_num:04d}.md"
-    if not src_path.exists():
-        return ""
-    source = clean_source(src_path.read_text(encoding="utf-8"))
+    if source is None:
+        src_path = SOURCE_DIR / f"{ch_num:04d}.md"
+        if not src_path.exists():
+            return ""
+        source = clean_source(src_path.read_text(encoding="utf-8"))
 
     terms = load_terms()
     # Filter to terms that appear in source
@@ -336,12 +326,15 @@ def get_previous_chapter_context(ch_num: int, n: int = 3) -> str:
 
 
 
-def get_unknown_terms_for_ch(ch_num: int) -> list[str]:
-    """Extract unknown CN terms from a chapter's source text."""
-    src_path = SOURCE_DIR / f"{ch_num:04d}.md"
-    if not src_path.exists():
-        return []
-    source = clean_source(src_path.read_text(encoding="utf-8"))
+def get_unknown_terms_for_ch(ch_num: int, source: str | None = None) -> list[str]:
+    """Extract unknown CN terms from a chapter's source text.
+    If `source` is provided, skip reading/cleaning the file (avoid duplicate I/O).
+    """
+    if source is None:
+        src_path = SOURCE_DIR / f"{ch_num:04d}.md"
+        if not src_path.exists():
+            return []
+        source = clean_source(src_path.read_text(encoding="utf-8"))
     terms = load_terms()
     known = {t["source"] for t in terms}
     return extract_unknown_terms(source, known)
@@ -355,9 +348,11 @@ def build_prompt(
     target_lang: str = "th",
     novel_title: str = "全球降臨：帶著嫂嫂末世種田",
     profile_lang: str | None = None,
+    source_cleaned: str | None = None,
 ) -> str:
     """Build the LLM prompt for translating one chapter in XML format."""
-    glossary_lib = get_glossary_context_from_lib(ch_num)
+    # ponytail: pass pre-cleaned source to avoid re-reading the file
+    glossary_lib = get_glossary_context_from_lib(ch_num, source=source_cleaned)
     style = get_style_summary()
 
     # Use chapter-filtered glossary only (deduplicated — no SQLite fallback)
@@ -507,6 +502,63 @@ def get_chapter_context(
             parts.append("(use web_search tool or check TRANSLATION_GUIDE.md cheatsheet)")
 
     return "\n".join(parts)
+
+
+# ── Post-translation named functions (replacing walrus-operator lambdas) ──
+
+def _post_tm(ch_data: dict, progress_slug: str, ch_num: int) -> None:
+    """Update TranslationMemory after a successful translate."""
+    from translation_memory import TranslationMemory
+    tm = TranslationMemory(progress_slug)
+    tm.load()
+    added = tm.add_batch(ch_data.get("blocks", []), ch_num)
+    if added > 0:
+        tm.save()
+    print(f"  💾 TM: +{added} new, {tm.stats()['cache_entries']} total")
+
+
+def _post_glossary(ch_num: int, source: str, progress_slug: str) -> None:
+    """Extract auto-glossary candidates after translating."""
+    from cumulative_glossary import process_translation_candidates
+    gt = load_terms()
+    result = process_translation_candidates(
+        ch_num=ch_num, source_text=source, glossary_terms=gt,
+        slug=progress_slug, auto_rebuild=True,
+    )
+    if result["added"] > 0:
+        print(f"  📖 +{result['added']} new glossary candidates")
+
+
+def _post_score(source: str, ch_data: dict) -> None:
+    """Run LLM Judge scoring after translating."""
+    from quality_scorer import score_translation
+    gt = load_terms()
+    sr = score_translation(source, ch_data, gt, mock=False, model="haiku")
+    if sr.parse_error:
+        print(f"  ⚠ LLM Judge: {sr.parse_error[:100]}")
+    else:
+        print(f"  {'🏆' if sr.passed else '⚠'} LLM Judge: {sr.summary_string()}")
+
+
+def _post_agent(ch_num: int, source: str, ch_data: dict, progress_slug: str,
+                agent_passes: int, source_lang: str, target_lang: str,
+                profile_lang: str | None, mock_agents: bool) -> None:
+    """Run multi-agent chain for refinement."""
+    from agent_coordinator import run_agent_chain, print_agent_report
+    from schema import Chapter
+    gt = load_terms()
+    success, agent_results, final_ch = run_agent_chain(
+        ch_num, lambda *a, **kw: True, source, ch_data, gt,
+        passes=agent_passes, source_lang=source_lang,
+        target_lang=target_lang, profile_lang=profile_lang,
+        mock=mock_agents, model="haiku",
+    )
+    if not success:
+        print(f"  ⚠ Agent chain flagged issues")
+    print_agent_report(agent_results)
+    if final_ch is not ch_data:
+        save_chapter(Chapter(**final_ch), CHAPTERS_DIR / f"{ch_num:04d}.json")
+        print(f"  ✓ Re-saved polished version")
 
 
 def _run_after(flag: bool, mock: bool, name: str, fn: Callable[[], None]) -> None:
@@ -735,7 +787,7 @@ def translate_one(
             print(f"  → {len(placeholder_map)} entities replaced with placeholders")
 
     # Extract unknown terms for context
-    unknown_terms = get_unknown_terms_for_ch(ch_num) if search else None
+    unknown_terms = get_unknown_terms_for_ch(ch_num, source=source) if search else None
     if unknown_terms:
         print(f"  → {len(unknown_terms)} unknown terms detected")
 
@@ -769,6 +821,7 @@ def translate_one(
                 source_lang=source_lang,
                 target_lang=target_lang,
                 profile_lang=profile_lang,
+                source_cleaned=source,
             )
             output = _call_llm(prompt)
             try:
@@ -845,46 +898,13 @@ def translate_one(
             print("  OK Quality: clean")
 
     # ── Post-translation steps (consolidated) ──────────────────
-    _run_after(use_tm, mock, "TM", lambda: (
-        tm := TranslationMemory(progress_slug),
-        tm.load(),
-        (added := tm.add_batch(ch_data.get("blocks", []), ch_num)),
-        added > 0 and tm.save(),
-        print(f"  💾 TM: +{added} new, {tm.stats()['cache_entries']} total")
-    )[-1])
-
-    _run_after(auto_glossary, mock, "auto-glossary", lambda: (
-        gt := load_terms(),
-        result := process_translation_candidates(
-            ch_num=ch_num, source_text=source, glossary_terms=gt,
-            slug=progress_slug, auto_rebuild=True,
-        ),
-        result["added"] > 0 and print(f"  📖 +{result['added']} new glossary candidates"),
-    )[-1])
-
-    _run_after(use_score and not no_validate, mock, "LLM Judge", lambda: (
-        gt2 := load_terms(),
-        sr := score_translation(source, ch_data, gt2, mock=False, model="haiku"),
-        print(f"  {'🏆' if sr.passed else '⚠'} LLM Judge: {sr.summary_string()}")
-        if not sr.parse_error
-        else print(f"  ⚠ LLM Judge: {sr.parse_error[:100]}"),
-    )[-1])
-
-    _run_after(agent_passes >= 2 and not no_validate and bool(ch_data), mock, "agent-chain", lambda: (
-        gt3 := load_terms(),
-        success, agent_results, final_ch := run_agent_chain(
-            ch_num, lambda *a, **kw: True, source, ch_data, gt3,
-            passes=agent_passes, source_lang=source_lang,
-            target_lang=target_lang, profile_lang=profile_lang,
-            mock=mock_agents, model="haiku",
-        ),
-        not success and print(f"  ⚠ Agent chain flagged issues"),
-        print_agent_report(agent_results),
-        final_ch is not ch_data and (
-            save_chapter(Chapter(**final_ch), CHAPTERS_DIR / f"{ch_num:04d}.json"),
-            print(f"  ✓ Re-saved polished version"),
-        ),
-    )[-1])
+    _run_after(use_tm, mock, "TM", lambda: _post_tm(ch_data, progress_slug, ch_num))
+    _run_after(auto_glossary, mock, "auto-glossary", lambda: _post_glossary(ch_num, source, progress_slug))
+    _run_after(use_score and not no_validate, mock, "LLM Judge", lambda: _post_score(source, ch_data))
+    _run_after(agent_passes >= 2 and not no_validate and bool(ch_data), mock, "agent-chain",
+               lambda: _post_agent(ch_num, source, ch_data, progress_slug,
+                                   agent_passes, source_lang, target_lang,
+                                   profile_lang, mock_agents))
 
     return True
 
