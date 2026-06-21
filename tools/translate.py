@@ -413,7 +413,8 @@ def build_prompt(
   → Game UI, system notifications, skill/item descriptions → type="system"
   → Actions, descriptions, thoughts, scene setting → type="narration"
   → Do NOT put spoken dialogue inside type="narration".
-|- ANTI-HALLUCINATION: Do NOT add any narration, description, detail, or dialogue not present in the source. Do NOT invent internal monologue, character thoughts, or scene details. If the source is ambiguous, preserve the ambiguity. If unsure, translate literally rather than inventing content.
+|- SPEAKER FIELD: For each dialogue block, include a "speaker" field when the character speaking is clear from the source. Example: {{"type": "dialogue", "speaker": "เฉาซิง", "text": "\"...\""}} If unclear, omit speaker field.
+|- ANTI-HALLUCINATION:
 |- ZERO Chinese characters in the output. Every Chinese character (汉字) in the source MUST be translated to Thai. If you are unsure how to translate a term, use the glossary. If not in glossary, transliterate phonetically to Thai. Leaving Chinese characters in the output is a CRITICAL error.
 |- Your translation must preserve the full length and detail of the source. Target {COMPLETENESS_MIN_RATIO:.2f}-{COMPLETENESS_MAX_RATIO:.2f}x source character count. Do NOT compress or summarize.
 |- Allowed Latin tokens only: {", ".join(sorted(ALLOWED_LATIN_TOKENS))}. Translate Lv/LVL as "เลเวล", BUFF as "บัฟ", DEBUFF as "ดีบัฟ", First Kill as "คิลแรก".
@@ -698,7 +699,9 @@ def parse_llm_output(output: str, _ch_num: int) -> dict:
     json_str = output[start : end + 1]
     # Fix common LLM escape sequence issues before parsing
     # DeepSeek sometimes outputs invalid escape sequences like \e or \_
-    json_str = re.sub(r'\\([^"\\/bfnrtu])', r'\\\1', json_str)
+    json_str = re.sub(r'\\([^"\\/bfnrtu])', r'\\\\\1', json_str)
+    # Fix trailing comma before ] or } (common LLM error)
+    json_str = re.sub(r',\s*([}\]])', r'\1', json_str)
     return json.loads(json_str)
 
 
@@ -855,8 +858,33 @@ def translate_one(
                     pass
 
     # ── Post-process: end marker + CN strip ──────────────────────
-    # 1. Ensure last block is an end marker
+    # 0a. Ensure required top-level fields that LLM sometimes omits
+    if "num" not in ch_data:
+        ch_data["num"] = ch_num
+        print(f"  🔢 Added missing num={ch_num}")
+
+    # 0b. Get blocks reference
     blocks = ch_data.get("blocks", [])
+
+    # 0c. Validate and fix block types (LLM typos like "dialogu" → "dialogue")
+    _VALID_BLOCK_TYPES = {"narration", "dialogue", "system", "game_title", "end"}
+    _BLOCK_TYPE_FIXES = {
+        "dialogu": "dialogue", "dialog": "dialogue",
+        "narraiton": "narration", "narr": "narration",
+        "systme": "system", "sys": "system",
+        "onoma": "narration",
+        "end_marker": "end", "endmarker": "end",
+    }
+    _type_fixed = 0
+    for block in blocks:
+        bt = block.get("type", "")
+        if bt not in _VALID_BLOCK_TYPES and bt in _BLOCK_TYPE_FIXES:
+            block["type"] = _BLOCK_TYPE_FIXES[bt]
+            _type_fixed += 1
+    if _type_fixed > 0:
+        print(f"  🩹 Fixed {_type_fixed} block type typos")
+
+    # 1. Ensure last block is an end marker
     # Read end marker from brackets.json (single source of truth)
     try:
         _br_path = Path(__file__).resolve().parent.parent / "reader" / "config" / "brackets.json"
@@ -898,7 +926,68 @@ def translate_one(
     if _reclassified > 0:
         print(f"  🏷 Reclassified {_reclassified} mislabeled blocks (narration→dialogue)")
 
+    # 4. Extract speaker from dialogue prefix when obvious.
+    _speaker_fixed = 0
+    for block in blocks:
+        if block.get("type") == "dialogue" and not block.get("speaker") and block.get("text"):
+            t = block["text"]
+            # Pattern: "AA พูด/บอก/ถาม/ตอบ..."
+            m = re.match(r'^([\u0e00-\u0e7f]{2,10}(?:\s[\u0e00-\u0e7f]{1,10})?)\s*(?:พูด|บอก|ถาม|ตอบ|ว่า|ตะโกน|กระซิบ|ร้อง|หัวเราะ|อุทาน)[\s:]?["\u201c\u300c]', t)
+            if not m:
+                # Pattern: "AA "..." (short name before quote)
+                m = re.match(r'^([\u0e00-\u0e7f]{2,6})\s*["\u201c\u300c]', t)
+            if m:
+                name = m.group(1).strip()
+                if name not in ("เขาคิด", "เขาพูด", "เธอพูด", "พอเห็น", "ได้ยิน"):
+                    block["speaker"] = name
+                    _speaker_fixed += 1
+    if _speaker_fixed > 0:
+        print(f"  🎙 Extracted speaker for {_speaker_fixed} dialogue blocks")
+
+    # 5. EN retention guard — replace known English words with Thai.
+    _en_guard_re = re.compile(
+        r'\b(recruiting|disrespect|mean|queen|continue|panic|erupt|'
+        r'militia|avatar|blacklist|peek|level|buff|first|kill|hollow|'
+        r'momentarily|plants|zombies|recruit|loot)\b',
+        re.IGNORECASE
+    )
+    _en_replacements = {
+        "recruiting": "รับสมัคร", "disrespect": "ไม่เคารพ", "mean": "หมายถึง",
+        "queen": "ราชินี", "continue": "ต่อไป", "panic": "ตื่นตระหนก",
+        "erupt": "ปะทุ", "militia": "กองกำลัง", "avatar": "อวตาร",
+        "blacklist": "บัญชีดำ", "peek": "แอบดู", "level": "เลเวล",
+        "buff": "บัฟ", "first": "แรก", "kill": "ฆ่า", "hollow": "กลวง",
+        "momentarily": "ชั่วครู่", "plants": "พืช", "zombies": "ซอมบี้",
+        "recruit": "รับสมัคร", "loot": "ของรางวัล",
+    }
+    _en_replaced = 0
+    for block in blocks:
+        if block.get("type") in ("narration", "dialogue") and block.get("text"):
+            old = block["text"]
+            new = _en_guard_re.sub(lambda m: _en_replacements.get(m.group(1).lower(), m.group(0)), old)
+            if new != old:
+                block["text"] = new
+                _en_replaced += 1
+    if _en_replaced > 0:
+        print(f"  🔤 Replaced {_en_replaced} EN retention occurrences")
+
+    # 6. Fix missing system brackets — schema requires 【】 around system blocks
+    _bracket_fixed = 0
+    for block in blocks:
+        if block.get("type") == "system" and block.get("text"):
+            t = block["text"]
+            # Check if it has system brackets anywhere
+            if not re.search(r'[\u3010\u3011\u300a\u300b]', t):
+                # Try to extract content if it looks like system text
+                # Just wrap in 【】 for Thai
+                block["text"] = f"【{t.strip()}】"
+                _bracket_fixed += 1
+    if _bracket_fixed > 0:
+        print(f"  🔧 Fixed {_bracket_fixed} missing system brackets")
+
     # Validate via Pydantic schema
+    # Ensure required top-level fields are set (LLM sometimes omits num)
+    ch_data.setdefault("num", ch_num)
     if not no_validate:
         ch_data.setdefault("lang", normalized_source_lang)
         ch_data["output_lang"] = normalized_target_lang
