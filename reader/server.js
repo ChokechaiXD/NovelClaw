@@ -554,19 +554,8 @@ app.get('/api/novels', async (_req, res) => {
     slugs.map(async (slug) => {
       const meta = await readNovelMeta(slug);
       const chapters = await listChapters(slug);
-      // Count translated chapters (those with output_lang set)
-      let translatedCount = 0;
-      try {
-        const dir = path.join(NOVELS_DIR, slug, 'chapters');
-        const files = await fs.readdir(dir);
-        for (const f of files) {
-          if (!f.endsWith('.json')) continue;
-          try {
-            const chData = JSON.parse(await fs.readFile(path.join(dir, f), 'utf8'));
-            if (chData.output_lang) translatedCount++;
-          } catch { /* skip unparseable */ }
-        }
-      } catch { /* no chapters dir */ }
+      // ponytail: use listChapters() isTranslated instead of re-reading all files
+      const translatedCount = chapters.filter(c => c.isTranslated).length;
       return {
         slug,
         title: meta.title || slug,
