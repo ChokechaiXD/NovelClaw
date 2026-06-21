@@ -44,23 +44,10 @@ function normalizeLanguageKey(lang, fallback = 'cn') {
 }
 
 function resolveProfileLang(chapterOrOptions = {}) {
-  const chapter = chapterOrOptions || {};
-  const profileLang = chapter.profile_lang ? normalizeLanguageKey(chapter.profile_lang) : null;
-  if (profileLang && BRACKETS[profileLang]) {
-    return profileLang;
-  }
-
-  const outputLang = chapter.output_lang ? normalizeLanguageKey(chapter.output_lang) : null;
-  if (outputLang && BRACKETS[outputLang]) {
-    return outputLang;
-  }
-
-  const lang = chapter.lang ? normalizeLanguageKey(chapter.lang) : null;
-  if (lang && BRACKETS[lang]) {
-    return lang;
-  }
-
-  return 'cn';
+  const n = normalizeLanguageKey(
+    chapterOrOptions.profile_lang || chapterOrOptions.output_lang || chapterOrOptions.lang || 'cn'
+  );
+  return BRACKETS[n] ? n : 'cn';
 }
 
 function getBracketProfile(chapterOrOptions = {}) {
