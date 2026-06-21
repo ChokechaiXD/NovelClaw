@@ -1043,11 +1043,14 @@ const START_TIME = Date.now();
 // Inject ?_t=START_TIME to bust browser cache for JS/CSS after server restart.
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'API not found' });
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   let html = fsSync.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
   // Cache-bust: append server start timestamp to script src URLs
   html = html.replace('src="/virtual-scroll.js"', `src="/virtual-scroll.js?_t=${START_TIME}"`);
   html = html.replace('src="/app.js"', `src="/app.js?_t=${START_TIME}"`);
-  res.type('html').send(html);
+  res.send(html);
 });
 
 // ── Global error handler ────────────────────────────────────────────────
