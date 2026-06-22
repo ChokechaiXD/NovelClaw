@@ -1599,3 +1599,28 @@
   padding: var(--space-sm) 0;
   border-bottom: 1px solid var(--c-border);
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Inline Marker Styling — universal (ทุกภาษา ทุกแนว)
+   ═══════════════════════════════════════════════════════════════════════ */
+.c-marker--dialogue {
+  color: var(--c-accent, #14b8a6);
+}
+.c-marker--system {
+  font-size: 0.9em;
+  font-style: italic;
+  color: var(--c-text-muted);
+}
+.c-marker--thought {
+  font-style: italic;
+  color: var(--c-text-soft);
+}
+.c-marker--end {
+  display: block;
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--c-text-soft);
+  margin: 3.5rem 0 1.5rem;
+  letter-spacing: 0.15em;
+}

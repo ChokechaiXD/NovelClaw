@@ -69,15 +69,38 @@ const ReaderPage = {
           Ui.$('reader-position').textContent = `${chIdx + 1} / ${chapters.length}`;
 
           let contentHtml = '';
-          const blocks = data.blocks || data.chapter?.blocks || [];
-          for (const b of blocks) {
-            const t = (b.text || '').trim();
-            if (!t) continue;
-            if (b.type === 'dialogue') contentHtml += `<p class="dialogue">${Ui.esc(t)}</p>`;
-            else if (b.type === 'system') contentHtml += `<p class="system-msg">${Ui.esc(t)}</p>`;
-            else if (b.type === 'game_title') contentHtml += `<p class="game-title">${Ui.esc(t)}</p>`;
-            else if (b.type === 'end') contentHtml += `<p class="end-marker">${Ui.esc(t)}</p>`;
-            else contentHtml += `<p>${Ui.esc(t)}</p>`;
+          // New format: paragraphs (type-less, inline markers)
+          if (data.paragraphs && data.paragraphs.length) {
+            for (const para of data.paragraphs) {
+              if (!para || !para.trim()) continue;
+              const t = Ui.esc(para.trim());
+              // End marker paragraph
+              if (t === '(จบบท)' || t === '(End)' || t === '（終）' || t === '(끝)' || /^\([\u0e00-\u0e7f]+\)$/.test(t)) {
+                contentHtml += `<p class="end-marker">${t}</p>`;
+                continue;
+              }
+              // Inline marker styling
+              const html = t
+                .replace(/【([^】]+)】/g, '<span class="c-marker--system">【$1】</span>')
+                .replace(/『([^』]+)』/g, '<span class="c-marker--thought">『$1』</span>')
+                .replace(/"([^"\n]+)"/g, '<span class="c-marker--dialogue">"$1"</span>')
+                .replace(/「([^」]+)」/g, '<span class="c-marker--dialogue">「$1」</span>')
+                .replace(/\u201c([^\u201d\n]+)\u201d/g, '<span class="c-marker--dialogue">\u201c$1\u201d</span>');
+              contentHtml += `<p>${html}</p>`;
+            }
+          }
+          // Legacy format: blocks with types (backward compat)
+          else {
+            const blocks = data.blocks || data.chapter?.blocks || [];
+            for (const b of blocks) {
+              const t = (b.text || '').trim();
+              if (!t) continue;
+              if (b.type === 'dialogue') contentHtml += `<p class="dialogue">${Ui.esc(t)}</p>`;
+              else if (b.type === 'system') contentHtml += `<p class="system-msg">${Ui.esc(t)}</p>`;
+              else if (b.type === 'game_title') contentHtml += `<p class="game-title">${Ui.esc(t)}</p>`;
+              else if (b.type === 'end') contentHtml += `<p class="end-marker">${Ui.esc(t)}</p>`;
+              else contentHtml += `<p>${Ui.esc(t)}</p>`;
+            }
           }
           Ui.$('reader-content').innerHTML = contentHtml;
 

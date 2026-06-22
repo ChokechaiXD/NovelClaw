@@ -202,38 +202,20 @@ def _get_source_dir() -> Path:
 
 # === Format spec for quick reference ===
 FORMAT_SPEC = """
-# Format v2 Spec (P'Chok approved)
+# New Format: Paragraphs with Inline Markers (v3 - P'Chok approved)
 
-# Block types
-- narration: regular text
-- dialogue: must contain the target-language dialogue brackets from config/brackets.json
-- system: must contain the target-language system brackets from config/brackets.json
-- game_title: must contain the target-language game/title brackets from config/brackets.json
-- end: exactly the target-language end marker, default "(จบบท)"
-
-# Required structure
-- title: "ตอนที่ N <thai_title>" (space between N and title)
-- blocks: list of {type, text}
-- source: "ch N" (short form)
-- notes: optional list of translation notes in Thai
+# Structure
+- paragraphs: list of Thai text strings (no JSON blocks, no block types)
+- Inline markers: use "..." for dialogue, 【...】 for system, 『...』 for thought
+- End: last paragraph must be "(จบบท)"
+- Title: "ตอนที่ N <thai_title>"
 
 # Rules
-- CN leakage forbidden in narration/dialogue/system blocks.
-- Dialogue: use target-language quote style from config/brackets.json; for Thai this is curly quotes “...”.
-- Transmittor principle: TRANSMIT source faithfully, don't edit.
-- Keep author's voice: ดังนั้น, ฉายแวว, เต็มไปด้วย, subject echo.
-- Em dash (—) for missing numbers in source.
-- Allowed Latin tokens only: HP, MP, EXP, SSS, SSR, UR, SP, ID, VIP.
-- Translate Lv/LVL as "เลเวล", BUFF as "บัฟ", DEBUFF as "ดีบัฟ", First Kill as "คิลแรก".
-- Completeness target: Thai output length must be 0.90-3.20x the cleaned source length. Do not stop early.
-
-# Schema enforces
-- Title format: must match "ตอนที่ N ..."
-- Dialogue: must contain configured dialogue brackets
-- System: must contain configured system brackets
-- End: exactly configured end marker
-- Last block: end marker
-- At least 1 content block before end
+- Translate faithfully, do NOT skip or summarize paragraphs
+- Zero CJK characters allowed in translation
+- Use straight "..." for dialogue (not 「」)
+- System notifications: keep 【...】 brackets
+- Completeness: Thai output should be ~1-3x source length
 """
 
 
@@ -308,13 +290,23 @@ def get_previous_chapter_context(ch_num: int, n: int = 3) -> str:
         try:
             ch = _load_ch(ch_path)
             parts.append(f"Ch {i}: {ch.title}")
-            for b in ch.blocks:
-                if b.type == "narration" and len(b.text) > 20:
-                    txt = b.text[:200]
-                    if len(b.text) > 200:
-                        txt += "..."
-                    parts.append(f"  >> {txt}")
-                    break
+            # Handle both paragraphs and blocks format
+            if ch.paragraphs:
+                for para in ch.paragraphs[:3]:
+                    if para and len(para) > 20 and para != "(จบบท)":
+                        txt = para[:200]
+                        if len(para) > 200:
+                            txt += "..."
+                        parts.append(f"  >> {txt}")
+                        break
+            elif ch.blocks:
+                for b in ch.blocks:
+                    if b.type == "narration" and len(b.text) > 20:
+                        txt = b.text[:200]
+                        if len(b.text) > 200:
+                            txt += "..."
+                        parts.append(f"  >> {txt}")
+                        break
         except Exception:
             continue
     if not parts:
@@ -349,105 +341,78 @@ def build_prompt(
     profile_lang: str | None = None,
     source_cleaned: str | None = None,
 ) -> str:
-    """Build the LLM prompt for translating one chapter in XML format."""
-    # ponytail: pass pre-cleaned source to avoid re-reading the file
-    glossary_lib = get_glossary_context_from_lib(ch_num, source=source_cleaned)
-    style = get_style_summary()
+    """Build the LLM prompt for translating one chapter.
 
-    # Use chapter-filtered glossary only (deduplicated — no SQLite fallback)
+    New v3 format: LLM outputs plain Thai paragraphs, no JSON.
+    Markers in text: "..." for dialogue, 【...】 for system, 『...』 for thought.
+    """
+    glossary_lib = get_glossary_context_from_lib(ch_num, source=source_cleaned)
+
+    # Use chapter-filtered glossary only
     glossary = glossary_lib if glossary_lib else "(no glossary loaded)"
     # Load continuity context from previous chapters
     continuity = get_previous_chapter_context(ch_num, n=3)
 
     src_cfg = LANG_CONFIG.get(get_lang_config_key(source_lang, "zh"), LANG_CONFIG["zh"])
-    tgt_cfg = LANG_CONFIG.get(get_lang_config_key(target_lang, "th"), LANG_CONFIG["th"])
     bracket_profile = get_bracket_profile(source_lang, target_lang, profile_lang)
+    end_marker = bracket_profile["end_marker"]
 
-    active_profile = get_profile_lang(source_lang, target_lang, profile_lang)
+    # Extract title
+    title_match = re.search(src_cfg["title_regex"], source_text)
+    cn_title = title_match.group(2).strip() if title_match else f"ch {ch_num}"
 
-    # XML configuration
-    xml_config = f"""<translation_config>
-  <source lang="{source_lang}" name="{src_cfg["name"]}"/>
-  <target lang="{target_lang}" name="{tgt_cfg["name"]}"/>
-  <profile lang="{active_profile}"/>
-  <novel>
-    <title>{novel_title}</title>
-  </novel>
-</translation_config>"""
-
-    # Unknown terms XML
-    xml_unknown = ""
-    if unknown_terms:
-        xml_unknown = "<unknown_terms>\n"
-        for term in unknown_terms[:15]:
-            xml_unknown += f'  <term source="{term}"/>\n'
-        xml_unknown += "</unknown_terms>"
-
-    # XML Envelope prompt structure
-    prompt = f"""You are an expert translator. Follow the instructions inside the XML blocks below to translate the source chapter.
-
-{xml_config}
-
-<style_guide>
-{style}
-</style_guide>
+    prompt = f"""<task>
+You are a Chinese→Thai novel translator specializing in web novels.
+Output only the Thai translation, one paragraph per line.
+</task>
 
 <glossary>
 {glossary}
 </glossary>
 
-<format_spec>
-- Output must be valid JSON matching the schema inside <output_schema>. Do NOT include any markdown formatting, code block ticks (like ```json), or explanatory text outside the JSON.
-- Dialogue brackets: {bracket_profile["dialogue_open"]}...{bracket_profile["dialogue_close"]}
-- System message brackets: {bracket_profile["system_open"]}...{bracket_profile["system_close"]}
-- Game title brackets: {bracket_profile["game_open"]}...{bracket_profile["game_close"]}
-- End marker text: "{bracket_profile["end_marker"]}"
-- The last block in the output list MUST be the end marker block: {{"type": "end", "text": "{bracket_profile["end_marker"]}"}}
-|- Transmittor principle: TRANSMIT the source content faithfully. Do NOT summarize, edit, or omit paragraphs.
-|- Zero source-language characters are allowed in narration/dialogue/system blocks.
-|- BLOCK TYPE RULES (CRITICAL):
-  → Text inside dialogue quotes ("..." or "...") → type="dialogue"
-  → Spoken lines, shouts, whispers, telepathic speech → type="dialogue"
-  → Text inside system brackets 【...】 → type="system"
-  → Game UI, system notifications, skill/item descriptions → type="system"
-  → Actions, descriptions, thoughts, scene setting → type="narration"
-  → Do NOT put spoken dialogue inside type="narration".
-|- SPEAKER FIELD: For each dialogue block, include a "speaker" field when the character speaking is clear from the source. Example: {{"type": "dialogue", "speaker": "เฉาซิง", "text": "\"...\""}} If unclear, omit speaker field.
-|- ANTI-HALLUCINATION:
-|- ZERO Chinese characters in the output. Every Chinese character (汉字) in the source MUST be translated to Thai. If you are unsure how to translate a term, use the glossary. If not in glossary, transliterate phonetically to Thai. Leaving Chinese characters in the output is a CRITICAL error.
-|- Your translation must preserve the full length and detail of the source. Target {COMPLETENESS_MIN_RATIO:.2f}-{COMPLETENESS_MAX_RATIO:.2f}x source character count. Do NOT compress or summarize.
-|- Allowed Latin tokens only: {", ".join(sorted(ALLOWED_LATIN_TOKENS))}. Translate Lv/LVL as "เลเวล", BUFF as "บัฟ", DEBUFF as "ดีบัฟ", First Kill as "คิลแรก".
-|- EN RETENTION FORBIDDEN: The Chinese source may contain English words (skill names, item names, interjections like "continue", "recruiting", "mean", "queen", "level", "panic", "erupt", "disrespect"). You MUST translate these to Thai. Do NOT keep any English words in the output. If unsure, translate literally.
-</format_spec>
+<style>
+{get_style_summary()}
+</style>
+
+<rules>
+- Translate faithfully, do NOT skip or edit paragraphs
+- Zero CJK characters (Chinese characters) allowed in output
+- Use straight "..." for spoken dialogue
+- Use 【...】 for system/game notifications
+- Use 『...』 for inner thoughts
+- Keep character names consistent with glossary
+- Output length should be similar to source length
+</rules>
+
+<continuity_context>
+{continuity}
+<source_chapter>
+{source_text}
+</source_chapter>
+</continuity_context>
+
+<output>
+
+"""
+
+    # Check if we have continuity context to append
+    if continuity:
+        prompt += f"""
 
 <continuity_context>
 {continuity}
 </continuity_context>
 
-<output_schema>
-{{
-  "schema_version": 2,
-  "num": {ch_num},
-  "title": "{tgt_cfg["title_format"].format(num=ch_num, title="<thai_title>")}",
-  "blocks": [
-    {{"type": "narration", "text": "..."}},
-    {{"type": "dialogue", "text": "{bracket_profile["dialogue_open"]}...{bracket_profile["dialogue_close"]}"}},
-    {{"type": "system", "text": "{bracket_profile["system_open"]}...{bracket_profile["system_close"]}"}},
-    {{"type": "end", "text": "{bracket_profile["end_marker"]}"}}
-  ],
-  "source": "ch {ch_num}",
-  "notes": ["<optional translation notes>"]
-}}
-</output_schema>
+"""
 
-{xml_unknown}
+    # Source text
+    prompt += f"""
 
-<source_text>
+<source_chapter>
 {source_text}
-</source_text>
+</source_chapter>
 
-Please output only the translated JSON. Start your response with:
-{{"title": "ตอนที่ {ch_num}
+<now_translate>
 """
     return prompt
 
@@ -647,29 +612,42 @@ def mock_translate(
     }
 
 
-def parse_llm_output(output: str, _ch_num: int) -> dict:
-    """Parse LLM output (which may include prose) to extract JSON.
+def parse_translation_output(output: str, ch_num: int) -> dict:
+    """Parse LLM plain-text output into paragraphs format (no JSON).
 
-    LLM may output ```json ... ``` or just raw JSON or with prose around it.
-    Strips control characters that choke json.loads.
+    LLM outputs plain Thai text with:
+    - "..." for dialogue
+    - 【...】 for system notifications
+    - 『...』 for inner thoughts
+    - One paragraph per line
+
+    Returns dict with paragraphs field ready for Chapter schema.
     """
     # Strip markdown fences if present
-    output = re.sub(r"^```(?:json)?\s*\n?", "", output.strip())
+    output = re.sub(r"^```(?:text|markdown)?\s*\n?", "", output.strip())
     output = re.sub(r"\n?```\s*$", "", output)
-    # Strip control characters (except newline/tab) that break json.loads
+    # Strip control characters
     output = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", output, flags=re.DOTALL)
-    # Find first { and last }
-    start = output.find("{")
-    end = output.rfind("}")
-    if start == -1 or end == -1:
-        raise ValueError(f"No JSON braces found in LLM output:\n{output[:200]}")
-    json_str = output[start : end + 1]
-    # Fix common LLM escape sequence issues before parsing
-    # DeepSeek sometimes outputs invalid escape sequences like \e or \_
-    json_str = re.sub(r'\\([^"\\/bfnrtu])', r'\\\\\1', json_str)
-    # Fix trailing comma before ] or } (common LLM error)
-    json_str = re.sub(r',\s*([}\]])', r'\1', json_str)
-    return json.loads(json_str)
+
+    # Split by double newlines → paragraphs
+    paragraphs = re.split(r"\n\n+", output.strip())
+    paragraphs = [p.strip() for p in paragraphs if p.strip()]
+
+    if not paragraphs:
+        raise ValueError(f"Empty LLM output for ch{ch_num}")
+
+    # Append end marker
+    paragraphs.append("(จบบท)")
+
+    return {
+        "num": ch_num,
+        "title": f"ตอนที่ {ch_num}",
+        "paragraphs": paragraphs,
+        "source": f"ch {ch_num}",
+        "schema_version": 3,
+        "lang": "cn",
+        "output_lang": "th",
+    }
 
 
 # ── From chapter_io.py (merged) ──
@@ -836,13 +814,8 @@ def translate_one(
                 system_text = None
                 user_text = prompt
             output = _call_llm(user_text, system=system_text)
-            try:
-                ch_data = parse_llm_output(output, ch_num)
-            except (json.JSONDecodeError, ValueError) as e:
-                print(f"❌ ch{ch_num}: parse failed: {e}")
-                if progress_state is not None:
-                    mark_failed(ch_num, progress_slug, progress_state)
-                return False
+            # Parse plain text output → paragraphs (no JSON, no parse errors)
+            ch_data = parse_translation_output(output, ch_num)
 
             # Cache translation for future skip-LLM
             if use_tm:
@@ -852,153 +825,19 @@ def translate_one(
                 except Exception:
                     pass
 
-    # ── Post-process: end marker + CN strip ──────────────────────
-    # 0a. Ensure required top-level fields that LLM sometimes omits
-    if "num" not in ch_data:
-        ch_data["num"] = ch_num
-        print(f"  🔢 Added missing num={ch_num}")
-
-    # 0b. Get blocks reference
-    blocks = ch_data.get("blocks", [])
-
-    # 0c. Validate and fix block types (LLM typos like "dialogu" → "dialogue")
-    _VALID_BLOCK_TYPES = {"narration", "dialogue", "system", "game_title", "end"}
-    _BLOCK_TYPE_FIXES = {
-        "dialogu": "dialogue", "dialog": "dialogue",
-        "narraiton": "narration", "narr": "narration",
-        "systme": "system", "sys": "system",
-        "onoma": "narration",
-        "end_marker": "end", "endmarker": "end",
-    }
-    _type_fixed = 0
-    for block in blocks:
-        bt = block.get("type", "")
-        if bt not in _VALID_BLOCK_TYPES and bt in _BLOCK_TYPE_FIXES:
-            block["type"] = _BLOCK_TYPE_FIXES[bt]
-            _type_fixed += 1
-    if _type_fixed > 0:
-        print(f"  🩹 Fixed {_type_fixed} block type typos")
-
-    # 1. Ensure last block is an end marker
-    # Read end marker from brackets.json (single source of truth)
-    try:
-        _br_path = Path(__file__).resolve().parent.parent / "reader" / "config" / "brackets.json"
-        _br_data = json.loads(_br_path.read_text(encoding="utf-8"))
-        _br_profile = _br_data.get(normalized_target_lang or "th", {})
-        end_marker_text = _br_profile.get("end_marker", "(จบบท)")
-    except Exception:
-        end_marker_text = "(จบบท)"
-    if not blocks or blocks[-1].get("type") != "end":
-        blocks.append({"type": "end", "text": end_marker_text})
-        print(f"  🏁 Appended missing end marker '{end_marker_text}'")
-
-    # 2. Strip remaining CN chars from narration/dialogue blocks.
-    #    DeepSeek sometimes leaves stray CN characters even after instruction.
-    #    ponytail: only clean narration/dialogue — system blocks may keep CN terms
+    # ── Post-process: minimal (just CN strip) ─────────────────────
     from schema import CN_RE as _cn_re
+    paragraphs = ch_data.get("paragraphs", [])
     _cn_cleaned = 0
-    for block in blocks:
-        if block.get("type") in ("narration", "dialogue") and block.get("text"):
-            old = block["text"]
-            block["text"] = _cn_re.sub("", old)
-            if block["text"] != old:
-                _cn_cleaned += 1
+    for i, para in enumerate(paragraphs):
+        if para == "(จบบท)":
+            continue
+        old = para
+        paragraphs[i] = _cn_re.sub("", old)
+        if paragraphs[i] != old:
+            _cn_cleaned += 1
     if _cn_cleaned > 0:
-        print(f"  🧹 Cleaned CN chars from {_cn_cleaned} narration/dialogue blocks")
-
-    # 3. Reclassify misclassified dialogue blocks.
-    #    LLM often types spoken dialogue with quotes as "narration".
-    #    Detect by checking for dialogue quote patterns.
-    #    ponytail: only reclassify if text has TH dialogue quotes and isn't pure narration
-    _reclassified = 0
-    for block in blocks:
-        if block.get("type") == "narration" and block.get("text"):
-            t = block["text"]
-            # Has Thai dialogue quotes? → should be dialogue
-            if re.search(r'["\u201c\u201d]', t) and len(t) > 10:
-                block["type"] = "dialogue"
-                _reclassified += 1
-    if _reclassified > 0:
-        print(f"  🏷 Reclassified {_reclassified} mislabeled blocks (narration→dialogue)")
-
-    # 4. Extract speaker from preceding narration + character bank.
-    _speaker_fixed = 0
-    _known_chars = _load_known_characters(progress_slug)
-    for i, block in enumerate(blocks):
-        if block.get("type") == "dialogue" and not block.get("speaker") and block.get("text"):
-            t = block["text"]
-            # Pattern 1: "AA พูด/บอก/ถาม..." (inline in dialogue text)
-            m = re.match(r'^([\u0e00-\u0e7f]{2,10}(?:\s[\u0e00-\u0e7f]{1,10})?)\s*(?:พูด|บอก|ถาม|ตอบ|ว่า|ตะโกน|กระซิบ|ร้อง|หัวเราะ|อุทาน)[\s:]?["\u201c\u300c]', t)
-            if not m:
-                # Pattern 2: "AA"..." (short name before quote)
-                m = re.match(r'^([\u0e00-\u0e7f]{2,6})\s*["\u201c\u300c]', t)
-            if m:
-                name = m.group(1).strip()
-                if name not in ("เขาคิด", "เขาพูด", "เธอพูด", "พอเห็น", "ได้ยิน"):
-                    block["speaker"] = name
-                    _speaker_fixed += 1
-                    continue
-            
-            # Pattern 3: Scan preceding narration for known character names
-            for j in range(max(0, i-5), i):
-                prev = blocks[j]
-                if prev.get("type") == "narration":
-                    prev_text = prev.get("text", "")
-                    found = [c for c in _known_chars if c in prev_text]
-                    if found and any(v in prev_text for v in ("พูด", "บอก", "ถาม", "ตอบ", "คิด", "ร้อง", "ตะโกน", "กระซิบ", "เรียก", "อุทาน")):
-                        block["speaker"] = found[-1]
-                        _speaker_fixed += 1
-                        break
-            
-            # Pattern 4: Continuation — dialogue follows another dialogue by same speaker
-            if not block.get("speaker") and i > 0:
-                prev_block = blocks[i-1]
-                if prev_block.get("type") == "dialogue" and prev_block.get("speaker"):
-                    block["speaker"] = prev_block["speaker"]
-                    _speaker_fixed += 1
-    if _speaker_fixed > 0:
-        print(f"  🎙 Extracted speaker for {_speaker_fixed} dialogue blocks")
-
-    # 5. EN retention guard — replace known English words with Thai.
-    _en_guard_re = re.compile(
-        r'\b(recruiting|disrespect|mean|queen|continue|panic|erupt|'
-        r'militia|avatar|blacklist|peek|level|buff|first|kill|hollow|'
-        r'momentarily|plants|zombies|recruit|loot)\b',
-        re.IGNORECASE
-    )
-    _en_replacements = {
-        "recruiting": "รับสมัคร", "disrespect": "ไม่เคารพ", "mean": "หมายถึง",
-        "queen": "ราชินี", "continue": "ต่อไป", "panic": "ตื่นตระหนก",
-        "erupt": "ปะทุ", "militia": "กองกำลัง", "avatar": "อวตาร",
-        "blacklist": "บัญชีดำ", "peek": "แอบดู", "level": "เลเวล",
-        "buff": "บัฟ", "first": "แรก", "kill": "ฆ่า", "hollow": "กลวง",
-        "momentarily": "ชั่วครู่", "plants": "พืช", "zombies": "ซอมบี้",
-        "recruit": "รับสมัคร", "loot": "ของรางวัล",
-    }
-    _en_replaced = 0
-    for block in blocks:
-        if block.get("type") in ("narration", "dialogue") and block.get("text"):
-            old = block["text"]
-            new = _en_guard_re.sub(lambda m: _en_replacements.get(m.group(1).lower(), m.group(0)), old)
-            if new != old:
-                block["text"] = new
-                _en_replaced += 1
-    if _en_replaced > 0:
-        print(f"  🔤 Replaced {_en_replaced} EN retention occurrences")
-
-    # 6. Fix missing system brackets — schema requires 【】 around system blocks
-    _bracket_fixed = 0
-    for block in blocks:
-        if block.get("type") == "system" and block.get("text"):
-            t = block["text"]
-            # Check if it has system brackets anywhere
-            if not re.search(r'[\u3010\u3011\u300a\u300b]', t):
-                # Try to extract content if it looks like system text
-                # Just wrap in 【】 for Thai
-                block["text"] = f"【{t.strip()}】"
-                _bracket_fixed += 1
-    if _bracket_fixed > 0:
-        print(f"  🔧 Fixed {_bracket_fixed} missing system brackets")
+        print(f"  🧹 Cleaned CN chars from {_cn_cleaned} paragraphs")
 
     # Validate via Pydantic schema
     # Ensure required top-level fields are set (LLM sometimes omits num)
@@ -1041,13 +880,13 @@ def translate_one(
         quality_messages = []
 
     save_chapter(ch, out_path)
-    n = len(ch.blocks)
+    n = len(ch.paragraphs) if ch.paragraphs else (len(ch.blocks) if ch.blocks else 0)
     if json_mode:
         import json as _json
-        print(_json.dumps({"status": "ok", "ch": ch_num, "blocks": n,
+        print(_json.dumps({"status": "ok", "ch": ch_num, "paragraphs": n,
                             "path": str(out_path)}, ensure_ascii=False))
     else:
-        print(f"✓ ch{ch_num}: saved → {out_path.name} ({n} blocks)")
+        print(f"✓ ch{ch_num}: saved → {out_path.name} ({n} paragraphs)")
     if progress_state is not None:
         mark_done(ch_num, progress_slug, progress_state)
     if not mock and not no_validate:

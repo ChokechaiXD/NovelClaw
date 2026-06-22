@@ -1931,3 +1931,20 @@ a:hover { opacity: 0.85; }
 .c-skel--line { height: 14px; width: 100%; margin-bottom: var(--space-sm); }
 .c-skel--card { height: 100px; width: 100%; margin-bottom: var(--space-sm); }
 .c-skel--block { height: 200px; width: 100%; margin-bottom: var(--space-md); }
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Inline Marker Styling — universal (ทุกภาษา ทุกแนว)
+   ═══════════════════════════════════════════════════════════════════════ */
+.c-marker--dialogue {
+  color: var(--c-accent, #14b8a6);
+}
+.c-marker--system {
+  font-size: 0.9em;
+  font-style: italic;
+  color: var(--c-text-muted);
+}
+.c-marker--thought {
+  font-style: italic;
+  color: var(--c-text-soft);
+}
