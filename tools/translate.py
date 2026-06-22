@@ -194,7 +194,10 @@ def extract_unknown_terms(source_text: str, known_sources: _Iterable[str]) -> li
     return unknown
 
 
-SOURCE_DIR = NOVEL_ROOT / "chapters" / "source"
+def _get_source_dir() -> Path:
+    """Get source directory dynamically (was hardcoded at module level)."""
+    from schema import get_novel_root
+    return get_novel_root() / "chapters" / "source"
 
 
 # === Format spec for quick reference ===
@@ -249,7 +252,8 @@ def get_glossary_context_from_lib(ch_num: int, source: str | None = None) -> str
     If `source` is provided, skip reading/cleaning the file (avoid duplicate I/O).
     """
     if source is None:
-        src_path = SOURCE_DIR / f"{ch_num:04d}.md"
+        _sd = _get_source_dir()
+        src_path = _sd / f"{ch_num:04d}.md"
         if not src_path.exists():
             return ""
         source = clean_source(src_path.read_text(encoding="utf-8"))
@@ -325,7 +329,8 @@ def get_unknown_terms_for_ch(ch_num: int, source: str | None = None) -> list[str
     If `source` is provided, skip reading/cleaning the file (avoid duplicate I/O).
     """
     if source is None:
-        src_path = SOURCE_DIR / f"{ch_num:04d}.md"
+        _sd = _get_source_dir()
+        src_path = _sd / f"{ch_num:04d}.md"
         if not src_path.exists():
             return []
         source = clean_source(src_path.read_text(encoding="utf-8"))
@@ -464,7 +469,7 @@ def get_chapter_context(
     - Format spec
     - Unknown terms (if search_unknown)
     """
-    src_path = SOURCE_DIR / f"{ch_num:04d}.md"
+    src_path = _get_source_dir() / f"{ch_num:04d}.md"
     if not src_path.exists():
         return f"❌ Source not found: {src_path}"
 
@@ -529,18 +534,31 @@ def _run_after(flag: bool, mock: bool, name: str, fn: Callable[[], None]) -> Non
             print(f"  ⚠ {name} error: {e}")
 
 
-def _call_llm(prompt: str, max_retries: int = 3, system: str | None = None) -> str:
-    """Call the LLM via Hermes (api.py handles retry + fallback)."""
-    try:
-        return call_llm(prompt, max_retries=max_retries, system=system)
-    except RuntimeError as e:
-        print(f"✗ LLM error after all retries: {e}")
-        print("⏭ Falling back to mock output...")
-        return '{"mock": "no LLM configured"}'
-    except Exception as e:
-        print(f"✗ Unexpected LLM error: {e}")
-        print("⏭ Falling back to mock output...")
-        return '{"mock": "no LLM configured"}'
+def _call_llm(prompt: str, max_retries: int = 3, system: str | None = None, timeout: int = 120) -> str:
+    """Call the LLM via Hermes (api.py handles retry + fallback).
+    
+    Args:
+        prompt: The user text to send.
+        max_retries: Max retry attempts (passed to call_llm).
+        system: System prompt (optional).
+        timeout: Overall timeout in seconds (default 120s).
+    """
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exec:
+        fut = exec.submit(call_llm, prompt, max_retries, system)
+        try:
+            return fut.result(timeout=timeout)
+        except concurrent.futures.TimeoutError:
+            print(f"✗ LLM timeout after {timeout}s")
+            return '{"mock": "no LLM configured"}'
+        except RuntimeError as e:
+            print(f"✗ LLM error after all retries: {e}")
+            print("⏭ Falling back to mock output...")
+            return '{"mock": "no LLM configured"}'
+        except Exception as e:
+            print(f"✗ Unexpected LLM error: {e}")
+            print("⏭ Falling back to mock output...")
+            return '{"mock": "no LLM configured"}'
 
 
 def analysis_pass(
@@ -676,50 +694,11 @@ def chapter_path(novel_root, num: int) -> Path:
     return Path(novel_root) / 'chapters' / f'{num:04d}.json'
 
 
-def md_to_blocks(md_text: str) -> tuple[list[dict], list[str]]:
-    """Migrate a legacy .md file to JSON blocks (best-effort, lossy for
-    complex formatting).
-
-    Used for one-time migration of ch 1-100 from .md to .json.
-    """
-    # Strip meta footer
-    parts = re.split(r'\n---\n', md_text, maxsplit=1)
-    body = parts[0].strip()
-    meta = parts[1].strip() if len(parts) > 1 else ''
-
-    blocks = []
-    for line in body.split('\n'):
-        line = line.rstrip()
-        if not line:
-            continue
-        # Title
-        if line.startswith('# '):
-            continue  # title handled separately
-        # End marker
-        if line.strip() == '(จบบท)':
-            blocks.append({'type': 'end', 'text': '(จบบท)'})
-            continue
-        # System message
-        if line.startswith('【') and line.endswith('】'):
-            blocks.append({'type': 'system', 'text': line})
-            continue
-        # Dialogue
-        if line.startswith('「') and line.endswith('」'):
-            blocks.append({'type': 'dialogue', 'text': line})
-            continue
-        # Game title (inline) — keep as narration
-        # Otherwise narration
-        blocks.append({'type': 'narration', 'text': line})
-
-    # Extract notes from meta
-    notes = []
-    if meta:
-        for line in meta.split('\n'):
-            line = line.strip()
-            if line.startswith('- '):
-                notes.append(line[2:])
-    return blocks, notes
-
+def _load_ch(path) -> Chapter:
+    """Load a ch from a .json file. Returns validated Chapter."""
+    p = Path(path)
+    data = json.loads(p.read_text(encoding='utf-8'))
+    return Chapter(**data)
 
 
 def translate_one(
@@ -735,7 +714,6 @@ def translate_one(
     progress_slug: str = "global-descent",
     use_entities: bool = False,
     two_pass: bool = False,
-    auto_glossary: bool = False,
     use_score: bool = False,
     use_tm: bool = False,
     agent_passes: int = 2,
@@ -750,7 +728,7 @@ def translate_one(
     normalized_source_lang = normalize_language_key(source_lang, "cn")
     normalized_target_lang = normalize_language_key(target_lang, "th")
 
-    src_path = SOURCE_DIR / f"{ch_num:04d}.md"
+    src_path = _get_source_dir() / f"{ch_num:04d}.md"
     out_path = CHAPTERS_DIR / f"{ch_num:04d}.json"
 
     if not src_path.exists():
@@ -1084,7 +1062,6 @@ def translate_one(
 
     # ── Post-translation steps (consolidated) ──────────────────
     _run_after(use_tm, mock, "TM", lambda: _post_tm(ch_data, progress_slug, ch_num))
-    _run_after(auto_glossary, mock, "auto-glossary", lambda: _post_glossary(ch_num, source, progress_slug))
 
     return True
 
@@ -1195,11 +1172,6 @@ Examples:
         help="Enable two-pass translation (analysis → summary + entities → translate)",
     )
     ap.add_argument(
-        "--auto-glossary",
-        action="store_true",
-        help="Auto-discover new glossary terms from translated chapters and append to auto.md",
-    )
-    ap.add_argument(
         "--score",
         action="store_true",
         help="Enable LLM-as-Judge quality scoring after translation",
@@ -1298,7 +1270,6 @@ Examples:
                     progress_slug=slug,
                     use_entities=args.entities,
                     two_pass=args.two_pass,
-                    auto_glossary=args.auto_glossary,
                     use_score=args.score,
                     use_tm=args.tm,
                     json_mode=args.json,
@@ -1337,7 +1308,6 @@ Examples:
                 progress_slug=slug,
                 use_entities=args.entities,
                 two_pass=args.two_pass,
-                auto_glossary=args.auto_glossary,
                 use_score=args.score,
                 use_tm=args.tm,
                 json_mode=args.json,

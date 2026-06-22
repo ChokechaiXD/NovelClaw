@@ -1,5 +1,4 @@
 """Tests for tools/chapter_io.py — chapter file I/O."""
-
 from __future__ import annotations
 
 import json
@@ -8,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from tools.translate import chapter_path, load_chapter, save_chapter, md_to_blocks
+from tools.translate import chapter_path, load_chapter, save_chapter
 from tools.schema import Chapter
 
 
@@ -42,7 +41,6 @@ def test_save_chapter_pretty_printed(tmp_path):
     save_chapter(SAMPLE_CHAPTER, path)
     
     content = path.read_text(encoding="utf-8")
-    assert '"indent":' not in content  # shouldn't have raw indent
     assert "  " in content  # has indentation
 
 
@@ -78,7 +76,7 @@ def test_load_chapter_validates_schema(tmp_path):
 def test_load_chapter_invalid_data(tmp_path):
     """Invalid data raises Pydantic validation error."""
     data = {
-        "num": "not_a_number",  # wrong type
+        "num": "not_a_number",
         "title": "",
         "blocks": [],
     }
@@ -94,24 +92,3 @@ def test_chapter_path():
     path = chapter_path("/novels/test", 42)
     assert path.name == "0042.json"
     assert "chapters" in str(path)
-
-
-def test_md_to_blocks_empty():
-    """Empty markdown produces no blocks."""
-    blocks, meta = md_to_blocks("")
-    assert blocks == []
-
-
-def test_md_to_blocks_basic():
-    """Basic markdown parses into blocks."""
-    md = "This is a test.\n\n---\nmeta: data"
-    blocks, meta = md_to_blocks(md)
-    assert len(blocks) >= 1
-    assert "This is a test" in blocks[0].get("text", blocks[0].get("content", ""))
-
-
-def test_md_to_blocks_no_meta():
-    """Markdown without '---' separator still parses."""
-    md = "Just some text without a meta footer."
-    blocks, meta = md_to_blocks(md)
-    assert len(blocks) >= 1

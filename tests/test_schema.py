@@ -17,7 +17,7 @@ from schema import (  # noqa: E402
     Chapter, Narration, Dialogue, SystemMessage, EndMarker,
     Language, BlockType,
 )
-from translate import load_chapter, save_chapter, chapter_path, md_to_blocks  # noqa: E402
+from translate import load_chapter, save_chapter, chapter_path  # noqa: E402
 
 
 def _ch(lang='cn', dialogue='「hi」', system='【HP】', end='(จบบท)'):
@@ -224,45 +224,3 @@ class TestHelpers:
 
 # ── md_to_blocks migration helper ────────────────────────────────────
 
-class TestMdToBlocks:
-    def test_basic_migration(self):
-        md = """# ตอนที่ 1 Test
-
-นี่คือการเล่าเรื่อง
-
-「สวัสดี」
-
-【HP: 100】
-
-(จบบท)
-"""
-        blocks, notes = md_to_blocks(md)
-        assert len(blocks) > 0
-        assert any(b['type'] == 'dialogue' for b in blocks)
-        assert any(b['type'] == 'system' for b in blocks)
-        # last block should be end
-        assert blocks[-1]['type'] == 'end'
-        assert blocks[-1]['text'] == '(จบบท)'
-
-    def test_strips_h1_title(self):
-        md = "# ตอนที่ 1 X\n\nbody text\n\n(จบบท)\n"
-        blocks, _ = md_to_blocks(md)
-        # No block should contain "# ตอนที่"
-        for b in blocks:
-            assert not b['text'].startswith('# ')
-
-    def test_extracts_notes(self):
-        md = """# ตอนที่ 1 X
-
-body
-
-(จบบท)
-
----
-
-- note 1
-- note 2
-"""
-        blocks, notes = md_to_blocks(md)
-        assert 'note 1' in notes
-        assert 'note 2' in notes
