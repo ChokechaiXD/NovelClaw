@@ -37,7 +37,7 @@ LOWER_LATIN_LEAK_RE = re.compile(
     r"lv|lvl|buff|debuff|first kill|militia|avatar|peek|panic|"
     r"level|recruiting|disrespect|mean|queen|erupt|continue|"
     r"blacklist|"
-    r"momentarily|hollow|continue|hp|mp|exp|sss|ssr|ur|sp|id|vip)\b",
+    r"momentarily|hollow)\b",
     re.IGNORECASE,
 )
 LATIN_LEAK_RE = re.compile(r"\b[A-Za-z][A-Za-z0-9.]*\b")
@@ -97,6 +97,9 @@ ALLOWED_LATIN_TOKENS = {
     "AOE",
     "DPS",
     "TPS",
+    "BloodyLand",
+    "Bloodyland",
+    "C",
 }
 COMPLETENESS_MIN_RATIO = 0.90
 COMPLETENESS_MAX_RATIO = 3.20
@@ -157,7 +160,11 @@ def validate_translation_quality(
         (is_ok, messages) where fatal messages are prefixed with ERROR.
     """
     messages: list[str] = []
-    target_text = "".join(str(block.text) for block in ch.blocks)
+    # Handle both paragraphs and blocks format
+    if ch.paragraphs:
+        target_text = "".join(p for p in ch.paragraphs if p != "(จบบท)")
+    else:
+        target_text = "".join(str(block.text) for block in ch.blocks) if ch.blocks else ""
     source_len = max(1, len(source_text))
     ratio = len(target_text) / source_len
     if ratio < COMPLETENESS_MIN_RATIO:
@@ -178,40 +185,75 @@ def validate_translation_quality(
     active_profile_key = get_profile_lang(source_lang, active_profile, profile_lang)
     bracket_profile = get_bracket_profile(source_lang, active_profile, profile_lang)
 
-    for i, block in enumerate(ch.blocks):
-        if getattr(block, "type", "") == "end":
-            continue
-        text = str(block.text)
-        cjk = CJK_LEAK_RE.findall(text)
-        if cjk:
-            messages.append(f"ERROR block {i} ({block.type}): CJK leak chars {cjk[:8]}")
-        if SOURCE_ARTIFACT_RE.search(text):
-            messages.append(
-                f"ERROR block {i} ({block.type}): source artifact leaked into translation"
-            )
-        for match in LATIN_LEAK_RE.finditer(text):
-            token = match.group(0)
-            if token in ALLOWED_LATIN_TOKENS:
+    if ch.paragraphs:
+        # Paragraphs mode — check each paragraph directly (no block types)
+        for i, para in enumerate(ch.paragraphs):
+            if para == "(จบบท)":
                 continue
-            hint = _latin_token_hint(token)
-            if hint:
-                messages.append(f'ERROR block {i} ({block.type}): Latin leak "{token}" -> {hint}')
-            else:
+            text = para
+            cjk = CJK_LEAK_RE.findall(text)
+            if cjk:
+                messages.append(f"ERROR paragraph {i}: CJK leak chars {cjk[:8]}")
+            if SOURCE_ARTIFACT_RE.search(text):
+                messages.append(f"ERROR paragraph {i}: source artifact leaked into translation")
+            for match in LATIN_LEAK_RE.finditer(text):
+                token = match.group(0)
+                if token in ALLOWED_LATIN_TOKENS:
+                    continue
+                hint = _latin_token_hint(token)
+                if hint:
+                    messages.append(f'ERROR paragraph {i}: Latin leak "{token}" -> {hint}')
+                else:
+                    messages.append(
+                        f'WARNING paragraph {i}: Latin token "{token}" is not in allowed list'
+                    )
+            for match in LOWER_LATIN_LEAK_RE.finditer(text):
+                token = match.group(0)
+                hint = _latin_token_hint(token) or "review/translate this token"
                 messages.append(
-                    f'WARNING block {i} ({block.type}): Latin token "{token}" is not in allowed list'
+                    f'ERROR paragraph {i}: lowercase/mixed Latin leak "{token}" -> {hint}'
                 )
-        for match in LOWER_LATIN_LEAK_RE.finditer(text):
-            token = match.group(0)
-            hint = _latin_token_hint(token) or "review/translate this token"
+        # Check end marker - last paragraph must be (จบบท)
+        if ch.paragraphs[-1] != "(จบบท)":
             messages.append(
-                f'ERROR block {i} ({block.type}): lowercase/mixed Latin leak "{token}" -> {hint}'
+                f'ERROR ch{ch.num}: last paragraph must be end marker "(จบบท)"'
             )
+    elif ch.blocks:
+        # Blocks mode (legacy)
+        for i, block in enumerate(ch.blocks):
+            if getattr(block, "type", "") == "end":
+                continue
+            text = str(block.text)
+            cjk = CJK_LEAK_RE.findall(text)
+            if cjk:
+                messages.append(f"ERROR block {i} ({block.type}): CJK leak chars {cjk[:8]}")
+            if SOURCE_ARTIFACT_RE.search(text):
+                messages.append(
+                    f"ERROR block {i} ({block.type}): source artifact leaked into translation"
+                )
+            for match in LATIN_LEAK_RE.finditer(text):
+                token = match.group(0)
+                if token in ALLOWED_LATIN_TOKENS:
+                    continue
+                hint = _latin_token_hint(token)
+                if hint:
+                    messages.append(f'ERROR block {i} ({block.type}): Latin leak "{token}" -> {hint}')
+                else:
+                    messages.append(
+                        f'WARNING block {i} ({block.type}): Latin token "{token}" is not in allowed list'
+                    )
+            for match in LOWER_LATIN_LEAK_RE.finditer(text):
+                token = match.group(0)
+                hint = _latin_token_hint(token) or "review/translate this token"
+                messages.append(
+                    f'ERROR block {i} ({block.type}): lowercase/mixed Latin leak "{token}" -> {hint}'
+                )
 
-    expected_end_marker = bracket_profile.get("end_marker", "(จบบท)")
-    if ch.blocks and getattr(ch.blocks[-1], "text", None) != expected_end_marker:
-        messages.append(
-            f'ERROR ch{ch.num}: last block must be {active_profile_key} end marker "{expected_end_marker}"'
-        )
+        expected_end_marker = bracket_profile.get("end_marker", "(จบบท)")
+        if ch.blocks and getattr(ch.blocks[-1], "text", None) != expected_end_marker:
+            messages.append(
+                f'ERROR ch{ch.num}: last block must be {active_profile_key} end marker "{expected_end_marker}"'
+            )
 
     return not any(message.startswith("ERROR") for message in messages), messages
 

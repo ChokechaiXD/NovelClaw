@@ -229,7 +229,8 @@ class Chapter(BaseModel):
     schema_version: int = Field(default=2, description='Schema version — currently v2')
     num: int = Field(..., ge=1, le=9999, description='Chapter number')
     title: str = Field(..., min_length=1, description='Full chapter title (e.g., "ตอนที่ 112 ...")')
-    blocks: list[Block] = Field(..., min_length=1, description='Ordered content blocks')
+    blocks: list[Block] | None = Field(default=None, description='Ordered content blocks (legacy — or use paragraphs)')
+    paragraphs: list[str] | None = Field(default=None, description='Paragraphs with inline markers (new universal format)')
     source: str = Field(..., pattern=r'^ch \d+$', description='Source attribution (e.g., "ch 112")')
     notes: list[str] = Field(default_factory=list, description='Translation notes (rendered in collapsible details)')
     lang: Language = Field(
@@ -248,9 +249,12 @@ class Chapter(BaseModel):
     @field_validator('blocks', mode='before')
     @classmethod
     def validate_blocks(cls, v):
-        """Each block dict must be a valid Block subtype. Returns list of Block instances."""
+        """Each block dict must be a valid Block subtype. Returns list of Block instances.
+        Returns None when paragraphs format is used instead."""
+        if v is None:
+            return None  # paragraphs mode
         if not isinstance(v, list):
-            raise ValueError('blocks must be a list')
+            raise ValueError('blocks must be a list or None (paragraphs mode)')
         validated = []
         for i, block in enumerate(v):
             if isinstance(block, dict):
@@ -259,7 +263,6 @@ class Chapter(BaseModel):
                     raise ValueError(f'block {i} has invalid type {btype!r}; must be one of {list(BLOCK_TYPE_MAP.keys())}')
                 validated.append(BLOCK_TYPE_MAP[btype](**block))
             else:
-                # Already a Block instance (from model_validator chain)
                 validated.append(block)
         return validated
 
@@ -280,6 +283,19 @@ class Chapter(BaseModel):
 
     @model_validator(mode='after')
     def validate_chapter_structure(self) -> 'Chapter':
+        # ── Paragraphs mode (new) — skip block validation ────────────
+        if self.paragraphs is not None:
+            if not isinstance(self.paragraphs, list) or not self.paragraphs:
+                raise ValueError('paragraphs must be a non-empty list of strings')
+            # Ensure last paragraph is end marker
+            if self.paragraphs[-1] not in ('(จบบท)', '(End)', '（終）', '(끝)'):
+                self.paragraphs.append('(จบบท)')
+            return self
+
+        # ── Legacy blocks mode ─────────────────────────────────────
+        if self.blocks is None:
+            raise ValueError('Either blocks or paragraphs must be provided')
+        
         # Get language-specific bracket profile.
         # output_lang/profile_lang are used for translated chapters; lang remains
         # the source-language fallback for backward compatibility.

@@ -59,4 +59,41 @@ function renderChapterJson(ch) {
   return html;
 }
 
-module.exports = { renderChapterJson };
+/**
+ * renderParagraphs — New universal renderer.
+ *
+ * Takes an array of paragraph strings, applies inline marker styling.
+ * No block types needed — markers in text drive the styling via regex.
+ * Supports: dialogue "" / 「」, system 【】, thought 『』, end markers.
+ * Universal across all novel languages and genres.
+ */
+function renderParagraphs(paragraphs, lang) {
+  if (!paragraphs || !paragraphs.length) return '';
+  return paragraphs.map(text => {
+    if (!text) return '<p></p>';
+    const escaped = esc(text);
+
+    // End marker paragraph (full line only)
+    if (/^\([\u0e00-\u0e7f]+\)$/.test(escaped) ||
+        /^[\u3000-\u30ff\u4e00-\u9fff\uff01-\uff5e\(\)]+$/.test(escaped)) {
+      return `<p class="end-marker">${escaped}</p>`;
+    }
+
+    // Apply inline marker styling
+    const html = escaped
+      // System 【...】
+      .replace(/【([^】]+)】/g, '<span class="c-marker--system">【$1】</span>')
+      // Inner thought 『...』 (JP/CN)
+      .replace(/『([^』]+)』/g, '<span class="c-marker--thought">『$1』</span>')
+      // Dialogue "..." (straight quotes — easiest for LLM)
+      .replace(/"([^"\n]+)"/g, '<span class="c-marker--dialogue">"$1"</span>')
+      // Dialogue 「...」 (CJK brackets)
+      .replace(/「([^」]+)」/g, '<span class="c-marker--dialogue">「$1」</span>')
+      // Dialogue "" (curly quotes)
+      .replace(/\u201c([^\u201d\n]+)\u201d/g, '<span class="c-marker--dialogue">\u201c$1\u201d</span>');
+
+    return `<p>${html}</p>`;
+  }).join('\n') + '\n';
+}
+
+module.exports = { renderChapterJson, renderParagraphs };
