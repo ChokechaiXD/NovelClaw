@@ -82,3 +82,7 @@ nul
 .test_tm/
 tmp/
 reader/novels/
+
+# Cleanup 2026-06-22
+_Archive/
+docs/

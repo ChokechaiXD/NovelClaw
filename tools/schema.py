@@ -234,10 +234,10 @@ class Chapter(BaseModel):
     @field_validator('title')
     @classmethod
     def validate_title(cls, v: str, info) -> str:
-        # title should be "ตอนที่ {N} {translated_title}" — supports space or colon separator
-        m = re.match(r'^ตอนที่ (\d+)[:\s]+(.+)$', v.strip())
+        # title should be "ตอนที่ {N}" or "ตอนที่ {N} {title}" — supports space or colon separator
+        m = re.match(r'^ตอนที่ (\d+)([:\s]+(.+))?$', v.strip())
         if not m:
-            raise ValueError(f'Title must be "ตอนที่ {{N}} {{title}}", got: {v!r}')
+            raise ValueError(f'Title must be "ตอนที่ {{N}}" or "ตอนที่ {{N}}: {{title}}", got: {v!r}')
         # If num is also set, check consistency
         if 'num' in info.data:
             if int(m.group(1)) != info.data['num']:
