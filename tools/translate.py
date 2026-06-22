@@ -528,12 +528,7 @@ def _post_glossary(ch_num: int, source: str, progress_slug: str) -> None:
 
 
 def _post_score(source: str, ch_data: dict) -> None:
-    """Run LLM Judge scoring after translating."""
-    gt = load_terms()
-    if sr.parse_error:
-        print(f"  ⚠ LLM Judge: {sr.parse_error[:100]}")
-    else:
-        print(f"  {'🏆' if sr.passed else '⚠'} LLM Judge: {sr.summary_string()}")
+    """Score using metrics-based scorer (CLI: python tools/scorer.py)."""
 
 
 def _run_after(flag: bool, mock: bool, name: str, fn: Callable[[], None]) -> None:
@@ -891,20 +886,40 @@ def translate_one(
     if _reclassified > 0:
         print(f"  🏷 Reclassified {_reclassified} mislabeled blocks (narration→dialogue)")
 
-    # 4. Extract speaker from dialogue prefix when obvious.
+    # 4. Extract speaker from preceding narration + character bank.
     _speaker_fixed = 0
-    for block in blocks:
+    _known_chars = _load_known_characters(progress_slug)
+    for i, block in enumerate(blocks):
         if block.get("type") == "dialogue" and not block.get("speaker") and block.get("text"):
             t = block["text"]
-            # Pattern: "AA พูด/บอก/ถาม/ตอบ..."
+            # Pattern 1: "AA พูด/บอก/ถาม..." (inline in dialogue text)
             m = re.match(r'^([\u0e00-\u0e7f]{2,10}(?:\s[\u0e00-\u0e7f]{1,10})?)\s*(?:พูด|บอก|ถาม|ตอบ|ว่า|ตะโกน|กระซิบ|ร้อง|หัวเราะ|อุทาน)[\s:]?["\u201c\u300c]', t)
             if not m:
-                # Pattern: "AA "..." (short name before quote)
+                # Pattern 2: "AA"..." (short name before quote)
                 m = re.match(r'^([\u0e00-\u0e7f]{2,6})\s*["\u201c\u300c]', t)
             if m:
                 name = m.group(1).strip()
                 if name not in ("เขาคิด", "เขาพูด", "เธอพูด", "พอเห็น", "ได้ยิน"):
                     block["speaker"] = name
+                    _speaker_fixed += 1
+                    continue
+            
+            # Pattern 3: Scan preceding narration for known character names
+            for j in range(max(0, i-5), i):
+                prev = blocks[j]
+                if prev.get("type") == "narration":
+                    prev_text = prev.get("text", "")
+                    found = [c for c in _known_chars if c in prev_text]
+                    if found and any(v in prev_text for v in ("พูด", "บอก", "ถาม", "ตอบ", "คิด", "ร้อง", "ตะโกน", "กระซิบ", "เรียก", "อุทาน")):
+                        block["speaker"] = found[-1]
+                        _speaker_fixed += 1
+                        break
+            
+            # Pattern 4: Continuation — dialogue follows another dialogue by same speaker
+            if not block.get("speaker") and i > 0:
+                prev_block = blocks[i-1]
+                if prev_block.get("type") == "dialogue" and prev_block.get("speaker"):
+                    block["speaker"] = prev_block["speaker"]
                     _speaker_fixed += 1
     if _speaker_fixed > 0:
         print(f"  🎙 Extracted speaker for {_speaker_fixed} dialogue blocks")
@@ -1015,6 +1030,18 @@ def translate_one(
     _run_after(auto_glossary, mock, "auto-glossary", lambda: _post_glossary(ch_num, source, progress_slug))
 
     return True
+
+
+def _load_known_characters(novel_slug: str = "global-descent") -> list[str]:
+    """Load known character names from NPC bank for speaker extraction."""
+    chars = []
+    npc_dir = Path(__file__).resolve().parent.parent / "novels" / novel_slug / "npc_bank"
+    if npc_dir.exists():
+        for f in sorted(npc_dir.glob("*.md")):
+            name = f.stem
+            if name != "index":
+                chars.append(name)
+    return chars
 
 
 def search_term(term: str) -> None:
