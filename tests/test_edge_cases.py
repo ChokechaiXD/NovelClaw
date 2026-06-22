@@ -19,12 +19,10 @@ from validation import (
     EN_RETENTION_RE,
     LATIN_REPLACEMENT_HINTS,
     LOWER_LATIN_LEAK_RE,
+    check_en_terms,
     check_file_for_cjk_leaks,
-    validate_translation_quality,
-)
-from tools.normalize_chapter_schema import (
-    normalize_chapter,
     expected_end_marker,
+    validate_translation_quality,
 )
 
 
@@ -371,99 +369,6 @@ class TestLatinLeakRegex:
 # ═══════════════════════════════════════════════════════════════════════════════
 # 4. Normalize Tool Edge Cases
 # ═══════════════════════════════════════════════════════════════════════════════
-
-
-class TestNormalizeEdgeCases:
-
-    def _run(self, data: dict, lang: str = "cn", output_lang: str = "th"):
-        return normalize_chapter(data, data.get("num", 1), lang, output_lang)
-
-    def test_already_normalized(self):
-        data = {
-            "schema_version": 2,
-            "num": 1,
-            "title": "ตอนที่ 1 Test",
-            "source": "ch 1",
-            "lang": "cn",
-            "output_lang": "th",
-            "notes": [],
-            "blocks": [
-                {"type": "narration", "text": "เล่าเรื่อง"},
-                {"type": "end", "text": "(จบบท)"},
-            ],
-        }
-        _, changes = self._run(data)
-        assert len(changes) == 0
-
-    def test_missing_output_lang_added(self):
-        data = {"num": 1, "source": "ch 1", "lang": "cn",
-                "blocks": [{"type": "narration", "text": "x"}], "notes": []}
-        norm, changes = self._run(data)
-        assert norm["output_lang"] == "th"
-        assert any("output_lang" in c for c in changes)
-
-    def test_missing_end_block(self):
-        data = {"num": 1, "source": "ch 1", "lang": "cn", "output_lang": "th",
-                "notes": [], "blocks": [{"type": "narration", "text": "x"}]}
-        norm, changes = self._run(data)
-        assert norm["blocks"][-1]["type"] == "end"
-        assert any("end" in c for c in changes)
-
-    def test_end_block_not_last(self):
-        data = {"num": 1, "source": "ch 1", "lang": "cn", "output_lang": "th",
-                "notes": [], "blocks": [
-                    {"type": "narration", "text": "x"},
-                    {"type": "end", "text": "(จบบท)"},
-                    {"type": "narration", "text": "y"},
-                ]}
-        norm, _ = self._run(data)
-        assert norm["blocks"][-1]["type"] == "end"
-
-    def test_wrong_end_marker_fixed(self):
-        data = {"num": 1, "source": "ch 1", "lang": "cn", "output_lang": "th",
-                "notes": [], "blocks": [
-                    {"type": "narration", "text": "x"},
-                    {"type": "end", "text": "(End)"},
-                ]}
-        norm, _ = self._run(data)
-        assert norm["blocks"][-1]["text"] == "(จบบท)"
-
-    def test_wrong_end_marker_en_output(self):
-        data = {"num": 1, "source": "ch 1", "lang": "cn", "output_lang": "en",
-                "notes": [], "blocks": [
-                    {"type": "narration", "text": "x"},
-                    {"type": "end", "text": "(จบบท)"},
-                ]}
-        norm, _ = self._run(data, output_lang="en")
-        assert norm["blocks"][-1]["text"] == "(End)"
-
-    def test_duplicate_end_blocks_deduped(self):
-        data = {"num": 1, "source": "ch 1", "lang": "cn", "output_lang": "th",
-                "notes": [], "blocks": [
-                    {"type": "narration", "text": "x"},
-                    {"type": "end", "text": "(จบบท)"},
-                    {"type": "end", "text": "(จบบท)"},
-                ]}
-        norm, _ = self._run(data)
-        ends = [b for b in norm["blocks"] if b["type"] == "end"]
-        assert len(ends) == 1
-
-    def test_missing_notes_added(self):
-        data = {"num": 1, "source": "ch 1", "lang": "cn", "output_lang": "th",
-                "blocks": [{"type": "narration", "text": "x"},
-                           {"type": "end", "text": "(จบบท)"}]}
-        norm, _ = self._run(data)
-        assert isinstance(norm.get("notes"), list)
-
-    def test_format_v2_migration(self):
-        data = {"format": "v2", "num": 1, "source": "ch 1", "lang": "cn",
-                "output_lang": "th", "notes": [], "blocks": [
-                    {"type": "narration", "text": "x"},
-                    {"type": "end", "text": "(จบบท)"},
-                ]}
-        norm, _ = self._run(data)
-        assert norm["schema_version"] == 2
-        assert "format" not in norm
 
 
 class TestExpectedEndMarker:

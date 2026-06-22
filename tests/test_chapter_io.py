@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from tools.chapter_io import chapter_path, load_chapter, save_chapter, md_to_blocks
+from tools.translate import chapter_path, load_chapter, save_chapter, md_to_blocks
 from tools.schema import Chapter
 
 

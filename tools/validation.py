@@ -216,6 +216,17 @@ def validate_translation_quality(
     return not any(message.startswith("ERROR") for message in messages), messages
 
 
+def expected_end_marker(output_lang: str) -> str:
+    """Read end marker from brackets.json. Falls back to (จบบท)."""
+    try:
+        _br = Path(__file__).resolve().parent.parent / "reader" / "config" / "brackets.json"
+        _data = json.loads(_br.read_text(encoding="utf-8"))
+        profile = _data.get(output_lang, {})
+        return profile.get("end_marker", "(จบบท)")
+    except Exception:
+        return "(จบบท)"
+
+
 def check_en_terms(text: str) -> tuple[list[str], list[str], list[str]]:
     """Check for EN game terms. Returns (whitelisted, blacklisted, unknown)."""
     words = re.findall(r"\b[A-Za-z][A-Za-z0-9]{1,}\b", text)

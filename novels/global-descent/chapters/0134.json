@@ -56,12 +56,12 @@
     {
       "type": "dialogue",
       "text": "“ให้ตาย! มี HP 1 แต้ม”",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "dialogue",
       "text": "\"รวมกับพลังนิรันดร์ของฉัน จะตายยังไง?\"",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "narration",
@@ -237,12 +237,12 @@
     {
       "type": "dialogue",
       "text": "“วัสดุสองอย่างนี้ ข้าจำได้ว่าใช้สร้างแท่นราชา”",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "dialogue",
       "text": "“ก่อนหน้านี้ไม่เคยมีเบาะแส ไม่คิดว่าเปิดเจอตรงนี้”",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "narration",
@@ -450,17 +450,17 @@
     {
       "type": "dialogue",
       "text": "\"ทุกท่านไม่ต้องมาก ข้าเป็นลอร์ด และหนึ่งในผู้พิทักษ์ของข้าก็เป็นชาวอัสคาลอน\"",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "dialogue",
       "text": "\"เมื่อข้ารู้ว่าพี่น้องของเธอกำลังถูกผีสิงรังแก ข้าก็รู้สึกแย่\"",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "dialogue",
       "text": "\"ดังนั้น เพื่อช่วยพี่น้องของเธอ เพื่อให้ทุกท่านพ้นทุกข์ ข้ามา!\"",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "narration",
@@ -469,7 +469,7 @@
     {
       "type": "dialogue",
       "text": "“ท่านลอร์ด...”",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "narration",
@@ -550,7 +550,7 @@
     {
       "type": "dialogue",
       "text": "\"จริง ลอร์ดที่เหมาะสมนอกจากต้องมีพลัง ยังต้องมีปาก\"",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "narration",
@@ -559,7 +559,7 @@
     {
       "type": "dialogue",
       "text": "\"เจ้าเป็นลอร์ดที่ห่วงใยลูกน้องที่สุดที่ข้าเคยเห็น ถ้ากษัตริย์สมัยก่อนยอมฟังความเห็นเรา ก็คงไม่หลงผิด...\"",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "narration",
@@ -687,12 +687,12 @@
     {
       "type": "dialogue",
       "text": "“ผู้หมวดคาร์ฮาน ขอบคุณสำหรับคำชม”",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "dialogue",
       "text": "\"แต่เกี่ยวกับรางวัลที่เราตกลงกัน...\"",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "narration",
@@ -701,7 +701,7 @@
     {
       "type": "dialogue",
       "text": "\"แน่นอน เป็นสิ่งที่เจ้าสมควรได้\"",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "narration",
@@ -746,12 +746,12 @@
     {
       "type": "dialogue",
       "text": "\"อะแฮ่ม! ผู้หมวดคาร์ฮาน ครั้งนี้นอกจากโบสถ์ใหญ่ เรายังช่วยวิญญาณบริสุทธิ์อีกมาก\"",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "dialogue",
       "text": "\"ไม่รู้... เป็นไม่สามารถ...\"",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "narration",
@@ -931,7 +931,7 @@
     {
       "type": "dialogue",
       "text": "“ลอร์ดเฉาซิง ตอนนี้เราต้องจัดถ้ำใต้ดินใหม่ ไม่รบกวนแล้ว”",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "narration",
@@ -957,7 +957,7 @@
     {
       "type": "dialogue",
       "text": "“ขอให้เกียรติอัสคาลอนยืนยง!”",
-      "speaker": null
+      "speaker": "เฉาซิง"
     },
     {
       "type": "narration",
