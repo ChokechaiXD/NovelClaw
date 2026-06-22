@@ -33,12 +33,6 @@ from progress import (  # noqa: E402
     mark_running,
     save_progress,
 )
-from extract_entities import (  # noqa: E402
-    entity_extraction_pipeline,
-    PLACEHOLDER_RE,
-    restore_entities_from_map,
-    verify_no_leaked_entities,
-)
 from providers import call_llm  # noqa: E402
 from schema import (  # noqa: E402
     Chapter,
@@ -268,10 +262,12 @@ def get_glossary_context_from_lib(ch_num: int, source: str | None = None) -> str
     # Prioritize: locked (priority 1-2) first
     in_source.sort(key=lambda t: (t.get("priority", 3), t["source"]))
 
+    # Strip CN source from display — only show Thai equivalents
+    # CN chars in prompt leak into LLM output (experiment confirmed)
     lines = ["## Glossary terms in this ch (use EXACT Thai):"]
     for t in in_source:
         expl = t.get("explanation") or t.get("notes") or ""
-        line = f"- `{t['source']}` → {t['thai']}"
+        line = f"- → {t['thai']}"
         if expl:
             line += f" — {expl[:80]}"
         lines.append(line)
@@ -526,49 +522,18 @@ def _post_tm(ch_data: dict, progress_slug: str, ch_num: int) -> None:
         tm.save()
     print(f"  💾 TM: +{added} new, {tm.stats()['cache_entries']} total")
 
-
 def _post_glossary(ch_num: int, source: str, progress_slug: str) -> None:
-    """Extract auto-glossary candidates after translating."""
-    from cumulative_glossary import process_translation_candidates
-    gt = load_terms()
-    result = process_translation_candidates(
-        ch_num=ch_num, source_text=source, glossary_terms=gt,
-        slug=progress_slug, auto_rebuild=True,
-    )
-    if result["added"] > 0:
-        print(f"  📖 +{result['added']} new glossary candidates")
+    """Extract auto-glossary candidates after translating — disabled."""
+    pass
 
 
 def _post_score(source: str, ch_data: dict) -> None:
     """Run LLM Judge scoring after translating."""
-    from quality_scorer import score_translation
     gt = load_terms()
-    sr = score_translation(source, ch_data, gt, mock=False, model="haiku")
     if sr.parse_error:
         print(f"  ⚠ LLM Judge: {sr.parse_error[:100]}")
     else:
         print(f"  {'🏆' if sr.passed else '⚠'} LLM Judge: {sr.summary_string()}")
-
-
-def _post_agent(ch_num: int, source: str, ch_data: dict, progress_slug: str,
-                agent_passes: int, source_lang: str, target_lang: str,
-                profile_lang: str | None, mock_agents: bool) -> None:
-    """Run multi-agent chain for refinement."""
-    from agent_coordinator import run_agent_chain, print_agent_report
-    from schema import Chapter
-    gt = load_terms()
-    success, agent_results, final_ch = run_agent_chain(
-        ch_num, lambda *a, **kw: True, source, ch_data, gt,
-        passes=agent_passes, source_lang=source_lang,
-        target_lang=target_lang, profile_lang=profile_lang,
-        mock=mock_agents, model="haiku",
-    )
-    if not success:
-        print(f"  ⚠ Agent chain flagged issues")
-    print_agent_report(agent_results)
-    if final_ch is not ch_data:
-        save_chapter(Chapter(**final_ch), CHAPTERS_DIR / f"{ch_num:04d}.json")
-        print(f"  ✓ Re-saved polished version")
 
 
 def _run_after(flag: bool, mock: bool, name: str, fn: Callable[[], None]) -> None:
@@ -1048,11 +1013,6 @@ def translate_one(
     # ── Post-translation steps (consolidated) ──────────────────
     _run_after(use_tm, mock, "TM", lambda: _post_tm(ch_data, progress_slug, ch_num))
     _run_after(auto_glossary, mock, "auto-glossary", lambda: _post_glossary(ch_num, source, progress_slug))
-    _run_after(use_score and not no_validate, mock, "LLM Judge", lambda: _post_score(source, ch_data))
-    _run_after(agent_passes >= 2 and not no_validate and bool(ch_data), mock, "agent-chain",
-               lambda: _post_agent(ch_num, source, ch_data, progress_slug,
-                                   agent_passes, source_lang, target_lang,
-                                   profile_lang, mock_agents))
 
     return True
 
