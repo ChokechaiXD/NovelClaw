@@ -9,7 +9,7 @@ import json
 import re
 from pathlib import Path
 
-from tools.schema import Chapter
+from schema import Chapter
 
 
 def load_chapter(path) -> Chapter:

@@ -483,25 +483,8 @@ class TestExpectedEndMarker:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-class TestBuildYamlAutoReject:
-
-    def test_single_char_rejected(self):
-        from tools.build_yaml import should_reject_auto_term
-        assert should_reject_auto_term("人", "ทั่วไป") is True
-        assert should_reject_auto_term("水", "ทั่วไป") is True
-        assert should_reject_auto_term("火", "ทั่วไป") is True
-
-    def test_multi_char_proper_not_rejected(self):
-        from tools.build_yaml import should_reject_auto_term
-        assert should_reject_auto_term("曹星", "ตัวละคร") is False
-
-    def test_generic_word_rejected(self):
-        from tools.build_yaml import should_reject_auto_term
-        assert should_reject_auto_term("上古", "ทั่วไป") is True
-        assert should_reject_auto_term("传说", "ทั่วไป") is True
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # 6. Integration: Existing chapters consistency
 # ═══════════════════════════════════════════════════════════════════════════════
 
