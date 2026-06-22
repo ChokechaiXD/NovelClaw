@@ -130,7 +130,7 @@ Philosophy change. The translator is a **transmittor**, not an editor.
 - `translate_ch.py` / `translate_chelpers.py` — translation runner
 - `translate_commit.py` — pre-commit gate (CN check + glossary gate + format)
 - `validate_chapter.py` — quality check (v3, transmittor)
-- `validate_no_cjk.py` — strict CJK leak detector
+- `validation.py` — CJK/EN leak detection (integrated)
 
 **Glossary / consistency:**
 - `build_glossary.py` — parses 3-tier glossary, runs STYLE_RULES
