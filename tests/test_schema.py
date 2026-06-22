@@ -17,7 +17,7 @@ from schema import (  # noqa: E402
     Chapter, Narration, Dialogue, SystemMessage, EndMarker,
     Language, BlockType,
 )
-from chapter_io import load_chapter, save_chapter, chapter_path, md_to_blocks  # noqa: E402
+from translate import load_chapter, save_chapter, chapter_path, md_to_blocks  # noqa: E402
 
 
 def _ch(lang='cn', dialogue='「hi」', system='【HP】', end='(จบบท)'):

@@ -439,7 +439,7 @@ Examples:
     tm = TranslationMemory(args.novel)
     
     if args.command == "build":
-        from constants import get_chapters_dir
+        from schema import get_chapters_dir
         ch_dir = args.chapters_dir or str(get_chapters_dir(args.novel))
         print(f"Building TM from {ch_dir}...")
         result = tm.build_from_chapters(ch_dir)
