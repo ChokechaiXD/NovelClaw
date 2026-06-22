@@ -9,22 +9,15 @@ from pathlib import Path
 import yaml
 import json
 
-PROJECT_ROOT = Path(__file__).parent.parent
-NOVELS_DIR = PROJECT_ROOT / "novels"
-
-
-def get_novel_root(slug: str = "global-descent") -> Path:
-    import os
-    s = os.environ.get('NOVEL_SLUG', slug) if slug == "global-descent" else slug
-    return NOVELS_DIR / s
+from schema import PROJECT_ROOT, NOVELS_DIR, get_novel_root
 
 
 def get_glossary_yml_path(slug: str = "global-descent") -> Path:
-    return get_novel_root(slug) / "glossary" / "glossary.yml"
+    return get_novel_root(slug, check_exists=False) / "glossary" / "glossary.yml"
 
 
 def get_style_yml_path(slug: str = "global-descent") -> Path:
-    return get_novel_root(slug) / "style_rules.yml"
+    return get_novel_root(slug, check_exists=False) / "style_rules.yml"
 
 
 @lru_cache(maxsize=16)
