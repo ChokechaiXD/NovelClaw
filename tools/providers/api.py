@@ -129,7 +129,6 @@ def _direct_call(prompt: str, max_retries: int = 2, system: str | None = None) -
         headers = {
             "x-api-key": api_key,
             "Content-Type": "application/json",
-            "anthropic-version": "2023-06-01",
         }
         _parse = _parse_anthropic_response
     else:
