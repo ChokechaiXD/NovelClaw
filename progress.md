@@ -98,12 +98,8 @@
 
 | ไฟล์ | วัตถุประสงค์ |
 |------|------------|
-| `PROMPT.md` | AI system prompt สำหรับแปล |
-| `TRANSLATION_MANUAL.md` | คู่มือ workflow สำหรับมนุษย์ |
+| `PROMPT.md` | AI system prompt สำหรับแปล (v3 paragraphs) |
+| `TRANSLATION_MANUAL.md` | คู่มือ pipeline สำหรับมนุษย์ |
 | `novels/global-descent/style.md` | Style choices เฉพาะเรื่อง |
-| `novels/global-descent/format_spec.md` | File format spec |
-| `novels/global-descent/characters.md` | ตัวละครทั้งหมด |
 | `novels/global-descent/summary.md` | เนื้อเรื่องย่อ |
-| `novels/global-descent/dynamic_bans.md` | คำต้องห้ามที่เปลี่ยนตามบริบท |
-| `docs/THAI_NATURALNESS.md` | คู่มือภาษาไทยธรรมชาติ |
-| `docs/ARCHITECTURE.md` | สถาปัตยกรรมระบบ |
+| `novels/global-descent/glossary/locked.md` | คำศัพท์ locked |

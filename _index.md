@@ -9,16 +9,16 @@ Last Active: 2026-06-22
 - [[06 Decision Log]] — Decisions
 
 ## Active Tasks
-- Translate ch42-138 to reach 100% score
-- Speaker field improvement (LLM limitation)
+- Translate remaining chapters (ch144+)
 - ch128 source scraping (blocked by CF)
 
 ## Current Metrics
-- Scorer avg: 91/100
-- Pass/Fail: 69/1 (128 no source)
+- Pipeline: v3 paragraphs (0% JSON error, 1 post-process step)
+- Scorer avg: 97/100
 - Provider: deepseek-v4-flash (free, ~5s/call)
+- Tests: 158/158 Python, backward-compat reader
 
 ## Known Gotchas
 - `git add -A` time out → use `git add <absolute-path>`
 - provider config in `tools/providers/api.py`, not Hermes CLI
-- `--entities` flag not needed for translation (DeepSeek understands CN)
+- No `--entities` or `--two-pass` flags needed (removed)

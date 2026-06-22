@@ -10,7 +10,7 @@ NovelClaw = Chinese-to-Thai web novel translation toolkit.
 
 | Component | Description |
 |:-----------|:------------|
-| **Python tools** (`tools/`) | translate, normalize, validate, score, entity extraction |
+| **Python tools** (`tools/`) | translate, validate, score, glossary, schema |
 | **Reader** (`reader/`) | Express.js-based web reader (ITCSS + ESM frontend) |
 
 ---
@@ -19,6 +19,8 @@ NovelClaw = Chinese-to-Thai web novel translation toolkit.
 
 | Decision | Detail |
 |:----------|:-------|
+| **LLM outputs plain text, Python assembles** | LLM never writes JSON — outputs paragraphs with inline markers |
+| **No block types** | All content is paragraphs with inline `"...」`, `【】`, `『』` markers |
 | **ITCSS 5-layer** | tokens → generic → elements → BEM components → utilities |
 | **ES Modules** | Vanilla JS modules (`js/pages/*.js`), Observer-pattern state |
 | **Single source of truth** | `reader/config/brackets.json` for brackets/end-markers |
@@ -28,19 +30,18 @@ NovelClaw = Chinese-to-Thai web novel translation toolkit.
 
 ---
 
-## Translation Pipeline
+## Translation Pipeline (v3)
 
-1. **Source scraping** — `tools/scrape_chapters.py`
+1. **Source scraping** — Python requests to qidian.com (no Cloudflare)
 2. **Translate** — `python tools/translate.py <range> --score --json`
-3. **Post-process (7-stage)** — type fix → num fill → end marker → CN strip → reclassify dialogue → speaker extract → EN guard
+3. **Post-process (1 step)** — CN strip only
 4. **Quality check** — `python tools/scorer.py chapters/ --source source/`
-5. **Normalize** — `python tools/normalize_chapter_schema.py --start X --end Y --output-lang th --write`
 
 ### Default translate command
 ```bash
 python tools/translate.py 130 --score --json
 ```
-(ไม่ต้อง `--entities`, `--passes 2` default อยู่แล้ว)
+Post-process: no longer does type fix, end marker append (auto), dialogue reclassify, speaker extract, EN guard, bracket wrap, empty block removal — all obsolete in v3.
 
 **ข้อจำกัด**: `translate.py` รับเฉพาะ range (`131-135`) ไม่รับ space-separated list (`131 132 135`)
 
@@ -68,7 +69,6 @@ python tools/translate.py 130 --score --json
 | `"แปล 131-135 อีก 5 ตอน"` | `terminal("python tools/translate.py 131-135 --score --json --concurrent 3")` |
 | `"ตรวจคุณภาพ"` | `terminal("python tools/scorer.py chapters/ --source source/")` |
 | `"scrape ตอน 128"` | `terminal("python tools/scrape_chapters.py 128")` |
-| `"normalize"` | `terminal("python tools/normalize_chapter_schema.py --start 1 --end 138 --output-lang th --write")` |
 
 ---
 
@@ -79,6 +79,8 @@ python tools/translate.py 130 --score --json
 - ❌ อย่าใส่ API keys ใน code หรือ .env ของ project
 - ❌ อย่าใช้ cloudscraper — project ตายแล้ว
 - ❌ อย่าใช้ `git add -A` — git root = C:\ จะ time out
+- ❌ อย่าใช้ `--entities`, `--two-pass`, `--passes` flags — ไม่มีผลแล้ว (entity pipeline ถูกลบ)
+- ❌ อย่าให้ LLM output JSON — ใช้ `parse_translation_output()` แทน
 
 ---
 

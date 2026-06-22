@@ -1,82 +1,74 @@
-# Translation Notes: Chapter 131
+# Translation Notes — Major Changes
 
-This document outlines key glossary decisions, source file indexing discrepancies, and workflow insights discovered during the translation of Chapter 131 (`0131.json` from `source/0133.md`).
-
----
-
-## 1. The Source File Naming Shift (Critical Finding)
-
-During this task, a significant file name offset was identified between the `chapters/source/` markdown files and the output `chapters/*.json` translated files:
-
-*   **The Cause:** `0128.md` is missing from `chapters/source/`.
-*   **The Shift:** Because of the missing source file, the translation pipeline has shifted all source files starting from `0129.md` onwards by -1 index:
-    *   `source/0129.md` (`第129章`) $\rightarrow$ translated to `0128.json` (Chapter 128)
-    *   `source/0130.md` (`第130章`) $\rightarrow$ translated to `0129.json` (Chapter 129)
-    *   `source/0131.md` (`第131章`) $\rightarrow$ translated to `0130.json` (Chapter 130)
-*   **Duplicate Source Alert:** `source/0131.md` and `source/0132.md` contain the **exact same Chinese content** (Chapter 130: 亵渎女神，恶魔瑟芬妮亚).
-*   **Resolution for Chapter 131:**
-    *   To translate Chapter 131 (`0131.json`), the correct source file to use is **`source/0133.md`** (`第133章 那么，代价是什么呢？`).
-    *   If `0132.md` had been translated, it would have resulted in a duplicate of Chapter 130.
+**Last updated:** 2026-06-22 (v3 paragraphs pipeline migration)
 
 ---
 
-## 2. Glossary Mappings & Character Consistencies
+## 2026-06-22: v3 Paragraphs Pipeline
 
-The following terms were aligned with previous translations (`0129.json` and `0130.json`) to guarantee 100% vocabulary coherence:
+### What changed
 
-### Main Faction & Characters
-*   `曹星` $\rightarrow$ `เฉาซิง`
-*   `柳慕雪` $\rightarrow$ `หลิวมู่เสวี่ย`
-*   `姬心月` $\rightarrow$ `จีซินเยว่` (aligned with chapter 130)
-*   `蕾妮丝·鹰眼` $\rightarrow$ `เลนนิส ฮอว์อาย` (short name: `เลนนิส`)
-*   `阿萨姆` $\rightarrow$ `อาซัม`
-*   `安德鲁` $\rightarrow$ `แอนดรูว์`
-*   `莎拉` $\rightarrow$ `ซาร่า`
-*   `布隆` $\rightarrow$ `บรูน` (aligned with chapter 130)
-*   `希儿妲` $\rightarrow$ `ฮิลด้า` (aligned with chapter 130)
+The entire translation pipeline was rebuilt from block types → paragraphs format.
 
-### Monsters & Bosses
-*   `噬魂怪` $\rightarrow$ `ผีสิง` (retained from Chapter 130's translation instead of a literal translation like *สัตว์ประหลาดกินวิญญาณ*)
-*   `噬魂恶魔` $\rightarrow$ `อสูรสะกดวิญญาณ`
-*   `瑟芬妮亚·维利亚姆斯` $\rightarrow$ `เซฟีเนีย วิลเลียมส์` (or simply `เซฟีเนีย`)
+**Before (v2):** LLM outputs JSON with 5 block types (narration/dialogue/system/game_title/end). Post-process 8 steps. ~40% JSON parse error rate.
 
-### Locations & Items
-*   `卡莎大教堂` $\rightarrow$ `มหาวิหารคาซ่า`
-*   `巴拉丁公爵` $\rightarrow$ `ดยุคบาลาดิน`
-*   `石符` $\rightarrow$ `แผ่นหินสลัก` (stone talisman)
-*   `马格戴尔` $\rightarrow$ `แม็กแดร์` (the legendary sword *Magdaer* from Guild Wars lore)
-*   `克米尔女神` $\rightarrow$ `เทพีคอร์เมียร์` (the Goddess *Kormir* from Guild Wars)
+**After (v3):** LLM outputs plain Thai paragraphs with inline markers. Python assembles. Zero JSON errors. Post-process reduced from 8 steps → 1 (CN strip only).
 
-### Skills & Stats
-*   `极光骑士` $\rightarrow$ `อัศวินแสงออโรร่า`
-*   `枭兽形态` $\rightarrow$ `ร่างนกเค้าแมว` (Owlbear/Moonkin form, retained from Chapter 129)
-*   `月火术` $\rightarrow$ `เพลิงจันทรา`
-*   `星火术` $\rightarrow$ `เพลิงดารา`
-*   `星界沟通` $\rightarrow$ `สื่อสารดวงดาว`
-*   `永恒之力` $\rightarrow$ `พลังนิรันดร์`
-*   `圣愈术` $\rightarrow$ `เวทรักษาศักดิ์สิทธิ์`
-*   `魅影无形` $\rightarrow$ `เงาไร้ตัวตน`
-*   `致碍之匕` $\rightarrow$ `กริชขัดขวาง`
-*   `恐惧尖啸` $\rightarrow$ `เสียงกรีดร้องตื่นตระหนก`
-*   `灵魂尖啸` $\rightarrow$ `เสียงกรีดร้องวิญญาณ`
-*   `恩赐解脱` $\rightarrow$ `ปลดปล่อยการุณย์` (Phantom Assassin's *Coup de Grace* ability)
+### Key differences
+
+| Aspect | v2 (old) | v3 (current) |
+|:-------|:---------|:-------------|
+| LLM output | JSON with 200+ blocks | Plain Thai text |
+| Block types | narration/dialogue/system/game_title/end | None (inline markers) |
+| Dialogue markers | `「」` (CJK brackets) | `"..."` (straight quotes) |
+| JSON parse errors | ~40% | 0% |
+| Post-process steps | 8 | 1 |
+| Schema | `blocks[]` | `paragraphs[]` |
+| Reader rendering | switch on type | inline marker CSS |
+
+### Chapter file format
+
+```json
+{
+  "schema_version": 3,
+  "num": 142,
+  "title": "ตอนที่ 142 ...",
+  "paragraphs": ["...", "..."],
+  "source": "ch 142",
+  "lang": "cn",
+  "output_lang": "th"
+}
+```
+
+Legacy chapters (v2) keep both `blocks` + `paragraphs` fields for backward compatibility.
+
+### Post-process steps removed
+
+Step 0: Fix block type typos — LLM no longer writes JSON types
+Step 1: Append end marker — auto-added by Python
+Step 3: Reclassify dialogue — no block types needed
+Step 4: Extract speaker — no block types
+Step 5: EN guard — LLM translates naturally without JSON pressure
+Step 6: Fix system brackets — LLM keeps `【】` naturally
+Step 7: Wrap dialogue quotes — LLM uses `"..."` directly
+Step 8: Remove empty blocks — no JSON blocks to be empty
+
+### Renderer changes
+
+- New `renderParagraphs()` in `render.js`
+- Frontend `reader.js` renders paragraphs with inline marker detection
+- CSS `.c-marker--{dialogue,system,thought,end}` replaces `.dialogue`, `.system-msg`, etc.
+- Both formats supported for backward compatibility
+
+### Test results
+
+- Python: 158/158 tests passing
+- Frontend: paragraphs + backward compat verified
 
 ---
 
-## 3. Formatting & Schema Highlights (NovelClaw v3 Pydantic)
+## Archive — Old notes (pre-v3)
 
-1.  **Language and Quotes (`lang: "th"`):**
-    *   Since the target chapter was marked as `"lang": "th"`, the dialogue block validator expects Thai curly quotes `“` and `”` rather than Chinese brackets `「` and `」`.
-    *   Straight ASCII double quotes (`"`) are strictly rejected by the validator to prevent formatting degradation.
-2.  **Narration/Dialogue Separation:**
-    *   Sentences containing both narrative actions and dialogue (e.g., `曹星惊呀道：“...”`) are split into distinct `narration` and `dialogue` blocks to fit the strict rendering structure of the web reader.
-3.  **WoW Meme Retention:**
-    *   The iconic line `“แล้วกูลแดน... สิ่งแลกเปลี่ยนคืออะไรล่ะ?”` (Gul'dan, what must we give in return?) was kept intact to preserve the author's subtle humor and pop-culture easter eggs.
+### June 2026: Source File Naming Shift (Historical)
 
----
-
-## 4. Verification Check
-
-*   **Pydantic validation:** Ran successfully on the generated `0131.json`.
-*   **Search Re-indexing:** Executed `python tools/chapter_search.py index` to rebuild the FTS5 sqlite database, confirming 103 active chapters.
-*   **Dev server state:** Restarted and listening on `http://localhost:4173/`.
+~Note about `0128.md` being missing from source. The mapping shift is no longer relevant as the pipeline now uses direct file reading.~
