@@ -1,4 +1,6 @@
-# NovelClaw Progress — global-descent
+# NovelClaw Progress — Global Descent
+
+**Full title (EN):** Global Descent: Farming the Apocalypse with My Sister-in-Law
 
 **Last translated:** ch 138
 69/1239 (5.57%)

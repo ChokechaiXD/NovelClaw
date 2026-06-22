@@ -1,75 +1,142 @@
 # NovelClaw — Translation Manual
-=================================
 
 > Human reference for maintaining the NovelClaw translation system.
-> For the AI translation rules, see `PROMPT.md`.
+
+**Last updated:** 2026-06-22 (v3 paragraphs pipeline)
+
+---
 
 ## System Overview
 
 ```
-Source (CN) → AI Translation (TH) → Validation → Save → Commit
-                      ↑
-              PROMPT.md (AI rules)
-              style.md (per-novel)
-              glossary/ (terms)
+Source (CN/Multi) → AI Translation (TH) → Python assemble paragraphs → Validate → Save → Commit
+                            ↑
+                    glossary/ (terms)
+                    style rules
+                    brackets.json (markers config)
 ```
 
 ## File Structure
 
 ```
 NovelClaw/
-├── PROMPT.md              ← AI system prompt (S0-S9) — send to AI before translating
-├── TRANSLATION_MANUAL.md  ← This file — human reference
-├── TRANSLATION_GUIDE.md   — Quick workflow guide
-├── docs/
-│   └── THAI_NATURALNESS.md — Deep Thai writing guide
-├── tools/                  — Validation, glossary, format tools
-│   ├── validate_chapter.py
-│   ├── save_chapter.py
-│   ├── glossary_doctor.py
-│   ├── build_yaml.py
-│   └── ...
+├── tools/                   — Translation & validation toolkit
+│   ├── translate.py         — Main pipeline: read → LLM → parse → validate → save
+│   ├── migrate_to_v3.py     — Schema migration helper
+│   ├── schema.py            — Pydantic Chapter schema (v3 with paragraphs)
+│   ├── validation.py        — Quality gate: CJK/EN/artifact leak checks
+│   ├── scorer.py            — 8-dimension objective quality scorer
+│   ├── glossary.py          — Glossary loading & term management
+│   ├── progress.py          — Batch progress tracking
+│   ├── translation_memory.py— Block-level translation cache
+│   └── providers/
+│       ├── __init__.py
+│       └── api.py           — LLM HTTP provider (via Hermes config)
+├── reader/                  — Express.js web reader
+│   └── lib/
+│       ├── render.js        — renderChapterJson() + renderParagraphs()
+│       └── brackets.js      — Language bracket config loader
 └── novels/
     └── <slug>/
-        ├── style.md           — Per-novel style choices (locked terms, brackets, pitfalls)
-        ├── format_spec.md     — File format spec (v2 JSON schema)
         ├── glossary/
-        │   ├── locked.md       — P1: Never deviate
-        │   ├── reference.md    — P2: Use consistently
-        │   ├── auto.md         — P3: Suggestion only
-        │   └── glossary.yml    — Auto-generated (build_yaml.py)
+        │   ├── locked.md    — P1: Never deviate
+        │   ├── reference.md — P2: Use consistently
+        │   ├── auto.md      — P3: Suggestion only
+        │   └── glossary.yml — Auto-generated (build_yaml.py)
         └── chapters/
-            └── NNNN.json      — Translated chapters (schema v2)
+            ├── NNNN.json    — Translated chapters (schema v3)
+            └── source/
+                └── NNNN.md  — Raw source chapters
 ```
 
-## Translation Workflow
+## Translation Pipeline (v3)
 
-### Per Chapter
+### One chapter
 
 ```bash
-# 1. Get context
-python tools/translate_ch.py <N> --context --search
-
-# 2. AI translates (Mika follows PROMPT.md + style.md + glossary)
-
-# 3. Save + validate
-python tools/save_chapter.py <N>
-python tools/validate_chapter.py <N>
-
-# 4. Commit
-git add novels/<slug>/chapters/NNNN.json
-git commit -m "translate ch <N>"
+python tools/translate.py <N> --score --json
 ```
 
-### Batch (multiple chapters)
+### Batch
 
 ```bash
-# Context for range
-python tools/translate_ch.py <start> <end> --context
-
-# Validate all
-python tools/validate_chapter.py <start> <end>
+python tools/translate.py <start>-<end> --score --json --concurrent 3
 ```
+
+### What happens
+
+| Step | What | Who |
+|:----|:-----|:----|
+| 1 | Read & clean source | Python |
+| 2 | Build prompt (glossary + style + continuity) | Python |
+| 3 | LLM translates → outputs plain Thai text with inline markers | LLM |
+| 4 | `parse_translation_output()` → split paragraphs | Python |
+| 5 | CN strip & append `(จบบท)` end marker | Python |
+| 6 | Pydantic schema validation | Python |
+| 7 | Quality gate (CJK/EN/artifact leak checks) | Python |
+| 8 | Save `NNNN.json` | Python |
+
+### Post-processing steps: from 8 → **1** ✅
+
+Post-process no longer handles: block type fixing, JSON repair, dialogue reclassification, speaker extraction, bracket wrapping, EN guard, empty block removal — all obsolete.
+
+## Chapter File Format (v3 — current)
+
+```json
+{
+  "schema_version": 3,
+  "num": 142,
+  "title": "ตอนที่ 142 การเติบโตของวอลลี่แบร์",
+  "lang": "cn",
+  "output_lang": "th",
+  "paragraphs": [
+    "ข้อความแจ้งเตือนระบบสองบรรทัด ทำให้ใบหน้าของเฉาซิงมีสีหน้าดีใจ",
+    "\"ท่านลอร์ดที่รัก เสด็จมาแล้วหรือเจ้าคะ\"",
+    "【วิญญาณระดับหัวกะทิของสัตว์ประหลาดเพาะพันธุ์วิญญาณ】",
+    "(จบบท)"
+  ],
+  "source": "ch 142"
+}
+```
+
+### Inline Markers (universal — all languages, all genres)
+
+| Marker | Meaning | CSS class |
+|:-------|:--------|:----------|
+| `"..."` | Dialogue (straight quotes) | `.c-marker--dialogue` |
+| `「...」` | Dialogue (CJK brackets) | `.c-marker--dialogue` |
+| `"…"` (curly) | Dialogue | `.c-marker--dialogue` |
+| `【...】` | System notification | `.c-marker--system` |
+| `『...』` | Inner thought (JP/CN) | `.c-marker--thought` |
+| `(จบบท)` | End marker | `.c-marker--end` |
+
+No block types needed — markers in text drive the styling via regex.
+
+## Validation & Quality
+
+### Quality gate (pre-save)
+
+```bash
+python tools/translate.py 130 --score --json
+```
+
+Validates: CJK leak, EN leak, source artifact leak, length ratio.
+
+### Post-translation quality scorer
+
+```bash
+python tools/scorer.py chapters/ --source source/
+```
+
+8 dimensions: completeness, CN leak, EN leak, end marker, speaker, dialogue ratio, block diversity, schema. Returns 0-100 weighted score.
+
+### Schema migration
+
+```bash
+python tools/migrate_to_v3.py novels/global-descent
+```
+
+Adds `paragraphs` field while preserving legacy `blocks` for backward compatibility.
 
 ## Glossary Maintenance
 
@@ -80,87 +147,20 @@ python tools/validate_chapter.py <start> <end>
    - **Reference (P2)**: Recurring NPCs, common skills/items → `glossary/reference.md`
    - **Auto (P3)**: One-off terms → `glossary/auto.md`
 
-2. Add row to the appropriate .md file
+2. Add row to the appropriate `.md` file (format: `| CN | TH | notes |`)
 
-3. Rebuild:
-   ```bash
-   python tools/build_yaml.py
-   ```
+3. No need to rebuild — `translate.py` loads directly from `.md` files.
 
 ### Priority Resolution
 
-`locked.md` > `reference.md` > `auto.md` > `style.md`
-
-## Validation
-
-```bash
-# Single chapter
-python tools/validate_chapter.py <N>
-
-# Range
-python tools/validate_chapter.py <start> <end>
-
-# With glossary doctor
-python tools/glossary_doctor.py --ch <N>
-```
-
-### Validation Checks
-
-| Check | Severity | Blocks Save |
-|-------|----------|-------------|
-| CJK chars in body | ERROR | ✅ |
-| Missing paragraphs | ERROR | ✅ |
-| Length ratio < 60% | ERROR | ✅ |
-| Locked term violation | ERROR | ✅ |
-| Length ratio > 250% | WARNING | ❌ |
-| New CN terms not in glossary | INFO | ❌ |
-
-## Tools Reference
-
-| Tool | Purpose |
-|------|---------|
-| `translate_ch.py N --context` | Get context (glossary, style, FTS) |
-| `save_chapter.py N` | Validate + save chapter JSON |
-| `validate_chapter.py N` | Validate chapter |
-| `glossary_doctor.py --ch N` | Check chapter for issues |
-| `build_yaml.py` | Rebuild glossary.yml from .md |
-| `reformat_chapter.py N` | Reformat chapter to v2 spec |
-
-## Chapter File Format (v2)
-
-```json
-{
-  "schema_version": 2,
-  "num": 113,
-  "title": "ตอนที่ 113 ...",
-  "lang": "cn",
-  "blocks": [
-    {"type": "narration", "text": "..."},
-    {"type": "dialogue", "text": "「...」", "speaker": "เฉาซิง"},
-    {"type": "system", "text": "【...】"},
-    {"type": "game_title", "text": "《...》"},
-    {"type": "end", "text": "(จบบท)"}
-  ],
-  "source": "ch 113",
-  "notes": []
-}
-```
-
-### Bracket Conventions
-
-| Use | Bracket | Forbidden |
-|-----|---------|-----------|
-| Dialogue | `「…」` | `"…"` straight |
-| System | `【…】` | `[…]` |
-| Game title | `《…》` | `<…>` |
+`locked.md` > `reference.md` > `auto.md`
 
 ## Adding a New Novel
 
 1. Create `novels/<slug>/` directory
-2. Copy `style.md` and `format_spec.md` from existing novel, customize
-3. Create `glossary/` with locked.md, reference.md, auto.md
-4. Add source chapters to `chapters/source/`
-5. Run `python tools/build_yaml.py` to generate glossary.yml
+2. Add source chapters to `chapters/source/` as `NNNN.md`
+3. Create `glossary/` with `locked.md`, `reference.md`, `auto.md`
+4. Add to `novels/<slug>/meta.md` for reader discovery
 
 ## Design Principles
 
@@ -169,14 +169,4 @@ python tools/glossary_doctor.py --ch <N>
 3. **Zero CJK leakage** — body text is pure Thai
 4. **Glossary is law** — locked terms never deviate
 5. **Validate before commit** — tools catch errors AI misses
-
-## Maintenance Notes
-
-- When PROMPT.md changes, all novels benefit (it's the universal rule set)
-- When style.md changes, only that novel is affected
-- glossary.yml is auto-generated — edit .md files, then run build_yaml.py
-- Run `validate_chapter.py` on existing chapters after major rule changes
-
----
-
-**Last updated:** 2026-06-15
+6. **Python does structure, LLM does translation** — never ask LLM to output JSON

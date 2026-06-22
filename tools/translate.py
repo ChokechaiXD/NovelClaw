@@ -10,7 +10,6 @@ import json
 import os
 import re
 import sys
-import time
 from collections.abc import Callable, Iterable as _Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -217,14 +216,6 @@ FORMAT_SPEC = """
 - System notifications: keep 【...】 brackets
 - Completeness: Thai output should be ~1-3x source length
 """
-
-
-def load_style_context() -> str:
-    """Load style guide for prompt injection."""
-    style_path = NOVEL_ROOT / "style.md"
-    if not style_path.exists():
-        return ""
-    return style_path.read_text(encoding="utf-8")[:3000]  # truncate to fit
 
 
 def get_glossary_context_from_lib(ch_num: int, source: str | None = None) -> str:
@@ -526,45 +517,6 @@ def _call_llm(prompt: str, max_retries: int = 3, system: str | None = None, time
             return '{"mock": "no LLM configured"}'
 
 
-def analysis_pass(
-    ch_num: int,
-    source_text: str,
-    source_lang: str = "zh",
-    target_lang: str = "th",
-) -> dict:
-    """Pass 1: Analyze chapter content, extract entities, generate summary.
-
-    This builds the context for Pass 2 translation by:
-    1. Extracting entities (bracket-based + frequency)
-    2. Cross-referencing with glossary
-    3. Generating a short summary in target language style
-
-    Returns dict with:
-      - entities: list of detected proper nouns
-      - placeholder_map: {placeholder: entity_info}
-      - placeheld_text: source with entities replaced
-      - summary: short chapter summary
-    """
-    glossary_terms = load_terms()
-
-    # Run entity pipeline
-    pipeline_result = entity_extraction_pipeline(
-        ch_num, source_text, glossary_terms, min_freq=2,
-    )
-
-    # Generate summary (first ~500 chars as summary)
-    summary = source_text[:300] + ("..." if len(source_text) > 300 else "")
-
-    return {
-        "entities": pipeline_result["entities"],
-        "placeholder_map": pipeline_result["placeholder_map"],
-        "placeheld_text": pipeline_result["placeheld_text"],
-        "summary": summary,
-        "entity_count": pipeline_result["count"],
-        "replaced_count": pipeline_result.get("replaced_count", 0),
-    }
-
-
 def mock_translate(
     ch_num: int,
     source_text: str,
@@ -690,11 +642,9 @@ def translate_one(
     profile_lang: str | None = None,
     progress_state: dict | None = None,
     progress_slug: str = "global-descent",
-    use_entities: bool = False,
-    two_pass: bool = False,
+    agent_passes: int = 2,
     use_score: bool = False,
     use_tm: bool = False,
-    agent_passes: int = 2,
     mock_agents: bool = False,
     json_mode: bool = False,
 ) -> bool:
@@ -754,15 +704,6 @@ def translate_one(
     if not json_mode:
         print(f"→ ch{ch_num}: source = {len(source)} chars")
 
-    # ── Entity detection (logging only) ──────────────────────────
-    # DeepSeek V4 Flash is Chinese-native — it understands CN names without placeholders.
-    # Entity placeholder replacement HURTS more than helps (46 placeholders destroy context).
-    # We keep detection for stats/reference only. No placeholder replacement.
-    # ponytail: entity placeholder replacement disabled for DeepSeek workflow
-    if use_entities or search:
-        analysis = analysis_pass(ch_num, source, source_lang, target_lang)
-        if analysis["entity_count"] > 0:
-            print(f"  → {analysis['entity_count']} entities detected ({analysis.get('replaced_count', 0)} non-glossary)")
     placeholder_map = {}
     translate_source = source
 
@@ -905,18 +846,6 @@ def translate_one(
     return True
 
 
-def _load_known_characters(novel_slug: str = "global-descent") -> list[str]:
-    """Load known character names from NPC bank for speaker extraction."""
-    chars = []
-    npc_dir = Path(__file__).resolve().parent.parent / "novels" / novel_slug / "npc_bank"
-    if npc_dir.exists():
-        for f in sorted(npc_dir.glob("*.md")):
-            name = f.stem
-            if name != "index":
-                chars.append(name)
-    return chars
-
-
 def search_term(term: str) -> None:
     """Search for a Thai equivalent of a CN term.
 
@@ -999,16 +928,6 @@ Examples:
         "--no-progress",
         action="store_true",
         help="Skip progress file tracking",
-    )
-    ap.add_argument(
-        "--entities",
-        action="store_true",
-        help="Enable entity placeholder pipeline (extract → hash → translate → restore)",
-    )
-    ap.add_argument(
-        "--two-pass",
-        action="store_true",
-        help="Enable two-pass translation (analysis → summary + entities → translate)",
     )
     ap.add_argument(
         "--score",
@@ -1107,8 +1026,6 @@ Examples:
                     profile_lang=args.profile_lang,
                     progress_state=progress_state,
                     progress_slug=slug,
-                    use_entities=args.entities,
-                    two_pass=args.two_pass,
                     use_score=args.score,
                     use_tm=args.tm,
                     json_mode=args.json,
@@ -1145,8 +1062,6 @@ Examples:
                 profile_lang=args.profile_lang,
                 progress_state=progress_state,
                 progress_slug=slug,
-                use_entities=args.entities,
-                two_pass=args.two_pass,
                 use_score=args.score,
                 use_tm=args.tm,
                 json_mode=args.json,

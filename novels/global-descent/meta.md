@@ -15,6 +15,8 @@ translated_chapters: 138
 
 # 全球降臨：帶著嫂嫂末世種田
 
+- **Full title (EN):** Global Descent: Farming the Apocalypse with My Sister-in-Law
+- **Short title (EN):** Global Descent
 - **Original title (CN):** 全球降臨：帶著嫂嫂末世種田
 - **Author:** 一條小白蛇
 - **Source language:** cn (繁體中文)
