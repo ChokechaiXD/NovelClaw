@@ -84,8 +84,9 @@ MIN_BLOCKS = 5
 # Speaker attribution target
 SPEAKER_TARGET = 0.20  # 20% of dialogue blocks should have speaker
 
-# CJK regex
-CN_RE = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf]')
+# CJK regex — from schema
+from schema import CN_RE as _cn_re_re
+CN_RE = _cn_re_re
 
 
 # ── Scorer types ──────────────────────────────────────────────────────

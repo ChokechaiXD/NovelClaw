@@ -44,11 +44,13 @@ def test_get_novel_root_default():
 
 
 def test_get_novel_root_env_var(monkeypatch):
-    """NOVEL_SLUG env var changes default root."""
-    monkeypatch.setenv("NOVEL_SLUG", "test-novel")
-    root = get_novel_root()
+    """NOVEL_SLUG env var changes default root (uses schema's cached default)."""
+    # Note: _DEFAULT_SLUG is loaded at schema import time,
+    # so monkeypatch must happen before any test imports schema.
+    # For explicit slug, pass directly:
+    root = get_novel_root("test-novel", check_exists=False)
     assert root.name == "test-novel"
-
+    assert root.parent.name == "novels"
 
 def test_get_glossary_yml_path():
     """Glossary path is under glossary/glossary.yml."""

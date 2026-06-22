@@ -89,8 +89,6 @@ LANG_CONFIG = {
     },
     "th": {"name": "Thai", "end_marker": "(จบบท)", "title_format": "ตอนที่ {num} {title}"},
 }
-
-
 def get_lang_config_key(lang: str, default: str) -> str:
     normalized = normalize_language_key(lang, default)
     if normalized == "cn":
@@ -522,15 +520,6 @@ def _post_tm(ch_data: dict, progress_slug: str, ch_num: int) -> None:
         tm.save()
     print(f"  💾 TM: +{added} new, {tm.stats()['cache_entries']} total")
 
-def _post_glossary(ch_num: int, source: str, progress_slug: str) -> None:
-    """Extract auto-glossary candidates after translating — disabled."""
-    pass
-
-
-def _post_score(source: str, ch_data: dict) -> None:
-    """Score using metrics-based scorer (CLI: python tools/scorer.py)."""
-
-
 def _run_after(flag: bool, mock: bool, name: str, fn: Callable[[], None]) -> None:
     """Run a post-translation step if flag is set and not mock."""
     if flag and not mock:
@@ -928,7 +917,7 @@ def translate_one(
     # 2. Strip remaining CN chars from narration/dialogue blocks.
     #    DeepSeek sometimes leaves stray CN characters even after instruction.
     #    ponytail: only clean narration/dialogue — system blocks may keep CN terms
-    _cn_re = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf]')
+    from schema import CN_RE as _cn_re
     _cn_cleaned = 0
     for block in blocks:
         if block.get("type") in ("narration", "dialogue") and block.get("text"):

@@ -69,6 +69,37 @@ else:
 
 
 # ────────────────────────────────────────────────────────────────────
+# Shared CN regex (single source of truth — import from schema)
+# ────────────────────────────────────────────────────────────────────
+CN_RE = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf]')
+CN_WIDE_RE = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]')
+CN_INLINE_RE = re.compile(r'[\u4e00-\u9fff]{2,}')
+
+
+# ────────────────────────────────────────────────────────────────────
+# Language key normalization
+# ────────────────────────────────────────────────────────────────────
+def normalize_language_key(key: str) -> str:
+    """Canonicalize language keys (cn→zh, en→en, th→th, etc.)."""
+    mapping = {
+        'chinese': 'zh', 'cn': 'zh',
+        'thai': 'th', 'thailand': 'th',
+        'english': 'en',
+        'japanese': 'jp', 'japan': 'jp',
+        'korean': 'kr', 'korea': 'kr',
+    }
+    return mapping.get(key.lower().strip(), key)
+
+
+def get_lang_config_key(key: str) -> str:
+    """Canonicalize language config key for BRACKETS lookup."""
+    k = key.strip().lower()
+    if k in ('cn', 'zh', 'zh-cn', 'chinese'):
+        return 'cn'
+    return k
+
+
+# ────────────────────────────────────────────────────────────────────
 # Content block types
 # ────────────────────────────────────────────────────────────────────
 
@@ -340,27 +371,27 @@ SOURCE_DIR = CHAPTERS_DIR / 'source'
 # ────────────────────────────────────────────────────────────────────
 # Dynamic novel resolver (for multi-novel support)
 # ────────────────────────────────────────────────────────────────────
-def get_novel_root(slug: str | None = None) -> Path:
-    """Resolve novel root directory.
+def get_novel_root(slug: str | None = None, check_exists: bool = True) -> Path:
+        """Resolve novel root directory.
 
-    Args:
-        slug: Novel slug (e.g., 'global-descent', 'another-novel').
-              If None, uses default (env var NOVEL_SLUG or 'global-descent').
+        Args:
+            slug: Novel slug. If None, uses default.
+            check_exists: If True, raises FileNotFoundError when path missing.
 
-    Returns:
-        Path to the novel's root directory.
+        Returns:
+            Path to the novel's root directory.
 
-    Raises:
-        FileNotFoundError: If the novel directory doesn't exist.
-    """
-    s = slug or _DEFAULT_SLUG
-    path = NOVELS_DIR / s
-    if not path.exists():
-        raise FileNotFoundError(
-            f"Novel '{s}' not found at {path}. "
-            f"Available: {[d.name for d in NOVELS_DIR.iterdir() if d.is_dir()]}"
-        )
-    return path
+        Raises:
+            FileNotFoundError: If check_exists=True and the directory doesn't exist.
+        """
+        s = slug or _DEFAULT_SLUG
+        path = NOVELS_DIR / s
+        if check_exists and not path.exists():
+            raise FileNotFoundError(
+                f"Novel '{s}' not found at {path}. "
+                f"Available: {[d.name for d in NOVELS_DIR.iterdir() if d.is_dir()]}"
+            )
+        return path
 
 
 def get_chapters_dir(slug: str | None = None) -> Path:
