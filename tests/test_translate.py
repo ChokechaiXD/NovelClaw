@@ -10,23 +10,33 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
 import translate
 
 
-class TestParseLLMOutput:
-    def test_plain_json(self):
-        result = translate.parse_llm_output('{"blocks": []}', 1)
-        assert result == {"blocks": []}
+class TestParseTranslationOutput:
+    def test_plain_text(self):
+        result = translate.parse_translation_output("ข้อความแรก\n\nข้อความที่สอง", 1)
+        assert "paragraphs" in result
+        assert len(result["paragraphs"]) == 3  # 2 paragraphs + end marker
+        assert result["paragraphs"][-1] == "(จบบท)"
 
-    def test_json_with_fences(self):
-        result = translate.parse_llm_output('```json\n{"num": 1}\n```', 1)
-        assert result == {"num": 1}
+    def test_with_markers(self):
+        result = translate.parse_translation_output('เธอพูด "สวัสดี"\n\n【ระบบแจ้งเตือน】', 1)
+        assert "สวัสดี" in result["paragraphs"][0]
+        assert "【" in result["paragraphs"][1]
 
-    def test_json_with_prose(self):
-        result = translate.parse_llm_output('Here is the translation:\n{"title": "test"}\n---end---', 1)
-        assert result == {"title": "test"}
+    def test_with_fences(self):
+        result = translate.parse_translation_output('```text\nบรรยาย\n\n"พูด"\n```', 1)
+        assert len(result["paragraphs"]) >= 2
+        assert result["paragraphs"][0] == "บรรยาย"
 
     def test_empty_raises(self):
         import pytest
         with pytest.raises(ValueError):
-            translate.parse_llm_output("no json here", 1)
+            translate.parse_translation_output("", 1)
+
+    def test_schema_version(self):
+        result = translate.parse_translation_output("บทนำ", 5)
+        assert result["schema_version"] == 3
+        assert result["num"] == 5
+        assert result["output_lang"] == "th"
 
 
 class TestCleanSource:
