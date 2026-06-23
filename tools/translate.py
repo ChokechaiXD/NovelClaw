@@ -560,6 +560,15 @@ def parse_translation_output(output: str, ch_num: int) -> dict:
     paragraphs = re.split(r"\n\n+", output.strip())
     paragraphs = [p.strip() for p in paragraphs if p.strip()]
 
+    # Fallback: if LLM didn't paragraph (single giant block), split by sentences
+    if len(paragraphs) <= 2 and any(len(p) > 3000 for p in paragraphs):
+        giant = paragraphs[0] if paragraphs else ""
+        # Split by Thai sentence endings or newlines
+        parts = re.split(r"(?<=[.!?。！？])\s*|\n", giant)
+        paragraphs = [p.strip() for p in parts if len(p.strip()) > 10]
+        if not paragraphs:
+            paragraphs = [giant]
+
     if not paragraphs:
         raise ValueError(f"Empty LLM output for ch{ch_num}")
 
@@ -841,15 +850,22 @@ Examples:
     ap.add_argument("chapters", help="Single (113) or range (113-150)")
     ap.add_argument("--mock", action="store_true", help="Use mock translation (no LLM call)")
     ap.add_argument("--no-validate", action="store_true", help="Skip schema validation")
+    ap.add_argument("--no-progress", action="store_true", help="Skip progress tracking")
     ap.add_argument("--dry-run", action="store_true", help="Show context only, no save")
     ap.add_argument("--context", action="store_true", help="Print full context")
     ap.add_argument("--search", type=str, metavar="TERM", help="Search Thai for a CN term")
-
-    ap.add_argument("--target-lang", "--to", default="th", help="Target language key (e.g. th, en). Short: --to.")
+    ap.add_argument("--search-unknown", action="store_true", help="Extract unknown CN terms")
+    ap.add_argument("--source-lang", "--from", default="zh", help="Source language key")
+    ap.add_argument("--target-lang", "--to", default="th", help="Target language key. Short: --to.")
     ap.add_argument(
         "--profile-lang",
         default=None,
         help="Override output/profile language for validation/rendering (e.g. th, en)",
+    )
+    ap.add_argument(
+        "--score",
+        action="store_true",
+        help="Enable LLM-as-Judge quality scoring after translation",
     )
     ap.add_argument(
         "--json",
@@ -943,7 +959,6 @@ Examples:
                     progress_state=progress_state,
                     progress_slug=slug,
                     use_score=args.score,
-                    use_tm=args.tm,
                     json_mode=args.json,
                 ): ch
                 for ch in ch_nums
@@ -979,7 +994,6 @@ Examples:
                 progress_state=progress_state,
                 progress_slug=slug,
                 use_score=args.score,
-                use_tm=args.tm,
                 json_mode=args.json,
                 ):
                 success += 1
