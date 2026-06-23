@@ -122,12 +122,12 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
                 for fix in rr.fixes:
                     yield f"  {fix}"
 
-        # Move from staging to final
-        yield f"💾 บันทึกตอน {num}..."
-        sr = runner.stage_to_final(slug, num)
-        if not sr["ok"]:
-            yield f"❌ บันทึกตอน {num} ล้มเหลว: {sr['error']}"
-            job = job.copy(failed=job.failed + [{"chapter": num, "reason": sr["error"], "retryCount": 0}])
+        # translate.py already wrote .th.json — verify exists
+        yield f"💾 ตรวจสอบตอน {num}..."
+        th_path = _PROJECT_ROOT / "novels" / slug / "chapters" / f"{num:04d}.th.json"
+        if not th_path.exists():
+            yield f"❌ ตอน {num} ไม่พบ .th.json หลังแปล"
+            job = job.copy(failed=job.failed + [{"chapter": num, "reason": "th.json_not_found_after_translate", "retryCount": 0}])
             job.save()
             locks.release(slug, num)
             if mode == "safe":

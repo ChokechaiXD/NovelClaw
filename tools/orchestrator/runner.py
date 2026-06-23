@@ -1,6 +1,7 @@
 """Runner — execute translate, validate, rebuild with job checkpoint."""
 
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -25,16 +26,20 @@ def translate_single(slug: str, num: int, mode: str = "safe",
     """
     result = {"ok": False, "chapter_data": None, "score": None, "warnings": [], "error": None}
 
-    # Build translate.py args
+    # Build translate.py args — pass slug via env var (translate.py reads NOVEL_SLUG)
     cmd = [_python(), str(_TOOLS_DIR / "translate.py"), str(num), "--json"]
     if score:
         cmd.append("--score")
+
+    env = dict(os.environ)
+    env["NOVEL_SLUG"] = slug
 
     try:
         proc = subprocess.run(
             cmd,
             capture_output=True, text=True, timeout=300,
             cwd=str(_PROJECT_ROOT),
+            env=env,
         )
     except subprocess.TimeoutExpired:
         result["error"] = "translate.py timeout (300s)"
@@ -54,26 +59,22 @@ def translate_single(slug: str, num: int, mode: str = "safe",
         result["error"] = f"translate.py output not JSON: {proc.stdout[:200]}"
         return result
 
-    # translate.py now writes directly to .th.json via --json flag
-    # Our orchestrator needs to ensure the output goes to staging
-    # Let's translate and then move the file
+    # Verify output file was written
     th_path = _PROJECT_ROOT / "novels" / slug / "chapters" / f"{num:04d}.th.json"
-    staging_path = _PROJECT_ROOT / "staging" / slug / f"{num:04d}.th.json.tmp"
+    if not th_path.exists():
+        result["error"] = f"translate.py claimed success but no .th.json at {th_path}"
+        return result
 
-    # If translate.py wrote directly, move to staging first
-    if th_path.exists():
-        staging_path.parent.mkdir(parents=True, exist_ok=True)
-        th_path.rename(staging_path)
-
-    # Parse the chapter data
-    chapter_data = output if isinstance(output, dict) else {}
-
-    # Extract score if available
-    score_val = chapter_data.get("score") or output.get("score")
+    # Read back the chapter data for validation
+    try:
+        chapter_data = json.loads(th_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        result["error"] = f"saved .th.json is invalid JSON: {e}"
+        return result
 
     result["ok"] = True
     result["chapter_data"] = chapter_data
-    result["score"] = score_val
+    result["score"] = chapter_data.get("score") or output.get("score")
     result["warnings"] = chapter_data.get("warnings", [])
 
     return result
@@ -169,32 +170,6 @@ def rebuild_index(slug: str) -> dict:
 
     result["ok"] = True
     return result
-
-
-def stage_to_final(slug: str, num: int) -> dict:
-    """Move staging file to final chapters/ dir with backup.
-
-    Returns: {ok: bool, error: str|None}
-    """
-    result = {"ok": False, "error": None}
-
-    staging = _PROJECT_ROOT / "staging" / slug / f"{num:04d}.th.json.tmp"
-    final = _PROJECT_ROOT / "novels" / slug / "chapters" / f"{num:04d}.th.json"
-
-    if not staging.exists():
-        result["error"] = f"staging file not found: {staging}"
-        return result
-
-    # Backup existing th.json if any
-    if final.exists():
-        bak = final.with_suffix(".th.json.bak")
-        final.rename(bak)
-
-    # Move staging → final
-    staging.rename(final)
-    result["ok"] = True
-    return result
-
 
 def smoke_test(slug: str, num: int) -> dict:
     """Run a quick smoke test via the reader API.

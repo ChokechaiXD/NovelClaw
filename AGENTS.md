@@ -107,15 +107,24 @@ Post-process: no longer does type fix, end marker append (auto), dialogue reclas
 
 | User says | MIKA does |
 |:-----------|:-----------|
-| `"แปลตอน 130"` | `terminal("python tools/translate.py 130 --score --json")` |
-| `"แปล 131-135 อีก 5 ตอน"` | `terminal("python tools/translate.py 131-135 --score --json --concurrent 3")` |
-| `"ตรวจคุณภาพ"` | `terminal("python tools/scorer.py chapters/ --source source/")` |
+| `"แปลตอน 130"` | `terminal("python tools/novelctl.py translate 130 --slug global-descent")` |
+| `"แปล 131-135 อีก 5 ตอน"` | `terminal("python tools/novelctl.py translate 131-135 --mode autopilot --slug global-descent")` |
+| `"แปลใหม่ 139"` | `terminal("python tools/novelctl.py translate 139 --force --slug global-descent")` |
+| `"ตรวจ 139"` | `terminal("python tools/novelctl.py validate 139 --slug global-descent")` |
+| `"ตรวจ 131-135"` | `terminal("python tools/novelctl.py validate 131-135 --slug global-descent")` |
+| `"ตรวจคุณภาพ"` | `terminal("python tools/novelctl.py validate 1-200 --slug global-descent")` |
+| `"เช็ค 140-150"` | `terminal("python tools/novelctl.py preflight 140-150 --slug global-descent")` |
+| `"ซ่อม 139"` | `terminal("python tools/novelctl.py repair 139 --slug global-descent")` |
+| `"สถานะ"` | `terminal("python tools/novelctl.py status")` |
+| `"หยุด"` | `terminal("python tools/novelctl.py stop")` |
+| `"ต่อ"` | `terminal("python tools/novelctl.py resume --slug global-descent")` |
+| `"รายงาน"` | `terminal("python tools/novelctl.py report --slug global-descent")` |
+| `"rebuild"` | `terminal("python tools/novelctl.py rebuild --slug global-descent")` |
 | `"scrape ตอน 128"` | `terminal("python tools/scrape_chapters.py 128")` |
-
----
 
 ## Anti-Patterns (ห้ามทำเด็ดขาด)
 
+- ❌ อย่าเรียก `translate.py` โดยตรง — ใช้ `novelctl.py translate` เท่านั้น
 - ❌ อย่าใช้ `hermes chat -q` หรือ `hermes prompt` ใน translate pipeline — ใช้ HTTP ตรง
 - ❌ อย่าเปลี่ยน model จาก deepseek-v4-flash โดยไม่ถามพี่โชค — ฟรีเท่านั้น
 - ❌ อย่าใส่ API keys ใน code หรือ .env ของ project
