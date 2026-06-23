@@ -72,7 +72,7 @@ const ReaderPage = {
         try {
           const data = await Api.getChapterContent(slug, ch.num, Store.getSettings().readerLang || 'th');
 
-          Ui.$('reader-title').textContent = ch.title || `ตอนที่ ${ch.num}`;
+          Ui.$('reader-title').textContent = data.title || ch.title || `ตอนที่ ${ch.num}`;
           Ui.$('reader-position').textContent = `${chIdx + 1} / ${chapters.length}`;
 
           // Update topbar title with novel + chapter info
@@ -123,9 +123,6 @@ const ReaderPage = {
           }
           Ui.$('reader-content').innerHTML = contentHtml;
 
-          // Update URL hash so refresh/share goes to the right chapter
-          window.location.hash = `#novel/${slug}/${ch.num}`;
-
           // Mark as read
           Store.markRead(slug, ch.num);
           Store.setLastPosition(slug, ch.num);
@@ -150,11 +147,31 @@ const ReaderPage = {
       currentReaderChapters = chapters;
       currentReaderSlug = slug;
 
-      // ── Wire Nav Events ──────────────────────────────────────────────
-      Ui.$('reader-prev').onclick = () => { if (currentReaderIdx > 0) loadChapter(--currentReaderIdx); };
-      Ui.$('reader-next').onclick = () => { if (currentReaderIdx < currentReaderChapters.length - 1) loadChapter(++currentReaderIdx); };
-      Ui.$('reader-prev-2').onclick = () => { if (currentReaderIdx > 0) loadChapter(--currentReaderIdx); };
-      Ui.$('reader-next-2').onclick = () => { if (currentReaderIdx < currentReaderChapters.length - 1) loadChapter(++currentReaderIdx); };
+      // ── Wire Nav Events (navigate via hash — Router handles rendering) ─
+      Ui.$('reader-prev').onclick = () => {
+        if (currentReaderIdx > 0) {
+          const prev = chapters[currentReaderIdx - 1];
+          if (prev) window.location.hash = `#novel/${slug}/${prev.num}`;
+        }
+      };
+      Ui.$('reader-next').onclick = () => {
+        if (currentReaderIdx < chapters.length - 1) {
+          const next = chapters[currentReaderIdx + 1];
+          if (next) window.location.hash = `#novel/${slug}/${next.num}`;
+        }
+      };
+      Ui.$('reader-prev-2').onclick = () => {
+        if (currentReaderIdx > 0) {
+          const prev = chapters[currentReaderIdx - 1];
+          if (prev) window.location.hash = `#novel/${slug}/${prev.num}`;
+        }
+      };
+      Ui.$('reader-next-2').onclick = () => {
+        if (currentReaderIdx < chapters.length - 1) {
+          const next = chapters[currentReaderIdx + 1];
+          if (next) window.location.hash = `#novel/${slug}/${next.num}`;
+        }
+      };
       Ui.$('reader-back-top').onclick = () => {
         const sc = document.querySelector('.c-content');
         if (sc) sc.scrollTo({ top: 0, behavior: 'smooth' });
