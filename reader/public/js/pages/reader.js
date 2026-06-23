@@ -23,7 +23,15 @@ const ReaderPage = {
 
       let html = `
       <div class="reader-page">
-      <div class="c-toolbar reader-toolbar">
+        <!-- Progress bar -->
+        <div class="reader-progress" id="reader-progress"><div class="reader-progress__fill" id="reader-progress-fill"></div></div>
+
+        <!-- Floating exit button (visible in book mode) -->
+        <button class="reader-exit-btn" id="reader-exit-btn" title="ออกจากโหมดอ่าน">
+          <svg style="width:18px;height:18px;"><use xlink:href="#icon-arrow-left"/></svg>
+        </button>
+
+        <div class="c-toolbar reader-toolbar">
           <a href="#novel/${slug}" class="c-toolbar__back" data-nav>
             <svg style="width:16px;height:16px;"><use xlink:href="#icon-arrow-left"/></svg>
             <span>กลับ</span>
@@ -35,28 +43,31 @@ const ReaderPage = {
             <svg style="width:16px;height:16px;"><use xlink:href="#icon-fullscreen"/></svg>
           </button>
         </div>
-        <div class="c-reader__nav">
-          <button class="c-reader__nav-btn" id="reader-prev">◀ ก่อนหน้า</button>
-          <span class="c-reader__position" id="reader-position"></span>
-          <button class="c-reader__nav-btn" id="reader-next">ถัดไป ▶</button>
-        </div>
-        <div class="reader-content">
-          <h1 class="reader-title" id="reader-title"></h1>
-          <div class="c-reader__meta">
-            <button class="c-btn c-btn--icon" id="reader-font-sm" title="ลดขนาดอักษร">A−</button>
-            <span style="font-size:var(--text-sm);color:var(--c-text-muted);" id="reader-font-label">18px</span>
-            <button class="c-btn c-btn--icon" id="reader-font-lg" title="เพิ่มขนาดอักษร">A+</button>
-            <span class="c-toolbar__divider"></span>
-            <button class="c-btn c-btn--icon" id="reader-leading-sm" title="ลดช่องว่าง">↑↓</button>
-            <span style="font-size:var(--text-sm);color:var(--c-text-muted);" id="reader-leading-label">1.8</span>
-            <button class="c-btn c-btn--icon" id="reader-leading-lg" title="เพิ่มช่องว่าง">↑↑</button>
+
+        <div class="reader-shell">
+          <div class="c-reader__nav">
+            <button class="c-reader__nav-btn" id="reader-prev">◀ ก่อนหน้า</button>
+            <span class="c-reader__position" id="reader-position"></span>
+            <button class="c-reader__nav-btn" id="reader-next">ถัดไป ▶</button>
           </div>
-          <div id="reader-content"></div>
-        </div>
-        <div class="c-reader__nav">
-          <button class="c-reader__nav-btn" id="reader-prev-2">◀ ก่อนหน้า</button>
-          <button class="c-reader__nav-btn" id="reader-back-top">↑ กลับบน</button>
-          <button class="c-reader__nav-btn" id="reader-next-2">ถัดไป ▶</button>
+          <div class="reader-body">
+            <h1 class="reader-title" id="reader-title"></h1>
+            <div class="c-reader__meta">
+              <button class="c-btn c-btn--icon" id="reader-font-sm" title="ลดขนาดอักษร">A−</button>
+              <span style="font-size:var(--text-sm);color:var(--c-text-muted);" id="reader-font-label">18px</span>
+              <button class="c-btn c-btn--icon" id="reader-font-lg" title="เพิ่มขนาดอักษร">A+</button>
+              <span class="c-toolbar__divider"></span>
+              <button class="c-btn c-btn--icon" id="reader-leading-sm" title="ลดช่องว่าง">↑↓</button>
+              <span style="font-size:var(--text-sm);color:var(--c-text-muted);" id="reader-leading-label">1.8</span>
+              <button class="c-btn c-btn--icon" id="reader-leading-lg" title="เพิ่มช่องว่าง">↑↑</button>
+            </div>
+            <div id="reader-content"></div>
+          </div>
+          <div class="c-reader__nav">
+            <button class="c-reader__nav-btn" id="reader-prev-2">◀ ก่อนหน้า</button>
+            <button class="c-reader__nav-btn" id="reader-back-top">↑ กลับบน</button>
+            <button class="c-reader__nav-btn" id="reader-next-2">ถัดไป ▶</button>
+          </div>
         </div>
       </div>`;
 
@@ -206,6 +217,7 @@ const ReaderPage = {
       const applyLeading = (idx) => {
         const val = LEADINGS[idx];
         document.documentElement.style.setProperty('--leading-reader', `${val}`);
+        document.documentElement.style.setProperty('--reader-line-height', `${val}`);
         Store.setSetting('lineHeight', val);
         const lbl = Ui.$('reader-leading-label');
         if (lbl) lbl.textContent = `${val}`;
@@ -237,15 +249,32 @@ const ReaderPage = {
         updateIcon(currentTheme);
       };
 
-      // ── Distraction-free mode ────────────────────────────────────────
+      // ── Distraction-free / book mode ───────────────────────────────
       Ui.$('reader-distraction-toggle').onclick = () => {
         const app = document.querySelector('.c-app');
         if (!app) return;
-        app.classList.toggle('c-app--sidebar-collapsed');
-        app.classList.toggle('c-app--rightbar-collapsed');
-        const isActive = app.classList.contains('c-app--sidebar-collapsed');
-        Ui.showToast(isActive ? 'โหมดอ่านหนังสือ' : 'เปิดแถบเมนูแล้ว');
+        app.classList.toggle('c-app--reader');
+        const isActive = app.classList.contains('c-app--reader');
+        Ui.showToast(isActive ? 'โหมดอ่านหนังสือ' : 'ออกจากโหมดอ่านหนังสือ');
       };
+
+      // ── Exit book mode button ──────────────────────────────────────
+      Ui.$('reader-exit-btn').onclick = () => {
+        const app = document.querySelector('.c-app');
+        app?.classList.remove('c-app--reader');
+        Ui.showToast('ออกจากโหมดอ่านหนังสือ');
+      };
+
+      // ── Scroll progress bar ────────────────────────────────────────
+      const updateProgress = () => {
+        const sc = document.querySelector('.c-content');
+        if (!sc) return;
+        const pct = (sc.scrollTop / (sc.scrollHeight - sc.clientHeight)) * 100;
+        const fill = Ui.$('reader-progress-fill');
+        if (fill) fill.style.width = Math.min(100, Math.max(0, pct)) + '%';
+      };
+      document.querySelector('.c-content')?.addEventListener('scroll', updateProgress);
+      updateProgress(); // initial
 
       // ── Keyboard shortcuts ──────────────────────────────────────────
       if (this._readerKeyHandler) document.removeEventListener('keydown', this._readerKeyHandler);
