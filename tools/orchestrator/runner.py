@@ -14,22 +14,75 @@ sys.path.insert(0, str(_TOOLS_DIR))
 
 
 def _python() -> str:
-    """Detect python executable."""
     return sys.executable or "python"
+
+
+def _th_path(slug: str, num: int) -> Path:
+    return _PROJECT_ROOT / "novels" / slug / "chapters" / f"{num:04d}.th.json"
+
+
+def _parse_jsonl(stdout: str) -> list[dict]:
+    """Parse JSONL output from translate.py --json.
+
+    translate.py may emit one JSON line per chapter, then a batch summary.
+    Returns a list of all successfully parsed JSON objects.
+    """
+    results = []
+    for line in stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+            results.append(obj)
+        except json.JSONDecodeError:
+            continue
+    return results
+
+
+def _pick_chapter_result(parsed: list[dict], num: int) -> dict | None:
+    """From a list of JSONL objects, pick the one matching the chapter number."""
+    for obj in parsed:
+        if isinstance(obj, dict) and obj.get("ch") == num:
+            return obj
+    # Fallback: return first object with status
+    for obj in parsed:
+        if isinstance(obj, dict) and obj.get("status"):
+            return obj
+    # Last resort: return the last parseable object
+    return parsed[-1] if parsed else None
 
 
 def translate_single(slug: str, num: int, mode: str = "safe",
                      force: bool = False, score: bool = True) -> dict:
     """Translate a single chapter, return result dict.
 
-    Returns: {ok: bool, chapter_data: dict|None, score: int|None, warnings: list, error: str|None}
+    Returns: {ok: bool, chapter_data: dict|None, score: int|None, warnings: list, error: str|None,
+              draft: bool}
     """
-    result = {"ok": False, "chapter_data": None, "score": None, "warnings": [], "error": None}
+    result = {"ok": False, "chapter_data": None, "score": None, "warnings": [],
+              "error": None, "draft": mode == "draft"}
 
-    # Build translate.py args — pass slug via env var (translate.py reads NOVEL_SLUG)
+    is_draft = mode == "draft"
+    thp = _th_path(slug, num)
+
+    # Handle --force: backup/delete existing before calling translate.py
+    if force and thp.exists():
+        bak = thp.with_suffix(".th.json.bak")
+        try:
+            if bak.exists():
+                bak.unlink()
+            thp.rename(bak)
+        except Exception as e:
+            result["error"] = f"cannot backup existing file: {e}"
+            return result
+
+    # Build translate.py args
     cmd = [_python(), str(_TOOLS_DIR / "translate.py"), str(num), "--json"]
     if score:
         cmd.append("--score")
+    if is_draft:
+        cmd.append("--dry-run")
 
     env = dict(os.environ)
     env["NOVEL_SLUG"] = slug
@@ -52,29 +105,37 @@ def translate_single(slug: str, num: int, mode: str = "safe",
         result["error"] = f"translate.py exit {proc.returncode}: {proc.stderr[:500]}"
         return result
 
-    # Parse JSON output from stdout
-    try:
-        output = json.loads(proc.stdout)
-    except json.JSONDecodeError:
-        result["error"] = f"translate.py output not JSON: {proc.stdout[:200]}"
+    # Parse JSONL output
+    parsed = _parse_jsonl(proc.stdout)
+    chapter_output = _pick_chapter_result(parsed, num)
+
+    if is_draft:
+        # Draft mode: restore backup if we backed up, and report the output
+        if force and bak.exists():
+            if thp.exists():
+                thp.unlink()
+            bak.rename(thp)
+        result["ok"] = True
+        result["chapter_data"] = chapter_output or {}
+        result["score"] = (chapter_output or {}).get("score")
+        result["warnings"] = []
         return result
 
     # Verify output file was written
-    th_path = _PROJECT_ROOT / "novels" / slug / "chapters" / f"{num:04d}.th.json"
-    if not th_path.exists():
-        result["error"] = f"translate.py claimed success but no .th.json at {th_path}"
+    if not thp.exists():
+        result["error"] = f"translate.py claimed success but no .th.json at {thp}\nstdout: {proc.stdout[:300]}"
         return result
 
     # Read back the chapter data for validation
     try:
-        chapter_data = json.loads(th_path.read_text(encoding="utf-8"))
+        chapter_data = json.loads(thp.read_text(encoding="utf-8"))
     except Exception as e:
         result["error"] = f"saved .th.json is invalid JSON: {e}"
         return result
 
     result["ok"] = True
     result["chapter_data"] = chapter_data
-    result["score"] = chapter_data.get("score") or output.get("score")
+    result["score"] = chapter_output.get("score") if chapter_output else chapter_data.get("score")
     result["warnings"] = chapter_data.get("warnings", [])
 
     return result
@@ -110,16 +171,12 @@ def validate_single(slug: str, num: int) -> dict:
         result["error"] = str(e)
         return result
 
-    # Scorer outputs to stdout with score info
-    stdout = proc.stdout
-    stderr = proc.stderr
-
-    # Extract score from output (scorer.py outputs "Score: N/100" or similar)
     import re
+    stdout = proc.stdout
+
     score_match = re.search(r"(\d{1,3})\s*/\s*100", stdout)
     score_val = int(score_match.group(1)) if score_match else None
 
-    # Collect details (warnings, errors)
     details = []
     for line in stdout.split("\n"):
         stripped = line.strip()
@@ -139,12 +196,10 @@ def rebuild_index(slug: str) -> dict:
     """
     result = {"ok": False, "error": None}
 
-    # Use the Node.js chapter-repo module to rebuild
     script = f"""
     const repo = require('./lib/chapter-repo');
     repo.rebuildChaptersIndex('{slug}').then(idx => {{
         console.log('chapters.json rebuilt:', idx.chapters.length, 'chapters');
-        // Also rebuild search-index.th.json
         const ss = require('./lib/search-service');
         return ss.rebuildSearchIndex('{slug}', 'th');
     }}).then(si => {{
@@ -171,18 +226,17 @@ def rebuild_index(slug: str) -> dict:
     result["ok"] = True
     return result
 
+
 def smoke_test(slug: str, num: int) -> dict:
     """Run a quick smoke test via the reader API.
 
     Returns: {ok: bool, detail: str|None}
     """
     import urllib.request
-    import json
 
     result = {"ok": False, "detail": None}
 
     try:
-        # Test the API directly
         url = f"http://localhost:4173/api/novel/{slug}/chapter/{num}?lang=th"
         req = urllib.request.Request(url)
         with urllib.request.urlopen(req, timeout=5) as resp:

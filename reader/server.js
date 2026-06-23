@@ -65,9 +65,6 @@ function requireAdmin(req, res, next) {
   res.status(401).json({ error: 'Unauthorized — provide ?token= or Authorization: Bearer' });
 }
 
-// Startup check: if binding to 0.0.0.0 without ADMIN_TOKEN, warn
-let _admin_warned = false;
-
 // File read helper
 async function readTextOrNull(filepath) {
   try { return await fs.readFile(filepath, 'utf8'); }
@@ -286,7 +283,8 @@ app.post('/api/novel/:slug/chapter/:num/save', requireAdmin, asyncHandler(async 
   // Build draft blocks for validation (no file write yet)
   const draftBlocks = [];
   if (paragraphs && paragraphs.length) {
-    // paragraphs format doesn't have block-level validation issues
+    // Convert paragraphs to narration blocks for ratio validation
+    draftBlocks.push(...paragraphs.map(text => ({ type: 'narration', text })));
   } else if (blocks && blocks.length) {
     draftBlocks.push(...blocks);
   } else if (markdownText) {
@@ -363,9 +361,10 @@ const server = app.listen(PORT, BIND_HOST, () => {
     console.log(`  (localhost only — set HOST=0.0.0.0 for LAN access)`);
   }
   if (BIND_HOST === '0.0.0.0' && !ADMIN_TOKEN) {
-    console.log('  ⚠️  WARNING: HOST=0.0.0.0 but ADMIN_TOKEN is not set —');
-    console.log('     admin endpoints are unprotected on your network.');
-    console.log('     Set ADMIN_TOKEN=your-secret-token to secure them.');
+    console.log('  ❌  ERROR: HOST=0.0.0.0 requires ADMIN_TOKEN to protect');
+    console.log('     admin endpoints. Set ADMIN_TOKEN=your-secret-token and restart.');
+    console.log('     Or bind to 127.0.0.1 (default) for local-only access.');
+    process.exit(1);
   }
   console.log(`Serving novels from: ${NOVELS_DIR}`);
 });
