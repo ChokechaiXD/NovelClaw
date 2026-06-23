@@ -287,59 +287,100 @@ const AdminJobsPage = {
       const res = await fetch('/api/admin/jobs');
       const data = await res.json();
 
-      // Helper: render a section (always show, even if empty)
-      const makeSection = (title, items, icon, emptyText) => {
-        const count = items ? items.length : 0;
-        let html = '<div class="c-section" style="margin-top:var(--space-md);">' +
-          '<div class="c-section__header"><h3 class="c-section__title">' + icon + ' ' + title + ' (' + count + ')</h3></div>';
+      let filter = 'all';
 
-        if (count === 0) {
-          html += '<p class="u-text-muted u-p-md">' + Ui.esc(emptyText || 'ไม่มีรายการ') + '</p>';
+      const renderJobs = () => {
+        let allItems = [];
+        const src = data || {};
+        // Collect all items with type tag
+        if (src.active) src.active.forEach(i => allItems.push({ ...i, _type: 'active' }));
+        if (src.needsReview) src.needsReview.forEach(i => allItems.push({ ...i, _type: 'needs_review' }));
+        if (src.failed) src.failed.forEach(i => allItems.push({ ...i, _type: 'failed' }));
+        if (src.done) src.done.forEach(i => allItems.push({ ...i, _type: 'done' }));
+
+        // Sort newest first by createdAt
+        allItems.sort((a, b) => {
+          const ta = a.data?.createdAt || '';
+          const tb = b.data?.createdAt || '';
+          return tb.localeCompare(ta);
+        });
+
+        // Filter
+        let filtered = allItems;
+        if (filter !== 'all') filtered = allItems.filter(i => i._type === filter);
+
+        const counts = {
+          all: allItems.length,
+          active: (src.active||[]).length,
+          needs_review: (src.needsReview||[]).length,
+          failed: (src.failed||[]).length,
+          done: (src.done||[]).length,
+        };
+
+        let html = '<div class="c-container">' + renderAdminNav('jobs') +
+          '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">📋 คิวงานแปล</h3></div>' +
+
+          // ── Filter tabs ──
+          '<div style="display:flex;gap:var(--space-xs);margin-bottom:var(--space-md);flex-wrap:wrap;font-size:var(--text-sm);">' +
+          ['all','active','needs_review','failed','done'].map(t =>
+            `<button class="c-btn c-btn--xs c-job-filter" data-filter="${t}" style="${filter === t ? 'background:var(--c-accent);color:#fff;' : ''}">${t === 'all' ? 'ทั้งหมด' : t === 'needs_review' ? 'รอตรวจ' : t === 'active' ? 'กำลังรัน' : t} (${counts[t]})</button>`
+          ).join('') +
+          '</div>' +
+
+          // ── Compact list ──
+          '<div class="c-table-wrap c-table-wrap--compact"><table class="c-table"><thead><tr><th>ตอน</th><th>ประเภท</th><th>สถานะ</th><th>คำสั่ง</th><th></th></tr></thead><tbody>';
+
+        if (filtered.length === 0) {
+          html += '<tr><td colspan="5" class="u-text-center u-text-muted u-p-md">ไม่มีรายการ</td></tr>';
         } else {
-          html += '<div class="c-table-wrap"><table class="c-table"><thead><tr><th>ไฟล์</th><th>รายละเอียด</th><th>คำสั่ง</th><th></th></tr></thead><tbody>';
-          for (const item of items) {
+          for (const item of filtered) {
             const d = item.data || {};
-            const ch = d.chapter || d.chapterNo || '';
+            const ch = d.chapter || d.chapterNo || (d.chapters ? d.chapters.join(',') : '');
             const reason = d.reason || d.error || d.state || '';
             const suggestion = d.suggestedCommand || '';
             const slug = d.slug || '';
-            const createdAt = d.createdAt ? new Date(d.createdAt).toLocaleString('th-TH') : '';
+            const mode = d.mode || '';
+            const createdAt = d.createdAt ? new Date(d.createdAt).toLocaleString('th-TH', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
             const fileId = 'cmd-' + Math.random().toString(36).slice(2, 7);
 
+            let typeLabel = item._type;
+            let badgeClass = 'c-badge--gray';
+            if (item._type === 'active') { typeLabel = 'กำลังรัน'; badgeClass = 'c-badge--teal'; }
+            else if (item._type === 'needs_review') { typeLabel = 'รอตรวจ'; badgeClass = 'c-badge--amber'; }
+            else if (item._type === 'failed') { typeLabel = 'ล้มเหลว'; badgeClass = 'c-badge--red'; }
+            else if (item._type === 'done') { typeLabel = 'เสร็จแล้ว'; badgeClass = 'c-badge--teal'; }
+
             html += '<tr>' +
-              '<td style="font-family:var(--font-mono);font-size:12px;white-space:nowrap;">' + Ui.esc(item.file) + '</td>' +
-              '<td>' +
-                '<div style="font-weight:600;">ตอนที่ ' + Ui.esc(String(ch)) + '</div>' +
-                (reason ? '<div style="font-size:11px;color:var(--c-text-muted);">' + Ui.esc(reason.slice(0, 100)) + '</div>' : '') +
-                (createdAt ? '<div style="font-size:10px;color:var(--c-text-soft);">' + createdAt + '</div>' : '') +
+              '<td style="font-family:var(--font-mono);font-weight:600;white-space:nowrap;">' + Ui.esc(String(ch)) + '</td>' +
+              '<td><span class="c-badge c-badge--gray" style="font-size:10px;">' + Ui.esc(mode || typeLabel) + '</span></td>' +
+              '<td><span class="c-badge ' + badgeClass + '">' + typeLabel + '</span>' +
+                (reason ? '<div style="font-size:10px;color:var(--c-text-muted);margin-top:2px;">' + Ui.esc(reason.slice(0, 60)) + '</div>' : '') +
+                (createdAt ? '<div style="font-size:10px;color:var(--c-text-soft);margin-top:1px;">' + createdAt + '</div>' : '') +
               '</td>' +
               '<td>' +
-                (suggestion ? '<code id="' + fileId + '" style="font-size:11px;white-space:pre-wrap;">' + Ui.esc(suggestion) + '</code>' : '') +
+                (suggestion ? '<code id="' + fileId + '" style="font-size:10px;white-space:pre-wrap;">' + Ui.esc(suggestion) + '</code>' : '') +
               '</td>' +
               '<td style="white-space:nowrap;">' +
-                (suggestion ? '<button class="c-btn c-btn--xs" onclick="navigator.clipboard.writeText(document.getElementById(\'' + fileId + '\').textContent)">📋</button>' : '') +
-                (slug && ch ? ' <a href="#admin/logs/' + Ui.esc(slug) + '/' + ch + '" class="c-btn c-btn--xs" data-nav>📂</a>' : '') +
+                (suggestion ? '<button class="c-btn c-btn--xs" onclick="navigator.clipboard.writeText(document.getElementById(\'' + fileId + '\').textContent)" title="คัดลอกคำสั่ง">📋</button>' : '') +
+                (slug && ch ? ' <a href="#admin/logs/' + Ui.esc(slug) + '/' + ch + '" class="c-btn c-btn--xs" data-nav title="ดู audit log">📂</a>' : '') +
               '</td>' +
             '</tr>';
           }
-          html += '</tbody></table></div>';
         }
-        html += '</div>';
-        return html;
+
+        html += '</tbody></table></div></div>';
+        page.innerHTML = html;
+
+        // Bind filter clicks
+        document.querySelectorAll('.c-job-filter').forEach(btn => {
+          btn.addEventListener('click', () => {
+            filter = btn.dataset.filter;
+            renderJobs();
+          });
+        });
       };
 
-      const jobsData = data || {};
-      let html = '<div class="c-container">' +
-        renderAdminNav('jobs') +
-        '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">📋 คิวงานแปล</h3></div>';
-
-      html += makeSection('กำลังทำงาน', jobsData.active, '🔄', 'ไม่มี job ที่กำลังรัน');
-      html += makeSection('รอตรวจสอบ', jobsData.needsReview, '⚠️', 'ไม่มีตอนที่รอตรวจสอบ');
-      html += makeSection('ล้มเหลว', jobsData.failed, '❌', 'ไม่มีตอนที่ล้มเหลว');
-      html += makeSection('เสร็จแล้ว', jobsData.done, '✅', 'ไม่มี job ที่เสร็จ');
-
-      html += '</div>';
-      page.innerHTML = html;
+      renderJobs();
     } catch (err) {
       Ui.showError(page, 'โหลดคิวงานไม่สำเร็จ', err.message);
     }
