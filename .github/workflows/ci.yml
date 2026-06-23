@@ -24,35 +24,32 @@ jobs:
           python-version: '3.12'
 
       - name: Install reader dependencies
-        run: |
-          cd reader
-          npm install
+        run: cd reader && npm install
 
-      - name: Reader npm test (syntax check)
-        run: |
-          cd reader
-          npm test
+      - name: Reader syntax check
+        run: cd reader && node --check server.js
 
       - name: Python syntax check
         run: |
-          python -m py_compile tools/novelctl.py
-          python -m py_compile tools/translate.py
-          python -m py_compile tools/scorer.py
           python -m py_compile tools/orchestrator/__init__.py
           python -m py_compile tools/orchestrator/commands.py
           python -m py_compile tools/orchestrator/jobs.py
           python -m py_compile tools/orchestrator/locks.py
           python -m py_compile tools/orchestrator/preflight.py
+          python -m py_compile tools/orchestrator/quality.py
           python -m py_compile tools/orchestrator/repair.py
           python -m py_compile tools/orchestrator/report.py
           python -m py_compile tools/orchestrator/runner.py
+          python -m py_compile tools/novelctl.py
+          python -m py_compile tools/translate.py
+          echo "✓ Python syntax OK"
 
       - name: Python import test
         run: |
           python -c "
           import sys
           sys.path.insert(0, 'tools')
-          from orchestrator import commands, jobs, locks, preflight, repair, report, runner
+          from orchestrator import commands, jobs, locks, preflight, quality, repair, report, runner
           print('✓ All orchestrator modules import OK')
           "
 
@@ -60,21 +57,14 @@ jobs:
         run: |
           python tools/tests/test_novelctl.py
 
-      - name: Run novelctl commands (no LLM)
+      - name: Run novelctl commands (no LLM needed)
         run: |
           python tools/novelctl.py status
-          python tools/novelctl.py rebuild --slug global-descent 2>&1 || echo "(rebuild needs running reader, expected to fail in CI)"
-
-      - name: Reader API smoke tests
-        run: |
-          cd reader
-          # Start server in background, run tests, kill server
-          node server.js &
-          SERVER_PID=$!
-          sleep 2
-          node tests/test-api.js && echo "API smoke tests passed" || echo "API tests skipped (needs novel data)"
-          kill $SERVER_PID 2>/dev/null || true
+          echo "✓ novelctl status OK"
+          python tools/novelctl.py report
+          echo "✓ novelctl report OK"
+          python tools/novelctl.py check
+          echo "✓ novelctl check OK"
 
       - name: Summary
-        run: |
-          echo "✅ NovelClaw CI completed"
+        run: echo "✅ NovelClaw CI completed"

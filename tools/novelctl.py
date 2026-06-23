@@ -27,7 +27,7 @@ _PROJECT_ROOT = _TOOLS_DIR.parent
 sys.path.insert(0, str(_PROJECT_ROOT))
 sys.path.insert(0, str(_TOOLS_DIR))
 
-from orchestrator import commands, jobs, locks, preflight, repair, report, runner
+from orchestrator import commands, jobs, locks, preflight, repair, report, runner, quality
 
 
 def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
@@ -79,6 +79,8 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
         if not tr["ok"]:
             err = tr.get("error", "unknown error")
             yield f"❌ ตอน {num} ล้มเหลว: {err}"
+            quality.write_needs_review(slug, num, err, mode=mode,
+                                       fix_command=f"/แปลใหม่ {num}" if mode == "draft" else f"/แปลใหม่ {num}")
             job = job.copy(state="failed",
                            failed=job.failed + [{"chapter": num, "reason": err, "retryCount": 0}])
             job.save()
@@ -128,6 +130,7 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
 
             if mode == "safe":
                 yield f"❌ ตอน {num} validation ล้มเหลว: {reason} — หยุด"
+                quality.write_needs_review(slug, num, reason, score=score, mode=mode)
                 job = job.copy(state="failed",
                               failed=job.failed + [{"chapter": num, "reason": reason, "retryCount": 0}])
                 job.save()
@@ -294,6 +297,20 @@ def handle(slug: str, command: str, *args, **kwargs):
         except Exception:
             chs = []
         return [report.novel_report(slug, chs)]
+
+    elif command == "check":
+        """Show needs_review queue."""
+        from orchestrator.quality import list_needs_review
+        entries = list_needs_review(slug)
+        if not entries:
+            return ["✅ ไม่มีตอนที่รอตรวจสอบ"]
+        lines = [f"📋 รอตรวจสอบ {len(entries)} ตอน:"]
+        for e in entries[:20]:
+            lines.append(f"  ❌ ตอน {e.get('chapter')}: {e.get('reason', '?')[:80]}")
+            lines.append(f"     แก้: {e.get('suggestedCommand', 'N/A')}")
+        if len(entries) > 20:
+            lines.append(f"  ...และอีก {len(entries) - 20} ตอน")
+        return lines
 
     return [f"Unknown command: {command}"]
 
