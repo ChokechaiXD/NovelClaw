@@ -110,21 +110,21 @@ Post-process: no longer does type fix, end marker append (auto), dialogue reclas
 
 | User says | MIKA does |
 |:-----------|:-----------|
-| `"แปลตอน 130"` | `terminal("python tools/novelctl.py translate 130 --slug global-descent")` |
-| `"แปล 131-135 อีก 5 ตอน"` | `terminal("python tools/novelctl.py translate 131-135 --mode autopilot --slug global-descent")` |
-| `"แปล 139 strict"` | `terminal("python tools/novelctl.py translate 139 --mode strict --slug global-descent")` |
-| `"แปลใหม่ 139"` | `terminal("python tools/novelctl.py translate 139 --force --slug global-descent")` |
-| `"ลองแปล 139"` | `terminal("python tools/novelctl.py translate 139 --mode draft --slug global-descent")` |
-| `"ตรวจ 139"` | `terminal("python tools/novelctl.py validate 139 --slug global-descent")` |
-| `"ตรวจ 131-135"` | `terminal("python tools/novelctl.py validate 131-135 --slug global-descent")` |
-| `"ตรวจคุณภาพ"` | `terminal("python tools/novelctl.py validate 1-200 --slug global-descent")` |
-| `"เช็ค 140-150"` | `terminal("python tools/novelctl.py preflight 140-150 --slug global-descent")` |
-| `"ซ่อม 139"` | `terminal("python tools/novelctl.py repair 139 --slug global-descent")` |
+| `"แปลตอน 130"` | `terminal("python tools/novelctl.py --slug global-descent translate 130")` |
+| `"แปล 131-135 อีก 5 ตอน"` | `terminal("python tools/novelctl.py --slug global-descent --mode autopilot translate 131-135")` |
+| `"แปล 139 strict"` | `terminal("python tools/novelctl.py --slug global-descent --mode strict translate 139")` |
+| `"แปลใหม่ 139"` | `terminal("python tools/novelctl.py --slug global-descent --mode safe --force translate 139")` |
+| `"ลองแปล 139"` | `terminal("python tools/novelctl.py --slug global-descent --mode draft translate 139")` |
+| `"ตรวจ 139"` | `terminal("python tools/novelctl.py --slug global-descent validate 139")` |
+| `"ตรวจ 131-135"` | `terminal("python tools/novelctl.py --slug global-descent validate 131-135")` |
+| `"ตรวจคุณภาพ"` | `terminal("python tools/novelctl.py --slug global-descent validate 1-200")` |
+| `"เช็ค 140-150"` | `terminal("python tools/novelctl.py --slug global-descent preflight 140-150")` |
+| `"ซ่อม 139"` | `terminal("python tools/novelctl.py --slug global-descent repair 139")` |
 | `"สถานะ"` | `terminal("python tools/novelctl.py status")` |
 | `"หยุด"` | `terminal("python tools/novelctl.py stop")` |
-| `"ต่อ"` | `terminal("python tools/novelctl.py resume --slug global-descent")` |
-| `"รายงาน"` | `terminal("python tools/novelctl.py report --slug global-descent")` |
-| `"rebuild"` | `terminal("python tools/novelctl.py rebuild --slug global-descent")` |
+| `"ต่อ"` | `terminal("python tools/novelctl.py --slug global-descent resume")` |
+| `"รายงาน"` | `terminal("python tools/novelctl.py --slug global-descent report")` |
+| `"rebuild"` | `terminal("python tools/novelctl.py --slug global-descent rebuild")` |
 | `"scrape ตอน 128"` | `terminal("python tools/scrape_chapters.py 128")` |
 
 ## Anti-Patterns (ห้ามทำเด็ดขาด)
