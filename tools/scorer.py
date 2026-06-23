@@ -103,9 +103,8 @@ def _has_npc_speaker(paragraph: str) -> bool:
 
     for name in _load_npc_names():
         if name in paragraph:
-            from schema import CN_RE as _cn_re_re
-            from validation import ALLOWED_LATIN_TOKENS, EN_BLACKLIST
-            CN_RE = _cn_re_re
+            return True
+    return False
 
 # Completeness ratio range
 COMPLETENESS_MIN = 0.80
