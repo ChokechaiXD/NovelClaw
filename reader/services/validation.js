@@ -77,17 +77,15 @@ async function loadGlossary(slug, novelRoot) {
   }
 
   const glossaryDir = path.join(novelRoot, slug, 'glossary');
-  // Try glossary.yml first (modern), fallback to .md tables (legacy)
+  // Try glossary.json first (modern), fallback to .md tables (legacy)
   try {
-    const yamlPath = path.join(glossaryDir, 'glossary.yml');
-    const yamlRaw = await fs.readFile(yamlPath, 'utf8');
+    const jsonPath = path.join(glossaryDir, 'glossary.json');
+    const jsonRaw = await fs.readFile(jsonPath, 'utf8');
+    const parsed = JSON.parse(jsonRaw);
     const glossary = {};
-    const lines = yamlRaw.split('\n');
-    let currentEntry = {};
-    for (const line of lines) {
-      const src = line.match(/^-\s+(.+?):\s*(\S+)/);
-      if (src) {
-        glossary[src[1].trim()] = src[2].trim();
+    if (parsed.terms && Array.isArray(parsed.terms)) {
+      for (const t of parsed.terms) {
+        if (t.source && t.thai) glossary[t.source.trim()] = t.thai.trim();
       }
     }
     if (Object.keys(glossary).length > 0) return glossary;

@@ -44,7 +44,7 @@ const ReaderPage = {
           <h1 class="reader-title" id="reader-title"></h1>
           <div class="c-reader__meta">
             <button class="c-btn c-btn--icon" id="reader-font-sm" title="ลดขนาดอักษร">A−</button>
-            <span style="font-size:var(--text-sm);color:var(--c-text-muted);">18px</span>
+            <span style="font-size:var(--text-sm);color:var(--c-text-muted);" id="reader-font-label">18px</span>
             <button class="c-btn c-btn--icon" id="reader-font-lg" title="เพิ่มขนาดอักษร">A+</button>
             <span class="c-toolbar__divider"></span>
             <button class="c-btn c-btn--icon" id="reader-leading-sm" title="ลดช่องว่าง">↑↓</button>
@@ -70,7 +70,7 @@ const ReaderPage = {
         const ch = chapters[chIdx];
         if (!ch) return;
         try {
-          const data = await Api.getChapterContent(slug, ch.num, 'th');
+          const data = await Api.getChapterContent(slug, ch.num, Store.getSettings().readerLang || 'th');
 
           Ui.$('reader-title').textContent = ch.title || `ตอนที่ ${ch.num}`;
           Ui.$('reader-position').textContent = `${chIdx + 1} / ${chapters.length}`;
@@ -123,6 +123,9 @@ const ReaderPage = {
           }
           Ui.$('reader-content').innerHTML = contentHtml;
 
+          // Update URL hash so refresh/share goes to the right chapter
+          window.location.hash = `#novel/${slug}/${ch.num}`;
+
           // Mark as read
           Store.markRead(slug, ch.num);
           Store.setLastPosition(slug, ch.num);
@@ -165,7 +168,7 @@ const ReaderPage = {
         const px = BASE_FONT + step * 2;
         document.documentElement.style.setProperty('--text-base', `${px}px`);
         Store.setSetting('fontSize', px);
-        const lbl = Ui.$('reader-position');
+        const lbl = Ui.$('reader-font-label');
         if (lbl) lbl.textContent = `${px}px`;
       };
       applyFont(fontStep);
