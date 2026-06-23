@@ -444,14 +444,22 @@ app.param('slug', (req, res, next, slug) => {
 async function readNovelMeta(slug) {
   assertValidSlug(slug);
   const mk = "meta:" + slug; if (cache.has(mk)) return cache.get(mk);
-  // Try meta.json first (canonical), fallback to meta.md (legacy)
+  // Try novel.json first (canonical), fallback to meta.json, fallback to meta.md
+  const novelPath = path.join(NOVELS_DIR, slug, 'novel.json');
   const jsonPath = path.join(NOVELS_DIR, slug, 'meta.json');
   const mdPath = path.join(NOVELS_DIR, slug, 'meta.md');
   let meta;
   try {
-    const raw = await fs.readFile(jsonPath, 'utf8');
+    const raw = await fs.readFile(novelPath, 'utf8');
     meta = JSON.parse(raw);
-    meta.slug = slug;
+    // Normalize field names for backward compat
+    meta.slug = meta.slug || slug;
+    meta.title = meta.title || meta.sourceTitle || slug;
+    meta.translated_title = meta.translatedTitle || '';
+    meta.source_lang = meta.sourceLang || 'cn';
+    meta.target_lang = meta.targetLang || 'th';
+    meta.total_chapters = String(meta.totalChapters || 0);
+    meta.description = meta.description || '';
     cache.set(mk, meta);
     return meta;
   } catch {}
@@ -497,6 +505,7 @@ app.get('/api/novels', async (_req, res) => {
       return {
         slug,
         title: meta.title || slug,
+        translatedTitle: meta.translated_title || meta.translatedTitle || '',
         author: meta.author || '',
         source_lang: meta.source_lang || 'cn',
         target_lang: meta.target_lang || 'th',
@@ -602,8 +611,9 @@ app.get('/api/novel/:slug/chapters/search', async (req, res) => {
 app.get('/api/novel/:slug/chapter/:num', async (req, res) => {
   const num = parseInt(req.params.num, 10);
   if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
+  const lang = (req.query.lang || 'th').toString();
   try {
-    const result = await readChapter(req.params.slug, num);
+    const result = await readChapter(req.params.slug, num, lang);
     if (!result) return res.status(404).json({ error: 'Chapter not found' });
     const { title, isJson } = result;
 
@@ -654,17 +664,14 @@ app.get('/api/novel/:slug/glossary', async (req, res) => {
 
 app.get('/api/novel/:slug/glossary/data', async (req, res) => {
   assertValidSlug(req.params.slug);
-  const slug = req.params.slug;
-  const glossaryScript = path.join(__dirname, '..', 'tools', 'glossary.py');
-  const execFileAsync = require('util').promisify(require('child_process').execFile);
-  const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+  const file = path.join(NOVELS_DIR, req.params.slug, 'glossary', 'glossary.json');
+  const raw = await readTextOrNull(file);
+  if (raw === null) return res.json({ terms: [] });
   try {
-    const { stdout } = await execFileAsync(py, [glossaryScript, '--novel', slug, '--load'], {
-      env: { ...process.env, NOVEL_SLUG: slug }
-    });
-    res.json(JSON.parse(stdout));
+    const data = JSON.parse(raw);
+    res.json({ terms: data.terms || [] });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Invalid glossary.json', details: err.message });
   }
 });
 
