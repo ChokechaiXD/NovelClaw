@@ -155,10 +155,28 @@ async function updateActivityFeed() {
       return;
     }
     feed.innerHTML = recent.map(e => {
-      const n = novels.find(n => n.slug === e.slug);
-      return '<div class="c-rc__item">' + Ui.esc(Ui.displayTitle(n) || e.slug) + ' — ตอนที่ ' + e.num + '</div>';
+      const n = novels.find(x => x.slug === e.slug);
+      const title = Ui.displayTitle(n) || e.slug;
+      const dateStr = (e.ts && !isNaN(new Date(e.ts)))
+        ? new Date(e.ts).toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })
+        : '';
+      return '<div class="c-rc__item">' + Ui.esc(title) + ' <span style="font-size:10px;color:var(--c-text-soft);">ตอนที่ ' + e.num + '</span><br><span style="font-size:10px;color:var(--c-text-muted);">' + dateStr + '</span></div>';
     }).join('');
   } catch(e) { feed.innerHTML = '<div class="c-rc__item">ไม่สามารถโหลดกิจกรรม</div>'; }
+
+  // Stats section
+  const stats = document.getElementById('rightbar-stats');
+  if (stats) {
+    const novels = await Api.getNovels();
+    const totalRead = Store.getHistory().length;
+    const translated = novels.reduce((a, n) => a + (n.translatedChapters || 0), 0);
+    const total = novels.reduce((a, n) => a + (n.totalChapters || n.chapterCount || 0), 0);
+    stats.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+      '<div style="background:var(--c-surface);border-radius:var(--radius-sm);padding:10px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--c-accent);">' + novels.length + '</div><div style="font-size:10px;color:var(--c-text-muted);">นิยาย</div></div>' +
+      '<div style="background:var(--c-surface);border-radius:var(--radius-sm);padding:10px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--c-accent);">' + totalRead + '</div><div style="font-size:10px;color:var(--c-text-muted);">อ่านแล้ว</div></div>' +
+      '<div style="background:var(--c-surface);border-radius:var(--radius-sm);padding:10px;text-align:center;"><div style="font-size:16px;font-weight:800;color:var(--c-accent);">' + translated + '</div><div style="font-size:10px;color:var(--c-text-muted);">แปลแล้ว</div></div>' +
+      '<div style="background:var(--c-surface);border-radius:var(--radius-sm);padding:10px;text-align:center;"><div style="font-size:16px;font-weight:800;' + (total - translated > 0 ? 'color:var(--c-warning);' : 'color:var(--c-success);') + '">' + (total - translated) + '</div><div style="font-size:10px;color:var(--c-text-muted);">รอแปล</div></div></div>';
+  }
 }
 
 // ── Init ────────────────────────────────────────────────────────────────
