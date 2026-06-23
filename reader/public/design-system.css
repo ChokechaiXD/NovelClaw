@@ -11,7 +11,7 @@
   /* ── Type Scale (modular) ──────────────────────────────────────────── */
   --text-xs: .6875rem;
   --text-sm: .8125rem;
-  --text-base: .9375rem;
+  --text-base: 1.125rem;   /* 18px — body text */
   --text-lg: 1.125rem;
   --text-xl: 1.5rem;
   --text-2xl: 2rem;
@@ -222,7 +222,7 @@
 
 
 /* ═══════════════════════════════════════════════════════════════════════
-   AMOLED THEME (ดำสนิท — เฉพาะจอ OLED)
+   AMOLED BLACK THEME (ดำสนิท — เฉพาะจอ OLED)
    ═══════════════════════════════════════════════════════════════════════ */
 [data-theme="amoled"] {
   --app-bg: #000000;
@@ -364,6 +364,11 @@ ul, ol { list-style: none; }
   pointer-events: none;
 }
 
+/* ── App Shell Sidebar dimming — reader mode ────────────────────── */
+.c-app__sidebar { background: var(--c-bg-deep); }
+.reader-page + .c-app__sidebar,
+.reader-page ~ .c-app .c-app__sidebar { background: var(--c-bg-deep); }
+
 /* ── Sidebar ────────────────────────────────────────────────────────── */
 .c-sidebar {
   width: var(--sidebar-w);
@@ -406,7 +411,7 @@ ul, ol { list-style: none; }
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);
-  color: var(--c-text-secondary);
+  color: var(--c-text-soft);
   font-size: var(--text-sm);
   transition: all 0.15s;
 }
@@ -625,7 +630,7 @@ ul, ol { list-style: none; }
   max-width: 760px;
   margin: 0 auto;
   padding: clamp(28px, 5vw, 72px) clamp(20px, 4vw, 48px);
-  font-size: clamp(17px, 1.05vw, 19px);
+  font-size: clamp(16px, 1.1vw, 22px);
   line-height: 1.95;
   letter-spacing: 0.005em;
   font-weight: 400;
@@ -638,7 +643,7 @@ ul, ol { list-style: none; }
 .reader-title {
   font-family: var(--font-ui);
   color: var(--heading);
-  font-size: clamp(28px, 2.1vw, 38px);
+  font-size: clamp(22px, 2.4vw, 36px);
   line-height: 1.35;
   font-weight: 700;
   text-align: center;
@@ -701,6 +706,20 @@ ul, ol { list-style: none; }
 .c-reader__nav-btn:disabled { opacity: 0.3; pointer-events: none; }
 .c-reader__position { font-size: var(--text-xs); color: var(--c-text-muted); }
 
+
+/* ── Stat block (system messages, game stats) ──────────────────────── */
+.reader-stat {
+  color: #7A5A30;
+  background: rgba(154, 91, 24, 0.08);
+  border: 1px solid rgba(154, 91, 24, 0.15);
+  border-radius: 12px;
+  padding: 14px 18px;
+  line-height: 1.8;
+  font-size: 0.9em;
+}
+.reader-stat .c-marker--system {
+  color: #7A5A30;
+}
 
 /* ── Reader meta (font controls) ────────────────────────────────────── */
 .c-reader__meta {
@@ -836,8 +855,8 @@ ul, ol { list-style: none; }
 }
 
 /* ── RC = Right Column ──────────────────────────────────────────────── */
-.c-rc { padding: var(--space-md); }
-.c-rc__section { margin-bottom: var(--space-lg); }
+.c-rc { padding: var(--space-md); opacity: 0.75; }
+.c-rc__section { margin-bottom: var(--space-lg); font-size: 0.9em; }
 .c-rc__item {
   font-size: var(--text-xs);
   color: var(--c-text-muted);

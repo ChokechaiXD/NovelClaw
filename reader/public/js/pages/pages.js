@@ -87,7 +87,7 @@ const SettingsPage = {
     const page = Ui.$('page-settings');
     if (!page) return;
     const settings = Store.getSettings();
-    page.innerHTML = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title">ตั้งค่า</h3></div><div class="c-settings-form"><div class="c-settings__group"><div class="c-form__group"><label class="c-form__label" for="settings-theme">ธีม</label><select class="c-form__select" id="settings-theme"><option value="sepia"' + (settings.theme === 'sepia' ? ' selected' : '') + '>คลาสสิก (Sepia) ★</option><option value="night"' + (settings.theme === 'night' ? ' selected' : '') + '>กลางคืน (Night)</option><option value="paper"' + (settings.theme === 'paper' ? ' selected' : '') + '>สว่าง (Paper)</option><option value="amoled"' + (settings.theme === 'amoled' ? ' selected' : '') + '>AMOLED</option></select></div><div class="c-form__group"><label class="c-form__label">ขนาดตัวอักษร</label><div class="u-flex u-gap-sm" style="align-items:center;"><button class="c-btn c-btn--ghost" id="settings-font-sm" style="font-size:var(--text-lg);padding:8px 16px;">A−</button><span id="settings-font-label" style="font-size:var(--text-base);color:var(--c-text);min-width:40px;text-align:center;">15px</span><button class="c-btn c-btn--ghost" id="settings-font-lg" style="font-size:var(--text-lg);padding:8px 16px;">A+</button></div></div></div></div></section></div>';
+    page.innerHTML = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title">ตั้งค่า</h3></div><div class="c-settings-form"><div class="c-settings__group"><div class="c-form__group"><label class="c-form__label" for="settings-theme">ธีม</label><select class="c-form__select" id="settings-theme"><option value="sepia"' + (settings.theme === 'sepia' ? ' selected' : '') + '>คลาสสิก (Sepia) ★</option><option value="night"' + (settings.theme === 'night' ? ' selected' : '') + '>กลางคืน (Night)</option><option value="paper"' + (settings.theme === 'paper' ? ' selected' : '') + '>สว่าง (Paper)</option><option value="amoled"' + (settings.theme === 'amoled' ? ' selected' : '') + '>AMOLED Black</option></select></div><div class="c-form__group"><label class="c-form__label">ขนาดตัวอักษร</label><div class="u-flex u-gap-sm" style="align-items:center;"><button class="c-btn c-btn--ghost" id="settings-font-sm" style="font-size:var(--text-lg);padding:8px 16px;">A−</button><span id="settings-font-label" style="font-size:var(--text-base);color:var(--c-text);min-width:40px;text-align:center;">18px</span><button class="c-btn c-btn--ghost" id="settings-font-lg" style="font-size:var(--text-lg);padding:8px 16px;">A+</button></div></div></div></div></section></div>';
 
     const sel = document.getElementById('settings-theme');
     if (sel) {
@@ -96,16 +96,17 @@ const SettingsPage = {
     }
 
     let fontStep = 0;
+    const BASE_FONT = 18;
     document.getElementById('settings-font-sm')?.addEventListener('click', () => {
-      fontStep = Math.max(-2, fontStep - 1);
-      const px = 15 + fontStep * 2;
+      fontStep = Math.max(-1, fontStep - 1);
+      const px = BASE_FONT + fontStep * 2;
       document.documentElement.style.setProperty('--text-base', px + 'px');
       const lbl = document.getElementById('settings-font-label');
       if (lbl) lbl.textContent = px + 'px';
     });
     document.getElementById('settings-font-lg')?.addEventListener('click', () => {
-      fontStep = Math.min(3, fontStep + 1);
-      const px = 15 + fontStep * 2;
+      fontStep = Math.min(2, fontStep + 1);
+      const px = BASE_FONT + fontStep * 2;
       document.documentElement.style.setProperty('--text-base', px + 'px');
       const lbl = document.getElementById('settings-font-label');
       if (lbl) lbl.textContent = px + 'px';
