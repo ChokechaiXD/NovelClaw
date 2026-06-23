@@ -526,7 +526,11 @@ def _score_schema(data: dict) -> DimensionScore:
     issues = []
 
     # Title
-    title = data.get("title", "")
+    title_raw = data.get("title", "")
+    # Canonical format: title can be {translated: "...", source: "..."} or string
+    title = title_raw
+    if isinstance(title_raw, dict):
+        title = title_raw.get("translated", "") or title_raw.get("source", "")
     if not title:
         issues.append("missing title")
     elif not re.match(r'^ตอนที่ \d+', title):
