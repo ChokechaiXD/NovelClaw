@@ -26,8 +26,11 @@ jobs:
       - name: Install reader dependencies
         run: cd reader && npm install
 
-      - name: Run quality check (36 tests)
+      - name: Run quality check
         run: python tools/check_all.py
+
+      - name: Schema validation
+        run: python tools/validate_data.py --all
 
       - name: Summary
         run: echo "✅ NovelClaw CI completed"

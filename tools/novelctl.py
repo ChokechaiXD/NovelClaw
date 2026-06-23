@@ -20,6 +20,7 @@ Usage:
 
 import sys
 import time
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 _TOOLS_DIR = Path(__file__).resolve().parent
@@ -327,6 +328,55 @@ def handle(slug: str, command: str, *args, **kwargs):
         if len(entries) > 20:
             lines.append(f"  ...และอีก {len(entries) - 20} ตอน")
         return lines
+
+    elif command == "backup":
+        """Create timestamped backup of novels, jobs, and logs."""
+        import json
+        import shutil
+        import pathlib
+        from datetime import date
+
+        backup_dir = kwargs.get("output")
+        if not backup_dir:
+            today = date.today().isoformat()
+            backup_dir = str(_PROJECT_ROOT / "backups" / f"{today}-novelclaw")
+
+        backup_path = pathlib.Path(backup_dir)
+        backup_path.mkdir(parents=True, exist_ok=True)
+
+        manifest = {
+            "createdAt": datetime.now(timezone.utc).isoformat(),
+            "slug": slug,
+            "items": [],
+        }
+
+        # Backup novels
+        novels_src = pathlib.Path(_PROJECT_ROOT / "novels")
+        novels_dst = backup_path / "novels"
+        if novels_src.exists():
+            shutil.copytree(novels_src, novels_dst, dirs_exist_ok=True)
+            manifest["items"].append("novels/")
+
+        # Backup jobs
+        jobs_src = pathlib.Path(_PROJECT_ROOT / "jobs")
+        jobs_dst = backup_path / "jobs"
+        if jobs_src.exists():
+            shutil.copytree(jobs_src, jobs_dst, dirs_exist_ok=True)
+            manifest["items"].append("jobs/")
+
+        # Backup logs
+        logs_src = pathlib.Path(_PROJECT_ROOT / "logs")
+        logs_dst = backup_path / "logs"
+        if logs_src.exists():
+            shutil.copytree(logs_src, logs_dst, dirs_exist_ok=True)
+            manifest["items"].append("logs/")
+
+        # Write manifest
+        (backup_path / "manifest.json").write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+        return [f"✅ Backup created: {backup_path}"]
 
     return [f"Unknown command: {command}"]
 

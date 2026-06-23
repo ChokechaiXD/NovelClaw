@@ -114,7 +114,20 @@ const Ui = {
     }, 3000);
   },
 
-  // ── Status Map ─────────────────────────────────────────────────────────
+  // ── Shared Admin Nav ─────────────────────────────────────────────────────
+  adminNav(active) {
+    const links = [
+      { name: 'dashboard', label: 'ภาพรวม', page: 'admin' },
+      { name: 'jobs', label: 'งานแปล', page: 'admin/jobs' },
+      { name: 'novels', label: 'นิยาย', page: 'admin/novels' },
+      { name: 'chapters', label: 'ตอน', page: 'admin/chapters' },
+      { name: 'glossary', label: 'คำศัพท์', page: 'admin/glossary' },
+      { name: 'logs', label: 'ล็อก', page: 'admin/logs' },
+    ];
+    return '<div class="c-admin-nav">' + links.map(l =>
+      '<a href="#' + l.page + '" class="c-admin-nav__link' + (l.name === active ? ' c-admin-nav__link--active' : '') + '" data-nav>' + l.label + '</a>'
+    ).join('') + '</div>';
+  },
   statusMap: {
     ongoing: 'กำลังแปล',
     complete: 'จบแล้ว',
@@ -152,5 +165,14 @@ const Ui = {
       'linear-gradient(135deg,#64748b,#1e293b)'
     ];
     el.style.background = GRADIENTS[prof.avatarColorIndex] || GRADIENTS[0];
+  },
+
+  // ── Debounce Utility ──────────────────────────────────────────────────
+  debounce(fn, delay) {
+    let timer = null;
+    return function (...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), delay);
+    };
   }
 };

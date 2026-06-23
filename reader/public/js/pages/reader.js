@@ -265,7 +265,7 @@ const ReaderPage = {
         Ui.showToast('ออกจากโหมดอ่านหนังสือ');
       };
 
-      // ── Scroll progress bar ────────────────────────────────────────
+      // ── Scroll progress bar (debounced) ──────────────────────────────
       const updateProgress = () => {
         const sc = document.querySelector('.c-content');
         if (!sc) return;
@@ -273,7 +273,8 @@ const ReaderPage = {
         const fill = Ui.$('reader-progress-fill');
         if (fill) fill.style.width = Math.min(100, Math.max(0, pct)) + '%';
       };
-      document.querySelector('.c-content')?.addEventListener('scroll', updateProgress);
+      const debouncedProgress = Ui.debounce(updateProgress, 100);
+      document.querySelector('.c-content')?.addEventListener('scroll', debouncedProgress);
       updateProgress(); // initial
 
       // ── Keyboard shortcuts ──────────────────────────────────────────

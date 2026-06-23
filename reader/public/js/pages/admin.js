@@ -3,21 +3,8 @@
    NovelClaw Reader
    ═══════════════════════════════════════════════════════════════════════ */
 
-// ── Shared Admin Nav ─────────────────────────────────────────────────────
-function renderAdminNav(active) {
-  const links = [
-    { name: 'dashboard', label: 'ภาพรวม', page: 'admin' },
-    { name: 'jobs', label: 'งานแปล', page: 'admin/jobs' },
-    { name: 'novels', label: 'นิยาย', page: 'admin/novels' },
-    { name: 'chapters', label: 'ตอน', page: 'admin/chapters' },
-    { name: 'glossary', label: 'คำศัพท์', page: 'admin/glossary' },
-  ];
-  return '<div class="c-admin-nav">' + links.map(l =>
-    '<a href="#' + l.page + '" class="c-admin-nav__link' + (l.name === active ? ' c-admin-nav__link--active' : '') + '" data-nav>' + l.label + '</a>'
-  ).join('') + '</div>';
-}
 
-// ── ADMIN DASHBOARD ──────────────────────────────────────────────────────
+// ── ADMIN DASHBOARD
 const AdminDashboardPage = {
   async render(params) {
     const page = Ui.$('page-admin');
@@ -31,7 +18,7 @@ const AdminDashboardPage = {
       const statusCounts = { complete: 0, ongoing: 0 };
       for (const n of novels) { statusCounts[n.status] = (statusCounts[n.status] || 0) + 1; }
 
-      page.innerHTML = '<div class="c-container">' + renderAdminNav('dashboard') +
+      page.innerHTML = '<div class="c-container">' + Ui.adminNav('dashboard') +
         '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">ระบบหลังบ้าน</h3></div>' +
         // ── Stats ──
         '<div class="c-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--space-sm);margin-bottom:var(--space-md);">' +
@@ -75,7 +62,7 @@ const AdminNovelsPage = {
     Ui.showSkeleton('page-admin-novels');
     try {
       const novels = await Api.getNovels();
-      let html = '<div class="c-container">' + renderAdminNav('novels') +
+      let html = '<div class="c-container">' + Ui.adminNav('novels') +
         '<div class="c-table-wrap" style="margin-top:var(--space-md);"><table class="c-table"><thead><tr><th>Slug</th><th>ชื่อเรื่อง</th><th>ภาษา</th><th>ตอน</th><th>แปลแล้ว</th><th>สถานะ</th></tr></thead><tbody>';
       for (const n of novels) {
         const translated = n.translatedChapters || 0;
@@ -97,10 +84,10 @@ const AdminChaptersPage = {
     try {
       const novels = await Api.getNovels();
       const slug = params.slug || novels[0]?.slug;
-      if (!slug) { page.innerHTML = '<div class="c-container">' + renderAdminNav('chapters') + '<p class="u-text-muted u-p-lg">ไม่มีนิยายในระบบ</p></div>'; return; }
+      if (!slug) { page.innerHTML = '<div class="c-container">' + Ui.adminNav('chapters') + '<p class="u-text-muted u-p-lg">ไม่มีนิยายในระบบ</p></div>'; return; }
       const chapters = await Api.getChapters(slug);
       if (!chapters || chapters.length === 0) {
-        page.innerHTML = '<div class="c-container">' + renderAdminNav('chapters') + '<p class="u-text-muted u-p-lg">ไม่มีตอนในนิยายนี้</p></div>';
+        page.innerHTML = '<div class="c-container">' + Ui.adminNav('chapters') + '<p class="u-text-muted u-p-lg">ไม่มีตอนในนิยายนี้</p></div>';
         return;
       }
 
@@ -132,7 +119,7 @@ const AdminChaptersPage = {
         const start = currentPage * pageSize;
         const pageList = list.slice(start, start + pageSize);
 
-        let html = '<div class="c-container">' + renderAdminNav('chapters') +
+        let html = '<div class="c-container">' + Ui.adminNav('chapters') +
           '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">📖 ตอนทั้งหมด: ' + Ui.esc(slug) + '</h3><span style="font-size:var(--text-sm);color:var(--c-text-muted);">' + totalFiltered + ' / ' + chapters.length + ' ตอน</span></div>' +
 
           // ── Search + Filter Controls ──
@@ -207,7 +194,7 @@ const AdminGlossaryPage = {
       const res = await fetch('/api/novels');
       const novels = await res.json();
       const slug = novels[0]?.slug;
-      let html = '<div class="c-container">' + renderAdminNav('glossary') +
+      let html = '<div class="c-container">' + Ui.adminNav('glossary') +
         '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">คลังคำศัพท์</h3></div>' +
         '<p class="u-text-muted u-mb-md">ดูคำศัพท์จาก glossary.json</p>';
       if (slug) {
@@ -234,7 +221,7 @@ const AdminGlossaryPage = {
       html += '</div>';
       page.innerHTML = html;
     } catch (err) { 
-      page.innerHTML = '<div class="c-container">' + renderAdminNav('glossary') + '<p class="u-text-center c-error__title">เกิดข้อผิดพลาด</p><p class="u-text-center u-text-muted">' + Ui.esc(err.message) + '</p></div>';
+      page.innerHTML = '<div class="c-container">' + Ui.adminNav('glossary') + '<p class="u-text-center c-error__title">เกิดข้อผิดพลาด</p><p class="u-text-center u-text-muted">' + Ui.esc(err.message) + '</p></div>';
     }
   }
 };
@@ -259,7 +246,7 @@ const BookmarksPage = {
     const page = Ui.$('page-bookmarks');
     if (!page) return;
     try {
-      const list = JSON.parse(localStorage.getItem('nc-bookmarks')) || [];
+      const list = JSON.parse(localStorage.getItem('novelclaw-bookmarks')) || [];
       if (list.length === 0) {
         Ui.showEmpty(page, 'ยังไม่มีบุ๊กมาร์ก', 'เมื่อบุ๊กมาร์กตอนที่ชอบจะปรากฏที่นี่');
         return;
@@ -317,7 +304,7 @@ const AdminJobsPage = {
           done: (src.done||[]).length,
         };
 
-        let html = '<div class="c-container">' + renderAdminNav('jobs') +
+        let html = '<div class="c-container">' + Ui.adminNav('jobs') +
           '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">📋 คิวงานแปล</h3></div>' +
 
           // ── Filter tabs ──
@@ -403,7 +390,7 @@ const AdminLogsPage = {
       const res = await fetch('/api/admin/logs/' + encodeURIComponent(slug) + '/' + num);
       const data = await res.json();
       let html = '<div class="c-container">' +
-        renderAdminNav('logs') +
+        Ui.adminNav('logs') +
         '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">📂 Audit Log: ' + Ui.esc(slug) + ' / ตอน ' + Ui.esc(num) + '</h3>' +
         '<a href="#admin/jobs" class="c-btn c-btn--sm" data-nav style="margin-left:var(--space-sm);">← กลับ</a></div>';
 
@@ -412,13 +399,9 @@ const AdminLogsPage = {
       } else {
         for (const file of data.files) {
           html += '<div class="c-section" style="margin-top:var(--space-md);">' +
-            '<div class="c-section__header"><h3 class="c-section__title">' + Ui.esc(file.name) + '</h3></div>';
-          if (file.isJson) {
-            html += '<pre style="background:var(--c-surface);padding:var(--space-md);border-radius:var(--radius-sm);font-size:12px;overflow-x:auto;max-height:400px;"><code>' + Ui.esc(JSON.stringify(file.content, null, 2)) + '</code></pre>';
-          } else {
-            html += '<pre style="background:var(--c-surface);padding:var(--space-md);border-radius:var(--radius-sm);font-size:12px;overflow-x:auto;max-height:400px;"><code>' + Ui.esc(file.content) + '</code></pre>';
-          }
-          html += '</div>';
+            '<div class="c-section__header"><h3 class="c-section__title">' + Ui.esc(file.name) + '</h3></div>' +
+            '<pre style="background:var(--c-surface);padding:var(--space-md);border-radius:var(--radius-sm);font-size:12px;overflow-x:auto;max-height:400px;"><code>' + Ui.esc(file.content) + '</code></pre>' +
+            '</div>';
         }
       }
       html += '</div>';

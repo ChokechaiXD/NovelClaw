@@ -1,101 +1,75 @@
-# NovelClaw Cleanup Plan
+# Cleanup Plan — Phase A Findings
 
-Based on audits in `reports/audit/` generated 2026-06-24
-Scope: safe, incremental improvements only. No architecture rewrites.
+## Priority Legend
+P0 = Must fix before continuing  
+P1 = Important, do after P0  
+P2 = Nice to have
 
-## P0 — Fix Immediately (Safe, Low Risk)
+## ✅ Safe to Fix Immediately (No Risk)
 
-### 1. Remove admin.v3.js if dead
-- Check if `index.html` loads `admin.v3.js`
-- If not loaded, archive or delete
-- Risk: Low — removing an unused file
+### P0: Delete Test Artifacts
+**Files**: `.chprogress/test-draft.json`, `.chprogress/test-force.json`, `.chprogress/test-force-success.json`
+**Action**: Delete files (test data from tests, not needed)
+**Risk**: None — orchestrator uses `jobs/` not `.chprogress/`
 
-### 2. Normalize error response shape
-- Current: mixed shapes (`{error: "msg"}` vs `{ok:false, error:{}}`)
-- Target: `{ ok: false, error: { code: string, message: string } }`
-- Risk: Low — only changes error paths
+### P1: Fix `nc-bookmarks` localStorage Key
+**File**: `reader/public/js/pages/admin.js` line 262
+**Action**: Change `'nc-bookmarks'` → `'novelclaw-bookmarks'` to match naming convention
+**Risk**: Low — users lose existing bookmarks on upgrade
 
-### 3. Add param validation helpers
-- Create `safeSlug(s)`, `safeChapterNum(n)`, `safeLang(l)` in server.js
-- Replace inline validation in log route and chapter routes
-- Risk: Low — validation only, no behavior change
+### P1: Complete AdminNovelEditPage Form Fields
+**File**: `reader/public/js/pages/admin.js` lines 243-253
+**Action**: Add missing fields (source_lang, target_lang, status, total_chapters, description) matching the API's `/api/novel/update` support
+**Risk**: None — just adding form fields
 
-### 4. Add `tools/schema/` with JSON schemas
-- `chapter.schema.json` — for `.th.json` / `.cn.json` files
-- `job.schema.json` — for `jobs/*.json`
-- `novel.schema.json` — for `novel.json`
-- Risk: Low — adds validation, doesn't change data
+### P2: Add "logs" Tab to Admin Nav
+**File**: `reader/public/js/pages/admin.js` function `renderAdminNav()`
+**Action**: Add `{ name: 'logs', label: 'ล็อก', page: 'admin/logs' }` to nav links array
+**Risk**: None
 
-### 5. Standardize localStorage keys
-- Current: mixed prefixes
-- Target: `nc-theme`, `nc-fontSize`, `nc-lineHeight`, etc.
-- Add migration for old keys
-- Risk: Medium — affects reader settings persistence
+## ⚠️ Requires Verification Before Fix
 
-## P1 — Polish After P0
+### P1: `tools/progress.py` Deprecation
+**Action**: Verify `translate.py` dependency on `progress.py`. If orchestrator handles all progress, mark progress.py as deprecated.
+**Risk**: If translate.py still uses progress.py for state tracking, removal could break resume/crash-recovery.
 
-### 6. Migrate inline styles to CSS classes
-- 108 inline styles found in JS
-- Priority: repeated patterns (badges, buttons, layout divs)
-- Risk: Low — CSS only, no behavior change
+### P1: `reader/lib/render.js` Fate
+**Action**: Either:
+- Remove render.js and update tests to test frontend rendering (larger effort)
+- Or keep render.js but mark as "test support only"
+**Risk**: Tests will fail if removed without updating.
 
-### 7. Remove hardcoded colors from non-token areas
-- 72 color values outside :root tokens
-- Replace with CSS variable references
-- Risk: Low — visual consistency improvement
+## 🔍 Needs Investigation
 
-### 8. Standardize section/page padding
-- Replace `style="margin-top:var(--space-md);"` with CSS class
-- Risk: Very Low — visual tweak
+### P2: Missing `npm run syntax` Script
+**File**: `reader/package.json`
+**Issue**: `check_all.py` references `npm run syntax` but no such script exists in package.json
+**Action**: Add `"syntax": "find public/js -name '*.js' -print0 | xargs -0 node --check"` to scripts
 
-### 9. Add JS syntax check to CI
-- `find public/js -name '*.js' | xargs -n1 node --check`
-- Already partly done in workflow
-- Risk: None — CI only
+### P2: CI Windows Compatibility
+**File**: `.github/workflows/ci.yml`
+**Issue**: CI runs on ubuntu-latest but development is on Windows. Shell commands may not work cross-platform.
+**Action**: Verify check_all.py runs correctly on both, or provide platform-specific scripts.
 
-### 10. Archive old test-only slugs
-- Check if `test-force`, `test-force-success` still have novel.json
-- If yes, move to `novels/_archive/`
-- Risk: Low — hidden from frontend already
+## 📋 Recommended Phase A Execution Order
 
-## P2 — Future (Documented, Not Started)
+### Batch 1 (Safe fixes — do now)
+1. Delete `.chprogress/test-*.json`
+2. Fix `nc-bookmarks` key name
 
-### 11. Component extraction
-- Extract repeated: section header, stat card, table, command pill, toast
-- Create `reader/public/js/components/`
-- Risk: Medium — JS refactor that touches render code
+### Batch 2 (Risk review)
+3. Verify progress.py usage in translate.py
+4. Decide render.js fate
 
-### 12. CSS file splitting
-- Break `design-system.css` (1,575 lines) into sections
-- Or at minimum add section headers
-- Risk: Medium — CSS load order matters
-
-### 13. Quality profile system
-- Add `qualityProfile` config per novel/target language
-- Multi-pass pipeline (--passes 2, --passes 3)
-- Risk: High — touches translation core
-
-### 14. Search index improvements
-- Measure + optimize rebuild time
-- Add incremental rebuild
-- Split index by language
-- Risk: Medium — index format change
-
-### 15. Documentation
-- ARCHITECTURE.md, COMMANDS.md, DATA_SCHEMA.md
-- Risk: None — docs only
-
-## Risk Summary
-
-| Priority | Items | Total Risk |
-|----------|-------|------------|
-| P0 | 5 | Low — validation + schema + dead code |
-| P1 | 5 | Low — CSS + CI + polish |
-| P2 | 5 | Low-Medium — extraction + splitting + quality |
+### Batch 3 (Enhancements)
+5. Complete AdminNovelEditPage form fields
+6. Add logs tab to admin nav
+7. Add `npm run syntax` to package.json
 
 ## Rollback Plan
 
-- All changes are reversible via `git checkout`
-- Stable tag: `stable-novelctl-foundation-v1`
-- Before each P0 change: `git stash` or branch
-- After each P0 change: `npm test && npm run test:api`
+Each fix should be:
+1. One commit per independent fix
+2. Test before commit (start reader, load relevant page)
+3. If tests pass, commit with message format: `chore: fix [item]`
+4. If tests fail, revert and investigate

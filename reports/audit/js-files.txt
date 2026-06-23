@@ -1,0 +1,9 @@
+reader/public/js/api.js
+reader/public/js/app.js
+reader/public/js/components.js
+reader/public/js/pages/admin.js
+reader/public/js/pages/home.js
+reader/public/js/pages/novel.js
+reader/public/js/pages/pages.js
+reader/public/js/pages/reader.js
+reader/public/js/state.js

@@ -1,0 +1,9 @@
+{
+  "slug": "fixture-test",
+  "totalChapters": 3,
+  "chapters": [
+    { "num": 1, "title": "บทที่ 1", "hasCn": true, "hasTh": true, "status": "translated" },
+    { "num": 2, "title": "บทที่ 2", "hasCn": true, "hasTh": true, "status": "translated" },
+    { "num": 3, "title": "บทที่ 3", "hasCn": true, "hasTh": false, "status": "source_only" }
+  ]
+}

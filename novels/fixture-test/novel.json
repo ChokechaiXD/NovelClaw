@@ -1,0 +1,12 @@
+{
+  "slug": "fixture-test",
+  "title": "Test Fixture Novel",
+  "translatedTitle": "",
+  "author": "Test Author",
+  "sourceLang": "cn",
+  "targetLang": "th",
+  "status": "ongoing",
+  "totalChapters": 3,
+  "description": "Fixture novel for automated testing. Do not delete — used by CI and novelctl tests.",
+  "updatedAt": "2026-06-24T00:00:00.000Z"
+}

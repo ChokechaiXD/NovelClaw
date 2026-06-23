@@ -1,21 +1,19 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "NovelClaw Novel Metadata",
-  "description": "novel.json — per-novel metadata file",
+  "description": "Canonical novel.json format",
   "type": "object",
-  "required": ["title", "slug"],
+  "required": ["slug", "title"],
   "properties": {
-    "slug": {"type": "string", "description": "URL-safe novel identifier"},
-    "title": {"type": "string", "description": "Original Chinese title"},
-    "translatedTitle": {"type": "string", "description": "Thai translated title"},
-    "author": {"type": "string"},
-    "status": {"type": "string", "enum": ["ongoing", "complete", "paused", "in_progress"]},
-    "description": {"type": "string"},
-    "source_lang": {"type": "string", "pattern": "^[a-z]{2}$", "default": "cn"},
-    "target_lang": {"type": "string", "pattern": "^[a-z]{2}$", "default": "th"},
-    "totalChapters": {"type": "integer", "minimum": 0},
-    "translatedChapters": {"type": "integer", "minimum": 0},
-    "cover_url": {"type": "string"},
-    "hidden": {"type": "boolean", "description": "If true, hide from reader-facing UI"}
+    "slug": { "type": "string", "pattern": "^[a-zA-Z0-9_-]+$" },
+    "title": { "type": "string" },
+    "translatedTitle": { "type": "string" },
+    "author": { "type": "string" },
+    "sourceLang": { "type": "string", "enum": ["cn", "jp", "kr", "en"], "default": "cn" },
+    "targetLang": { "type": "string", "enum": ["th", "cn", "jp", "kr", "en"], "default": "th" },
+    "status": { "type": "string", "enum": ["ongoing", "complete", "in_progress", "paused", "hiatus"], "default": "ongoing" },
+    "totalChapters": { "type": "integer", "minimum": 0 },
+    "description": { "type": "string" },
+    "updatedAt": { "type": "string", "format": "date-time" }
   }
 }
