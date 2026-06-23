@@ -282,14 +282,20 @@ app.post('/api/novel/:slug/chapter/:num/save', requireAdmin, asyncHandler(async 
   }
 
   const targetLang = lang || 'th';
-  const chapterData = await chapterRepo.saveChapter(slug, num, targetLang, {
-    title, blocks, paragraphs, notes,
-  });
 
-  // Validate
+  // Build draft blocks for validation (no file write yet)
+  const draftBlocks = [];
+  if (paragraphs && paragraphs.length) {
+    // paragraphs format doesn't have block-level validation issues
+  } else if (blocks && blocks.length) {
+    draftBlocks.push(...blocks);
+  } else if (markdownText) {
+    draftBlocks.push(...blocks || []);
+  }
+
+  // Validate before write
   const { validateChapterJs } = require('./services/validation');
-  const validateBlocks = chapterData.blocks || [];
-  const valResult = await validateChapterJs(slug, num, title || `ตอนที่ ${num}`, validateBlocks, source || '', targetLang, { novelRoot: NOVELS_DIR });
+  const valResult = await validateChapterJs(slug, num, title || `ตอนที่ ${num}`, draftBlocks, source || '', targetLang, { novelRoot: NOVELS_DIR });
   if (!valResult.valid) {
     const errorMsg = [
       '━'.repeat(70),
@@ -302,6 +308,11 @@ app.post('/api/novel/:slug/chapter/:num/save', requireAdmin, asyncHandler(async 
     ].join('\n');
     return res.status(422).json({ error: 'Validation Error', details: errorMsg });
   }
+
+  // Validation passed — now write
+  await chapterRepo.saveChapter(slug, num, targetLang, {
+    title, blocks, paragraphs, notes,
+  });
 
   await chapterRepo.rebuildChaptersIndex(slug);
   chapterRepo.invalidateAll(slug);
