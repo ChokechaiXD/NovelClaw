@@ -82,12 +82,17 @@ async function scanChapters(slug) {
       const hasTh = !!files.th;
       const hasCn = !!files.cn;
       const isTranslated = hasTh; // .th.json = translated
-      const status = hasTh ? 'translated' : (hasCn ? 'source_only' : 'legacy');
+      let status;
+      if (hasTh) status = 'translated';
+      else if (hasCn || files.source) status = 'source_only';
+      else status = 'legacy';
 
       const titleFile = files.th || files.cn || files.legacy || files.md || files.source;
       if (titleFile) {
         try {
-          const raw = await fs.readFile(path.join(dir, titleFile), 'utf8');
+          // Source files live under chapters/source/, not chapters/
+          const readDir = files.source ? path.join(dir, 'source') : dir;
+          const raw = await fs.readFile(path.join(readDir, titleFile), 'utf8');
           if (titleFile.endsWith('.json')) {
             const j = JSON.parse(raw);
             if (j.title && typeof j.title === 'object') {
