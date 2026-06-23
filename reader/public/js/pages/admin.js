@@ -7,6 +7,7 @@
 function renderAdminNav(active) {
   const links = [
     { name: 'dashboard', label: 'ภาพรวม', page: 'admin' },
+    { name: 'jobs', label: 'งานแปล', page: 'admin/jobs' },
     { name: 'novels', label: 'นิยาย', page: 'admin/novels' },
     { name: 'chapters', label: 'ตอน', page: 'admin/chapters' },
     { name: 'glossary', label: 'คำศัพท์', page: 'admin/glossary' },
@@ -179,5 +180,65 @@ const BookmarksPage = {
       html += '</div></section></div>';
       page.innerHTML = html;
     } catch(_) { Ui.showEmpty(page, 'เกิดข้อผิดพลาด', 'ไม่สามารถโหลดบุ๊กมาร์กได้'); }
+  }
+};
+
+// ── ADMIN JOBS DASHBOARD ────────────────────────────────────────────────
+const AdminJobsPage = {
+  async render(params) {
+    const page = Ui.$('page-admin-jobs');
+    if (!page) return;
+    Ui.showSkeleton('page-admin-jobs');
+    try {
+      const res = await fetch('/api/admin/jobs');
+      const data = await res.json();
+
+      // Helper: render a section
+      const makeSection = (title, items, icon) => {
+        if (!items || items.length === 0) return '';
+        let html = '<div class="c-section" style="margin-top:var(--space-md);">' +
+          '<div class="c-section__header"><h3 class="c-section__title">' + icon + ' ' + title + ' (' + items.length + ')</h3></div>' +
+          '<div class="c-table-wrap"><table class="c-table"><thead><tr><th>ไฟล์</th><th>รายละเอียด</th><th>คำสั่ง</th></tr></thead><tbody>';
+        for (const item of items) {
+          const d = item.data || {};
+          const ch = d.chapter || d.chapterNo || '';
+          const reason = d.reason || d.error || d.state || '';
+          const suggestion = d.suggestedCommand || '';
+          const createdAt = d.createdAt ? new Date(d.createdAt).toLocaleString('th-TH') : '';
+          html += '<tr>' +
+            '<td style="font-family:var(--font-mono);font-size:12px;white-space:nowrap;">' + Ui.esc(item.file) + '</td>' +
+            '<td>' +
+              '<div style="font-weight:600;">ตอนที่ ' + Ui.esc(String(ch)) + '</div>' +
+              (reason ? '<div style="font-size:11px;color:var(--c-text-muted);">' + Ui.esc(reason.slice(0, 100)) + '</div>' : '') +
+              (createdAt ? '<div style="font-size:10px;color:var(--c-text-soft);">' + createdAt + '</div>' : '') +
+            '</td>' +
+            '<td>' +
+              (suggestion ? '<code style="font-size:11px;white-space:pre-wrap;">' + Ui.esc(suggestion) + '</code>' : '') +
+            '</td>' +
+          '</tr>';
+        }
+        html += '</tbody></table></div></div>';
+        return html;
+      };
+
+      const jobsData = data || {};
+      let html = '<div class="c-container">' +
+        renderAdminNav('jobs') +
+        '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">📋 คิวงานแปล</h3></div>';
+
+      if (!jobsData.active && !jobsData.done && !jobsData.failed && !jobsData.needsReview) {
+        html += '<p class="u-text-muted u-p-lg">ไม่สามารถโหลดข้อมูลคิวงาน</p>';
+      } else {
+        html += makeSection('กำลังทำงาน', jobsData.active, '🔄');
+        html += makeSection('รอตรวจสอบ', jobsData.needsReview, '⚠️');
+        html += makeSection('ล้มเหลว', jobsData.failed, '❌');
+        html += makeSection('เสร็จแล้ว', jobsData.done, '✅');
+      }
+
+      html += '</div>';
+      page.innerHTML = html;
+    } catch (err) {
+      Ui.showError(page, 'โหลดคิวงานไม่สำเร็จ', err.message);
+    }
   }
 };
