@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NovelClaw Needs Review",
+  "description": "needs_review queue entry in jobs/needs_review/",
+  "type": "object",
+  "required": ["chapter", "reason", "createdAt"],
+  "properties": {
+    "chapter": {"type": "integer"},
+    "reason": {"type": "string"},
+    "score": {"type": "number"},
+    "mode": {"type": "string"},
+    "suggestedCommand": {"type": "string"},
+    "createdAt": {"type": "string", "format": "date-time"},
+    "slug": {"type": "string"}
+  }
+}

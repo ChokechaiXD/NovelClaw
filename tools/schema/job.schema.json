@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NovelClaw Job",
+  "description": "Job state file in jobs/active/, jobs/done/, jobs/failed/",
+  "type": "object",
+  "required": ["id", "slug", "state", "createdAt"],
+  "properties": {
+    "id": {"type": "string"},
+    "slug": {"type": "string"},
+    "mode": {"type": "string", "enum": ["safe", "autopilot", "strict", "draft"]},
+    "force": {"type": "boolean"},
+    "state": {"type": "string", "enum": ["created", "preflight", "queued", "running", "validating", "repairing", "saving", "rebuilding", "testing", "done", "failed", "needs_review"]},
+    "chapters": {"type": "array", "items": {"type": "integer"}},
+    "current": {"type": "integer"},
+    "done": {"type": "array", "items": {"type": "integer"}},
+    "failed": {"type": "array", "items": {"type": "object"}},
+    "needs_review": {"type": "array", "items": {"type": "integer"}},
+    "pending": {"type": "array", "items": {"type": "integer"}},
+    "createdAt": {"type": "string", "format": "date-time"},
+    "updatedAt": {"type": "string", "format": "date-time"},
+    "notify": {"type": "string"}
+  }
+}
