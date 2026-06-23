@@ -99,7 +99,16 @@ async function listChapters(slug) {
   if (cached && cached.mtimeMs === cacheKeyMtime && Date.now() - cached.ts < CACHE_TTL_MS) {
     return cached.list;
   }
-  // Fast path: try index.json first (single read, no per-file I/O)
+  // Fast path: try chapters.json first (per-language canonical), then index.json
+  try {
+    const chRaw = await fs.readFile(path.join(dir, '..', 'chapters.json'), 'utf8');
+    const chIdx = JSON.parse(chRaw);
+    if (chIdx && chIdx.chapters && chIdx.chapters.length > 0) {
+      const out = chIdx.chapters.map(c => ({ num: c.num, title: c.title, isTranslated: c.status !== 'source_only' }));
+      cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: out });
+      return out;
+    }
+  } catch {}
   try {
     const idxRaw = await fs.readFile(path.join(dir, 'index.json'), 'utf8');
     const idx = JSON.parse(idxRaw);
@@ -174,10 +183,27 @@ async function listChapters(slug) {
   return out;
 }
 
-async function readChapter(slug, num) {
+async function readChapter(slug, num, lang) {
   const padded = String(num).padStart(4, '0');
-  const file = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.md`);
+  lang = lang || 'th';
+  // Per-language JSON: try {num}.{lang}.json first
+  const langFile = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.${lang}.json`);
+  try {
+    const raw = await fs.readFile(langFile, 'utf8');
+    const ch = JSON.parse(raw);
+    const title = ch.title ? (ch.title.translated || ch.title.source || `ตอนที่ ${ch.chapterNo || num}`) : `ตอนที่ ${num}`;
+    return {
+      title,
+      isJson: true,
+      paragraphs: ch.paragraphs || [],
+      blocks: ch.blocks || [],
+      lang: ch.targetLang || lang,
+      isTranslated: ch.status === 'translated' || lang === 'th',
+    };
+  } catch {}
+  // Fallback: old combined format
   const jsonFile = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.json`);
+  const file = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.md`);
   const sourceFile = path.join(NOVELS_DIR, slug, 'chapters', 'source', `${padded}.md`);
 
   // Try JSON first (new canonical format), fallback to .md (legacy), fallback to source
@@ -488,7 +514,12 @@ app.get('/api/novels', async (_req, res) => {
 app.get('/api/novel/:slug/meta', async (req, res) => {
   const meta = await readNovelMeta(req.params.slug);
   const chapters = await listChapters(req.params.slug);
-  res.json({ ...meta, slug: req.params.slug, chapterCount: chapters.length, translatedChapters: chapters.filter(c => c.isTranslated !== false).length });
+  // Try novel.json for enriched data
+  let enriched = {};
+  try {
+    enriched = JSON.parse(await fs.readFile(path.join(NOVELS_DIR, req.params.slug, 'novel.json'), 'utf8'));
+  } catch {}
+  res.json({ ...meta, ...enriched, slug: req.params.slug, chapterCount: chapters.length, translatedChapters: chapters.filter(c => c.isTranslated !== false).length });
 });
 
 app.get('/api/novel/:slug/chapters', async (req, res) => {

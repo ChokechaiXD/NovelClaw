@@ -28,7 +28,7 @@ const ReaderPage = {
             <svg style="width:16px;height:16px;"><use xlink:href="#icon-arrow-left"/></svg>
             <span>กลับ</span>
           </a>
-          <span class="c-toolbar__title">${novel ? Ui.esc(novel.title) : slug}</span>
+          <span class="c-toolbar__title">${novel ? Ui.esc(Ui.displayTitle(novel)) : slug}</span>
           <span class="c-toolbar__divider"></span>
           <button class="c-btn c-btn--icon" id="reader-theme-toggle" title="เปลี่ยนธีม"></button>
           <button class="c-btn c-btn--icon" id="reader-distraction-toggle" title="โหมดอ่านหนังสือ">
@@ -70,7 +70,7 @@ const ReaderPage = {
         const ch = chapters[chIdx];
         if (!ch) return;
         try {
-          const data = await Api.getChapterContent(slug, ch.num);
+          const data = await Api.getChapterContent(slug, ch.num, 'th');
 
           Ui.$('reader-title').textContent = ch.title || `ตอนที่ ${ch.num}`;
           Ui.$('reader-position').textContent = `${chIdx + 1} / ${chapters.length}`;
