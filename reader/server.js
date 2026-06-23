@@ -99,13 +99,20 @@ async function listChapters(slug) {
   if (cached && cached.mtimeMs === cacheKeyMtime && Date.now() - cached.ts < CACHE_TTL_MS) {
     return cached.list;
   }
+  // Fast path: try index.json first (single read, no per-file I/O)
+  try {
+    const idxRaw = await fs.readFile(path.join(dir, 'index.json'), 'utf8');
+    const idx = JSON.parse(idxRaw);
+    if (idx && idx.chapters && idx.chapters.length > 0) {
+      cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: idx.chapters });
+      return idx.chapters;
+    }
+  } catch {}
+  // Fallback: scan directory
   const entries = await fs.readdir(dir, { withFileTypes: true });
-  // Accept .json (new canonical) and .md (legacy)
   const files = entries
     .filter((e) => e.isFile() && /^\d{4}\.(json|md)$/.test(e.name))
     .map((e) => e.name);
-
-  // Also list source files
   let sourceFiles = [];
   try {
     const sourceEntries = await fs.readdir(path.join(dir, 'source'), { withFileTypes: true });
@@ -155,9 +162,15 @@ async function listChapters(slug) {
       return { num, title, isTranslated };
     }),
   );
-  out.push(...titleEntries);
-  out.sort((a, b) => a.num - b.num);
+  if (titleEntries.length > 0) {
+    out.push(...titleEntries);
+    out.sort((a, b) => a.num - b.num);
+  }
   cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: out });
+  // Write index.json for future fast reads
+  try {
+    await fs.writeFile(path.join(dir, 'index.json'), JSON.stringify({ slug, chapters: out }, null, 2), 'utf8');
+  } catch {}
   return out;
 }
 
@@ -405,39 +418,44 @@ app.param('slug', (req, res, next, slug) => {
 async function readNovelMeta(slug) {
   assertValidSlug(slug);
   const mk = "meta:" + slug; if (cache.has(mk)) return cache.get(mk);
-  const metaPath = path.join(NOVELS_DIR, slug, 'meta.md');
-  let raw = '';
+  // Try meta.json first (canonical), fallback to meta.md (legacy)
+  const jsonPath = path.join(NOVELS_DIR, slug, 'meta.json');
+  const mdPath = path.join(NOVELS_DIR, slug, 'meta.md');
+  let meta;
   try {
-    raw = await fs.readFile(metaPath, 'utf8');
-  } catch {
-    const fallback = { slug, title: slug, source_lang: 'cn', target_lang: 'th', description: '' };
-    cache.set(mk, fallback);
-    return fallback;
-  }
-  // Parse YAML frontmatter
-  const m = raw.match(/^---\s*\n([\s\S]*?)\n---/);
-  const meta = { slug, title: slug, source_lang: 'cn', target_lang: 'th', description: '' };
-  if (m) {
-    for (const line of m[1].split('\n')) {
-      const kv = line.match(/^(\w[\w_]*):\s*(.+?)\s*$/);
-      if (kv) {
-        let val = kv[2].replace(/^['"]|['"]$/g, '');
-        meta[kv[1]] = val;
+    const raw = await fs.readFile(jsonPath, 'utf8');
+    meta = JSON.parse(raw);
+    meta.slug = slug;
+    cache.set(mk, meta);
+    return meta;
+  } catch {}
+  try {
+    const raw = await fs.readFile(mdPath, 'utf8');
+    const m = raw.match(/^---\s*\n([\s\S]*?)\n---/);
+    meta = { slug, title: slug, source_lang: 'cn', target_lang: 'th', description: '' };
+    if (m) {
+      for (const line of m[1].split('\n')) {
+        const kv = line.match(/^(\w[\w_]*):\s*(.+?)\s*$/);
+        if (kv) {
+          let val = kv[2].replace(/^['"]|['"]$/g, '');
+          meta[kv[1]] = val;
+        }
       }
     }
-  }
-  // Extract description from markdown body (line after "## Description")
-  const lines = raw.split('\n');
-  let inDesc = false;
-  for (const line of lines) {
-    if (inDesc) {
-      if (line.startsWith('## ')) break;
-      meta.description += line.trim() + '\n';
-    } else if (line.startsWith('## Description')) {
-      inDesc = true;
+    const lines = raw.split('\n');
+    let inDesc = false;
+    for (const line of lines) {
+      if (inDesc) {
+        if (line.startsWith('## ')) break;
+        meta.description += line.trim() + '\n';
+      } else if (line.startsWith('## Description')) {
+        inDesc = true;
+      }
     }
+    meta.description = meta.description.trim();
+  } catch {
+    meta = { slug, title: slug, source_lang: 'cn', target_lang: 'th', description: '' };
   }
-  meta.description = meta.description.trim();
   cache.set(mk, meta);
   return meta;
 }
@@ -465,6 +483,12 @@ app.get('/api/novels', async (_req, res) => {
     }),
   );
   res.json(novels);
+});
+
+app.get('/api/novel/:slug/meta', async (req, res) => {
+  const meta = await readNovelMeta(req.params.slug);
+  const chapters = await listChapters(req.params.slug);
+  res.json({ ...meta, slug: req.params.slug, chapterCount: chapters.length, translatedChapters: chapters.filter(c => c.isTranslated !== false).length });
 });
 
 app.get('/api/novel/:slug/chapters', async (req, res) => {
