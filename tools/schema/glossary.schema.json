@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NovelClaw Glossary",
+  "description": "Per-novel glossary.json — character/place/term definitions",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["zh", "th"],
+    "properties": {
+      "zh": {"type": "string", "description": "Chinese term"},
+      "th": {"type": "string", "description": "Thai translation"},
+      "type": {"type": "string", "enum": ["character", "place", "term", "item", "skill", "title"]},
+      "lock": {"type": "string", "enum": ["locked", "reference", "unlocked"]},
+      "note": {"type": "string"}
+    }
+  }
+}

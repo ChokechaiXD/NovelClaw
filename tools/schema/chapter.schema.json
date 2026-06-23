@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NovelClaw Chapter",
+  "description": "Canonical chapter JSON format for NovelClaw — per-language chapter files",
+  "type": "object",
+  "required": ["novelId", "chapterNo", "sourceLang", "targetLang", "title", "paragraphs"],
+  "properties": {
+    "novelId": {"type": "string", "description": "Novel slug (e.g. global-descent)"},
+    "chapterNo": {"type": "integer", "minimum": 1},
+    "sourceLang": {"type": "string", "pattern": "^[a-z]{2}$", "description": "Source language code (e.g. cn)"},
+    "targetLang": {"type": "string", "pattern": "^[a-z]{2}$", "description": "Target language code (e.g. th)"},
+    "title": {
+      "type": "object",
+      "required": ["source", "translated"],
+      "properties": {
+        "source": {"type": "string"},
+        "translated": {"type": "string"}
+      }
+    },
+    "status": {"type": "string", "enum": ["translated", "source_only", "legacy"]},
+    "paragraphs": {
+      "type": "array",
+      "description": "Translated paragraphs with inline markers",
+      "items": {"type": "string"}
+    },
+    "blocks": {
+      "type": "array",
+      "description": "Legacy block format (backward compat)",
+      "items": {"type": "object"}
+    },
+    "notes": {"type": "string"},
+    "updatedAt": {"type": "string", "format": "date-time"}
+  }
+}

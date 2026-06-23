@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NovelClaw Novel Metadata",
+  "description": "novel.json — per-novel metadata file",
+  "type": "object",
+  "required": ["title", "slug"],
+  "properties": {
+    "slug": {"type": "string", "description": "URL-safe novel identifier"},
+    "title": {"type": "string", "description": "Original Chinese title"},
+    "translatedTitle": {"type": "string", "description": "Thai translated title"},
+    "author": {"type": "string"},
+    "status": {"type": "string", "enum": ["ongoing", "complete", "paused", "in_progress"]},
+    "description": {"type": "string"},
+    "source_lang": {"type": "string", "pattern": "^[a-z]{2}$", "default": "cn"},
+    "target_lang": {"type": "string", "pattern": "^[a-z]{2}$", "default": "th"},
+    "totalChapters": {"type": "integer", "minimum": 0},
+    "translatedChapters": {"type": "integer", "minimum": 0},
+    "cover_url": {"type": "string"},
+    "hidden": {"type": "boolean", "description": "If true, hide from reader-facing UI"}
+  }
+}
