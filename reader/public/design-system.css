@@ -49,7 +49,12 @@
   --sidebar-w: 280px;
   --sidebar-w-collapsed: 0px;
   --rightbar-w: 300px;
-  --topbar-h: 56px;
+  --topbar-h: 64px;
+
+  /* ── App Shell Spacing (MIKA spec) ───────────────────────────────── */
+  --brand-minh: 140px;
+  --brand-pad: 20px;
+  --nav-item-h: 44px;
 
   /* ═══════════════════════════════════════════════════════════════════
      SEPIA THEME (default)
@@ -322,68 +327,52 @@ ul, ol { list-style: none; }
    BEM — LAYOUT
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* ── App Shell ──────────────────────────────────────────────────────── */
-.c-app { display: flex; height: 100vh; overflow: hidden; }
+/* ── App Shell (CSS Grid 3-column) ────────────────────────────────── */
+.c-app {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--rightbar-w);
+  height: 100dvh;
+  overflow: hidden;
+}
 
 .c-app__sidebar {
-  width: var(--sidebar-w);
-  min-width: var(--sidebar-w);
-  max-width: var(--sidebar-w);
-  background: var(--c-bg-secondary);
-  border-right: 1px solid var(--c-border);
+  height: 100dvh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
-  height: 100vh;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.3s ease;
+  background: var(--c-bg-deep);
+  transition: opacity 0.3s ease;
 }
 .c-app__sidebar--collapsed {
-  width: var(--sidebar-w-collapsed);
-  min-width: var(--sidebar-w-collapsed);
+  width: 0;
+  min-width: 0;
   overflow: hidden;
   opacity: 0;
   pointer-events: none;
 }
-.c-app__main { flex: 1; display: flex; overflow-y: auto; height: 100vh; }
-.c-app__rightbar {
-  width: var(--rightbar-w);
-  flex-shrink: 0;
-  border-left: 1px solid var(--c-border);
-  background: var(--c-bg-tertiary);
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.3s ease;
-}
-.c-app__rightbar--collapsed {
-  width: var(--sidebar-w-collapsed);
-  min-width: var(--sidebar-w-collapsed);
-  overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* ── App Shell Sidebar dimming — reader mode ────────────────────── */
-.c-app__sidebar { background: var(--c-bg-deep); }
-.reader-page + .c-app__sidebar,
-.reader-page ~ .c-app .c-app__sidebar { background: var(--c-bg-deep); }
-
-/* ── Sidebar ────────────────────────────────────────────────────────── */
-.c-sidebar {
-  width: var(--sidebar-w);
-  background: var(--c-bg-deep);
-  border-right: 1px solid var(--c-border-subtle);
+.c-app__main {
   display: flex;
   flex-direction: column;
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100vh;
-  z-index: 100;
-  transition: transform 0.2s;
-  overflow-y: auto;
+  overflow: hidden;
+  min-width: 0;
+  background: var(--c-bg);
 }
+.c-app__rightbar {
+  height: 100dvh;
+  overflow-y: auto;
+  border-left: 1px solid var(--c-border);
+  background: var(--c-bg-secondary);
+  transition: opacity 0.3s ease;
+}
+.c-app__rightbar--collapsed {
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Sidebar (deprecated — use .c-app__sidebar) ──────────────────── */
 .c-sidebar__logo {
   padding: var(--space-md);
   display: flex;
@@ -866,28 +855,50 @@ ul, ol { list-style: none; }
 
 
 
-/* ── Sidebar Brand (modern layout) ──────────────────────────────────── */
+/* ── Sidebar Brand (compact — MIKA spec) ──────────────────────────── */
 .c-sidebar__brand {
-  padding: var(--space-md);
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  padding: var(--brand-pad);
   border-bottom: 1px solid var(--c-border);
+  min-height: var(--brand-minh);
+}
+.c-sidebar__logo {
+  width: 72px;
+  height: 72px;
+  background: var(--c-bg-tertiary);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.c-sidebar__logo svg {
+  width: 44px;
+  height: 44px;
+}
+.c-sidebar__brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .c-sidebar__title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: var(--font-weight-bold);
   color: var(--c-text-primary);
 }
 .c-sidebar__subtitle {
   font-size: 9px;
   color: var(--c-text-muted);
-  letter-spacing: 0.5px;
-  margin-top: 0;
+  letter-spacing: 0.3px;
 }
 .c-sidebar__close {
   margin-left: auto;
   color: var(--c-text-muted);
+  align-self: flex-start;
+  margin-top: 4px;
 }
 .c-sidebar__section {
   padding: var(--space-md);
@@ -897,8 +908,10 @@ ul, ol { list-style: none; }
   flex: 1;
   overflow-y: auto;
   padding: var(--space-sm) var(--space-md);
+  min-height: 0;
 }
 .c-sidebar__toggles {
+  flex-shrink: 0;
   padding: var(--space-sm) var(--space-md);
   border-top: 1px solid var(--c-border);
 }
@@ -909,7 +922,8 @@ ul, ol { list-style: none; }
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 10px var(--space-md);
+  padding: 0 var(--space-md);
+  min-height: var(--nav-item-h);
   margin: 2px 0;
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
@@ -1001,8 +1015,11 @@ ul, ol { list-style: none; }
   min-height: var(--topbar-h);
   border-bottom: 1px solid var(--c-border);
   flex-shrink: 0;
-  background: var(--c-bg-primary);
+  background: var(--c-bg);
   gap: var(--space-xs);
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 .c-header__left {
   display: flex;
@@ -1059,7 +1076,8 @@ ul, ol { list-style: none; }
 .c-content {
   flex: 1;
   overflow-y: auto;
-  background: var(--c-bg-deep);
+  background: var(--c-bg);
+  min-height: 0;
 }
 /* ── Toggle ─────────────────────────────────────────────────────────── */
 .c-toggle { width: 44px; height: 24px; border-radius: 12px; background: var(--c-border); position: relative; cursor: pointer; transition: background 0.2s; }
