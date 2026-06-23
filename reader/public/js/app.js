@@ -7,6 +7,7 @@
 const Router = {
   _routes: {},
   _current: null,
+  onPageChange: null,
 
   register(name, handler) {
     this._routes[name] = handler;
@@ -38,10 +39,12 @@ const Router = {
       this._current = hash;
       this._activatePage(page, params);
       try { handler(params); } catch(e) { console.error('Router error', page, e); }
+      this.onPageChange?.(page, params);
     } else if (!handler && this._current !== hash) {
       this._current = hash;
       this._activatePage('home');
       try { this._routes.home?.(); } catch(e) { console.error('Router error home', e); }
+      this.onPageChange?.('home', {});
     }
   },
 
@@ -90,34 +93,121 @@ const Router = {
   }
 };
 
-// ── Sidebar Events ───────────────────────────────────────────────────
+// ── Sidebar Events (Desktop) ───────────────────────────────────────────
 function initSidebar() {
   const appShell = document.querySelector('.c-app');
   const toggleBtn = document.getElementById('sidebar-toggle');
   const closeBtn = document.getElementById('sidebar-close');
 
-  toggleBtn?.addEventListener('click', () => {
+  // Desktop: toggle sidebar collapse
+  toggleBtn?.addEventListener('click', (e) => {
+    // On mobile, use drawer instead
+    if (window.innerWidth < 1024) {
+      openDrawer();
+      return;
+    }
     appShell?.classList.toggle('c-app--sidebar-collapsed');
     Store.setSetting('sidebarCollapsed', appShell?.classList.contains('c-app--sidebar-collapsed'));
   });
 
   closeBtn?.addEventListener('click', () => {
+    // On mobile, close drawer
+    if (window.innerWidth < 1024) {
+      closeDrawer();
+      return;
+    }
     appShell?.classList.add('c-app--sidebar-collapsed');
     Store.setSetting('sidebarCollapsed', true);
   });
 
-  // Restore persisted state
-  if (Store.getSettings().sidebarCollapsed) {
+  // Restore persisted state (desktop only)
+  if (Store.getSettings().sidebarCollapsed && window.innerWidth >= 1024) {
     appShell?.classList.add('c-app--sidebar-collapsed');
   }
 
-  // Nav item clicks
+  // Nav item clicks (desktop)
   document.querySelectorAll('.c-nav-item').forEach(item => {
     item.addEventListener('click', () => {
       const page = item.dataset.page;
       if (page) window.location.hash = '#' + page;
     });
   });
+}
+
+// ── Mobile Drawer ─────────────────────────────────────────────────────
+function openDrawer() {
+  document.getElementById('drawer-overlay')?.classList.add('c-drawer-overlay--open');
+  document.getElementById('drawer-sidebar')?.classList.add('c-drawer--open');
+  document.body.style.overflow = 'hidden';
+}
+function closeDrawer() {
+  document.getElementById('drawer-overlay')?.classList.remove('c-drawer-overlay--open');
+  document.getElementById('drawer-sidebar')?.classList.remove('c-drawer--open');
+  document.body.style.overflow = '';
+}
+
+function initDrawer() {
+  const overlay = document.getElementById('drawer-overlay');
+  const drawerClose = document.getElementById('drawer-close');
+  const drawerNav = document.getElementById('drawer-nav');
+
+  // Populate drawer nav from desktop sidebar
+  const desktopNav = document.querySelector('.c-sidebar__nav');
+  if (desktopNav && drawerNav) {
+    drawerNav.innerHTML = desktopNav.innerHTML;
+    // Bind clicks on drawer items
+    drawerNav.querySelectorAll('.c-nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const page = item.dataset.page;
+        if (page) {
+          window.location.hash = '#' + page;
+          closeDrawer();
+        }
+      });
+    });
+  }
+
+  overlay?.addEventListener('click', closeDrawer);
+  drawerClose?.addEventListener('click', closeDrawer);
+}
+
+// ── Mobile Bottom Nav ────────────────────────────────────────────────
+function initMobileNav() {
+  document.querySelectorAll('.c-mobile-nav__item').forEach(item => {
+    item.addEventListener('click', () => {
+      const page = item.dataset.page;
+      if (page) {
+        window.location.hash = '#' + page;
+        // Update active state
+        document.querySelectorAll('.c-mobile-nav__item').forEach(i => i.classList.remove('c-mobile-nav__item--active'));
+        item.classList.add('c-mobile-nav__item--active');
+      }
+    });
+  });
+}
+
+// ── Reader full-width mode (called when reader page loads) ───────────
+function enableReaderMode() {
+  const appShell = document.querySelector('.c-app');
+  appShell?.classList.add('c-app--reader');
+}
+function disableReaderMode() {
+  const appShell = document.querySelector('.c-app');
+  appShell?.classList.remove('c-app--reader');
+  // Restore sidebar collapsed state
+  if (Store.getSettings().sidebarCollapsed && window.innerWidth >= 1024) {
+    appShell?.classList.add('c-app--sidebar-collapsed');
+  }
+}
+
+// ── Bottom reader toolbar (called when reader page loads) ───────────
+function initReaderBottomToolbar() {
+  const toolbar = document.getElementById('reader-bottom-toolbar');
+  if (toolbar) toolbar.classList.add('c-reader-bottom-toolbar--show');
+}
+function hideReaderBottomToolbar() {
+  const toolbar = document.getElementById('reader-bottom-toolbar');
+  if (toolbar) toolbar.classList.remove('c-reader-bottom-toolbar--show');
 }
 
 // ── Theme Initialization ────────────────────────────────────────────
@@ -220,7 +310,19 @@ function init() {
 
   // Init UI
   initSidebar();
+  initDrawer();
+  initMobileNav();
   initTheme();
+  // Wire reader mode toggle
+  Router.onPageChange = (page, params) => {
+    if (page === 'novel' && params.num) {
+      enableReaderMode();
+      initReaderBottomToolbar();
+    } else {
+      disableReaderMode();
+      hideReaderBottomToolbar();
+    }
+  };
   Ui.updateAvatar();
 
   // Start router
