@@ -62,6 +62,12 @@ const Ui = {
     el.innerHTML = `<div class="c-error"><svg class="c-error__mascot"><use xlink:href="#mascot-crab-excited"/></svg><div class="c-error__title">${Ui.esc(title || 'เกิดข้อผิดพลาด')}</div><div class="c-empty__desc">${Ui.esc(desc || '')}</div><button class="c-error__retry" onclick="location.reload()">ลองอีกครั้ง</button></div>`;
   },
 
+  // ── Display Title (fallback: translatedTitle → title → slug) ──────────
+  displayTitle(novel) {
+    if (!novel) return '';
+    return novel.translatedTitle || novel.title || novel.slug || '';
+  },
+
   // ── Toast ──────────────────────────────────────────────────────────────
   showToast(message, type = 'success') {
     let container = document.getElementById('toast-container');
