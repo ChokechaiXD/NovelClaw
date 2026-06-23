@@ -1,475 +1,664 @@
 {
   "slug": "global-descent",
+  "totalChapters": 94,
   "chapters": [
     {
       "num": 1,
       "title": "ตอนที่ 1 มหายุคน้ำแข็งเปิดทดสอบสาธารณะ",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 2,
       "title": "ตอนที่ 2 การก่อสร้างอย่างเร่งรีบ",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 42,
       "title": "ตอนที่ 42 รางวัลมากมายในคุกใต้ดิน",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 71,
       "title": "ตอนที่ 71 นักธนูระดับเอลิท",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 72,
       "title": "ตอนที่ 72 เก็บเงินข้างทาง",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 73,
       "title": "ตอนที่ 73 ค้นพบพื้นที่ซ่อน",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 74,
       "title": "ตอนที่ 74 พิธีบูชายัญ มนุษย์ถ้ำนักบวช",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 75,
       "title": "ตอนที่ 75 สังหารสิ่งมีชีวิตระดับหัวหน้า",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 76,
       "title": "ตอนที่ 76 เปิดหีบสมบัติ เมล็ดเถาหนามกลายพันธุ์",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 77,
       "title": "ตอนที่ 77 นักบวชควันดำกับดาบแห่งความยุติธรรม",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 78,
       "title": "ตอนที่ 78 ประตูคลังกำลังค่อยๆ เปิดออก...",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 79,
       "title": "ตอนที่ 79 แท่นบูชา อัญมณีเรืองแสง",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 80,
       "title": "ตอนที่ 80 ดาบผลึกน้ำแข็ง ชุดคลุมหิมะ",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 81,
       "title": "ตอนที่ 81 ถ้วยรางวัลมากมาย",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 82,
       "title": "ตอนที่ 82 หุบเขาแห่งความน่ากลัว",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 83,
       "title": "ตอนที่ 83 ค่าภักดีของทุกคนพุ่งสูง",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 84,
       "title": "ตอนที่ 84 เปิดความลับสุดท้ายของพระราชวังใต้ดิน",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 85,
       "title": "ตอนที่ 85 บททดสอบของกษัตริย์",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 86,
       "title": "ตอนที่ 86 ไอเทมระดับตำนาน บัลลังก์ระยิบระยับ",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 87,
       "title": "ตอนที่ 87 แบบแปลนสีทอง แท่นบูชาวีรบุรุษ",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 88,
       "title": "ตอนที่ 88 การเปลี่ยนแปลงของซาร่า พลังพุ่งสูง",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 89,
       "title": "ตอนที่ 89 ดอกไม้บนหน้าผา ชาวเซนทอร์ผู้กล้าหาญ",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 90,
       "title": "ตอนที่ 90 ชำแหละซากกระต่าย ผลประโยชน์มหาศาล",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 91,
       "title": "ตอนที่ 91 ค้นพบหมู่บ้านพื้นเมือง ซื้ออาหาร",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 92,
       "title": "ตอนที่ 92 ฉันซื้อคุณทั้งคนเลย",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 93,
       "title": "ตอนที่ 93 สิ่งมีชีวิตเวทย์ เบาะแสจามรีเมฆ",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 94,
       "title": "ตอนที่ 94 กลับถึงบ้าน",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 95,
       "title": "ตอนที่ 95 การค้า เก็บเกี่ยวทรัพยากรจำนวนมาก",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 96,
       "title": "ตอนที่ 96 ก้าวหน้า จอมเวทน้ำแข็งระดับ 2",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 97,
       "title": "ตอนที่ 97 ดินแดนแห่งความหวัง คำขอร้องกลางดึกของเซี่ยเหยียนนี",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 98,
       "title": "ตอนที่ 98 ปีศาจในหิมะ",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 99,
       "title": "ตอนที่ 99 ฆ่าปีศาจหิมะอย่างเด็ดขาด",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 100,
       "title": "ตอนที่ 100 ราชินีแมงมุมเลือด ซีเออร์ดา·จูบเลือด",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 101,
       "title": "ตอนที่ 101 ราชินีแมงมุมเลือด ซีเออร์ดา·จูบเลือด",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 102,
       "title": "ตอนที่ 102 ต้อนรับราชินีแมงมุมเลือด",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 103,
       "title": "ตอนที่ 103 ออกเดินทางสู่ทะเลสาบหิมะ",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 104,
       "title": "ตอนที่ 104 การขอบคุณและการค้าขายกับนักสู้แชมป์เปี้ยน",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 105,
       "title": "ตอนที่ 105 วัวยูนิคอร์นเมฆปรากฏตัว",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 106,
       "title": "ตอนที่ 106 เจ้านายท่านนี้ รวยแล้ว",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 107,
       "title": "ตอนที่ 107 ภารกิจสำเร็จ เดินทางกลับฮอกหมู่บ้าน",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 108,
       "title": "ตอนที่ 108 เหตุการณ์ไม่คาดคิด เฉาซิงผู้ทรงพลัง",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 109,
       "title": "ตอนที่ 109 การสังหาร พิกัดฐานที่มั่นของฟางหลง",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 110,
       "title": "ตอนที่ 110 การรับสมัครคนใหม่และมิตรภาพกับฮอกหมู่บ้าน",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 111,
       "title": "ตอนที่ 111 การรับสมัครคนใหม่และมิตรภาพกับฮอกหมู่บ้าน",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 112,
       "title": "ตอนที่ 112 (ไม่มีชื่อตอน)",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 113,
       "title": "ตอนที่ 113 (ไม่มีชื่อตอน)",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 114,
       "title": "ตอนที่ 114 ฆ่าคนวางเพลิง สายรัดทองคำ (5000)",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 115,
       "title": "ตอนที่ 115 กลับมาแล้ว! ป้อมปราการแห่งสงครามเบื้องต้น (6000)",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 116,
       "title": "ตอนที่ 116 ทำการค้าอีกครั้งและผลตอบแทนมหาศาล!",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 117,
       "title": "ตอนที่ 117 คำขอของซาร่า, ช่วงคุ้มครองมือใหม่สิ้นสุดอย่างเป็นทางการ!",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 118,
       "title": "ตอนที่ 118 ร้านค้ามังกรยักษ์ เปิดใช้งาน!",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 119,
       "title": "ตอนที่ 119 ปีศาจรังน้ำแข็งมาโจมตี หอธนูบดขยี้!",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 120,
       "title": "ตอนที่ 120 หัวใจคือกล้ามเนื้อที่แข็งแกร่งที่สุด!",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 121,
       "title": "ตอนที่ 121 กู้ภัย เมล็ดต้นไม้โบราณแห่งสงคราม",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 122,
       "title": "ตอนที่ 122: สมาคมการค้าจันทรา ผู้แข็งแกร่งขั้นสี่!",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 123,
       "title": "ตอนที่ 123: สุสานใต้ดิน",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 124,
       "title": "ตอนที่ 124: วิญญาณกับไฟผี เข้าสู่สุสานใต้ดิน",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 125,
       "title": "ตอนที่ 125: เควสท้าทาย รางวัลมากมาย",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 126,
       "title": "ตอนที่ 126: ของมีค่าของวิญญาณ รวยแล้ว!",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 127,
       "title": "ตอนที่ 127 กลยุทธ์ขวางประตู",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 128,
       "title": "ตอนที่ 128: บรูนท์ก้าวหน้า ไม่อาจทำลายได้!",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 129,
       "title": "ตอนที่ 129: การเปลี่ยนแปลง! ร่างใหม่ของดรูอิด!",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 130,
       "title": "ตอนที่ 130: หมิ่นเทพธิดา อสูรเซฟีเนีย",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 134,
       "title": "ตอนที่ 134: หีบทองคำ! แหวนราชันย์ศักดิ์สิทธิ์!",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 135,
       "title": "ตอนที่ 135: จัดการ! สกิลแปลงร่างปีศาจ!",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 136,
       "title": "ตอนที่ 136: กล่องสมบัติทอง แหวนศักดิ์สิทธิ์!",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 137,
       "title": "ตอนที่ 137: น้ำแห่งวิญญาณน้ำแข็ง ความลับสู่ความมั่งคั่ง!",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 138,
       "title": "ตอนที่ 138: บุกโจมตีดินแดนฟางหลง!",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 139,
       "title": "ตอนที่ 139 เผาดินแดนฟางหลง!",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 140,
       "title": "ตอนที่ 140: ปักหลักซื้อเสบียงที่โฮก",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 141,
       "title": "ตอนที่ 141 โรงเตี๊ยมเปิดแล้ว จ้างฮีโร่พเนจร",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 142,
       "title": "ตอนที่ 142 ของขวัญจากเหมืองหิน",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 143,
       "title": "ตอนที่ 143 ตามหาดอกไม้ต้องห้าม",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 144,
       "title": "ตอนที่ 144",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 145,
       "title": "ตอนที่ 145",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 146,
       "title": "ตอนที่ 146",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 147,
       "title": "ตอนที่ 147",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 148,
       "title": "ตอนที่ 148",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 149,
       "title": "ตอนที่ 149",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 150,
       "title": "ตอนที่ 150",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 151,
       "title": "ตอนที่ 151",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 152,
       "title": "ตอนที่ 152",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 153,
       "title": "ตอนที่ 153",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 154,
       "title": "ตอนที่ 154",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 155,
       "title": "ตอนที่ 155",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 156,
       "title": "ตอนที่ 156",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 157,
       "title": "ตอนที่ 157",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 158,
       "title": "ตอนที่ 158",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 159,
       "title": "ตอนที่ 159",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 160,
       "title": "ตอนที่ 160",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 161,
       "title": "ตอนที่ 161",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 162,
       "title": "ตอนที่ 162",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 163,
       "title": "ตอนที่ 163",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 164,
       "title": "ตอนที่ 164",
-      "isTranslated": true
+      "hasCn": true,
+      "hasTh": true,
+      "status": "translated"
     }
   ]
 }

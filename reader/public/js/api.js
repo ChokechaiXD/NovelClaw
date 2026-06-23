@@ -36,8 +36,9 @@ const Api = {
 
   invalidateChapters(slug) { delete this._chaptersCache[slug]; delete this._chaptersCacheTime[slug]; },
 
-  async getChapterContent(slug, num) {
-    const res = await fetch(`/api/novel/${slug}/chapter/${num}`);
+  async getChapterContent(slug, num, lang) {
+    lang = lang || 'th';
+    const res = await fetch(`/api/novel/${slug}/chapter/${num}?lang=${lang}`);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     return res.json();
   },
