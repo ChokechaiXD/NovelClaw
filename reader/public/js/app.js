@@ -64,13 +64,14 @@ const Router = {
 
     // Update sidebar active state
     document.querySelectorAll('.c-nav-item').forEach(n => n.classList.remove('c-nav-item--active'));
-    const navMap = { home: 'home', library: 'library', search: 'search', ranking: 'ranking', profile: 'profile', history: 'history', bookmarks: 'bookmarks', settings: 'settings', admin: 'admin', novel: 'novel' };
-    let navPage = navMap[page] || null;
-    // Reader mode: novel detail and reader both highlight "library" for now
-    if (page === 'novel') navPage = 'library';
-    if (navPage) {
-      const navItem = document.querySelector('.c-nav-item[data-page="' + navPage + '"]');
-      if (navItem) navItem.classList.add('c-nav-item--active');
+    const navMap = { home: 'home', library: 'library', search: 'search', ranking: 'ranking', profile: 'profile', history: 'history', bookmarks: 'bookmarks', settings: 'settings', admin: 'admin' };
+    // Novel/reader routes: clear sidebar highlight (topbar breadcrumb handles context)
+    if (page !== 'novel') {
+      const navPage = navMap[page] || null;
+      if (navPage) {
+        const navItem = document.querySelector('.c-nav-item[data-page="' + navPage + '"]');
+        if (navItem) navItem.classList.add('c-nav-item--active');
+      }
     }
 
     // Update page title
