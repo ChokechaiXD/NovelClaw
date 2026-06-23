@@ -44,7 +44,7 @@ const ReaderPage = {
           <h1 class="reader-title" id="reader-title"></h1>
           <div class="c-reader__meta">
             <button class="c-btn c-btn--icon" id="reader-font-sm" title="ลดขนาดอักษร">A−</button>
-            <span style="font-size:var(--text-sm);color:var(--c-text-muted);">16px</span>
+            <span style="font-size:var(--text-sm);color:var(--c-text-muted);">18px</span>
             <button class="c-btn c-btn--icon" id="reader-font-lg" title="เพิ่มขนาดอักษร">A+</button>
           </div>
           <div id="reader-content"></div>
@@ -146,15 +146,22 @@ const ReaderPage = {
         if (sc) sc.scrollTo({ top: 0, behavior: 'smooth' });
       };
 
-      // ── Font size ───────────────────────────────────────────────────
+      // ── Font size controls ─────────────────────────────────────────────
       let fontStep = 0;
+      const BASE_FONT = 18;
       Ui.$('reader-font-sm').onclick = () => {
-        fontStep = Math.max(-2, fontStep - 1);
-        document.documentElement.style.setProperty('--text-base', `${15 + fontStep * 2}px`);
+        fontStep = Math.max(-1, fontStep - 1);
+        const px = BASE_FONT + fontStep * 2;
+        document.documentElement.style.setProperty('--text-base', `${px}px`);
+        const lbl = Ui.$('reader-position');
+        if (lbl) lbl.textContent = `${px}px`;
       };
       Ui.$('reader-font-lg').onclick = () => {
-        fontStep = Math.min(3, fontStep + 1);
-        document.documentElement.style.setProperty('--text-base', `${15 + fontStep * 2}px`);
+        fontStep = Math.min(2, fontStep + 1);
+        const px = BASE_FONT + fontStep * 2;
+        document.documentElement.style.setProperty('--text-base', `${px}px`);
+        const lbl = Ui.$('reader-position');
+        if (lbl) lbl.textContent = `${px}px`;
       };
 
       // ── Theme toggle ─────────────────────────────────────────────────
