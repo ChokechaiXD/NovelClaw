@@ -128,21 +128,25 @@ const SettingsPage = {
       Store.on('setting:theme', (t) => { sel.value = t; });
     }
 
-    let fontStep = 0;
+    // Font size controls (persisted)
+    const savedFontSize = parseInt(Store.getSettings().fontSize, 10) || 18;
+    let fontStep = Math.round((savedFontSize - 18) / 2);
     const BASE_FONT = 18;
-    document.getElementById('settings-font-sm')?.addEventListener('click', () => {
-      fontStep = Math.max(-1, fontStep - 1);
-      const px = BASE_FONT + fontStep * 2;
+    const applyFont = (step) => {
+      const px = BASE_FONT + step * 2;
       document.documentElement.style.setProperty('--text-base', px + 'px');
+      Store.setSetting('fontSize', px);
       const lbl = document.getElementById('settings-font-label');
       if (lbl) lbl.textContent = px + 'px';
+    };
+    applyFont(fontStep);
+    document.getElementById('settings-font-sm')?.addEventListener('click', () => {
+      fontStep = Math.max(-1, fontStep - 1);
+      applyFont(fontStep);
     });
     document.getElementById('settings-font-lg')?.addEventListener('click', () => {
       fontStep = Math.min(2, fontStep + 1);
-      const px = BASE_FONT + fontStep * 2;
-      document.documentElement.style.setProperty('--text-base', px + 'px');
-      const lbl = document.getElementById('settings-font-label');
-      if (lbl) lbl.textContent = px + 'px';
+      applyFont(fontStep);
     });
   }
 };

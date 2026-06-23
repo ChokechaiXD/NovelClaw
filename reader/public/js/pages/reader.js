@@ -73,7 +73,7 @@ const ReaderPage = {
 
           // Update topbar title with novel + chapter info
           const titleEl = document.getElementById('page-title');
-          if (titleEl) titleEl.textContent = (novel ? Ui.esc(novel.title || slug) : slug) + ' — ตอนที่ ' + ch.num;
+          if (titleEl) titleEl.textContent = Ui.esc(Ui.displayTitle(novel) || slug) + ' — ตอนที่ ' + ch.num;
 
           let contentHtml = '';
           // New format: paragraphs (type-less, inline markers)
@@ -153,22 +153,25 @@ const ReaderPage = {
         if (sc) sc.scrollTo({ top: 0, behavior: 'smooth' });
       };
 
-      // ── Font size controls ─────────────────────────────────────────────
-      let fontStep = 0;
+      // ── Font size controls (persisted) ──────────────────────────────────
+      const savedFontSize = parseInt(Store.getSettings().fontSize, 10) || 18;
+      let fontStep = Math.round((savedFontSize - 18) / 2);
       const BASE_FONT = 18;
-      Ui.$('reader-font-sm').onclick = () => {
-        fontStep = Math.max(-1, fontStep - 1);
-        const px = BASE_FONT + fontStep * 2;
+      const applyFont = (step) => {
+        const px = BASE_FONT + step * 2;
         document.documentElement.style.setProperty('--text-base', `${px}px`);
+        Store.setSetting('fontSize', px);
         const lbl = Ui.$('reader-position');
         if (lbl) lbl.textContent = `${px}px`;
       };
+      applyFont(fontStep);
+      Ui.$('reader-font-sm').onclick = () => {
+        fontStep = Math.max(-1, fontStep - 1);
+        applyFont(fontStep);
+      };
       Ui.$('reader-font-lg').onclick = () => {
         fontStep = Math.min(2, fontStep + 1);
-        const px = BASE_FONT + fontStep * 2;
-        document.documentElement.style.setProperty('--text-base', `${px}px`);
-        const lbl = Ui.$('reader-position');
-        if (lbl) lbl.textContent = `${px}px`;
+        applyFont(fontStep);
       };
 
       // ── Theme toggle ─────────────────────────────────────────────────
