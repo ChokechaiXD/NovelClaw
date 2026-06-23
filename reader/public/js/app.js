@@ -151,21 +151,16 @@ function initDrawer() {
   const drawerClose = document.getElementById('drawer-close');
   const drawerNav = document.getElementById('drawer-nav');
 
-  // Populate drawer nav from desktop sidebar
-  const desktopNav = document.querySelector('.c-sidebar__nav');
-  if (desktopNav && drawerNav) {
-    drawerNav.innerHTML = desktopNav.innerHTML;
-    // Bind clicks on drawer items
-    drawerNav.querySelectorAll('.c-nav-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const page = item.dataset.page;
-        if (page) {
-          window.location.hash = '#' + page;
-          closeDrawer();
-        }
-      });
+  // Bind clicks on drawer items
+  drawerNav?.querySelectorAll('.c-nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const page = item.dataset.page;
+      if (page) {
+        window.location.hash = '#' + page;
+        closeDrawer();
+      }
     });
-  }
+  });
 
   overlay?.addEventListener('click', closeDrawer);
   drawerClose?.addEventListener('click', closeDrawer);

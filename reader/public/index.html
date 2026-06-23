@@ -104,7 +104,7 @@
       </div>
 
       <div class="c-sidebar__nav">
-        <div class="c-section-label" style="padding:0 var(--space-md);">เมนูผู้อ่าน</div>
+        <div class="c-nav-divider"></div>
         <div class="c-nav-item c-nav-item--active" data-page="home">
           <svg class="c-nav-item__icon"><use xlink:href="#icon-home"/></svg> หน้าหลัก
         </div>
@@ -117,7 +117,7 @@
         <div class="c-nav-item" data-page="ranking">
           <svg class="c-nav-item__icon"><use xlink:href="#icon-ranking"/></svg> อันดับ
         </div>
-        <div class="c-nav-divider"></div>
+        <hr class="c-nav-hr">
         <div class="c-nav-item" data-page="profile">
           <svg class="c-nav-item__icon"><use xlink:href="#icon-profile"/></svg> โปรไฟล์
         </div>
@@ -127,11 +127,11 @@
         <div class="c-nav-item" data-page="bookmarks">
           <svg class="c-nav-item__icon"><use xlink:href="#icon-bookmarks"/></svg> บุ๊กมาร์ก
         </div>
-        <div class="c-nav-divider"></div>
+        <hr class="c-nav-hr">
         <div class="c-nav-item" data-page="settings">
           <svg class="c-nav-item__icon"><use xlink:href="#icon-settings"/></svg> ตั้งค่า
         </div>
-        <div class="c-section-label" style="padding:8px var(--space-md) 4px;margin-top:4px;">ระบบหลังบ้าน</div>
+        <hr class="c-nav-hr">
         <div class="c-nav-item" data-page="admin">
           <svg class="c-nav-item__icon"><use xlink:href="#icon-shield"/></svg> จัดการ
         </div>
@@ -144,12 +144,12 @@
           </span>
           <div class="c-toggle c-toggle--active" id="theme-toggle-new"></div>
         </div>
-        <div class="c-toggle__row">
+        <a href="#admin/jobs" class="c-toggle__row" data-nav style="text-decoration:none;color:inherit;cursor:pointer;">
           <span class="c-toggle__label">
-            <svg style="width:16px;height:16px;"><use xlink:href="#icon-book"/></svg> AI Translate
+            <svg style="width:16px;height:16px;"><use xlink:href="#icon-book"/></svg> คิวแปล AI
           </span>
-          <div class="c-toggle" id="translate-toggle-new"></div>
-        </div>
+          <span style="font-size:10px;color:var(--c-accent);">→</span>
+        </a>
       </div>
     </nav>
 
@@ -230,7 +230,39 @@
         <svg style="width:14px;height:14px;"><use xlink:href="#icon-close"/></svg>
       </button>
     </div>
-    <div class="c-sidebar__nav" id="drawer-nav"></div>
+    <div class="c-sidebar__nav" id="drawer-nav">
+      <div class="c-nav-divider"></div>
+      <div class="c-nav-item c-nav-item--active" data-page="home">
+        <svg class="c-nav-item__icon"><use xlink:href="#icon-home"/></svg> หน้าหลัก
+      </div>
+      <div class="c-nav-item" data-page="library">
+        <svg class="c-nav-item__icon"><use xlink:href="#icon-library"/></svg> หอสมุด
+      </div>
+      <div class="c-nav-item" data-page="search">
+        <svg class="c-nav-item__icon"><use xlink:href="#icon-search"/></svg> ค้นหา
+      </div>
+      <div class="c-nav-item" data-page="ranking">
+        <svg class="c-nav-item__icon"><use xlink:href="#icon-ranking"/></svg> อันดับ
+      </div>
+      <hr class="c-nav-hr">
+      <div class="c-nav-item" data-page="profile">
+        <svg class="c-nav-item__icon"><use xlink:href="#icon-profile"/></svg> โปรไฟล์
+      </div>
+      <div class="c-nav-item" data-page="history">
+        <svg class="c-nav-item__icon"><use xlink:href="#icon-history"/></svg> ประวัติ
+      </div>
+      <div class="c-nav-item" data-page="bookmarks">
+        <svg class="c-nav-item__icon"><use xlink:href="#icon-bookmarks"/></svg> บุ๊กมาร์ก
+      </div>
+      <hr class="c-nav-hr">
+      <div class="c-nav-item" data-page="settings">
+        <svg class="c-nav-item__icon"><use xlink:href="#icon-settings"/></svg> ตั้งค่า
+      </div>
+      <hr class="c-nav-hr">
+      <div class="c-nav-item" data-page="admin">
+        <svg class="c-nav-item__icon"><use xlink:href="#icon-shield"/></svg> จัดการ
+      </div>
+    </div>
   </div>
 
   <!-- Bottom reader toolbar (shown on reader page) -->
