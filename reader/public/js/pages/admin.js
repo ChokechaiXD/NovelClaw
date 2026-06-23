@@ -90,7 +90,7 @@ const AdminChaptersPage = {
       const slug = novels[0]?.slug;
       if (!slug) { page.innerHTML = '<div class="c-container">' + renderAdminNav('chapters') + '<p class="u-text-muted u-p-lg">ไม่มีนิยายในระบบ</p></div>'; return; }
       const chapters = await Api.getChapters(slug);
-      page.innerHTML = '<div class="c-container">' + renderAdminNav('chapters') +
+      let html = '<div class="c-container">' + renderAdminNav('chapters') +
         '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">ตอนทั้งหมด: ' + Ui.esc(slug) + '</h3><span style="font-size:var(--text-sm);color:var(--c-text-muted);">' + chapters.length + ' ตอน</span></div>' +
         '<div class="c-table-wrap"><table class="c-table"><thead><tr><th>#</th><th>ชื่อตอน</th><th>สถานะ</th></tr></thead><tbody>';
       for (const ch of chapters.slice(-100)) {
