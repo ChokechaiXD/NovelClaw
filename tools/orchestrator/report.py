@@ -26,8 +26,6 @@ def _count_needs_review(slug: str | None = None) -> int:
         count += 1
     return count
 
-from __future__ import annotations
-
 
 def _reader_url(slug: str, num: int) -> str:
     return f"http://localhost:4173/#novel/{slug}/{num}"

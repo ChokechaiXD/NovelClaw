@@ -76,6 +76,11 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
         yield f"🔄 กำลังแปลตอน {num}..."
         tr = runner.translate_single(slug, num, mode=mode, force=force, score=(mode != "draft"))
 
+        # Audit: log translate result
+        quality.write_audit_log(slug, num, "translate", mode,
+                                chapter_data=tr.get("chapter_data"),
+                                result=tr)
+
         if not tr["ok"]:
             err = tr.get("error", "unknown error")
             yield f"❌ ตอน {num} ล้มเหลว: {err}"
@@ -110,6 +115,10 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
         vr = runner.validate_single(slug, num)
         score = vr.get("score") or tr.get("score")
 
+        # Audit: log validation result
+        quality.write_audit_log(slug, num, "validate", mode,
+                                validation_result=vr, result=vr)
+
         # Validate result enforcement
         val_ok = vr.get("ok", False)
         val_error = vr.get("error")
@@ -139,6 +148,7 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
 
             elif mode == "strict":
                 yield f"⚠️ ตอน {num} validation ล้มเหลว: {reason} — needs_review"
+                quality.write_needs_review(slug, num, f"strict:{reason}", score=score, mode=mode)
                 job = job.copy(state="needs_review",
                               failed=job.failed + [{"chapter": num, "reason": f"strict:{reason}", "retryCount": 0}])
                 job.save()
@@ -159,12 +169,16 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
                         yield f"  ✅ repair ช่วยให้ผ่าน validation แล้ว"
                     else:
                         yield f"  ⚠️ repair ไม่พอ — เก็บเป็น needs_review"
+                        quality.write_needs_review(slug, num, f"autopilot:{reason} (repair failed)", score=score, mode=mode,
+                                                   fix_command=f"/แปลใหม่ {num}")
                         job = job.copy(failed=job.failed + [{"chapter": num, "reason": f"autopilot:{reason}", "retryCount": 1}])
                         job.save()
                         locks.release(slug, num)
                         continue
                 else:
                     yield f"  ⚠️ ไม่มี repair ที่ทำได้ — เก็บเป็น needs_review"
+                    quality.write_needs_review(slug, num, f"autopilot:{reason} (no repair)", score=score, mode=mode,
+                                               fix_command=f"/แปลใหม่ {num}")
                     job = job.copy(failed=job.failed + [{"chapter": num, "reason": f"autopilot:{reason}", "retryCount": 1}])
                     job.save()
                     locks.release(slug, num)
@@ -175,6 +189,8 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
         th_path = _PROJECT_ROOT / "novels" / slug / "chapters" / f"{num:04d}.th.json"
         if not th_path.exists():
             yield f"❌ ตอน {num} ไม่พบ .th.json หลังแปล"
+            quality.write_needs_review(slug, num, "th.json_not_found_after_translate", mode=mode,
+                                       fix_command=f"/แปลใหม่ {num}")
             job = job.copy(failed=job.failed + [{"chapter": num, "reason": "th.json_not_found_after_translate", "retryCount": 0}])
             job.save()
             locks.release(slug, num)
