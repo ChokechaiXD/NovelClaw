@@ -27,6 +27,48 @@ NovelClaw = Chinese-to-Thai web novel translation toolkit.
 | **Zero API keys in repo** | All credentials → Hermes Agent config.yaml |
 | **Provider** | `tools/providers/api.py` → direct HTTP (NOT Hermes CLI subprocess) |
 | **Free model only** | `deepseek-v4-flash` via openmodel.ai (ฟรีตลอด) |
+| **JSON canonical format** | Chapter data stored as structured JSON (paragraphs), NOT raw HTML |
+| **meta.json & index.json** | Novel metadata + chapter index as JSON files — zero per-file I/O |
+| **Per-chapter fetch** | Reader fetches only the requested chapter JSON, never loads whole novel |
+| **User state separate** | Reading progress, history, bookmarks in localStorage (not in novel data) |
+
+## Data Storage Layout
+
+```
+novels/{slug}/
+├── novel.json                    ← Novel metadata (title, author, status, description, translatedTitle)
+├── chapters.json                 ← Chapter index (num, title, status: translated|source_only) — fast-path
+└── chapters/
+    ├── index.json                ← Backward-compat index { num, title, isTranslated }
+    ├── 0001.th.json              ← Chapter 1 — Thai translation (structured paragraphs)
+    ├── 0001.cn.json              ← Chapter 1 — Chinese source (kept separate from reader)
+    ├── 0002.th.json              ← Chapter 2 — Thai translation
+    ├── 0002.cn.json              ← Chapter 2 — Chinese source
+    └── ...
+```
+
+**Reader data flow (per-chapter fetch):**
+1. `GET /api/novels` — reads `novel.json` per novel, returns list with `title` + `translatedTitle`
+2. `GET /api/novel/:slug/meta` — serves `novel.json` directly
+3. `GET /api/novel/:slug/chapters` — serves `chapters.json` directly (fast path, zero per-file I/O)
+4. `GET /api/novel/:slug/chapter/:num?lang=th` — serves single chapter JSON (`{num}.{lang}.json`)
+5. Frontend Store (localStorage) — reading progress, history, bookmarks (never mixed with novel data)
+
+**Per-chapter JSON format:**
+```json
+{
+  "novelId": "global-descent",
+  "chapterNo": 127,
+  "sourceLang": "cn",
+  "targetLang": "th",
+  "title": { "source": "...", "translated": "..." },
+  "status": "translated",
+  "paragraphs": ["...", "..."],
+  "updatedAt": "2026-06-23T00:00:00.000Z"
+}
+```
+
+**Migration:** `python tools/migrate_json.py` — creates novel.json + chapters.json from existing data
 
 ---
 
