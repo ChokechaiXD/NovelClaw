@@ -89,7 +89,7 @@ def test_no_resume_full_batch(temp_novel, monkeypatch):
     (ch_dir / "0002.json").write_text(
         json.dumps({
             "num": 2, "title": "ตอนที่ 2 [MOCK]",
-            "blocks": [{"type": "narration", "text": "ch2"}, {"type": "end", "text": "(จบบท)"}],
+            "paragraphs": ["ch2", "(จบบท)"],
             "source": "ch 2", "lang": "cn",
         }),
         encoding="utf-8",

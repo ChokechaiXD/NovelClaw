@@ -97,6 +97,7 @@ ALLOWED_LATIN_TOKENS = {
     "AOE",
     "DPS",
     "TPS",
+    "ELITE",
     "BloodyLand",
     "Bloodyland",
     "C",
@@ -213,47 +214,13 @@ def validate_translation_quality(
                 messages.append(
                     f'ERROR paragraph {i}: lowercase/mixed Latin leak "{token}" -> {hint}'
                 )
-        # Check end marker - last paragraph must be (จบบท)
-        if ch.paragraphs[-1] != "(จบบท)":
+        # Check end marker - last paragraph must be expected end marker
+        expected_marker = bracket_profile.get("end_marker", "(จบบท)")
+        if ch.paragraphs[-1] != expected_marker:
             messages.append(
-                f'ERROR ch{ch.num}: last paragraph must be end marker "(จบบท)"'
+                f'ERROR ch{ch.num}: last paragraph must be end marker "{expected_marker}"'
             )
-    elif ch.blocks:
-        # Blocks mode (legacy)
-        for i, block in enumerate(ch.blocks):
-            if getattr(block, "type", "") == "end":
-                continue
-            text = str(block.text)
-            cjk = CJK_LEAK_RE.findall(text)
-            if cjk:
-                messages.append(f"ERROR block {i} ({block.type}): CJK leak chars {cjk[:8]}")
-            if SOURCE_ARTIFACT_RE.search(text):
-                messages.append(
-                    f"ERROR block {i} ({block.type}): source artifact leaked into translation"
-                )
-            for match in LATIN_LEAK_RE.finditer(text):
-                token = match.group(0)
-                if token in ALLOWED_LATIN_TOKENS:
-                    continue
-                hint = _latin_token_hint(token)
-                if hint:
-                    messages.append(f'ERROR block {i} ({block.type}): Latin leak "{token}" -> {hint}')
-                else:
-                    messages.append(
-                        f'WARNING block {i} ({block.type}): Latin token "{token}" is not in allowed list'
-                    )
-            for match in LOWER_LATIN_LEAK_RE.finditer(text):
-                token = match.group(0)
-                hint = _latin_token_hint(token) or "review/translate this token"
-                messages.append(
-                    f'ERROR block {i} ({block.type}): lowercase/mixed Latin leak "{token}" -> {hint}'
-                )
-
-        expected_end_marker = bracket_profile.get("end_marker", "(จบบท)")
-        if ch.blocks and getattr(ch.blocks[-1], "text", None) != expected_end_marker:
-            messages.append(
-                f'ERROR ch{ch.num}: last block must be {active_profile_key} end marker "{expected_end_marker}"'
-            )
+    # (blocks mode removed in v3 — all chapters use paragraphs)
 
     return not any(message.startswith("ERROR") for message in messages), messages
 

@@ -102,33 +102,9 @@ def _has_npc_speaker(paragraph: str) -> bool:
 
     for name in _load_npc_names():
         if name in paragraph:
-            return True
-    return False
-
-
-# ── Config ────────────────────────────────────────────────────────────
-
-EN_BLACKLIST: set[str] = {
-    "recruiting", "level", "disrespect", "mean", "queen",
-    "erupt", "continue", "panic", "momentarily", "hollow",
-    "militia", "avatar", "blacklist", "peek",
-    "first", "kill", "recruit", "loot", "skill", "quest", "boss",
-    "dungeon", "party", "guild", "raid", "tank", "healer",
-    "damage", "defense", "attack", "speed",
-    "inventory", "equip", "item", "craft",
-    "summon", "portal", "shield", "weapon", "armor",
-    "pet", "mount", "crystal", "stone", "potion",
-    "common", "uncommon", "rare", "epic", "legendary",
-    "hybrid", "ancient", "elite", "melee", "ranged",
-    "plants", "zombies",
-}
-
-ALLOWED_LATIN_TOKENS: set[str] = {
-    "HP", "MP", "EXP", "SSS", "SSR", "UR", "SP", "ID", "VIP",
-    "S", "SS", "LR", "CD", "NPC", "PVP", "PVE",
-    "LV", "LVL", "ATK", "DEF", "DMG", "BUFF", "DEBUFF",
-    "AOE", "DPS", "TPS", "ELITE",
-}
+            from schema import CN_RE as _cn_re_re
+            from validation import ALLOWED_LATIN_TOKENS, EN_BLACKLIST
+            CN_RE = _cn_re_re
 
 # Completeness ratio range
 COMPLETENESS_MIN = 0.80

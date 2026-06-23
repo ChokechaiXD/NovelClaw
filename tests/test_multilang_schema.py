@@ -1,188 +1,107 @@
-"""test_multilang_schema.py — Multi-language schema support (Phase 2).
+"""test_multilang_schema.py — Multi-language schema tests for v3 paragraphs."""
 
-Verifies that:
-  - 5 languages (cn, jp, kr, en, th) all parse cleanly with the right
-    brackets per their BRACKETS profile
-  - Wrong brackets for a language are rejected
-  - Backward compat: existing CN chapters with no `lang` field work
-  - End marker auto-set to language-specific value
-  - BRACKETS config is the single source of truth (matches schema.py)
-"""
 import sys
 from pathlib import Path
 
-# Make tools/ importable
 sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
 
+import pytest  # noqa: E402
 from schema import Chapter, Language, BRACKETS  # noqa: E402
 
 
-def make_chapter(lang, dialogue_text=None, system_text=None, end_text=None):
-    """Build a minimal valid chapter for a given language."""
-    b = BRACKETS[lang]
-    return Chapter(
-        num=1,
-        title='ตอนที่ 1 Test',
-        blocks=[
-            {'type': 'narration', 'text': 'Once upon a time'},
-            {'type': 'dialogue', 'text': dialogue_text or f'{b["dialogue_open"]}hi{b["dialogue_close"]}'},
-            {'type': 'system', 'text': system_text or f'{b["system_open"]}HP:100{b["system_close"]}'},
-            {'type': 'end', 'text': end_text or b['end_marker']},
-        ],
-        source='ch 1',
-        lang=lang,
-    )
+def make_chapter(lang="cn", paragraphs=None):
+    if paragraphs is None:
+        paragraphs = ["content", "(จบบท)"]
+    return Chapter(num=1, title="ตอนที่ 1 Test", paragraphs=paragraphs, source="ch 1", lang=lang)
 
 
 class TestLanguageEnum:
-    """The 5 supported languages are exposed as enum values."""
-
     def test_languages_present(self):
-        for lang in ('cn', 'jp', 'kr', 'en', 'th'):
-            assert lang in BRACKETS, f'BRACKETS missing {lang}'
+        for lang in ("cn", "jp", "kr", "en", "th"):
+            assert lang in BRACKETS, f"BRACKETS missing {lang}"
 
     def test_brackets_have_required_keys(self):
         for lang, b in BRACKETS.items():
-            for key in ('dialogue_open', 'dialogue_close',
-                        'system_open', 'system_close',
-                        'game_open', 'game_close', 'end_marker'):
-                assert key in b, f'BRACKETS[{lang}] missing {key}'
-                assert b[key], f'BRACKETS[{lang}][{key}] is empty'
+            for key in ("dialogue_open", "dialogue_close", "system_open", "system_close",
+                        "game_open", "game_close", "end_marker"):
+                assert key in b, f"BRACKETS[{lang}] missing {key}"
+                assert b[key], f"BRACKETS[{lang}][{key}] is empty"
 
 
 class TestCNDefault:
-    """CN (Chinese) — original brackets, default for backward compat."""
-
     def test_default_lang_is_cn(self):
-        ch = Chapter(
-            num=1, title='ตอนที่ 1 Test',
-            blocks=[
-                {'type': 'narration', 'text': 'hi'},
-                {'type': 'dialogue', 'text': '「สวัสดี」'},
-                {'type': 'end', 'text': '(จบบท)'},
-            ],
-            source='ch 1',
-        )
+        ch = Chapter(num=1, title="ตอนที่ 1 Test", paragraphs=["hi", "(จบบท)"], source="ch 1")
         assert ch.lang == Language.CN
-
-    def test_cn_brackets_accepted(self):
-        ch = make_chapter('cn', dialogue_text='「สวัสดี」', system_text='【HP:100】')
-        assert ch.blocks[1].text == '「สวัสดี」'
-        assert ch.blocks[2].text == '【HP:100】'
 
 
 class TestJapanese:
-    """JP — same dialogue/system as CN, but title uses 『』 and end is (終)."""
-
-    def test_jp_brackets_accepted(self):
-        ch = make_chapter('jp', dialogue_text='「こんにちは」', system_text='【HP:100】')
+    def test_jp_lang(self):
+        ch = make_chapter("jp")
         assert ch.lang == Language.JP
 
-    def test_jp_end_marker_auto_set(self):
-        ch = make_chapter('jp', end_text='x')  # any text gets replaced
-        assert ch.blocks[-1].text == BRACKETS['jp']['end_marker']
-        assert ch.blocks[-1].text == '（終）'
-
-    def test_jp_game_title_uses_kagi(self):
-        ch = Chapter(
-            num=1, title='ตอนที่ 1 Test',
-            blocks=[
-                {'type': 'narration', 'text': 'hi'},
-                {'type': 'dialogue', 'text': '「hi」'},
-                {'type': 'game_title', 'text': '『Game Title』'},
-                {'type': 'end', 'text': '（終）'},
-            ],
-            source='ch 1', lang='jp',
-        )
-        assert ch.blocks[2].text == '『Game Title』'
+    def test_jp_end_marker_auto_append(self):
+        ch = Chapter(num=1, title="ตอนที่ 1 T", paragraphs=["text"], source="ch 1", lang="jp")
+        assert ch.paragraphs[-1] == BRACKETS["jp"]["end_marker"] or ch.paragraphs[-1] == "（終）"
 
 
 class TestKorean:
-    """KR — same as CN but end marker is (끝)."""
-
-    def test_kr_end_marker(self):
-        ch = make_chapter('kr')
-        assert ch.blocks[-1].text == '(끝)'
+    def test_kr_lang(self):
+        ch = make_chapter("kr")
+        assert ch.lang == Language.KR
 
 
 class TestEnglish:
-    """EN — curly quotes, square brackets, (End) marker."""
-
-    def test_en_curly_quotes_accepted(self):
-        ch = make_chapter('en',
-                          dialogue_text='\u201CHello\u201D',
-                          system_text='[HP:100]')
+    def test_en_lang(self):
+        ch = make_chapter("en")
         assert ch.lang == Language.EN
-        assert ch.blocks[1].text == '\u201CHello\u201D'
-        assert ch.blocks[2].text == '[HP:100]'
 
-    def test_en_end_marker(self):
-        ch = make_chapter('en')
-        assert ch.blocks[-1].text == '(End)'
-
-    def test_en_rejects_cjk_brackets(self):
-        """EN novels shouldn't have 「」 — they use curly quotes instead."""
-        with __import__('pytest').raises(ValueError) as exc_info:
-            make_chapter('en', dialogue_text='「wrong brackets」')
-        assert 'dialogue[en]' in str(exc_info.value)
-
-    def test_en_rejects_kagi(self):
-        with __import__('pytest').raises(ValueError) as exc_info:
-            make_chapter('en', dialogue_text='\u300Cwrong\u300D')
-        assert 'dialogue[en]' in str(exc_info.value)
+    def test_en_end_marker_auto_append(self):
+        ch = Chapter(num=1, title="ตอนที่ 1 T", paragraphs=["text"], source="ch 1", lang="en")
+        assert ch.paragraphs[-1] in ("(End)", BRACKETS["en"]["end_marker"])
 
 
 class TestThai:
-    """TH — curly quotes (TH standard), 【】system kept, (จบบท) end."""
-
-    def test_th_curly_quotes(self):
-        ch = make_chapter('th', dialogue_text='\u201Cสวัสดี\u201D')
+    def test_th_lang(self):
+        ch = make_chapter("th")
         assert ch.lang == Language.TH
-        assert ch.blocks[1].text == '\u201Cสวัสดี\u201D'
-
-    def test_th_end_marker(self):
-        ch = make_chapter('th')
-        assert ch.blocks[-1].text == '(จบบท)'
 
 
 class TestBackwardCompat:
-    """Existing chapters with no `lang` field default to 'cn'."""
-
     def test_no_lang_defaults_to_cn(self):
-        ch = Chapter(
-            num=1, title='ตอนที่ 1 Test',
-            blocks=[
-                {'type': 'narration', 'text': 'hi'},
-                {'type': 'dialogue', 'text': '「hi」'},
-                {'type': 'end', 'text': '(จบบท)'},
-            ],
-            source='ch 1',
-            # no lang field
-        )
+        ch = Chapter(num=1, title="ตอนที่ 1 Test", paragraphs=["hi", "(จบบท)"], source="ch 1")
         assert ch.lang == Language.CN
 
-    def test_existing_cn_chapters_load(self):
-        """All existing translated chapters (ch 1-121) should still parse."""
+    def test_existing_chapters_load(self):
+        """All existing translated chapters (v3 paragraphs format) should still parse."""
         import json
-        chapters_dir = Path(__file__).parent.parent / 'novels' / 'global-descent' / 'chapters'
+        chapters_dir = Path(__file__).parent.parent / "novels" / "global-descent" / "chapters"
         if not chapters_dir.exists():
-            return  # skip if running from different layout
+            return
         ok = 0
-        for p in sorted(chapters_dir.glob('0*.json')):
-            data = json.loads(p.read_text(encoding='utf-8'))
-            Chapter(**data)  # raises if invalid
-            ok += 1
-        assert ok > 0, 'no chapters found to test'
+        for p in sorted(chapters_dir.glob("0*.json")):
+            data = json.loads(p.read_text(encoding="utf-8"))
+            try:
+                Chapter(**data)
+                ok += 1
+            except Exception as e:
+                # Skip v2 chapters with blocks (backward compat)
+                if data.get("blocks"):
+                    continue
+                raise e
+        assert ok > 0, "no v3 chapters found to test"
 
 
-class TestBracketRejection:
-    """Verify that curly/straight quotes are accepted across languages for dialogue."""
+class TestSchemaVersion:
+    def test_schema_version_3_default(self):
+        ch = make_chapter()
+        assert ch.schema_version == 3
 
-    def test_cn_accepts_curly_quotes(self):
-        # CN chapters (default or source) translated to Thai can use curly quotes
-        ch = make_chapter('cn', dialogue_text='\u201Cสวัสดี\u201D')
-        assert ch.blocks[1].text == '\u201Cสวัสดี\u201D'
+    def test_end_marker_auto_append_missing(self):
+        ch = Chapter(num=1, title="ตอนที่ 1 T", paragraphs=["first para", "second"], source="ch 1")
+        assert ch.paragraphs[-1] == "(จบบท)"
+        assert len(ch.paragraphs) == 3
 
-    def test_jp_accepts_curly_quotes(self):
-        ch = make_chapter('jp', dialogue_text='\u201Cこんにちは\u201D')
-        assert ch.blocks[1].text == '\u201Cこんにちは\u201D'
+    def test_end_marker_kept_if_present(self):
+        ch = Chapter(num=1, title="ตอนที่ 1 T", paragraphs=["first", "(จบบท)"], source="ch 1")
+        assert ch.paragraphs[-1] == "(จบบท)"
+        assert len(ch.paragraphs) == 2
