@@ -54,7 +54,7 @@ const SearchPage = {
         }
         html += '</div>';
         results.innerHTML = html;
-      } catch { results.innerHTML = '<p class="u-text-center c-error__title">เกิดข้อผิดพลาด</p>'; }
+      } catch(_) { results.innerHTML = '<p class="u-text-center c-error__title">เกิดข้อผิดพลาด</p>'; }
     });
   }
 };

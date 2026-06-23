@@ -49,7 +49,6 @@ const NovelPage = {
       </div>`;
 
       // ── Tabs ──────────────────────────────────────────────────────────
-      html += `
 
       // ── Chapter List ──────────────────────────────────────────────────
       const numPages = Math.ceil(chapters.length / pageSize);
@@ -59,7 +58,7 @@ const NovelPage = {
         for (let i = 0; i < numPages; i++) {
           const startCh = chapters[i * pageSize].num;
           const endCh = chapters[Math.min((i + 1) * pageSize - 1, chapters.length - 1)].num;
-          rangesHtml += `<button class="c-btn c-btn--sm ${i === selectedPageIdx ? 'c-btn--primary' : 'c-btn--ghost'} page-range-btn" data-page-idx="${i}">${startCh} - ${endCh}</button>`;
+          rangesHtml += '<button class="c-btn c-btn--sm ' + (i === selectedPageIdx ? 'c-btn--primary' : 'c-btn--ghost') + ' page-range-btn" data-page-idx="' + i + '">' + startCh + ' - ' + endCh + '</button>';
         }
         rangesHtml += '</div>';
       }

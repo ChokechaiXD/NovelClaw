@@ -107,7 +107,8 @@ const AdminGlossaryPage = {
               html += '<tr><td>' + Ui.esc(t.source||'') + '</td><td>' + Ui.esc(t.thai||'') + '</td><td>' + Ui.esc(t.category||'') + '</td><td><span class="c-badge ' + lockClass + '">' + Ui.esc(t.lock||'') + '</span></td></tr>';
             }
           }
-        } catch { html += '<tr><td colspan="4" class="u-text-center u-text-muted">ไม่สามารถโหลดคำศัพท์ได้</td></tr>'; }
+        }
+        } catch(_) { html += '<tr><td colspan="4" class="u-text-center u-text-muted">ไม่สามารถโหลดคำศัพท์ได้</td></tr>'; }
         html += '</tbody></table></div>';
       }
       html += '</div>';
@@ -128,7 +129,7 @@ const AdminNovelEditPage = {
       const novels = await Api.getNovels();
       const novel = novels.find(n => n.slug === slug);
       page.innerHTML = '<div class="c-container"><div class="c-section__header"><h3 class="c-section__title">แก้ไขนิยาย: ' + Ui.esc(slug||'') + '</h3></div><div class="c-settings-form"><div class="c-form"><div class="c-form__group"><label class="c-form__label">ชื่อเรื่อง</label><input class="c-form__input" id="edit-title" value="' + Ui.esc(novel?.title||'') + '" /></div><div class="c-form__group"><label class="c-form__label">ผู้แต่ง</label><input class="c-form__input" id="edit-author" value="' + Ui.esc(novel?.author||'') + '" /></div></div></div></div>';
-    } catch { Ui.showError(page, 'เกิดข้อผิดพลาด'); }
+    } catch(_) { Ui.showError(page, 'เกิดข้อผิดพลาด'); }
   }
 };
 
@@ -162,7 +163,7 @@ const AdminUsersPage = {
       else for (const u of users) html += '<tr><td>' + Ui.esc(u.username||'') + '</td><td>' + Ui.esc(u.role||'') + '</td></tr>';
       html += '</tbody></table></div></div>';
       page.innerHTML = html;
-    } catch { page.innerHTML = '<div class="c-container"><p class="u-text-muted u-text-center u-p-lg">ไม่สามารถโหลดข้อมูลผู้ใช้</p></div>'; }
+    } catch(_) { page.innerHTML = '<div class="c-container"><p class="u-text-muted u-text-center u-p-lg">ไม่สามารถโหลดข้อมูลผู้ใช้</p></div>'; }
   }
 };
 
@@ -186,6 +187,6 @@ const BookmarksPage = {
       else for (const b of list) html += '<a href="#novel/' + b.novel + '/' + b.num + '" class="c-list__item" data-nav><div class="c-list__info"><span class="c-list__title">' + (b.novel||'') + ' — ตอนที่ ' + b.num + '</span></div></a>';
       html += '</div></section></div>';
       page.innerHTML = html;
-    } catch { page.innerHTML = '<div class="c-container"><p class="u-text-muted u-text-center u-p-lg">ไม่มีบุ๊กมาร์ก</p></div>'; }
+    } catch(_) { page.innerHTML = '<div class="c-container"><p class="u-text-muted u-text-center u-p-lg">ไม่มีบุ๊กมาร์ก</p></div>'; }
   }
 };
