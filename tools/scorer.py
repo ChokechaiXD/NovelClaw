@@ -352,14 +352,15 @@ def _score_speaker(data: dict) -> DimensionScore:
         return DimensionScore("Speaker", 0.10, min(score, 1.0),
                               detail=detail, passed=ratio >= SPEAKER_TARGET)
     else:
-        # v2 blocks mode — unchanged
+        # v2 blocks mode — use NPC bank same as v3 (speaker field is never populated)
         blocks = data.get("blocks", [])
-        dialogues = [b for b in blocks if b.get("type") == "dialogue"]
-        if not dialogues:
+        dialogue_texts = [b.get("text", "") for b in blocks if b.get("type") == "dialogue"]
+        if not dialogue_texts:
             return DimensionScore("Speaker", 0.10, 0.0,
-                                  detail="No dialogue blocks", passed=False)
-        with_speaker = sum(1 for b in dialogues if b.get("speaker"))
-        total = len(dialogues)
+                                  detail="No dialogue blocks detected", passed=False)
+
+        with_speaker = sum(1 for t in dialogue_texts if _has_npc_speaker(t))
+        total = len(dialogue_texts)
         ratio = with_speaker / total if total > 0 else 0
         detail = f"{with_speaker}/{total} dialogues have speaker ({ratio*100:.0f}%)"
         if ratio >= SPEAKER_TARGET:
