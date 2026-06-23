@@ -26,45 +26,8 @@ jobs:
       - name: Install reader dependencies
         run: cd reader && npm install
 
-      - name: Reader syntax check
-        run: cd reader && node --check server.js
-
-      - name: Python syntax check
-        run: |
-          python -m py_compile tools/orchestrator/__init__.py
-          python -m py_compile tools/orchestrator/commands.py
-          python -m py_compile tools/orchestrator/jobs.py
-          python -m py_compile tools/orchestrator/locks.py
-          python -m py_compile tools/orchestrator/preflight.py
-          python -m py_compile tools/orchestrator/quality.py
-          python -m py_compile tools/orchestrator/repair.py
-          python -m py_compile tools/orchestrator/report.py
-          python -m py_compile tools/orchestrator/runner.py
-          python -m py_compile tools/novelctl.py
-          python -m py_compile tools/translate.py
-          echo "✓ Python syntax OK"
-
-      - name: Python import test
-        run: |
-          python -c "
-          import sys
-          sys.path.insert(0, 'tools')
-          from orchestrator import commands, jobs, locks, preflight, quality, repair, report, runner
-          print('✓ All orchestrator modules import OK')
-          "
-
-      - name: Run novelctl smoke tests
-        run: |
-          python tools/tests/test_novelctl.py
-
-      - name: Run novelctl commands (no LLM needed)
-        run: |
-          python tools/novelctl.py status
-          echo "✓ novelctl status OK"
-          python tools/novelctl.py report
-          echo "✓ novelctl report OK"
-          python tools/novelctl.py check
-          echo "✓ novelctl check OK"
+      - name: Run quality check (36 tests)
+        run: python tools/check_all.py
 
       - name: Summary
         run: echo "✅ NovelClaw CI completed"
