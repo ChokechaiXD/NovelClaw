@@ -8,15 +8,14 @@ import tempfile
 from pathlib import Path
 
 import pytest
-import yaml
 
 # Module-level patches
 from tools.glossary import (
     NOVELS_DIR,
     PROJECT_ROOT,
-    get_glossary_yml_path,
+    get_glossary_json_path,
     get_novel_root,
-    get_style_yml_path,
+    get_style_json_path,
     load_style_rules,
     load_terms,
     save_style_rules,
@@ -44,29 +43,26 @@ def test_get_novel_root_default():
 
 
 def test_get_novel_root_env_var(monkeypatch):
-    """NOVEL_SLUG env var changes default root (uses schema's cached default)."""
-    # Note: _DEFAULT_SLUG is loaded at schema import time,
-    # so monkeypatch must happen before any test imports schema.
-    # For explicit slug, pass directly:
     root = get_novel_root("test-novel", check_exists=False)
     assert root.name == "test-novel"
     assert root.parent.name == "novels"
 
-def test_get_glossary_yml_path():
-    """Glossary path is under glossary/glossary.yml."""
-    path = get_glossary_yml_path("test-novel")
-    assert path.name == "glossary.yml"
+
+def test_get_glossary_json_path():
+    """Glossary path is under glossary/glossary.json."""
+    path = get_glossary_json_path("test-novel")
+    assert path.name == "glossary.json"
     assert "glossary" in str(path)
 
 
-def test_get_style_yml_path():
-    """Style path is under glossary/style_rules.yml."""
-    path = get_style_yml_path("test-novel")
-    assert path.name == "style_rules.yml"
+def test_get_style_json_path():
+    """Style path is under style_rules.json."""
+    path = get_style_json_path("test-novel")
+    assert path.name == "style_rules.json"
 
 
 def test_load_terms_empty_when_missing(tmp_path, monkeypatch):
-    """load_terms returns [] when no glossary.yml exists."""
+    """load_terms returns [] when no glossary.json exists."""
     monkeypatch.setattr("tools.glossary.NOVELS_DIR", tmp_path / "novels")
     load_terms.cache_clear()
     terms = load_terms("missing-slug")
@@ -77,10 +73,10 @@ def test_save_and_load_terms_roundtrip(tmp_path, monkeypatch):
     """Save terms → load terms → same data."""
     monkeypatch.setattr("tools.glossary.NOVELS_DIR", tmp_path / "novels")
     load_terms.cache_clear()
-    
+
     slug = "test-roundtrip"
     save_terms(SAMPLE_TERMS, slug)
-    
+
     loaded = load_terms(slug)
     assert len(loaded) == len(SAMPLE_TERMS)
     assert loaded[0]["source"] == "测试"
@@ -88,18 +84,18 @@ def test_save_and_load_terms_roundtrip(tmp_path, monkeypatch):
     assert loaded[0]["priority"] == 1
 
 
-def test_save_terms_creates_yaml(tmp_path, monkeypatch):
-    """After save, glossary.yml exists and is valid YAML."""
+def test_save_terms_creates_json(tmp_path, monkeypatch):
+    """After save, glossary.json exists and is valid JSON."""
     monkeypatch.setattr("tools.glossary.NOVELS_DIR", tmp_path / "novels")
     load_terms.cache_clear()
-    
+
     slug = "test-create"
     save_terms(SAMPLE_TERMS, slug)
-    
-    yml_path = get_glossary_yml_path(slug)
-    assert yml_path.exists()
-    
-    data = yaml.safe_load(yml_path.read_text(encoding="utf-8"))
+
+    json_path = get_glossary_json_path(slug)
+    assert json_path.exists()
+
+    data = json.loads(json_path.read_text(encoding="utf-8"))
     assert "terms" in data
     assert len(data["terms"]) == 4
 
@@ -108,14 +104,14 @@ def test_load_style_rules_save_and_load(tmp_path, monkeypatch):
     """Save style rules → load back."""
     monkeypatch.setattr("tools.glossary.NOVELS_DIR", tmp_path / "novels")
     load_style_rules.cache_clear()
-    
+
     slug = "test-style"
     rules = {
         "term_choices": [{"text": "Use consistent terminology"}],
         "punctuation": [{"text": "Use Thai punctuation"}],
     }
     save_style_rules(rules, slug)
-    
+
     loaded = load_style_rules(slug)
     assert "term_choices" in loaded
     assert loaded["term_choices"][0]["text"] == "Use consistent terminology"

@@ -267,101 +267,33 @@ def _issue(
 
 
 def check_file_for_cjk_leaks(filepath: str | Path) -> list[dict[str, Any]]:
-    """Check a single chapter JSON file for CJK/source-artifact/EN leaks."""
+    """Check a single chapter JSON file for CJK/source-artifact/EN leaks.
+    Uses v3 paragraphs format.
+    """
     issues: list[dict[str, Any]] = []
     with Path(filepath).open(encoding="utf-8") as file_obj:
         data = json.load(file_obj)
 
-    blocks = data.get("blocks", [])
-    for i, block in enumerate(blocks):
-        text = block.get("text", "")
-        btype = block.get("type", "?")
-        cn_matches = re.findall(r"[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]", text)
+    paragraphs = data.get("paragraphs", [])
+    for i, para in enumerate(paragraphs):
+        if para in ("(จบบท)", "(End)", "（終）", "(끝)"):
+            continue
+        text = para
+        cn_matches = re.findall(r"[一-鿿㐀-䶿豈-﫿]", text)
         if cn_matches:
-            issues.append(
-                _issue(
-                    i + 1,
-                    btype,
-                    "FAIL",
-                    "CN",
-                    f"CN chars: {''.join(cn_matches[:5])}",
-                    text,
-                )
-            )
-        jp_matches = re.findall(r"[\u3040-\u309f\u30a0-\u30ff]", text)
+            issues.append(_issue(i + 1, "paragraph", "FAIL", "CN", f"CN chars: {''.join(cn_matches[:5])}", text))
+        jp_matches = re.findall(r"[぀-ゟ゠-ヿ]", text)
         if jp_matches:
-            issues.append(
-                _issue(
-                    i + 1,
-                    btype,
-                    "FAIL",
-                    "JP",
-                    f"JP chars: {''.join(jp_matches[:5])}",
-                    text,
-                )
-            )
-        ko_matches = re.findall(r"[\uac00-\ud7af\u1100-\u11ff]", text)
+            issues.append(_issue(i + 1, "paragraph", "FAIL", "JP", f"JP chars: {''.join(jp_matches[:5])}", text))
+        ko_matches = re.findall(r"[가-힯ᄀ-ᇿ]", text)
         if ko_matches:
-            issues.append(
-                _issue(
-                    i + 1,
-                    btype,
-                    "FAIL",
-                    "KO",
-                    f"KO chars: {''.join(ko_matches[:5])}",
-                    text,
-                )
-            )
-        for pattern in (r"求订阅", r"求追读", r"三更", r"月票", r"推荐票", r"GZ\b", r"^\s*GZ\s*$"):
+            issues.append(_issue(i + 1, "paragraph", "FAIL", "KO", f"KO chars: {''.join(ko_matches[:5])}", text))
+        for pattern in (r"求订阅", r"求追读", r"三更", r"月票", r"推荐票", r"GZ", r"^\s*GZ\s*$"):
             if re.search(pattern, text):
-                issues.append(
-                    _issue(i + 1, btype, "FAIL", "ARTIFACT", f"Source artifact: {pattern}", text)
-                )
+                issues.append(_issue(i + 1, "paragraph", "FAIL", "ARTIFACT", f"Source artifact: {pattern}", text))
         _, blacklisted, unknown = check_en_terms(text)
         for word in blacklisted:
-            issues.append(
-                _issue(i + 1, btype, "FAIL", "EN_BLACKLIST", f"Blacklisted EN: {word}", text)
-            )
+            issues.append(_issue(i + 1, "paragraph", "FAIL", "EN_BLACKLIST", f"Blacklisted EN: {word}", text))
         for word in unknown:
-            issues.append(
-                _issue(
-                    i + 1,
-                    btype,
-                    "WARN",
-                    "EN_UNKNOWN",
-                    f"Unknown EN term: {word} (add to whitelist if acceptable)",
-                    text,
-                )
-            )
-        has_dialogue_markers = any(marker in text for marker in ("「", "」", "“", "”"))
-        if has_dialogue_markers and btype != "dialogue":
-            quote_style = []
-            if "「" in text or "」" in text:
-                quote_style.append("「」")
-            if "“" in text or "”" in text:
-                quote_style.append('"" (curly)')
-            if '"' in text or '"' in text:
-                quote_style.append('"" (straight)')
-            quote_str = ", ".join(quote_style) if quote_style else "quotes"
-            issues.append(
-                _issue(
-                    i + 1,
-                    btype,
-                    "WARN",
-                    "STRUCT_MISMATCH",
-                    f"Block has {quote_str} but type is '{btype}' (expected 'dialogue')",
-                    text,
-                )
-            )
-        if ("【" in text or "】" in text) and btype != "system":
-            issues.append(
-                _issue(
-                    i + 1,
-                    btype,
-                    "WARN",
-                    "STRUCT_MISMATCH",
-                    f"Block has 【】 markers but type is '{btype}' (expected 'system')",
-                    text,
-                )
-            )
+            issues.append(_issue(i + 1, "paragraph", "WARN", "EN_UNKNOWN", f"Unknown EN term: {word}", text))
     return issues
