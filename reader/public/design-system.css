@@ -89,6 +89,10 @@
   --c-accent-2: #a78bfa;
   --c-accent-2-soft: rgba(167, 139, 250, 0.1);
 
+  /* ── Inline Marker Colors ── */
+  --c-marker-system: #f59e0b;
+  --c-marker-thought: #a78bfa;
+
   --c-success: #34d399;
   --c-success-glow: rgba(52, 211, 153, 0.1);
   --c-warning: #fbbf24;
@@ -147,6 +151,9 @@
   --c-accent-soft: rgba(13, 148, 136, 0.08);
   --c-accent-glow: rgba(13, 148, 136, 0.12);
 
+  --c-marker-system: #d97706;
+  --c-marker-thought: #7c3aed;
+
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
@@ -175,8 +182,11 @@
   --c-text-muted: #8a755d;
   --c-text-soft: #b5a290;
 
-  --c-accent: #8b6914;
-  --c-accent-soft: rgba(139, 105, 20, 0.08);
+  --c-accent: #7c5c12;
+  --c-accent-soft: rgba(124, 92, 18, 0.08);
+
+  --c-marker-system: #92400e;
+  --c-marker-thought: #6d28d9;
 
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
@@ -204,6 +214,9 @@
   --c-text-primary: #ffffff;
   --c-text-secondary: #cccccc;
   --c-text-muted: #888888;
+
+  --c-marker-system: #fbbf24;
+  --c-marker-thought: #c084fc;
   --c-text-soft: #5a5e72;
 
   --c-accent: #14b8a6;
@@ -1941,10 +1954,10 @@ a:hover { opacity: 0.85; }
 }
 .c-marker--system {
   font-size: 0.9em;
-  font-style: italic;
-  color: var(--c-text-muted);
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--c-marker-system, #f59e0b);
 }
 .c-marker--thought {
   font-style: italic;
-  color: var(--c-text-soft);
+  color: var(--c-marker-thought, #a78bfa);
 }
