@@ -1,0 +1,32 @@
+{
+  "id": "translate-20260623-162816",
+  "slug": "global-descent",
+  "mode": "autopilot",
+  "force": false,
+  "state": "done",
+  "chapters": [
+    143,
+    144,
+    145,
+    146,
+    147,
+    148,
+    149,
+    150
+  ],
+  "current": 150,
+  "done": [
+    143,
+    144,
+    145,
+    146,
+    147,
+    148,
+    149,
+    150
+  ],
+  "failed": [],
+  "needs_review": [],
+  "createdAt": "2026-06-23T16:28:16.147324+00:00",
+  "updatedAt": "2026-06-23T16:28:21.833832+00:00"
+}
