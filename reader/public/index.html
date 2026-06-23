@@ -58,6 +58,7 @@
     <symbol id="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
     <symbol id="icon-bookmarks" viewBox="0 0 24 24"><path d="M7 3h10a2 2 0 0 1 2 2v16l-7-5-7 5V5a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="icon-fullscreen" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
     <symbol id="mascot-crab" viewBox="0 0 80 80">
       <ellipse cx="40" cy="48" rx="24" ry="20" fill="currentColor" opacity="0.15"/>
       <circle cx="40" cy="32" r="14" fill="currentColor" opacity="0.2"/>
@@ -211,6 +212,54 @@
       </div>
     </aside>
   </div>
+
+  <!-- Mobile drawer overlay -->
+  <div class="c-drawer-overlay" id="drawer-overlay"></div>
+
+  <!-- Mobile drawer sidebar (cloned contents dynamically) -->
+  <div class="c-drawer" id="drawer-sidebar">
+    <div class="c-sidebar__brand">
+      <div class="c-sidebar__logo">
+        <svg><use xlink:href="#logo-crab-claw"/></svg>
+      </div>
+      <div class="c-sidebar__brand-text">
+        <div class="c-sidebar__title">NovelClaw</div>
+        <div class="c-sidebar__subtitle">โลกของนักอ่าน ไม่สิ้นสุด</div>
+      </div>
+      <button class="c-btn c-btn--icon" id="drawer-close">
+        <svg style="width:14px;height:14px;"><use xlink:href="#icon-close"/></svg>
+      </button>
+    </div>
+    <div class="c-sidebar__nav" id="drawer-nav"></div>
+  </div>
+
+  <!-- Bottom reader toolbar (shown on reader page) -->
+  <div class="c-reader-bottom-toolbar" id="reader-bottom-toolbar">
+    <button class="c-btn" id="reader-bottom-back"><svg style="width:20px;height:20px;"><use xlink:href="#icon-arrow-left"/></svg>กลับ</button>
+    <button class="c-btn" id="reader-bottom-sm">A−</button>
+    <button class="c-btn" id="reader-bottom-lg">A+</button>
+    <button class="c-btn" id="reader-bottom-book"><svg style="width:20px;height:20px;"><use xlink:href="#icon-fullscreen"/></svg>โหมด</button>
+    <button class="c-btn" id="reader-bottom-theme"><svg style="width:20px;height:20px;"><use xlink:href="#icon-moon"/></svg>ธีม</button>
+  </div>
+
+  <!-- Mobile bottom nav -->
+  <nav class="c-mobile-nav" id="mobile-nav">
+    <button class="c-mobile-nav__item c-mobile-nav__item--active" data-page="home">
+      <svg><use xlink:href="#icon-home"/></svg>หน้าแรก
+    </button>
+    <button class="c-mobile-nav__item" data-page="library">
+      <svg><use xlink:href="#icon-library"/></svg>หอสมุด
+    </button>
+    <button class="c-mobile-nav__item" data-page="search">
+      <svg><use xlink:href="#icon-search"/></svg>ค้นหา
+    </button>
+    <button class="c-mobile-nav__item" data-page="profile">
+      <svg><use xlink:href="#icon-profile"/></svg>โปรไฟล์
+    </button>
+    <button class="c-mobile-nav__item" data-page="admin">
+      <svg><use xlink:href="#icon-shield"/></svg>จัดการ
+    </button>
+  </nav>
 
   <div id="toast-container" class="c-toast-container"></div>
 

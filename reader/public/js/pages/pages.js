@@ -137,7 +137,20 @@ const SettingsPage = {
     const page = Ui.$('page-settings');
     if (!page) return;
     const settings = Store.getSettings();
-    page.innerHTML = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title">ตั้งค่า</h3></div><div class="c-settings-form"><div class="c-settings__group"><div class="c-form__group"><label class="c-form__label" for="settings-theme">ธีม</label><select class="c-form__select" id="settings-theme"><option value="sepia"' + (settings.theme === 'sepia' ? ' selected' : '') + '>คลาสสิก (Sepia) ★</option><option value="night"' + (settings.theme === 'night' ? ' selected' : '') + '>กลางคืน (Night)</option><option value="paper"' + (settings.theme === 'paper' ? ' selected' : '') + '>สว่าง (Paper)</option><option value="amoled"' + (settings.theme === 'amoled' ? ' selected' : '') + '>AMOLED Black</option></select></div><div class="c-form__group"><label class="c-form__label" for="settings-reader-lang">ภาษาใน Reader</label><select class="c-form__select" id="settings-reader-lang"><option value="th"' + (settings.readerLang === 'th' ? ' selected' : '') + '>ไทย (แปลแล้ว)</option><option value="cn"' + (settings.readerLang === 'cn' ? ' selected' : '') + '>จีนต้นฉบับ</option></select></div><div class="c-form__group"><label class="c-form__label">ขนาดตัวอักษร</label><div class="u-flex u-gap-sm" style="align-items:center;"><button class="c-btn c-btn--ghost" id="settings-font-sm" style="font-size:var(--text-lg);padding:8px 16px;">A−</button><span id="settings-font-label" style="font-size:var(--text-base);color:var(--c-text);min-width:40px;text-align:center;">18px</span><button class="c-btn c-btn--ghost" id="settings-font-lg" style="font-size:var(--text-lg);padding:8px 16px;">A+</button></div></div></div></div></section></div>';
+    page.innerHTML = '<div class="c-settings-page">' +
+      '<div class="c-section__header" style="padding:var(--space-lg) 0;margin-bottom:0;"><h3 class="c-section__title">ตั้งค่า</h3></div>' +
+      '<div class="c-settings-card"><div class="c-settings-card__title"><svg style="width:18px;height:18px;"><use xlink:href="#icon-moon"/></svg> รูปลักษณ์</div>' +
+      '<div class="c-form__group"><label for="settings-theme">ธีม</label><select class="c-form__select" id="settings-theme"><option value="sepia"' + (settings.theme === 'sepia' ? ' selected' : '') + '>คลาสสิก (Sepia) ★</option><option value="night"' + (settings.theme === 'night' ? ' selected' : '') + '>กลางคืน (Night)</option><option value="paper"' + (settings.theme === 'paper' ? ' selected' : '') + '>สว่าง (Paper)</option><option value="amoled"' + (settings.theme === 'amoled' ? ' selected' : '') + '>AMOLED Black</option></select></div></div>' +
+      '<div class="c-settings-card"><div class="c-settings-card__title"><svg style="width:18px;height:18px;"><use xlink:href="#icon-book"/></svg> การอ่าน</div>' +
+      '<div class="c-form__group"><label for="settings-reader-lang">ภาษาใน Reader</label><select class="c-form__select" id="settings-reader-lang"><option value="th"' + (settings.readerLang === 'th' ? ' selected' : '') + '>ไทย (แปลแล้ว)</option><option value="cn"' + (settings.readerLang === 'cn' ? ' selected' : '') + '>จีนต้นฉบับ</option></select></div>' +
+      '<div class="c-form__group"><label>ขนาดตัวอักษร</label><div style="display:flex;align-items:center;gap:var(--space-sm);"><button class="c-btn c-btn--ghost" id="settings-font-sm" style="min-height:44px;min-width:44px;font-size:var(--text-lg);">A−</button><span id="settings-font-label" style="font-size:var(--reader-font-size,18px);color:var(--c-text);min-width:44px;text-align:center;">18px</span><button class="c-btn c-btn--ghost" id="settings-font-lg" style="min-height:44px;min-width:44px;font-size:var(--text-lg);">A+</button></div></div></div>' +
+      '<div class="c-settings-card"><div class="c-settings-card__title"><svg style="width:18px;height:18px;"><use xlink:href="#icon-info"/></svg> เกี่ยวกับ</div>' +
+      '<div style="font-size:var(--text-sm);color:var(--c-text-muted);line-height:1.8;">NovelClaw v1.0<br>ระบบอ่านและแปลนิยายจีน<br>Foundation Release (stable-novelctl-foundation-v1)</div></div>' +
+      '</div>';
+
+    // Font label fix — use the new ID
+    const fontLabel = document.getElementById('settings-font-label');
+    if (fontLabel) fontLabel.textContent = (parseInt(Store.getSettings().fontSize, 10) || 18) + 'px';
 
     const sel = document.getElementById('settings-theme');
     if (sel) {
@@ -151,15 +164,14 @@ const SettingsPage = {
       Store.on('setting:readerLang', (l) => { langSel.value = l; });
     }
 
-    // Font size controls (persisted)
+    // Font size controls
     const savedFontSize = parseInt(Store.getSettings().fontSize, 10) || 18;
     let fontStep = Math.round((savedFontSize - 18) / 2);
-    const BASE_FONT = 18;
     const applyFont = (step) => {
       const px = Math.max(14, Math.min(28, 18 + step * 2));
       document.documentElement.style.setProperty('--reader-font-size', `${px}px`);
       Store.setSetting('fontSize', px);
-      const lbl = Ui.$('reader-font-label');
+      const lbl = Ui.$('settings-font-label');
       if (lbl) lbl.textContent = `${px}px`;
     };
     applyFont(fontStep);
