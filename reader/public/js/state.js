@@ -92,7 +92,7 @@ const Store = {
 
   getProfile() {
     if (this._profile) return this._profile;
-    const def = { name: "P'Choke", email: 'chokechai@gmail.com', role: 'admin', avatarColorIndex: 0, tokensUsed: 0 };
+    const def = { name: "P'Choke", email: 'chokechai@gmail.com', role: 'admin', avatarColorIndex: 0 };
     try {
       const saved = localStorage.getItem(this._PROFILE_KEY);
       if (saved) { this._profile = { ...def, ...JSON.parse(saved) }; }

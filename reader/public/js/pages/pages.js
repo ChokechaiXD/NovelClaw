@@ -143,8 +143,7 @@ const ProfilePage = {
         name: Ui.$('profile-name')?.value || prof.name,
         email: Ui.$('profile-email')?.value || prof.email,
         role: Ui.$('profile-role')?.value || prof.role,
-        avatarColorIndex: prof.avatarColorIndex,
-        tokensUsed: prof.tokensUsed
+        avatarColorIndex: prof.avatarColorIndex
       };
       Store.saveProfile(newProf);
       Ui.updateAvatar();
