@@ -38,6 +38,9 @@ backups/
 # Source backup from 2026-06-14 re-scrape (temporary, can be regenerated)
 novels/*/chapters/source_backup_*/
 
+# LLM config (contains API key)
+llm.json
+
 # Build / temp
 *.log
 tmp_*
