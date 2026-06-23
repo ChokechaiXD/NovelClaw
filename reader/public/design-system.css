@@ -327,6 +327,14 @@ ul, ol { list-style: none; }
    BEM — LAYOUT
    ═══════════════════════════════════════════════════════════════════════ */
 
+/* ── Page Visibility (SPA — CRITICAL: hides all pages, shows one) ──── */
+.page {
+  display: none;
+}
+.page--active {
+  display: block;
+}
+
 /* ── App Shell (CSS Grid 3-column) ────────────────────────────────── */
 .c-app {
   display: grid;
