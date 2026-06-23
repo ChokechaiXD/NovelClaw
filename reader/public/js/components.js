@@ -68,7 +68,37 @@ const Ui = {
     return novel.translatedTitle || novel.title || novel.slug || '';
   },
 
-  // ── Toast ──────────────────────────────────────────────────────────────
+  // ── Cover SVG generator (NovelClaw brand fallback) ───────────────
+  coverSVG(slug, title) {
+    const initial = (title || slug || '?').charAt(0).toUpperCase();
+    const hue = Ui.slugToHue(slug || '');
+    // NovelClaw palette: teal gradient base + purple accent
+    const c1 = `hsl(${hue % 360}, 60%, 35%)`;
+    const c2 = `hsl(${(hue + 40) % 360}, 50%, 25%)`;
+    const id = `c${slug || 'x'}`;
+    return `<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;border-radius:var(--radius);display:block;">
+      <defs>
+        <linearGradient id="g-${id}" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${c1}"/>
+          <stop offset="100%" stop-color="${c2}"/>
+        </linearGradient>
+        <linearGradient id="c-${id}" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="#14b8a6" stop-opacity="0.6"/>
+        </linearGradient>
+      </defs>
+      <rect width="200" height="260" rx="10" fill="url(#g-${id})"/>
+      <g transform="translate(70,30) scale(0.8)">
+        <path d="M2 28C3 24 6 22 10 21 11.5 22.5 11 25 7 28 5 29.5 3 29 2 28Z" fill="url(#c-${id})"/>
+        <path d="M8 20C6.5 13 10.5 7 18 9.5 16 11 12 12 11 16.5 10.5 18 9.5 19.5 8 20Z" fill="url(#c-${id})"/>
+        <rect x="13" y="7" width="12" height="18" rx="2" fill="#a78bfa" opacity="0.8"/>
+        <rect x="14.5" y="8" width="9.5" height="16" rx="1" fill="#fffdf5"/>
+      </g>
+      <text x="100" y="220" text-anchor="middle" fill="rgba(255,255,255,0.15)" font-size="60" font-weight="700" font-family="system-ui,sans-serif">${Ui.esc(initial)}</text>
+      <text x="100" y="248" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="14" font-weight="600" font-family="system-ui,sans-serif">${Ui.esc(title || slug || '')}</text>
+    </svg>`;
+  },
+
   showToast(message, type = 'success') {
     let container = document.getElementById('toast-container');
     if (!container) {

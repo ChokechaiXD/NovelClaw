@@ -1346,6 +1346,9 @@ a.c-rc__item:hover { color: var(--c-accent); }
   cursor: pointer;
   transition: all 0.15s;
 }
+.c-nav-item {
+  position: relative;
+}
 .c-nav-item:hover {
   background: var(--c-surface);
   color: var(--c-text);
@@ -1354,6 +1357,25 @@ a.c-rc__item:hover { color: var(--c-accent); }
   background: var(--c-accent-soft);
   color: var(--c-accent);
   font-weight: var(--font-weight-semibold);
+}
+.c-nav-item--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background: var(--c-accent);
+  border-radius: 0 2px 2px 0;
+}
+
+/* ── Nav HR (styled divider) ────────────────────────────────────── */
+.c-nav-hr {
+  border: none;
+  height: 1px;
+  background: var(--c-border-subtle);
+  margin: 4px 12px;
+  flex-shrink: 0;
 }
 .c-nav-item__icon {
   width: 20px;
