@@ -156,11 +156,11 @@ const SettingsPage = {
     let fontStep = Math.round((savedFontSize - 18) / 2);
     const BASE_FONT = 18;
     const applyFont = (step) => {
-      const px = BASE_FONT + step * 2;
-      document.documentElement.style.setProperty('--text-base', px + 'px');
+      const px = Math.max(14, Math.min(28, 18 + step * 2));
+      document.documentElement.style.setProperty('--reader-font-size', `${px}px`);
       Store.setSetting('fontSize', px);
-      const lbl = document.getElementById('settings-font-label');
-      if (lbl) lbl.textContent = px + 'px';
+      const lbl = Ui.$('reader-font-label');
+      if (lbl) lbl.textContent = `${px}px`;
     };
     applyFont(fontStep);
     document.getElementById('settings-font-sm')?.addEventListener('click', () => {

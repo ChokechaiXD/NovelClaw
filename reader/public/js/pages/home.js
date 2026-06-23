@@ -11,7 +11,9 @@ const HomePage = {
 
     try {
       const novels = await Api.getNovels();
-      const enriched = novels.map(Ui.enrichNovel);
+      // Filter out test/fixture novels from reader-facing pages
+      const visibleNovels = novels.filter(n => !n.slug?.startsWith('test-') && !n.slug?.startsWith('tmp-') && !n.slug?.startsWith('fixture-') && n.totalChapters > 0);
+      const enriched = visibleNovels.map(Ui.enrichNovel);
 
       let html = '<div class="c-container">';
 

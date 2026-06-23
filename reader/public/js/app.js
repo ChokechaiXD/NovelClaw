@@ -92,19 +92,24 @@ const Router = {
 
 // ── Sidebar Events ───────────────────────────────────────────────────
 function initSidebar() {
-  const sidebar = document.querySelector('.c-app__sidebar');
+  const appShell = document.querySelector('.c-app');
   const toggleBtn = document.getElementById('sidebar-toggle');
   const closeBtn = document.getElementById('sidebar-close');
 
   toggleBtn?.addEventListener('click', () => {
-    sidebar?.classList.toggle('c-app__sidebar--collapsed');
-    Store.setSetting('sidebarCollapsed', sidebar?.classList.contains('c-app__sidebar--collapsed'));
+    appShell?.classList.toggle('c-app--sidebar-collapsed');
+    Store.setSetting('sidebarCollapsed', appShell?.classList.contains('c-app--sidebar-collapsed'));
   });
 
   closeBtn?.addEventListener('click', () => {
-    sidebar?.classList.add('c-app__sidebar--collapsed');
+    appShell?.classList.add('c-app--sidebar-collapsed');
     Store.setSetting('sidebarCollapsed', true);
   });
+
+  // Restore persisted state
+  if (Store.getSettings().sidebarCollapsed) {
+    appShell?.classList.add('c-app--sidebar-collapsed');
+  }
 
   // Nav item clicks
   document.querySelectorAll('.c-nav-item').forEach(item => {
@@ -161,7 +166,10 @@ async function updateActivityFeed() {
       const dateStr = (e.ts && !isNaN(new Date(e.ts)))
         ? new Date(e.ts).toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })
         : '';
-      return '<div class="c-rc__item">' + Ui.esc(title) + ' <span style="font-size:10px;color:var(--c-text-soft);">ตอนที่ ' + e.num + '</span><br><span style="font-size:10px;color:var(--c-text-muted);">' + dateStr + '</span></div>';
+      const href = e.slug && e.num ? `#novel/${encodeURIComponent(e.slug)}/${e.num}` : '';
+      const tag = href ? 'a' : 'div';
+      const attrs = href ? ` href="${href}" class="c-rc__item" data-nav` : ' class="c-rc__item"';
+      return `<${tag}${attrs}>${Ui.esc(title)} <span style="font-size:10px;color:var(--c-text-soft);">ตอนที่ ${e.num}</span><br><span style="font-size:10px;color:var(--c-text-muted);">${dateStr}</span></${tag}>`;
     }).join('');
   } catch(e) { feed.innerHTML = '<div class="c-rc__item">ไม่สามารถโหลดกิจกรรม</div>'; }
 

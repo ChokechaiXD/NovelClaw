@@ -50,7 +50,17 @@
   --sidebar-w: 280px;
   --sidebar-w-collapsed: 0px;
   --rightbar-w: 300px;
+  --rightbar-w-collapsed: 0px;
   --topbar-h: 64px;
+  --reader-font-size: 18px;
+
+  /* ── Layout Rhythm (MIKA spec v1) ────────────────────────────────── */
+  --section-gap: 28px;
+  --card-gap: 18px;
+  --table-row-h: 44px;
+  --page-max: 960px;
+  --page-max-admin: 1120px;
+  --reader-max-w: 800px;
 
   /* ── App Shell Spacing (MIKA spec) ───────────────────────────────── */
   --brand-minh: 140px;
@@ -339,9 +349,28 @@ ul, ol { list-style: none; }
 /* ── App Shell (CSS Grid 3-column) ────────────────────────────────── */
 .c-app {
   display: grid;
-  grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--rightbar-w);
+  grid-template-columns: var(--sidebar-col, var(--sidebar-w)) minmax(0, 1fr) var(--rightbar-col, var(--rightbar-w));
   height: 100dvh;
   overflow: hidden;
+  transition: grid-template-columns 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sidebar collapsed: shrink to 0 and hide children */
+.c-app--sidebar-collapsed {
+  --sidebar-col: 0px;
+}
+.c-app--rightbar-collapsed {
+  --rightbar-col: 0px;
+}
+.c-app--sidebar-collapsed .c-app__sidebar {
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.c-app--rightbar-collapsed .c-app__rightbar {
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .c-app__sidebar {
@@ -350,14 +379,11 @@ ul, ol { list-style: none; }
   display: flex;
   flex-direction: column;
   background: var(--c-bg-deep);
-  transition: opacity 0.3s ease;
+  transition: opacity 0.22s ease;
+  min-width: 0;
 }
 .c-app__sidebar--collapsed {
-  width: 0;
-  min-width: 0;
-  overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
+  display: none;
 }
 .c-app__main {
   display: flex;
@@ -371,14 +397,8 @@ ul, ol { list-style: none; }
   overflow-y: auto;
   border-left: 1px solid var(--c-border);
   background: var(--c-bg-secondary);
-  transition: opacity 0.3s ease;
-}
-.c-app__rightbar--collapsed {
-  width: 0;
+  transition: opacity 0.22s ease;
   min-width: 0;
-  overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* ── Sidebar (deprecated — use .c-app__sidebar) ──────────────────── */
@@ -444,7 +464,8 @@ ul, ol { list-style: none; }
 }
 
 /* ── Container ──────────────────────────────────────────────────────── */
-.c-container { max-width: 960px; margin: 0 auto; padding: var(--space-lg); }
+.c-container { max-width: var(--page-max); margin: 0 auto; padding: var(--space-lg); }
+.c-container--wide { max-width: var(--page-max-admin); }
 
 /* ── Section ────────────────────────────────────────────────────────── */
 .c-section { margin-bottom: var(--space-2xl); }
@@ -625,10 +646,10 @@ ul, ol { list-style: none; }
   font-family: var(--font-reader);
 }
 .reader-content {
-  max-width: 760px;
+  max-width: var(--reader-max-w);
   margin: 0 auto;
   padding: clamp(28px, 5vw, 72px) clamp(20px, 4vw, 48px);
-  font-size: clamp(16px, 1.1vw, 22px);
+  font-size: var(--reader-font-size, clamp(16px, 1.1vw, 22px));
   line-height: var(--leading-reader);
   letter-spacing: 0.005em;
   font-weight: 400;
@@ -861,6 +882,14 @@ ul, ol { list-style: none; }
   padding: var(--space-sm) 0;
   border-bottom: 1px solid var(--c-border);
 }
+a.c-rc__item {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s;
+  cursor: pointer;
+}
+a.c-rc__item:hover { color: var(--c-accent); }
 
 
 
