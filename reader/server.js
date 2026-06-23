@@ -1,10 +1,12 @@
-// NovelClaw Reader — tiny web server, no DB, no build step.
+// NovelClaw Reader — Express server using lib/ repositories
 //
 // Usage: node server.js   (then open http://localhost:4173)
-//
 // Env:
 //   PORT             — listening port (default 4173)
-//   NOVELCLAW_ROOT   — path to the novels/ directory (default ../novels)
+//   HOST             — bind address (default 127.0.0.1, set 0.0.0.0 for LAN)
+//   NOVELCLAW_ROOT   — path to novels/ directory (default ../novels)
+//   ADMIN_TOKEN      — bearer token for write endpoints (optional, default no auth)
+//   AUTO_KILL_PORT   — set 'true' to auto-kill old process (default off)
 
 const express = require('express');
 const fs = require('node:fs/promises');
@@ -12,446 +14,38 @@ const fsSync = require('node:fs');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 
-// Export pure functions for testing
-// When required as a module, only the renderer + helpers are exported.
-// When run directly (`node server.js`), the server starts.
+// ── Lib modules ────────────────────────────────────────────────────
+const { pad, assertValidSlug, SLUG_RE, novelJsonPath, sourceMdPath,
+        glossaryJsonPath, glossaryMdPath, charactersMdPath, NOVELS_DIR } = require('./lib/paths');
+const chapterRepo = require('./lib/chapter-repo');
+const novelRepo = require('./lib/novel-repo');
+const searchService = require('./lib/search-service');
+const { parseMarkdownToBlocks } = require('./lib/blocks');
+
+// Re-export for tests
+module.exports = { parseMarkdownToBlocks, chapterRepo, novelRepo, searchService };
+
+// ── Config ─────────────────────────────────────────────────────────
 const PORT = Number(process.env.PORT) || 4173;
-const NOVELS_DIR = process.env.NOVELCLAW_ROOT
-  ? path.resolve(process.env.NOVELCLAW_ROOT)
-  : path.resolve(__dirname, '../novels');
+const BIND_HOST = process.env.HOST || '127.0.0.1';
 const PUBLIC_DIR = path.resolve(__dirname, 'public');
-
-// ── Cache (unified) ──────────────────────────────────────────────────────
-// Only caches chapter list and novel meta — NOT chapter HTML content.
-// Chapter JSON files are small (~8-15KB) and fast to read + JSON.parse.
-// The OS filesystem cache handles the heavy lifting.
-
-const cache = new Map();
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
-function invalidateCache(slug) {
-  if (slug) {
-    cache.delete('list:' + slug);
-    cache.delete('meta:' + slug);
-  } else {
-    cache.clear();
-  }
-}
-
-// ── helpers ────────────────────────────────────────────────────────────
-
-async function listNovels() {
-  try {
-    const entries = await fs.readdir(NOVELS_DIR, { withFileTypes: true });
-    return entries
-      .filter((e) => e.isDirectory())
-      .map((d) => d.name)
-      .sort();
-  } catch (err) {
-    if (err.code === 'ENOENT') return [];
-    throw err;
-  }
-}
-
-// ── Security helpers ──────────────────────────────────────────────────
-// Validate slug to prevent path traversal. Applied at every entry point
-// that accepts a slug from the URL.
-const SLUG_RE = /^[a-zA-Z0-9_-]+$/;
-
-function assertValidSlug(slug) {
-  if (!SLUG_RE.test(slug)) throw Object.assign(new Error('Invalid slug format'), { status: 400 });
-}
-
-// ── Async route wrapper — Express 4 doesn't catch async rejections ──
-// Wrap every async route handler with this to ensure errors reach the
-// global error handler instead of causing an unhandled rejection.
-const asyncHandler = (fn) => (req, res, next) =>
-  Promise.resolve(fn(req, res, next)).catch(next);
-
-// ── Admin auth middleware ────────────────────────────────────────────
-// When ADMIN_TOKEN env var is set, all write/delete endpoints require
-// ?token=ADMIN_TOKEN or Authorization: Bearer ADMIN_TOKEN header.
-// Unset (empty) = no auth required (development mode).
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
-function requireAdmin(req, res, next) {
-  if (!ADMIN_TOKEN) return next(); // no auth configured
-  const provided = req.query.token || (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-  if (provided === ADMIN_TOKEN) return next();
-  res.status(401).json({ error: 'Unauthorized — provide ?token= or Authorization: Bearer' });
-}
 
-// ── File helpers — dedupe the try/catch + ENOENT pattern ───────────────
-// All these routes read a single file and 404 if missing. One helper.
-
-async function readTextOrNull(filepath) {
-  try {
-    return await fs.readFile(filepath, 'utf8');
-  } catch (err) {
-    if (err.code === 'ENOENT') return null;
-    throw err;
-  }
-}
-
-
-async function listChapters(slug) {
-  // Security: reject path traversal attempts
-  if (!/^[a-zA-Z0-9_-]+$/.test(slug)) return [];
-  const dir = path.join(NOVELS_DIR, slug, 'chapters');
-  let dirStat;
-  try {
-    dirStat = await fs.stat(dir);
-  } catch (err) {
-    if (err.code === 'ENOENT') return [];
-    throw err;
-  }
-
-  let sourceDirMtimeMs = 0;
-  try {
-    const sourceStat = await fs.stat(path.join(dir, 'source'));
-    sourceDirMtimeMs = sourceStat.mtimeMs;
-  } catch {}
-  const cacheKeyMtime = dirStat.mtimeMs + sourceDirMtimeMs;
-
-  const cached = cache.get('list:' + slug);
-  // Cache key = dir mtime + source dir mtime + slug.
-  if (cached && cached.mtimeMs === cacheKeyMtime && Date.now() - cached.ts < CACHE_TTL_MS) {
-    return cached.list;
-  }
-  // Fast path: try chapters.json first (per-language canonical), then index.json
-  try {
-    const chRaw = await fs.readFile(path.join(dir, '..', 'chapters.json'), 'utf8');
-    const chIdx = JSON.parse(chRaw);
-    if (chIdx && chIdx.chapters && chIdx.chapters.length > 0) {
-      const out = chIdx.chapters.map(c => ({ num: c.num, title: c.title, isTranslated: c.status !== 'source_only' }));
-      cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: out });
-      return out;
-    }
-  } catch {}
-  try {
-    const idxRaw = await fs.readFile(path.join(dir, 'index.json'), 'utf8');
-    const idx = JSON.parse(idxRaw);
-    if (idx && idx.chapters && idx.chapters.length > 0) {
-      cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: idx.chapters });
-      return idx.chapters;
-    }
-  } catch {}
-  // Fallback: scan directory for per-language JSON + legacy files
-  const entries = await fs.readdir(dir, { withFileTypes: true });
-  // Match: 0001.th.json, 0001.cn.json, 0001.json, 0001.md
-  const fileRe = /^(\d{4})\.(?:th\.json|cn\.json|json|md)$/;
-  const chapterFiles = {};
-  for (const e of entries) {
-    if (!e.isFile()) continue;
-    const m = e.name.match(fileRe);
-    if (!m) continue;
-    const num = parseInt(m[1], 10);
-    if (!chapterFiles[num]) chapterFiles[num] = {};
-    // Tag the file by its lang/type
-    if (e.name.endsWith('.th.json')) chapterFiles[num].th = e.name;
-    else if (e.name.endsWith('.cn.json')) chapterFiles[num].cn = e.name;
-    else if (e.name.endsWith('.json')) chapterFiles[num].legacy = e.name;
-    else if (e.name.endsWith('.md')) chapterFiles[num].md = e.name;
-  }
-  // Also scan source/ for legacy .md source files
-  try {
-    const sourceEntries = await fs.readdir(path.join(dir, 'source'), { withFileTypes: true });
-    for (const e of sourceEntries) {
-      if (!e.isFile()) continue;
-      const m = e.name.match(/^(\d{4})\.md$/);
-      if (!m) continue;
-      const num = parseInt(m[1], 10);
-      if (!chapterFiles[num]) chapterFiles[num] = {};
-      // Only mark as source if no other file exists for this num
-      if (!chapterFiles[num].th && !chapterFiles[num].cn && !chapterFiles[num].legacy && !chapterFiles[num].md) {
-        chapterFiles[num].source = e.name;
-      }
-    }
-  } catch {}
-
-  const out = [];
-  // Read titles in parallel
-  const titleEntries = await Promise.all(
-    Object.entries(chapterFiles).map(async ([numStr, files]) => {
-      const num = parseInt(numStr, 10);
-      let title = '';
-      // Determine translation status: if .th.json exists → translated
-      // If only .cn.json exists → source_only
-      const isTranslated = !!files.th;
-      // Choose best file for title extraction
-      const titleFile = files.th || files.cn || files.legacy || files.md || files.source;
-      if (titleFile) {
-        try {
-          const raw = await fs.readFile(path.join(dir, titleFile), 'utf8');
-          if (titleFile.endsWith('.json')) {
-            const j = JSON.parse(raw);
-            // Per-language JSON has title.translated or title.source
-            if (j.title && typeof j.title === 'object') {
-              title = j.title.translated || j.title.source || '';
-            } else {
-              title = (j.title || '').toString();
-            }
-          } else if (titleFile.endsWith('.md')) {
-            const m = raw.match(/^#\s+(.+?)\r?\n/);
-            if (m) title = m[1].trim();
-          }
-        } catch { /* ignore */ }
-      }
-      if (!title) {
-        title = isTranslated ? `ตอนที่ ${num}` : `ตอนที่ ${num} [ยังไม่แปล]`;
-      }
-      return { num, title, isTranslated };
-    }),
-  );
-  if (titleEntries.length > 0) {
-    out.push(...titleEntries);
-    out.sort((a, b) => a.num - b.num);
-  }
-  cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: out });
-  // Write index.json for future fast reads
-  try {
-    await fs.writeFile(path.join(dir, 'index.json'), JSON.stringify({ slug, chapters: out }, null, 2), 'utf8');
-  } catch {}
-  return out;
-}
-
-async function readChapter(slug, num, lang) {
-  const padded = String(num).padStart(4, '0');
-  lang = lang || 'th';
-  // Per-language JSON: try {num}.{lang}.json first
-  const langFile = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.${lang}.json`);
-  try {
-    const raw = await fs.readFile(langFile, 'utf8');
-    const ch = JSON.parse(raw);
-    const title = ch.title ? (ch.title.translated || ch.title.source || `ตอนที่ ${ch.chapterNo || num}`) : `ตอนที่ ${num}`;
-    return {
-      title,
-      isJson: true,
-      paragraphs: ch.paragraphs || [],
-      blocks: ch.blocks || [],
-      lang: ch.targetLang || lang,
-      isTranslated: ch.status === 'translated' || lang === 'th',
-    };
-  } catch {}
-  // Fallback: old combined format
-  const jsonFile = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.json`);
-  const file = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.md`);
-  const sourceFile = path.join(NOVELS_DIR, slug, 'chapters', 'source', `${padded}.md`);
-
-  // Try JSON first (new canonical format), fallback to .md (legacy), fallback to source
-  let raw;
-  let isJson = false;
-  let fileStat;
-  let isTranslated = true;
-  try {
-    fileStat = await fs.stat(jsonFile);
-    raw = await fs.readFile(jsonFile, 'utf8');
-    isJson = true;
-  } catch {
-    try {
-      fileStat = await fs.stat(file);
-      raw = await fs.readFile(file, 'utf8');
-    } catch (err) {
-      try {
-        fileStat = await fs.stat(sourceFile);
-        raw = await fs.readFile(sourceFile, 'utf8');
-        isTranslated = false;
-        isJson = true; // Use blocks parsing on raw source file
-      } catch (sourceErr) {
-        if (sourceErr.code === 'ENOENT') return null;
-        throw sourceErr;
-      }
-    }
-  }
-
-  if (!isTranslated) {
-    const parsed = parseMarkdownToBlocks(raw, num);
-    return {
-      title: parsed.title || `ตอนที่ ${num} [ยังไม่แปล]`,
-      isJson: true,
-      blocks: parsed.blocks,
-      source: `ch ${num} (Original Source)`,
-      lang: 'cn',
-      notes: [],
-      isTranslated: false
-    };
-  }
-
-  if (isJson) {
-    let ch;
-    try {
-      ch = JSON.parse(raw);
-    } catch (parseErr) {
-      throw Object.assign(new Error(`Invalid JSON in ${padded}.json: ${parseErr.message}`), { status: 500 });
-    }
-
-    return {
-      title: ch.title || `ตอนที่ ${ch.num}`,
-      isJson: true,
-      paragraphs: ch.paragraphs || [],
-      blocks: ch.blocks || [],
-      source: ch.source || '',
-      lang: ch.lang || 'cn',
-      notes: ch.notes || [],
-      isTranslated: true
-    };
-  }
-  // Legacy .md path
-  const parts = raw.split(/\n---\n/);
-  let body = (parts[0] || '').trim();
-  // If there's a 2nd --- in the body itself, keep it (Source footer separator)
-  let meta = '';
-  if (parts.length >= 3) {
-    body = body + '\n\n---\n\n' + (parts[1] || '').trim();
-    meta = (parts[2] || '').trim();
-  } else if (parts.length === 2) {
-    const subparts = parts[1].split(/\n---\n/);
-    if (subparts.length >= 2) {
-      body = body + '\n\n---\n\n' + subparts[0].trim();
-      meta = subparts.slice(1).join('\n\n---\n').trim();
-    } else {
-      body = body + '\n\n---\n\n' + parts[1].trim();
-    }
-  }
-  let title = '';
-  const m = body.match(/^#\s+(.+?)\r?\n/);
-  if (m) {
-    title = m[1].trim();
-    body = body.slice(m[0].length).trim();
-  }
-  
-  const parsed = parseMarkdownToBlocks(raw, num);
-  
-  return {
-    title,
-    body,
-    meta,
-    isJson: false,
-    blocks: parsed.blocks,
-    source: parsed.notes.length > 0 ? '' : `ch ${num}`,
-    lang: 'cn',
-    notes: parsed.notes
-  };
-}
-
-// ── Markdown Parser helpers ───────────────────────────────────────────
-
-const { validateChapterJs } = require('./services/validation');
-
-function parseMarkdownToBlocks(mdText, chapterNum) {
-  const normalized = mdText.replace(/\r\n/g, '\n').trim();
-  const parts = normalized.split(/\n-{3,}\n/);
-  
-  let body = '';
-  let metaText = '';
-  
-  if (parts.length >= 3) {
-    const firstPart = parts[0].trim();
-    const lines = firstPart.split('\n');
-    if (lines.length <= 6) {
-      body = parts[1].trim();
-      metaText = parts.slice(2).join('\n\n');
-    } else {
-      body = parts.slice(0, -1).join('\n\n---\n\n');
-      metaText = parts[parts.length - 1];
-    }
-  } else if (parts.length === 2) {
-    const firstPart = parts[0].trim();
-    const lines = firstPart.split('\n');
-    if (lines.length <= 6) {
-      body = parts[1].trim();
-      metaText = '';
-    } else {
-      body = parts[0].trim();
-      metaText = parts[1].trim();
-    }
-  } else {
-    body = parts[0].trim();
-    metaText = '';
-  }
-  
-  let title = '';
-  const titleMatch = body.match(/^#\s+(.+)/);
-  if (titleMatch) {
-    title = titleMatch[1].trim();
-    body = body.slice(titleMatch[0].length).trim();
-  } else {
-    const fallbackMatch = parts[0].trim().match(/^#\s+(.+)/);
-    if (fallbackMatch) {
-      title = fallbackMatch[1].trim();
-    }
-  }
-  
-  const notes = [];
-  if (metaText) {
-    for (const line of metaText.split('\n')) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('- ')) {
-        notes.push(trimmed.slice(2));
-      }
-    }
-  }
-  
-  const paragraphs = body.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
-  const blocks = [];
-  
-  for (const p of paragraphs) {
-    if (p === '(จบบท)' || p === '（終）' || p === '(끝)' || p === '(End)') {
-      blocks.push({ type: 'end', text: p });
-      continue;
-    }
-    
-    if (p.startsWith('【') && p.endsWith('】')) {
-      blocks.push({ type: 'system', text: p });
-    } else if (p.startsWith('「') && p.endsWith('」')) {
-      blocks.push({ type: 'dialogue', text: p, speaker: '' });
-    } else if (p.startsWith('“') && p.endsWith('”') || p.startsWith('\u201C') && p.endsWith('\u201D')) {
-      blocks.push({ type: 'dialogue', text: p, speaker: '' });
-    } else if (p.startsWith('《') && p.endsWith('》')) {
-      blocks.push({ type: 'game_title', text: p });
-    } else {
-      const speakerRegex = /^([^「」“”\u201C\u201D:\n]+)(?:พูด|กล่าว|ถาม|ตะโกน|บอก|:|\s)+([「“”\u201C\u201D][^「」“”\u201C\u201D]+[」“”\u201C\u201D])$/;
-      const dialogueMatch = p.match(speakerRegex);
-      if (dialogueMatch) {
-        blocks.push({
-          type: 'dialogue',
-          text: dialogueMatch[2],
-          speaker: dialogueMatch[1].trim()
-        });
-      } else {
-        blocks.push({ type: 'narration', text: p });
-      }
-    }
-  }
-  
-  if (!blocks.some(b => b.type === 'end')) {
-    blocks.push({ type: 'end', text: '(จบบท)' });
-  }
-  
-  return { title, blocks, notes };
-}
-
-// ── routes ─────────────────────────────────────────────────────────────
-
+// ── Middleware ─────────────────────────────────────────────────────
 const app = express();
-app.use(express.json())
+app.use(express.json());
 
-// ── Slug validation middleware ──────────────────────────────────────────
-
-// Disable caching for static files during development — prevents stale JS/CSS
-// from blocking bug fixes. Remove or set maxAge for production.
+// Static files with cache disabled for dev
 app.use(express.static(PUBLIC_DIR, {
-  etag: false,
-  lastModified: false,
-  setHeaders: (res, filePath) => {
+  etag: false, lastModified: false,
+  setHeaders: (res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
   },
 }));
 
-// ── Slug validation middleware ──────────────────────────────────────────
-// Prevents path traversal: only allow alphanumeric, hyphens, underscores.
-// Applied to every route that takes a :slug parameter.
+// Slug validation param middleware
 app.param('slug', (req, res, next, slug) => {
   if (!SLUG_RE.test(slug)) {
     return res.status(400).json({ error: 'Invalid slug format' });
@@ -459,78 +53,32 @@ app.param('slug', (req, res, next, slug) => {
   next();
 });
 
-// ── Novel metadata cache (Phase 2 — multi-novel support) ──────────────
-// Reads meta.md YAML frontmatter once per novel. Cached like the
-// chapter list. Frontmatter format:
-//   ---
-//   slug: global-descent
-//   title: 全球降臨...
-//   source_lang: cn
-//   target_lang: th
-//   ...
-//   ---
+// Async route wrapper
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
 
-
-
-async function readNovelMeta(slug) {
-  assertValidSlug(slug);
-  const mk = "meta:" + slug; if (cache.has(mk)) return cache.get(mk);
-  // Try novel.json first (canonical), fallback to meta.md
-  const novelPath = path.join(NOVELS_DIR, slug, 'novel.json');
-  const mdPath = path.join(NOVELS_DIR, slug, 'meta.md');
-  let meta;
-  try {
-    const raw = await fs.readFile(novelPath, 'utf8');
-    meta = JSON.parse(raw);
-    // Normalize field names for backward compat
-    meta.slug = meta.slug || slug;
-    meta.title = meta.title || meta.sourceTitle || slug;
-    meta.translated_title = meta.translatedTitle || '';
-    meta.source_lang = meta.sourceLang || 'cn';
-    meta.target_lang = meta.targetLang || 'th';
-    meta.total_chapters = String(meta.totalChapters || 0);
-    meta.description = meta.description || '';
-    cache.set(mk, meta);
-    return meta;
-  } catch {}
-  try {
-    const raw = await fs.readFile(mdPath, 'utf8');
-    const m = raw.match(/^---\s*\n([\s\S]*?)\n---/);
-    meta = { slug, title: slug, source_lang: 'cn', target_lang: 'th', description: '' };
-    if (m) {
-      for (const line of m[1].split('\n')) {
-        const kv = line.match(/^(\w[\w_]*):\s*(.+?)\s*$/);
-        if (kv) {
-          let val = kv[2].replace(/^['"]|['"]$/g, '');
-          meta[kv[1]] = val;
-        }
-      }
-    }
-    const lines = raw.split('\n');
-    let inDesc = false;
-    for (const line of lines) {
-      if (inDesc) {
-        if (line.startsWith('## ')) break;
-        meta.description += line.trim() + '\n';
-      } else if (line.startsWith('## Description')) {
-        inDesc = true;
-      }
-    }
-    meta.description = meta.description.trim();
-  } catch {
-    meta = { slug, title: slug, source_lang: 'cn', target_lang: 'th', description: '' };
-  }
-  cache.set(mk, meta);
-  return meta;
+// Admin auth middleware
+function requireAdmin(req, res, next) {
+  if (!ADMIN_TOKEN) return next();
+  const provided = req.query.token || (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (provided === ADMIN_TOKEN) return next();
+  res.status(401).json({ error: 'Unauthorized — provide ?token= or Authorization: Bearer' });
 }
 
-app.get('/api/novels', async (_req, res) => {
-  const slugs = await listNovels();
+// File read helper
+async function readTextOrNull(filepath) {
+  try { return await fs.readFile(filepath, 'utf8'); }
+  catch (err) { if (err.code === 'ENOENT') return null; throw err; }
+}
+
+// ── Novel listing and metadata ─────────────────────────────────────
+
+app.get('/api/novels', asyncHandler(async (_req, res) => {
+  const slugs = await novelRepo.listNovels();
   const novels = await Promise.all(
     slugs.map(async (slug) => {
-      const meta = await readNovelMeta(slug);
-      const chapters = await listChapters(slug);
-      // ponytail: use listChapters() isTranslated instead of re-reading all files
+      const meta = await novelRepo.getNovelMeta(slug);
+      const chapters = await chapterRepo.listChapters(slug);
       const translatedCount = chapters.filter(c => c.isTranslated).length;
       return {
         slug,
@@ -548,161 +96,114 @@ app.get('/api/novels', async (_req, res) => {
     }),
   );
   res.json(novels);
-});
+}));
 
-app.get('/api/novel/:slug/meta', async (req, res) => {
-  const meta = await readNovelMeta(req.params.slug);
-  const chapters = await listChapters(req.params.slug);
-  // Try novel.json for enriched data
+app.get('/api/novel/:slug/meta', asyncHandler(async (req, res) => {
+  const meta = await novelRepo.getNovelMeta(req.params.slug);
+  const chapters = await chapterRepo.listChapters(req.params.slug);
   let enriched = {};
   try {
-    enriched = JSON.parse(await fs.readFile(path.join(NOVELS_DIR, req.params.slug, 'novel.json'), 'utf8'));
+    enriched = JSON.parse(await fs.readFile(novelJsonPath(req.params.slug), 'utf8'));
   } catch {}
-  res.json({ ...meta, ...enriched, slug: req.params.slug, chapterCount: chapters.length, translatedChapters: chapters.filter(c => c.isTranslated !== false).length });
-});
+  res.json({
+    ...meta, ...enriched, slug: req.params.slug,
+    chapterCount: chapters.length,
+    translatedChapters: chapters.filter(c => c.isTranslated !== false).length,
+  });
+}));
 
-app.get('/api/novel/:slug/chapters', async (req, res) => {
-  const chapters = await listChapters(req.params.slug);
+// ── Chapter listing ────────────────────────────────────────────────
+
+app.get('/api/novel/:slug/chapters', asyncHandler(async (req, res) => {
+  const chapters = await chapterRepo.listChapters(req.params.slug);
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.json({ slug: req.params.slug, chapters });
-});
+}));
 
-// Search filter — case-insensitive, matches against num + title + number-prefix
-// e.g. ?q=81 returns ch 81 if exists, else 810-819
-// e.g. ?q=7  returns ch 7 if exists + ch 70-79
-// e.g. ?q=นักธนู returns any chapter with "นักธนู" in title or content
-//
-// mode=title (default): in-memory filter on title + num (fast, no Python).
-// mode=content: in-memory text search (no Python dependency). Best for finding
-//               where a character/place/event was mentioned.
-// mode=all: union of both (deduped, title hits ranked first).
-app.get('/api/novel/:slug/chapters/search', async (req, res) => {
+// ── Chapter search ─────────────────────────────────────────────────
+
+app.get('/api/novel/:slug/chapters/search', asyncHandler(async (req, res) => {
   const q = (req.query.q || '').toString().trim();
   const mode = (req.query.mode || 'title').toString();
+  const lang = (req.query.lang || 'all').toString();
   const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
   if (!q) return res.json([]);
   if (q.length > 200) return res.status(400).json({ error: 'Query too long (max 200 chars)' });
   if (!['title', 'content', 'all'].includes(mode)) {
-    return res.status(400).json({ error: `Unknown mode '${mode}' (use title|content|all)` });
+    return res.status(400).json({ error: 'Unknown mode (use title|content|all)' });
   }
 
   let results = [];
-  const skip = new Set();
+  const all = await chapterRepo.listChapters(req.params.slug);
+
   if (mode === 'title' || mode === 'all') {
-    const all = await listChapters(req.params.slug);
-    const qn = parseInt(q, 10);
-    const qLower = q.toLowerCase();
-    for (const c of all) {
-      if (Number.isFinite(qn) && c.num === qn) {
-        if (!skip.has(c.num)) { results.push({ num: c.num, title: c.title, source: 'title' }); skip.add(c.num); }
-        continue;
-      }
-      if (Number.isFinite(qn) && String(c.num).startsWith(q)) {
-        if (!skip.has(c.num)) { results.push({ num: c.num, title: c.title, source: 'title' }); skip.add(c.num); }
-        continue;
-      }
-      if (c.title && c.title.toLowerCase().includes(qLower)) {
-        if (!skip.has(c.num)) { results.push({ num: c.num, title: c.title, source: 'title' }); skip.add(c.num); }
-      }
-    }
+    const { results: titleResults, skip } = searchService.searchTitle(all, q, limit);
+    results = titleResults;
+    if (mode === 'title') return res.json(results);
   }
 
-  // In-memory content search (replaces Python subprocess FTS5)
   if (mode === 'content' || mode === 'all') {
-    const dir = path.join(NOVELS_DIR, req.params.slug, 'chapters');
-    const all = await listChapters(req.params.slug);
-    const qLower = q.toLowerCase();
-    let found = 0;
-    for (const ch of all) {
-      if (found >= limit) break;
-      if (skip.has(ch.num)) continue;
-      const padded = String(ch.num).padStart(4, '0');
-      let raw = null;
-      let data = null;
-      // Try per-language JSON first: .th.json → .cn.json → legacy .json
-      for (const ext of [`${padded}.th.json`, `${padded}.cn.json`, `${padded}.json`]) {
-        try {
-          raw = await fs.readFile(path.join(dir, ext), 'utf8');
-          data = JSON.parse(raw);
-          break;
-        } catch {}
-      }
-      if (!data) continue; // skip unreadable files
-      // v3: paragraphs first, fallback to blocks
-      const text = (data.paragraphs || []).join('\n') || (data.blocks || []).map(b => b.text || '').join('\n');
-      const idx = text.toLowerCase().indexOf(qLower);
-      if (idx !== -1) {
-        const start = Math.max(0, idx - 40);
-        const end = Math.min(text.length, idx + q.length + 40);
-        let snippet = (idx > 40 ? '…' : '') + text.slice(start, end).trim() + (end < text.length ? '…' : '');
-        results.push({ num: ch.num, title: ch.title, snippet, score: 1, source: 'content' });
-        skip.add(ch.num);
-        found++;
-      }
-    }
+    const skip = new Set(results.map(r => r.num));
+    const contentResults = await searchService.searchContent(req.params.slug, q, { limit, lang, skip });
+    if (mode === 'content') return res.json(contentResults);
+    results = [...results, ...contentResults];
   }
 
   res.json(results.slice(0, limit));
-});
+}));
 
-app.get('/api/novel/:slug/chapter/:num', async (req, res) => {
+// ── Single chapter ─────────────────────────────────────────────────
+
+app.get('/api/novel/:slug/chapter/:num', asyncHandler(async (req, res) => {
   const num = parseInt(req.params.num, 10);
   if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
   const lang = (req.query.lang || 'th').toString();
-  try {
-    const result = await readChapter(req.params.slug, num, lang);
-    if (!result) return res.status(404).json({ error: 'Chapter not found' });
-    const { title, isJson } = result;
+  const result = await chapterRepo.getChapter(req.params.slug, num, lang);
+  if (!result) return res.status(404).json({ error: 'Chapter not found' });
 
-    // ponytail: validation runs only on POST (save). On GET skip it — saves ~10-50ms
-    // and glossary file reads per chapter load. Frontend doesn't use score/validation fields.
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
 
-    // Cache control: always revalidate with server before using cached response
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
+  res.json({
+    slug: req.params.slug,
+    num,
+    title: result.title,
+    isJson: result.isJson,
+    paragraphs: result.paragraphs || [],
+    blocks: result.blocks || [],
+    source: result.source || '',
+    lang: result.lang || 'cn',
+    notes: result.notes || [],
+    score: 100,
+    isTranslated: result.isTranslated !== false,
+    validation: { valid: true, errors: [], warnings: [], info: [] },
+  });
+}));
 
-    res.json({
-      slug: req.params.slug,
-      num,
-      title,
-      isJson,
-      paragraphs: result.paragraphs || [],
-      blocks: result.blocks || [],
-      source: result.source || '',
-      lang: result.lang || 'cn',
-      notes: result.notes || [],
-      score: 100,
-      isTranslated: result.isTranslated !== false,
-      validation: { valid: true, errors: [], warnings: [], info: [] }
-    });
-  } catch (err) {
-    if (err.code === 'ENOENT') return res.status(404).json({ error: 'Chapter not found' });
-    throw err;
-  }
-});
+// ── Source file ────────────────────────────────────────────────────
 
-app.get('/api/novel/:slug/source/:num', async (req, res) => {
+app.get('/api/novel/:slug/source/:num', asyncHandler(async (req, res) => {
   assertValidSlug(req.params.slug);
   const num = parseInt(req.params.num, 10);
   if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
-  const padded = String(num).padStart(4, '0');
-  const raw = await readTextOrNull(path.join(NOVELS_DIR, req.params.slug, 'chapters', 'source', `${padded}.md`));
+  const raw = await readTextOrNull(sourceMdPath(req.params.slug, num));
   if (raw === null) return res.status(404).json({ error: 'Source not found' });
   res.type('text/plain').send(raw);
-});
+}));
 
-app.get('/api/novel/:slug/glossary', async (req, res) => {
+// ── Glossary ───────────────────────────────────────────────────────
+
+app.get('/api/novel/:slug/glossary', asyncHandler(async (req, res) => {
   assertValidSlug(req.params.slug);
-  const raw = await readTextOrNull(path.join(NOVELS_DIR, req.params.slug, 'glossary.md'));
+  const raw = await readTextOrNull(glossaryMdPath(req.params.slug));
   if (raw === null) return res.status(404).json({ error: 'No glossary' });
   res.type('text/plain').send(raw);
-});
+}));
 
-app.get('/api/novel/:slug/glossary/data', async (req, res) => {
+app.get('/api/novel/:slug/glossary/data', asyncHandler(async (req, res) => {
   assertValidSlug(req.params.slug);
-  const file = path.join(NOVELS_DIR, req.params.slug, 'glossary', 'glossary.json');
-  const raw = await readTextOrNull(file);
+  const raw = await readTextOrNull(glossaryJsonPath(req.params.slug));
   if (raw === null) return res.json({ terms: [] });
   try {
     const data = JSON.parse(raw);
@@ -710,117 +211,66 @@ app.get('/api/novel/:slug/glossary/data', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Invalid glossary.json', details: err.message });
   }
-});
+}));
 
-app.post('/api/novel/:slug/glossary/save', requireAdmin, async (req, res) => {
+app.post('/api/novel/:slug/glossary/save', requireAdmin, asyncHandler(async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
   const glossaryScript = path.join(__dirname, '..', 'tools', 'glossary.py');
-
   const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
-  const args = [glossaryScript, '--novel', slug, '--save'];
-  
-  const child = spawn(py, args, { cwd: path.join(__dirname, '..'), windowsHide: true, timeout: 10_000 });
-  let stdout = '';
-  let stderr = '';
-  
+  const child = spawn(py, [glossaryScript, '--novel', slug, '--save'], {
+    cwd: path.join(__dirname, '..'), windowsHide: true, timeout: 10_000,
+  });
+  let stdout = '', stderr = '';
   child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
   child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
-  
   child.on('close', (code) => {
     if (code !== 0) {
-      res.status(500).json({ error: `glossary.py exited ${code}: ${stderr}` });
-      return;
+      return res.status(500).json({ error: `glossary.py exited ${code}: ${stderr}` });
     }
-    
-    invalidateCache(slug);
+    chapterRepo.invalidateAll(slug);
     res.json({ ok: true });
   });
-  
   child.stdin.write(JSON.stringify(req.body));
   child.stdin.end();
-});
+}));
 
-app.get('/api/novel/:slug/characters', async (req, res) => {
+// ── Characters ─────────────────────────────────────────────────────
+
+app.get('/api/novel/:slug/characters', asyncHandler(async (req, res) => {
   assertValidSlug(req.params.slug);
-  const raw = await readTextOrNull(path.join(NOVELS_DIR, req.params.slug, 'characters.md'));
+  const raw = await readTextOrNull(charactersMdPath(req.params.slug));
   if (raw === null) return res.status(404).json({ error: 'No characters' });
   res.type('text/plain').send(raw);
-});
+}));
 
-// Manual cache invalidation (called after a new chapter is translated).
-// Useful for scripting: `curl -X POST /api/invalidate-cache` after writing.
-app.post('/api/invalidate-cache', requireAdmin, (req, res) => {
-  invalidateCache();
-  res.json({ ok: true });
-});
+// ── Admin novel update ─────────────────────────────────────────────
 
-// ── Admin & Translation API Endpoints ─────────────────────────────────
-
-app.post('/api/novel/update', requireAdmin, async (req, res) => {
+app.post('/api/novel/update', requireAdmin, asyncHandler(async (req, res) => {
   const { slug, title, author, source_lang, target_lang, status, total_chapters, translatedTitle } = req.body;
-  if (!slug || !SLUG_RE.test(slug)) return res.status(400).json({ error: 'Invalid slug format' });
-  const novelDir = path.join(NOVELS_DIR, slug);
-  const chaptersDir = path.join(novelDir, 'chapters');
-  try {
-    await fs.mkdir(chaptersDir, { recursive: true });
-    // Write canonical novel.json
-    const novelData = {
-      slug,
-      title: title || slug,
-      translatedTitle: translatedTitle || '',
-      author: author || '',
-      sourceLang: source_lang || 'cn',
-      targetLang: target_lang || 'th',
-      status: status || 'ongoing',
-      totalChapters: total_chapters ? parseInt(total_chapters, 10) : 0,
-      description: '',
-      updatedAt: new Date().toISOString()
-    };
-    await fs.writeFile(path.join(novelDir, 'novel.json'), JSON.stringify(novelData, null, 2), 'utf8');
-    // Also write meta.md as legacy export for backward compat
-    const metaYaml = [
-      '---',
-      `slug: ${slug}`,
-      `title: ${title || slug}`,
-      `author: ${author || ''}`,
-      `source_lang: ${source_lang || 'cn'}`,
-      `target_lang: ${target_lang || 'th'}`,
-      `status: ${status || 'ongoing'}`,
-      `total_chapters: ${total_chapters || '0'}`,
-      '---',
-      `# ${title || slug}`
-    ].join('\n');
-    await fs.writeFile(path.join(novelDir, 'meta.md'), metaYaml, 'utf8');
-    cache.delete("meta:" + slug);
-    invalidateCache(slug);
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  if (!slug || !SLUG_RE.test(slug)) {
+    return res.status(400).json({ error: 'Invalid slug format' });
   }
-});
+  await novelRepo.saveNovelMeta(slug, { title, author, source_lang, target_lang, status, total_chapters, translatedTitle });
+  res.json({ ok: true });
+}));
 
-app.post('/api/novel/:slug/delete', requireAdmin, async (req, res) => {
-  const slug = req.params.slug;
-  const novelDir = path.join(NOVELS_DIR, slug);
-  try {
-    await fs.rm(novelDir, { recursive: true, force: true });
-    cache.delete("meta:" + slug);
-    invalidateCache(slug);
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-// ── SAVE CHAPTER ───────────────────────────────────────────────────────
-app.post('/api/novel/:slug/chapter/:num/save', requireAdmin, async (req, res) => {
+// ── Admin delete novel ─────────────────────────────────────────────
+
+app.post('/api/novel/:slug/delete', requireAdmin, asyncHandler(async (req, res) => {
+  await novelRepo.deleteNovel(req.params.slug);
+  res.json({ ok: true });
+}));
+
+// ── Admin save chapter ─────────────────────────────────────────────
+
+app.post('/api/novel/:slug/chapter/:num/save', requireAdmin, asyncHandler(async (req, res) => {
   const slug = req.params.slug;
   const num = parseInt(req.params.num, 10);
   if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
-  const padded = String(num).padStart(4, '0');
   let { title, blocks, source, lang, paragraphs, markdownText } = req.body;
-
   let notes = [];
+
   if (markdownText) {
     const parsed = parseMarkdownToBlocks(markdownText, num);
     blocks = parsed.blocks;
@@ -828,101 +278,53 @@ app.post('/api/novel/:slug/chapter/:num/save', requireAdmin, async (req, res) =>
     notes = parsed.notes;
   }
 
-  // Determine target language — default "th" for admin saves
   const targetLang = lang || 'th';
-  const targetExt = targetLang === 'th' ? 'th' : 'cn';
-  const jsonPath = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.${targetExt}.json`);
+  const chapterData = await chapterRepo.saveChapter(slug, num, targetLang, {
+    title, blocks, paragraphs, notes,
+  });
 
-  // Build canonical per-language chapter data
-  const chapterData = {
-    novelId: slug,
-    chapterNo: num,
-    sourceLang: 'cn',
-    targetLang: targetLang,
-    title: {
-      translated: targetLang === 'th' ? (title || `ตอนที่ ${num}`) : '',
-      source: targetLang === 'cn' ? (title || '') : ''
-    },
-    status: targetLang === 'th' ? 'translated' : 'source',
-    paragraphs: (paragraphs && paragraphs.length) ? paragraphs : [],
-    blocks: (!paragraphs || !paragraphs.length) ? (blocks || []) : [],
-    notes: notes || [],
-    updatedAt: new Date().toISOString()
-  };
-
-  // Validation — skip for blocks-only chapters
+  // Validate
+  const { validateChapterJs } = require('./services/validation');
   const validateBlocks = chapterData.blocks || [];
   const valResult = await validateChapterJs(slug, num, title || `ตอนที่ ${num}`, validateBlocks, source || '', targetLang, { novelRoot: NOVELS_DIR });
-  
   if (!valResult.valid) {
     const errorMsg = [
       '━'.repeat(70),
       `  VALIDATION — Ch ${num} (JS Native)`,
-      '━'.repeat(70),
-      '',
-      ...valResult.info.map(line => `  ℹ  ${line}`),
-      '',
+      '━'.repeat(70), '',
+      ...valResult.info.map(line => `  ℹ  ${line}`), '',
       ...valResult.warnings.map(line => `  ⚠  ${line}`),
-      ...valResult.errors.map(line => `  ✗  ${line}`),
-      '',
-      `❌ FAILED — ${valResult.errors.length} error(s) found`
+      ...valResult.errors.map(line => `  ✗  ${line}`), '',
+      `❌ FAILED — ${valResult.errors.length} error(s) found`,
     ].join('\n');
-    
-    return res.status(422).json({
-      error: 'Validation Error',
-      details: errorMsg
-    });
+    return res.status(422).json({ error: 'Validation Error', details: errorMsg });
   }
 
-  try {
-    await fs.mkdir(path.dirname(jsonPath), { recursive: true });
-    await fs.writeFile(jsonPath, JSON.stringify(chapterData, null, 2), 'utf8');
+  chapterRepo.invalidateAll(slug);
+  res.json({ ok: true });
+}));
 
-    invalidateCache(slug);
+// ── Admin delete chapter ───────────────────────────────────────────
 
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ── DELETE chapter (all formats: per-language + legacy) ─────────────────
-app.post('/api/novel/:slug/chapter/:num/delete', requireAdmin, async (req, res) => {
+app.post('/api/novel/:slug/chapter/:num/delete', requireAdmin, asyncHandler(async (req, res) => {
   const slug = req.params.slug;
   const num = parseInt(req.params.num, 10);
   if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
-  const padded = String(num).padStart(4, '0');
-  const chDir = path.join(NOVELS_DIR, slug, 'chapters');
-  const variants = [
-    `${padded}.th.json`,
-    `${padded}.cn.json`,
-    `${padded}.json`,
-    `${padded}.md`,
-  ];
-  try {
-    for (const v of variants) {
-      try { await fs.rm(path.join(chDir, v), { force: true }); } catch {}
-    }
-    invalidateCache(slug);
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  await chapterRepo.deleteChapter(slug, num);
+  chapterRepo.invalidateAll(slug);
+  res.json({ ok: true });
+}));
+
+// ── Manual cache invalidation ──────────────────────────────────────
+
+app.post('/api/invalidate-cache', requireAdmin, (req, res) => {
+  chapterRepo.invalidateAll();
+  res.json({ ok: true });
 });
 
-// ── Server startup + EADDRINUSE recovery ─────────────────────────────
-//
-// LAN access: set HOST=0.0.0.0 to bind all interfaces so phones on the same
-// Wi-Fi can reach this server. Find your PC's IP with `ipconfig` (Windows) or
-// `ifconfig` (mac/Linux). Then from phone: http://<your-ip>:4173/
-//
-// Windows Firewall: first run may prompt you to allow. If phone can't
-// connect, allow Node.js through Windows Defender Firewall.
-//
-// Security: default is 127.0.0.1 (localhost-only) — admin endpoints are
-// unprotected on the network. Set ADMIN_TOKEN env var for auth.
+// ── Server startup ─────────────────────────────────────────────────
 
-const BIND_HOST = process.env.HOST || '127.0.0.1';
+const START_TIME = Date.now();
 
 const server = app.listen(PORT, BIND_HOST, () => {
   const os = require('node:os');
@@ -947,6 +349,8 @@ const server = app.listen(PORT, BIND_HOST, () => {
   console.log(`Serving novels from: ${NOVELS_DIR}`);
 });
 
+// ── EADDRINUSE recovery (opt-in) ───────────────────────────────────
+
 let _eaddrRetries = 0;
 const AUTO_KILL = process.env.AUTO_KILL_PORT === 'true';
 server.on('error', (err) => {
@@ -957,8 +361,7 @@ server.on('error', (err) => {
     try {
       if (process.platform === 'win32') {
         const out = execSync(`netstat -ano | findstr :${PORT}`, { encoding: 'utf8' });
-        const lines = out.trim().split('\n');
-        for (const line of lines) {
+        for (const line of out.trim().split('\n')) {
           const parts = line.trim().split(/\s+/);
           const pid = parts[parts.length - 1];
           if (pid && pid !== '0') {
@@ -970,45 +373,34 @@ server.on('error', (err) => {
         execSync(`lsof -ti:${PORT} | xargs kill -9 2>/dev/null || true`, { encoding: 'utf8' });
       }
     } catch (e) { /* ignore */ }
-    setTimeout(() => {
-      server.listen(PORT, '0.0.0.0');
-    }, 500);
+    setTimeout(() => { server.listen(PORT, BIND_HOST); }, 500);
   } else {
     console.error('Server error:', err);
   }
 });
 
-const START_TIME = Date.now();
+// ── Unhandled rejection guard ──────────────────────────────────────
 
-// ── Crash prevention: unhandled promise rejection ──────────────────────
-// Without this, a single async route error kills the entire process.
-// Node 15+ terminates on unhandled rejections — this catches what
-// Express's global error handler misses.
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-// ── SPA fallback ──────────────────────────────────────────────────────
-// Any route that isn't an API call or a static file serves index.html
-// so the frontend JS can handle routing via URL params.
-// Inject ?_t=START_TIME to bust browser cache for JS/CSS after server restart.
+// ── SPA fallback — serve index.html for all non-API routes ─────────
+
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'API not found' });
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
   let html = fsSync.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
-  // Cache-bust: strip any existing query param first, then append _t to script src URLs
+  // Cache-bust: strip existing query, append _t
   html = html.replace(/src="\/(js\/[^"?]+)(\?[^"]*)?"/g, `src="/$1?_t=${START_TIME}"`);
-  // CSS too — strip any existing query param first, then append fresh timestamp
   html = html.replace(/href="\/(design-system\.css)[^"]*"/g, `href="/$1?_t=${START_TIME}"`);
   res.send(html);
 });
 
-// ── Global error handler ────────────────────────────────────────────────
-// Catches unhandled sync throws and unawaited promise rejections from
-// async route handlers. Without this, any uncaught error crashes the
-// process (Node 15+ terminates on unhandled rejections).
+// ── Global error handler ───────────────────────────────────────────
+
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
