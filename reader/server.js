@@ -59,11 +59,14 @@ const asyncHandler = (fn) => (req, res, next) =>
 
 // Admin auth middleware
 function requireAdmin(req, res, next) {
-  if (!ADMIN_TOKEN) return next();
+  if (!ADMIN_TOKEN) return next(); // no auth configured
   const provided = req.query.token || (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (provided === ADMIN_TOKEN) return next();
   res.status(401).json({ error: 'Unauthorized — provide ?token= or Authorization: Bearer' });
 }
+
+// Startup check: if binding to 0.0.0.0 without ADMIN_TOKEN, warn
+let _admin_warned = false;
 
 // File read helper
 async function readTextOrNull(filepath) {
@@ -300,6 +303,7 @@ app.post('/api/novel/:slug/chapter/:num/save', requireAdmin, asyncHandler(async 
     return res.status(422).json({ error: 'Validation Error', details: errorMsg });
   }
 
+  await chapterRepo.rebuildChaptersIndex(slug);
   chapterRepo.invalidateAll(slug);
   res.json({ ok: true });
 }));
@@ -311,6 +315,7 @@ app.post('/api/novel/:slug/chapter/:num/delete', requireAdmin, asyncHandler(asyn
   const num = parseInt(req.params.num, 10);
   if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
   await chapterRepo.deleteChapter(slug, num);
+  await chapterRepo.rebuildChaptersIndex(slug);
   chapterRepo.invalidateAll(slug);
   res.json({ ok: true });
 }));
@@ -345,6 +350,11 @@ const server = app.listen(PORT, BIND_HOST, () => {
   }
   if (BIND_HOST !== '0.0.0.0') {
     console.log(`  (localhost only — set HOST=0.0.0.0 for LAN access)`);
+  }
+  if (BIND_HOST === '0.0.0.0' && !ADMIN_TOKEN) {
+    console.log('  ⚠️  WARNING: HOST=0.0.0.0 but ADMIN_TOKEN is not set —');
+    console.log('     admin endpoints are unprotected on your network.');
+    console.log('     Set ADMIN_TOKEN=your-secret-token to secure them.');
   }
   console.log(`Serving novels from: ${NOVELS_DIR}`);
 });

@@ -24,13 +24,92 @@ function invalidateAll(slug) {
 }
 exports.invalidateList = invalidateList;
 exports.invalidateAll = invalidateAll;
-exports._cache = cache; // for testing
+exports._cache = cache;
 
 // ── Helpers ────────────────────────────────────────────────────────
 
 async function readTextOrNull(filepath) {
   try { return await fs.readFile(filepath, 'utf8'); }
   catch (err) { if (err.code === 'ENOENT') return null; throw err; }
+}
+
+// ── Private: force-scan directory for real file state ──────────────
+// Always reads from disk. No cache, no fast-path index.
+// Returns: { chapters: [{ num, title, hasTh, hasCn, isTranslated, status }] }
+
+async function scanChapters(slug) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(slug)) return [];
+  const dir = chapterDir(slug);
+  let dirStat;
+  try { dirStat = await fs.stat(dir); }
+  catch (err) { if (err.code === 'ENOENT') return []; throw err; }
+
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  const fileRe = /^(\d{4})\.(?:th\.json|cn\.json|json|md)$/;
+  const chapterFiles = {};
+
+  for (const e of entries) {
+    if (!e.isFile()) continue;
+    const m = e.name.match(fileRe);
+    if (!m) continue;
+    const num = parseInt(m[1], 10);
+    if (!chapterFiles[num]) chapterFiles[num] = {};
+    if (e.name.endsWith('.th.json')) chapterFiles[num].th = e.name;
+    else if (e.name.endsWith('.cn.json')) chapterFiles[num].cn = e.name;
+    else if (e.name.endsWith('.json')) chapterFiles[num].legacy = e.name;
+    else if (e.name.endsWith('.md')) chapterFiles[num].md = e.name;
+  }
+
+  // Source files — only when no other file exists for that num
+  try {
+    const sourceEntries = await fs.readdir(path.join(dir, 'source'), { withFileTypes: true });
+    for (const e of sourceEntries) {
+      if (!e.isFile()) continue;
+      const m = e.name.match(/^(\d{4})\.md$/);
+      if (!m) continue;
+      const num = parseInt(m[1], 10);
+      if (!chapterFiles[num]) chapterFiles[num] = {};
+      if (!chapterFiles[num].th && !chapterFiles[num].cn && !chapterFiles[num].legacy && !chapterFiles[num].md) {
+        chapterFiles[num].source = e.name;
+      }
+    }
+  } catch {}
+
+  const titleEntries = await Promise.all(
+    Object.entries(chapterFiles).map(async ([numStr, files]) => {
+      const num = parseInt(numStr, 10);
+      let title = '';
+      const hasTh = !!files.th;
+      const hasCn = !!files.cn;
+      const isTranslated = hasTh; // .th.json = translated
+      const status = hasTh ? 'translated' : (hasCn ? 'source_only' : 'legacy');
+
+      const titleFile = files.th || files.cn || files.legacy || files.md || files.source;
+      if (titleFile) {
+        try {
+          const raw = await fs.readFile(path.join(dir, titleFile), 'utf8');
+          if (titleFile.endsWith('.json')) {
+            const j = JSON.parse(raw);
+            if (j.title && typeof j.title === 'object') {
+              title = j.title.translated || j.title.source || '';
+            } else {
+              title = (j.title || '').toString();
+            }
+          } else if (titleFile.endsWith('.md')) {
+            const m = raw.match(/^#\s+(.+?)\r?\n/);
+            if (m) title = m[1].trim();
+          }
+        } catch {}
+      }
+      if (!title) {
+        title = isTranslated ? `ตอนที่ ${num}` : `ตอนที่ ${num} [ยังไม่แปล]`;
+      }
+      return { num, title, hasTh, hasCn, isTranslated, status };
+    }),
+  );
+
+  titleEntries.sort((a, b) => a.num - b.num);
+  return titleEntries;
 }
 
 // ── Read a single chapter ──────────────────────────────────────────
@@ -188,18 +267,21 @@ async function deleteChapter(slug, num) {
 }
 exports.deleteChapter = deleteChapter;
 
-// ── List chapters ──────────────────────────────────────────────────
+// ── List chapters (cached, fast-path via chapters.json) ────────────
+// Accepts options.forceScan = true to bypass cache and index.
 
-async function listChapters(slug) {
+async function listChapters(slug, options = {}) {
   if (!/^[a-zA-Z0-9_-]+$/.test(slug)) return [];
+
+  // Force scan bypasses cache and chapters.json fast path
+  if (options.forceScan) {
+    return await scanChapters(slug);
+  }
+
   const dir = chapterDir(slug);
   let dirStat;
-  try {
-    dirStat = await fs.stat(dir);
-  } catch (err) {
-    if (err.code === 'ENOENT') return [];
-    throw err;
-  }
+  try { dirStat = await fs.stat(dir); }
+  catch (err) { if (err.code === 'ENOENT') return []; throw err; }
 
   let sourceDirMtimeMs = 0;
   try {
@@ -219,7 +301,10 @@ async function listChapters(slug) {
     const chIdx = JSON.parse(chRaw);
     if (chIdx && chIdx.chapters && chIdx.chapters.length > 0) {
       const out = chIdx.chapters.map(c => ({
-        num: c.num, title: c.title, isTranslated: c.status !== 'source_only'
+        num: c.num, title: c.title,
+        hasTh: !!c.hasTh, hasCn: !!c.hasCn,
+        isTranslated: c.status !== 'source_only',
+        status: c.status || 'translated',
       }));
       cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: out });
       return out;
@@ -236,100 +321,39 @@ async function listChapters(slug) {
     }
   } catch {}
 
-  // Fallback: directory scan
-  const entries = await fs.readdir(dir, { withFileTypes: true });
-  const fileRe = /^(\d{4})\.(?:th\.json|cn\.json|json|md)$/;
-  const chapterFiles = {};
-  for (const e of entries) {
-    if (!e.isFile()) continue;
-    const m = e.name.match(fileRe);
-    if (!m) continue;
-    const num = parseInt(m[1], 10);
-    if (!chapterFiles[num]) chapterFiles[num] = {};
-    if (e.name.endsWith('.th.json')) chapterFiles[num].th = e.name;
-    else if (e.name.endsWith('.cn.json')) chapterFiles[num].cn = e.name;
-    else if (e.name.endsWith('.json')) chapterFiles[num].legacy = e.name;
-    else if (e.name.endsWith('.md')) chapterFiles[num].md = e.name;
-  }
-
-  // Source files
-  try {
-    const sourceEntries = await fs.readdir(path.join(dir, 'source'), { withFileTypes: true });
-    for (const e of sourceEntries) {
-      if (!e.isFile()) continue;
-      const m = e.name.match(/^(\d{4})\.md$/);
-      if (!m) continue;
-      const num = parseInt(m[1], 10);
-      if (!chapterFiles[num]) chapterFiles[num] = {};
-      if (!chapterFiles[num].th && !chapterFiles[num].cn && !chapterFiles[num].legacy && !chapterFiles[num].md) {
-        chapterFiles[num].source = e.name;
-      }
-    }
-  } catch {}
-
-  const titleEntries = await Promise.all(
-    Object.entries(chapterFiles).map(async ([numStr, files]) => {
-      const num = parseInt(numStr, 10);
-      let title = '';
-      const isTranslated = !!files.th;
-      const titleFile = files.th || files.cn || files.legacy || files.md || files.source;
-      if (titleFile) {
-        try {
-          const raw = await fs.readFile(path.join(dir, titleFile), 'utf8');
-          if (titleFile.endsWith('.json')) {
-            const j = JSON.parse(raw);
-            if (j.title && typeof j.title === 'object') {
-              title = j.title.translated || j.title.source || '';
-            } else {
-              title = (j.title || '').toString();
-            }
-          } else if (titleFile.endsWith('.md')) {
-            const m = raw.match(/^#\s+(.+?)\r?\n/);
-            if (m) title = m[1].trim();
-          }
-        } catch {}
-      }
-      if (!title) {
-        title = isTranslated ? `ตอนที่ ${num}` : `ตอนที่ ${num} [ยังไม่แปล]`;
-      }
-      return { num, title, isTranslated };
-    }),
-  );
-
-  if (titleEntries.length > 0) {
-    titleEntries.sort((a, b) => a.num - b.num);
-  }
-  cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: titleEntries });
-
-  // Write index for next fast read
-  try {
-    await fs.writeFile(
-      legacyIndexPath(slug),
-      JSON.stringify({ slug, chapters: titleEntries }, null, 2),
-      'utf8'
-    );
-  } catch {}
-
-  return titleEntries;
+  // Fallback: actually scan
+  const scanned = await scanChapters(slug);
+  cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: scanned });
+  return scanned;
 }
 exports.listChapters = listChapters;
 
-// ── Rebuild chapters.json index ────────────────────────────────────
+// ── Rebuild chapters.json index from actual files ──────────────────
+// Uses forceScan to guarantee accuracy.
 
 async function rebuildChaptersIndex(slug) {
-  const chapters = await listChapters(slug);
+  const chapters = await scanChapters(slug);
   const idx = {
     slug,
     totalChapters: chapters.length,
     chapters: chapters.map(c => ({
       num: c.num,
       title: c.title,
-      hasCn: true,
-      hasTh: c.isTranslated,
-      status: c.isTranslated ? 'translated' : 'source_only',
+      hasCn: c.hasCn,
+      hasTh: c.hasTh,
+      status: c.status,
     })),
   };
+  // Write to chapters/ directory
   await fs.writeFile(chaptersIndexPath(slug), JSON.stringify(idx, null, 2), 'utf8');
+  // Also write legacy index.json for backward compat
+  try {
+    await fs.writeFile(
+      legacyIndexPath(slug),
+      JSON.stringify({ slug, chapters: chapters.map(c => ({ num: c.num, title: c.title, isTranslated: c.isTranslated })) }, null, 2),
+      'utf8'
+    );
+  } catch {}
   return idx;
 }
 exports.rebuildChaptersIndex = rebuildChaptersIndex;
