@@ -30,6 +30,7 @@ const Router = {
     } else if (page === 'admin' && parts.length >= 2) {
       params.page = parts[1];
       if (parts.length >= 3) params.slug = parts[2];
+      if (parts.length >= 4) params.num = parts[3];
     }
 
     const handler = this._routes[page];
@@ -203,6 +204,7 @@ function init() {
       'chapters': AdminChaptersPage,
       'glossary': AdminGlossaryPage,
       'novel-edit': AdminNovelEditPage,
+      'logs': AdminLogsPage,
     };
     const handler = adminRoutes[sub] || AdminDashboardPage;
     handler.render(p);

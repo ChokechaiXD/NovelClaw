@@ -358,7 +358,7 @@ async function readJsonDir(dirPath) {
   } catch { return []; }
 }
 
-app.get('/api/admin/jobs', asyncHandler(async (req, res) => {
+app.get('/api/admin/jobs', requireAdmin, asyncHandler(async (req, res) => {
   const [active, done, failed, needsReview] = await Promise.all([
     readJsonDir(path.join(JOBS_DIR, 'active')),
     readJsonDir(path.join(JOBS_DIR, 'done')),
@@ -369,8 +369,17 @@ app.get('/api/admin/jobs', asyncHandler(async (req, res) => {
 }));
 
 // ── Admin audit log viewer ─────────────────────────────────────────
-app.get('/api/admin/logs/:slug/:num', asyncHandler(async (req, res) => {
+const SLUG_RE_LOOSE = /^[a-z0-9-]+$/i;
+const NUM_RE = /^\d{1,5}$/;
+
+app.get('/api/admin/logs/:slug/:num', requireAdmin, asyncHandler(async (req, res) => {
   const { slug, num } = req.params;
+
+  // Validate params — prevent path traversal
+  if (!SLUG_RE_LOOSE.test(slug) || !NUM_RE.test(num)) {
+    return res.status(400).json({ ok: false, error: 'Invalid slug or num format' });
+  }
+
   const logDir = path.join(LOGS_DIR, slug, num);
   try {
     const entries = await fs.readdir(logDir, { withFileTypes: true });
