@@ -198,6 +198,7 @@ function init() {
     const sub = p && p.page ? p.page : 'dash';
     const adminRoutes = {
       'dash': AdminDashboardPage,
+      'jobs': AdminJobsPage,
       'novels': AdminNovelsPage,
       'chapters': AdminChaptersPage,
       'glossary': AdminGlossaryPage,

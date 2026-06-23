@@ -336,6 +336,63 @@ app.post('/api/invalidate-cache', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Admin Jobs Dashboard API ───────────────────────────────────────
+// Reads jobs/active, jobs/done, jobs/failed, jobs/needs_review from disk.
+
+const JOBS_DIR = path.resolve(__dirname, '..', 'jobs');
+const LOGS_DIR = path.resolve(__dirname, '..', 'logs', 'translate');
+
+async function readJsonDir(dirPath) {
+  try {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    const results = [];
+    for (const e of entries) {
+      if (e.isFile() && e.name.endsWith('.json')) {
+        try {
+          const data = JSON.parse(await fs.readFile(path.join(dirPath, e.name), 'utf8'));
+          results.push({ file: e.name, data });
+        } catch { /* skip unparseable */ }
+      }
+    }
+    return results;
+  } catch { return []; }
+}
+
+app.get('/api/admin/jobs', asyncHandler(async (req, res) => {
+  const [active, done, failed, needsReview] = await Promise.all([
+    readJsonDir(path.join(JOBS_DIR, 'active')),
+    readJsonDir(path.join(JOBS_DIR, 'done')),
+    readJsonDir(path.join(JOBS_DIR, 'failed')),
+    readJsonDir(path.join(JOBS_DIR, 'needs_review')),
+  ]);
+  res.json({ active, done, failed, needsReview });
+}));
+
+// ── Admin audit log viewer ─────────────────────────────────────────
+app.get('/api/admin/logs/:slug/:num', asyncHandler(async (req, res) => {
+  const { slug, num } = req.params;
+  const logDir = path.join(LOGS_DIR, slug, num);
+  try {
+    const entries = await fs.readdir(logDir, { withFileTypes: true });
+    const files = [];
+    for (const e of entries) {
+      if (e.isFile()) {
+        const fullPath = path.join(logDir, e.name);
+        const content = await fs.readFile(fullPath, 'utf8');
+        const isJson = e.name.endsWith('.json');
+        files.push({
+          name: e.name,
+          content: isJson ? JSON.parse(content) : content.slice(0, 50000),
+          isJson,
+        });
+      }
+    }
+    res.json({ ok: true, files });
+  } catch {
+    res.json({ ok: false, error: 'Log directory not found' });
+  }
+}));
+
 // ── Server startup ─────────────────────────────────────────────────
 
 const START_TIME = Date.now();
