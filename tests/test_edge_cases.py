@@ -33,15 +33,15 @@ def _ch(
     num: int = 1,
     title: str = "ตอนที่ 1 Test",
     source: str = "ch 1",
-    blocks: list | None = None,
+    paragraphs: list | None = None,
     lang: str = "cn",
     output_lang: str | None = None,
     profile_lang: str | None = None,
 ) -> Chapter:
     """Build a Chapter with minimal valid defaults."""
-    if blocks is None:
-        blocks = [{"type": "narration", "text": "เล่าเรื่อง"}, {"type": "end", "text": "(จบบท)"}]
-    kwargs: dict = {"num": num, "title": title, "source": source, "blocks": blocks, "lang": lang}
+    if paragraphs is None:
+        paragraphs = ["เล่าเรื่อง", "(จบบท)"]
+    kwargs: dict = {"num": num, "title": title, "source": source, "paragraphs": paragraphs, "lang": lang}
     if output_lang is not None:
         kwargs["output_lang"] = output_lang
     if profile_lang is not None:
@@ -59,25 +59,25 @@ class TestChapterOutputLang:
 
     def test_accepts_output_lang(self):
         """output_lang='en' should use EN brackets, not fallback to CN."""
-        ch = _ch(output_lang="en", blocks=[
+        ch = _ch(output_lang="en", paragraphs=[
             {"type": "narration", "text": "Test"},
             {"type": "dialogue", "text": "\u201cHello\u201d"},
             {"type": "system", "text": "[System]"},
             {"type": "end", "text": "(End)"},
         ])
         assert ch.output_lang == Language.EN
-        assert ch.blocks[-1].text == "(End)"
+        assert ch.paragraphs[-1] == "(End)"
 
     def test_accepts_profile_lang(self):
         """profile_lang='en' overrides output_lang and lang."""
-        ch = _ch(output_lang="th", profile_lang="en", blocks=[
+        ch = _ch(output_lang="th", profile_lang="en", paragraphs=[
             {"type": "narration", "text": "Test"},
             {"type": "dialogue", "text": "\u201cHi\u201d"},
             {"type": "system", "text": "[Sys]"},
             {"type": "end", "text": "(End)"},
         ])
         assert ch.profile_lang == Language.EN
-        assert ch.blocks[-1].text == "(End)"
+        assert ch.paragraphs[-1] == "(End)"
 
     def test_output_lang_none_defaults_to_lang(self):
         """When output_lang is None, validating brackets use 'lang'."""
@@ -88,7 +88,7 @@ class TestChapterOutputLang:
         """Each language can be used as lang directly (backward compat)."""
         for lang in ("cn", "jp", "kr", "en", "th"):
             bp = BRACKETS[lang]
-            ch = _ch(lang=lang, blocks=[
+            ch = _ch(lang=lang, paragraphs=[
                 {"type": "narration", "text": "Body"},
                 {"type": "dialogue", "text": f"{bp['dialogue_open']}Hi{bp['dialogue_close']}"},
                 {"type": "system", "text": f"{bp['system_open']}Sys{bp['system_close']}"},
@@ -98,7 +98,7 @@ class TestChapterOutputLang:
 
     def test_en_dialogue_accepts_straight_quotes(self):
         """EN blocks may use straight double quotes."""
-        _ch(lang="en", blocks=[
+        _ch(lang="en", paragraphs=[
             {"type": "narration", "text": "x"},
             {"type": "dialogue", "text": '"Hello"'},
             {"type": "end", "text": "(End)"},
@@ -109,15 +109,15 @@ class TestChapterBlockEdgeCases:
 
     def test_empty_blocks_rejected(self):
         with pytest.raises(Exception):
-            _ch(blocks=[])
+            _ch(paragraphs=[])
 
     def test_only_end_marker_rejected(self):
         with pytest.raises(Exception):
-            _ch(blocks=[{"type": "end", "text": "(จบบท)"}])
+            _ch(paragraphs=[{"type": "end", "text": "(จบบท)"}])
 
     def test_end_marker_must_be_last(self):
         with pytest.raises(Exception):
-            _ch(blocks=[
+            _ch(paragraphs=[
                 {"type": "narration", "text": "x"},
                 {"type": "end", "text": "(จบบท)"},
                 {"type": "narration", "text": "y"},
@@ -125,22 +125,22 @@ class TestChapterBlockEdgeCases:
 
     def test_two_end_markers_rejected(self):
         with pytest.raises(Exception):
-            _ch(blocks=[
+            _ch(paragraphs=[
                 {"type": "narration", "text": "x"},
                 {"type": "end", "text": "(จบบท)"},
                 {"type": "end", "text": "(จบบท)"},
             ])
 
     def test_speaker_field_accepted_on_dialogue(self):
-        ch = _ch(blocks=[
+        ch = _ch(paragraphs=[
             {"type": "dialogue", "text": "\u300cHi\u300d", "speaker": "เฉาซิง"},
             {"type": "end", "text": "(จบบท)"},
         ])
-        assert ch.blocks[0].speaker == "เฉาซิง"
+        assert ch.paragraphs[0] == "เฉาซิง"
 
     def test_game_title_block(self):
         """Game titles with appropriate brackets."""
-        _ch(blocks=[
+        _ch(paragraphs=[
             {"type": "narration", "text": "x"},
             {"type": "game_title", "text": "\u300aFrozen Era\u300b"},
             {"type": "end", "text": "(จบบท)"},
@@ -148,7 +148,7 @@ class TestChapterBlockEdgeCases:
 
     def test_game_title_en_uses_curly_quotes(self):
         """EN game titles use curly quotes per brackets.json."""
-        _ch(lang="en", blocks=[
+        _ch(lang="en", paragraphs=[
             {"type": "narration", "text": "x"},
             {"type": "game_title", "text": "\u201cFrozen Era\u201d"},
             {"type": "end", "text": "(End)"},
@@ -160,7 +160,7 @@ class TestChapterSerialization:
 
     def test_output_lang_roundtrip(self):
         """output_lang survives JSON serialization."""
-        data = _ch(output_lang="en", blocks=[
+        data = _ch(output_lang="en", paragraphs=[
             {"type": "narration", "text": "x"},
             {"type": "dialogue", "text": "\u201cHi\u201d"},
             {"type": "system", "text": "[Sys]"},
@@ -174,7 +174,7 @@ class TestChapterSerialization:
         """Serializing a chapter with default lang includes 'cn'."""
         data = Chapter(
             num=1, title="\u0e15\u0e2d\u0e19\u0e17\u0e35\u0e48 1 Test", source="ch 1",
-            blocks=[{"type": "narration", "text": "x"}, {"type": "end", "text": "(\u0e08\u0e1a\u0e1a\u0e17)"}],
+            paragraphs=[{"type": "narration", "text": "x"}, {"type": "end", "text": "(\u0e08\u0e1a\u0e1a\u0e17)"}],
         ).model_dump()
         assert data["lang"] == "cn"
 
@@ -185,7 +185,7 @@ class TestChapterSerialization:
 
 
 def make_validate_ch(text: str, lang: str = "cn", output_lang: str | None = None) -> Chapter:
-    return _ch(lang=lang, output_lang=output_lang, blocks=[
+    return _ch(lang=lang, output_lang=output_lang, paragraphs=[
         {"type": "narration", "text": text},
         {"type": "end", "text": BRACKETS.get(output_lang or lang, BRACKETS["cn"])["end_marker"]},
     ])
@@ -233,18 +233,18 @@ class TestCJKLeak:
         """CJK in narration triggers quality gate error.
         We create the chapter normally (passing schema), then inject CJK into
         the block text afterward to test the validation gate directly."""
-        ch = _ch(output_lang="th", blocks=[
+        ch = _ch(output_lang="th", paragraphs=[
             {"type": "narration", "text": "\u0e40\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e23\u0e32\u0e27\u0e17\u0e35\u0e48\u0e21\u0e35\u0e40\u0e19\u0e37\u0e49\u0e2d\u0e2b\u0e32"},
             {"type": "end", "text": "(\u0e08\u0e1a\u0e1a\u0e17)"},
         ])
         # Inject CJK directly into block text (bypass schema validation)
-        ch.blocks[0].text = "\u0e21\u0e35\u0e2d\u0e31\u0e01\u0e29\u0e23\u0e08\u0e35\u0e19\u0e1b\u0e19\u0e01\u0e25\u0e32\u0e07 \u4e2d\u6587"
+        ch.paragraphs[0] = "\u0e21\u0e35\u0e2d\u0e31\u0e01\u0e29\u0e23\u0e08\u0e35\u0e19\u0e1b\u0e19\u0e01\u0e25\u0e32\u0e07 \u4e2d\u6587"
         ok, msgs = validate_translation_quality(ch, "source text", "zh", "th")
         assert not ok
         assert any("CJK" in m for m in msgs)
 
     def test_system_blocks_also_checked(self):
-        ch = _ch(output_lang="th", blocks=[
+        ch = _ch(output_lang="th", paragraphs=[
             {"type": "system", "text": "【任务完成】"},
             {"type": "end", "text": "(จบบท)"},
         ])
@@ -256,7 +256,7 @@ class TestCJKLeak:
 class TestLengthRatio:
 
     def test_too_short_flagged(self):
-        ch = _ch(blocks=[
+        ch = _ch(paragraphs=[
             {"type": "narration", "text": "สั้นมาก"},
             {"type": "end", "text": "(จบบท)"},
         ])
@@ -265,7 +265,7 @@ class TestLengthRatio:
         assert any("ratio" in m for m in msgs)
 
     def test_too_long_flagged(self):
-        ch = _ch(blocks=[
+        ch = _ch(paragraphs=[
             {"type": "narration", "text": "\u0e01" * 2000},
             {"type": "end", "text": "(จบบท)"},
         ])
@@ -277,7 +277,7 @@ class TestLengthRatio:
 class TestEndMarkerValidation:
 
     def test_kr_end_marker(self):
-        _ch(lang="kr", blocks=[
+        _ch(lang="kr", paragraphs=[
             {"type": "narration", "text": "x"},
             {"type": "dialogue", "text": "\u300cHI\u300d"},
             {"type": "end", "text": "(\uaf43)"},

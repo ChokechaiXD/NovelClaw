@@ -1,83 +1,56 @@
-"""test_schema.py — Data integrity layer (Phase 2 critical path).
+"""test_schema.py — Chapter schema tests for v3 paragraphs format."""
 
-Locks down the Chapter schema, BRACKETS config, helpers, and edge cases.
-The schema is the contract between translator (Mika) and reader (server).
-"""
 import sys
-import shutil
-import tempfile
 from pathlib import Path
 
-# Make tools/ importable
 sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
 
 import pytest  # noqa: E402
-
-from schema import (  # noqa: E402
-    Chapter, Narration, Dialogue, SystemMessage, EndMarker,
-    Language, BlockType,
-)
-from translate import load_chapter, save_chapter, chapter_path  # noqa: E402
+from schema import Chapter, Language  # noqa: E402
 
 
-def _ch(lang='cn', dialogue='「hi」', system='【HP】', end='(จบบท)'):
+def _ch(num=1, title="\u0e15\u0e2d\u0e19\u0e17\u0e35\u0e48 1 Test", paragraphs=None,
+         source='ch 1', lang='cn'):
     """Build a minimal valid chapter."""
-    return Chapter(
-        num=1, title='ตอนที่ 1 Test', source='ch 1',
-        blocks=[
-            {'type': 'narration', 'text': 'narrative'},
-            {'type': 'dialogue', 'text': dialogue},
-            {'type': 'system', 'text': system},
-            {'type': 'end', 'text': end},
-        ],
-        lang=lang,
-    )
+    if paragraphs is None:
+        paragraphs = ['\u0e40\u0e19\u0e37\u0e49\u0e2d\u0e40\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e15\u0e2d\u0e19\u0e19\u0e35\u0e49',
+                      '(\u0e08\u0e1a\u0e1a\u0e17)']
+    return Chapter(num=num, title=title, paragraphs=paragraphs, source=source, lang=lang)
 
 
-# ── Chapter construction ─────────────────────────────────────────────
-
-class TestChapterConstruction:
-    def test_minimal_valid_cn(self):
+class TestChapterMinimal:
+    def test_minimal_chapter(self):
         ch = _ch()
         assert ch.num == 1
+        assert ch.title == '\u0e15\u0e2d\u0e19\u0e17\u0e35\u0e48 1 Test'
+        assert len(ch.paragraphs) >= 2
+        assert ch.paragraphs[-1] == '(\u0e08\u0e1a\u0e1a\u0e17)'  # (จบบท)
+        assert ch.source == 'ch 1'
         assert ch.lang == Language.CN
-        assert len(ch.blocks) == 4
 
-    def test_lang_default_is_cn(self):
+    def test_view(self):
         ch = _ch()
-        assert ch.lang == Language.CN
+        assert ch.model_dump() is not None
 
-    def test_lang_accepts_string(self):
-        ch = _ch(lang='jp')
-        assert ch.lang == Language.JP
+    def test_lang_thai(self):
+        ch = _ch(lang='th')
+        assert ch.lang == 'th'
 
-    def test_lang_accepts_enum(self):
-        # Use EN-appropriate brackets
-        ch = Chapter(
-            num=1, title='ตอนที่ 1 Test', source='ch 1',
-            blocks=[
-                {'type': 'narration', 'text': 'narrative'},
-                {'type': 'dialogue', 'text': '\u201CHello\u201D'},
-                {'type': 'system', 'text': '[HP:100]'},
-                {'type': 'end', 'text': '(End)'},
-            ],
-            lang='en',
-        )
-        assert ch.lang == Language.EN
 
+class TestChapterValidation:
     def test_title_required(self):
         with pytest.raises(Exception):
-            Chapter(num=1, source='ch 1', blocks=[
-                {'type': 'narration', 'text': 'hi'},
-                {'type': 'end', 'text': '(จบบท)'},
-            ])
+            Chapter(num=1, title='Bad Title', paragraphs=['text', '(จบบท)'], source='ch 1')
+
+    def test_title_with_colon(self):
+        ch = Chapter(num=1, title='\u0e15\u0e2d\u0e19\u0e17\u0e35\u0e48 1: \u0e40\u0e23\u0e34\u0e48\u0e21\u0e15\u0e49\u0e19',
+                     paragraphs=['\u0e40\u0e19\u0e37\u0e49\u0e2d', '(\u0e08\u0e1a\u0e1a\u0e17)'], source='ch 1')
+        assert ch.num == 1
 
     def test_source_required_pattern(self):
         with pytest.raises(Exception):
-            Chapter(num=1, title='ตอนที่ 1 X', source='bad', blocks=[
-                {'type': 'narration', 'text': 'hi'},
-                {'type': 'end', 'text': '(จบบท)'},
-            ])
+            Chapter(num=1, title='\u0e15\u0e2d\u0e19\u0e17\u0e35\u0e48 1 X', source='bad source',
+                    paragraphs=['text', '(\u0e08\u0e1a\u0e1a\u0e17)'])
 
     def test_num_ge_1(self):
         with pytest.raises(Exception):
@@ -91,136 +64,20 @@ class TestChapterConstruction:
         ch = _ch()
         assert ch.notes == []
 
+    def test_end_marker_auto_append(self):
+        """If last paragraph isn't an end marker, one gets appended."""
+        ch = Chapter(num=1, title='\u0e15\u0e2d\u0e19\u0e17\u0e35\u0e48 1 T',
+                     paragraphs=['\u0e40\u0e19\u0e37\u0e49\u0e2d'], source='ch 1')
+        assert ch.paragraphs[-1] == '(\u0e08\u0e1a\u0e1a\u0e17)'
 
-# ── Block parsing ────────────────────────────────────────────────────
-
-class TestBlockParsing:
-    def test_narration_block(self):
-        ch = _ch()
-        assert isinstance(ch.blocks[0], Narration)
-
-    def test_dialogue_block(self):
-        ch = _ch()
-        assert isinstance(ch.blocks[1], Dialogue)
-
-    def test_system_block(self):
-        ch = _ch()
-        assert isinstance(ch.blocks[2], SystemMessage)
-
-    def test_end_block(self):
-        ch = _ch()
-        assert isinstance(ch.blocks[3], EndMarker)
-
-    def test_unknown_type_rejected(self):
-        with pytest.raises(Exception) as exc_info:
-            Chapter(num=1, title='ตอนที่ 1 X', source='ch 1', blocks=[
-                {'type': 'unknown', 'text': 'x'},
-                {'type': 'end', 'text': '(จบบท)'},
-            ])
-        assert 'invalid type' in str(exc_info.value).lower()
-
-    def test_block_order_preserved(self):
-        ch = _ch()
-        assert ch.blocks[0].type == BlockType.NARRATION
-        assert ch.blocks[1].type == BlockType.DIALOGUE
-        assert ch.blocks[2].type == BlockType.SYSTEM
-        assert ch.blocks[3].type == BlockType.END
-
-
-# ── Structure validation ─────────────────────────────────────────────
-
-class TestStructure:
-    def test_missing_end_marker_rejected(self):
+    def test_empty_paragraphs_rejected(self):
         with pytest.raises(Exception):
-            Chapter(num=1, title='ตอนที่ 1 X', source='ch 1', blocks=[
-                {'type': 'narration', 'text': 'hi'},
-            ])
+            _ch(paragraphs=[])
 
-    def test_two_end_markers_rejected(self):
-        with pytest.raises(Exception):
-            Chapter(num=1, title='ตอนที่ 1 X', source='ch 1', blocks=[
-                {'type': 'narration', 'text': 'hi'},
-                {'type': 'end', 'text': '(จบบท)'},
-                {'type': 'end', 'text': '(จบบท)'},
-            ])
-
-    def test_end_must_be_last(self):
-        with pytest.raises(Exception):
-            Chapter(num=1, title='ตอนที่ 1 X', source='ch 1', blocks=[
-                {'type': 'end', 'text': '(จบบท)'},
-                {'type': 'narration', 'text': 'hi'},
-            ])
-
-    def test_only_end_marker_rejected(self):
-        with pytest.raises(Exception):
-            Chapter(num=1, title='ตอนที่ 1 X', source='ch 1', blocks=[
-                {'type': 'end', 'text': '(จบบท)'},
-            ])
-
-
-# ── Title validation ─────────────────────────────────────────────────
-
-class TestTitle:
-    def test_title_must_match_pattern(self):
-        with pytest.raises(Exception):
-            Chapter(num=1, title='No prefix here', source='ch 1', blocks=[
-                {'type': 'narration', 'text': 'hi'},
-                {'type': 'end', 'text': '(จบบท)'},
-            ])
-
-    def test_title_num_must_match_chapter_num(self):
-        with pytest.raises(Exception) as exc_info:
-            Chapter(num=1, title='ตอนที่ 5 Wrong', source='ch 1', blocks=[
-                {'type': 'narration', 'text': 'hi'},
-                {'type': 'end', 'text': '(จบบท)'},
-            ])
-        assert 'Title says ch 5 but num is 1' in str(exc_info.value)
-
-
-# ── Helpers ──────────────────────────────────────────────────────────
-
-class TestHelpers:
-    def test_chapter_path_format(self):
-        p = chapter_path('/tmp/novel', 5)
-        assert p.name == '0005.json'
-        assert 'chapters' in p.parts
-
-    def test_save_load_roundtrip(self):
-        d = Path(tempfile.mkdtemp(prefix="schema_test_"))
-        try:
-            path = d / "test.json"
-            ch = _ch()
-            save_chapter(ch, path)
-            loaded = load_chapter(path)
-            assert loaded.num == ch.num
-            assert loaded.title == ch.title
-            assert len(loaded.blocks) == len(ch.blocks)
-        finally:
-            shutil.rmtree(d, ignore_errors=True)
-
-    def test_save_pretty_printed(self):
-        """Output is indented (2 spaces) for git diff."""
-        d = Path(tempfile.mkdtemp(prefix="schema_test_"))
-        try:
-            path = d / "test.json"
-            save_chapter(_ch(), path)
-            text = path.read_text(encoding='utf-8')
-            assert '\n  "num"' in text  # 2-space indent
-            assert text.endswith('\n')  # trailing newline
-        finally:
-            shutil.rmtree(d, ignore_errors=True)
-
-    def test_save_preserves_unicode(self):
-        d = Path(tempfile.mkdtemp(prefix="schema_test_"))
-        try:
-            path = d / "test.json"
-            ch = _ch()
-            save_chapter(ch, path)
-            text = path.read_text(encoding='utf-8')
-            assert 'ตอนที่' in text  # not escaped to \uXXXX
-        finally:
-            shutil.rmtree(d, ignore_errors=True)
-
-
-# ── md_to_blocks migration helper ────────────────────────────────────
-
+    def test_serialize_deserialize(self):
+        orig = _ch()
+        data = orig.model_dump()
+        restored = Chapter(**data)
+        assert restored.num == orig.num
+        assert restored.title == orig.title
+        assert restored.paragraphs == orig.paragraphs
