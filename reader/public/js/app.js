@@ -147,7 +147,7 @@ async function updateActivityFeed() {
       const n = novels.find(n => n.slug === e.slug);
       return '<div class="c-rc__item">' + Ui.esc(n?.title || e.slug) + ' — ตอนที่ ' + e.num + '</div>';
     }).join('');
-  } catch { feed.innerHTML = '<div class="c-rc__item">ไม่สามารถโหลดกิจกรรม</div>'; }
+  } catch(e) { feed.innerHTML = '<div class="c-rc__item">ไม่สามารถโหลดกิจกรรม</div>'; }
 }
 
 // ── Init ────────────────────────────────────────────────────────────────
@@ -160,7 +160,7 @@ function init() {
     if (p.num) ReaderPage.render(p);
     else NovelPage.render(p);
   });
-  Router.register('ranking', (p) => RankingPage.render(p));
+  Router.register('ranking', (p) => LibraryPage.render(p));  // ponytail: ranking → library until ranking page exists
   Router.register('profile', (p) => ProfilePage.render(p));
   Router.register('history', (p) => HistoryPage.render(p));
   Router.register('bookmarks', (p) => BookmarksPage.render(p));
@@ -172,9 +172,6 @@ function init() {
       'novels': AdminNovelsPage,
       'chapters': AdminChaptersPage,
       'glossary': AdminGlossaryPage,
-      'translate': AdminTranslatePage,
-      'translate-job': AdminTranslateJobPage,
-      'users': AdminUsersPage,
       'novel-edit': AdminNovelEditPage,
     };
     const handler = adminRoutes[sub] || AdminDashboardPage;

@@ -1,6 +1,6 @@
 """translate.py — Translate CN source chapters to TH JSON (end-to-end pipeline).
 
-Pipeline: read source → extract entities → LLM → parse → validate → save.
+Pipeline: read source → LLM → parse → validate → save.
 Uses argparse for CLI. Run `python tools/translate.py --help` for usage.
 """
 
@@ -938,18 +938,6 @@ Examples:
         "--tm",
         action="store_true",
         help="Enable Translation Memory (cache blocks for future reuse)",
-    )
-    ap.add_argument(
-        "--passes",
-        type=int,
-        default=2,
-        choices=[1, 2, 3],
-        help="Multi-agent passes: 1=translate, 2=translate+validate (default), 3=translate+validate+polish",
-    )
-    ap.add_argument(
-        "--mock-agents",
-        action="store_true",
-        help="Use mock agent responses (no LLM calls for validate/polish)",
     )
     args = ap.parse_args()
 

@@ -28,7 +28,7 @@ jobs:
       - run: ruff format tools/ tests/ --check
       - run: mypy tools/ --ignore-missing-imports --explicit-package-bases || true
       - run: python -m pytest tests/ -v --tb=short -x
-      - run: python -m tools.glossary --sync --novel global-descent
+      - run: python tools/glossary.py --novel global-descent --load > /dev/null && echo "glossary OK"
   reader:
     name: Reader (Node.js)
     runs-on: ubuntu-latest

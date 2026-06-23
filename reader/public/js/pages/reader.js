@@ -65,7 +65,7 @@ const ReaderPage = {
         try {
           const data = await Api.getChapterContent(slug, ch.num);
 
-          Ui.$('reader-title').textContent = `ตอนที่ ${ch.num}${ch.title ? ' — ' + ch.title : ''}`;
+          Ui.$('reader-title').textContent = ch.title || `ตอนที่ ${ch.num}`;
           Ui.$('reader-position').textContent = `${chIdx + 1} / ${chapters.length}`;
 
           let contentHtml = '';
@@ -91,7 +91,7 @@ const ReaderPage = {
           }
           // Legacy format: blocks with types (backward compat)
           else {
-            const blocks = data.blocks || data.chapter?.blocks || [];
+            const blocks = data.blocks || [];
             for (const b of blocks) {
               const t = (b.text || '').trim();
               if (!t) continue;

@@ -9,7 +9,7 @@
 [![License](https://img.shields.io/badge/license-MIT-14b8a6?style=flat-square)](LICENSE)
 [![Module Coverage](https://img.shields.io/badge/module%20coverage-100%25-14b8a6?style=flat-square)](#test-suite)
 
-**Production-grade CN→TH translation pipeline** — entity consistency, LLM scoring, translation memory, multi-agent refinement, and a premium dark-theme reader — all running on vanilla JS and Python with zero framework lock-in.
+|**Production-grade CN→TH translation pipeline** — LLM translation, quality scoring, glossary management, translation memory, and a premium dark-theme reader — all running on vanilla JS and Python with zero framework lock-in.
 
 </div>
 ---
@@ -17,7 +17,7 @@
 ## Overview
 
 NovelClaw is a complete system for translating Chinese web novels into Thai at scale —
-combining a **translation pipeline** (entity extraction, glossary management, quality scoring, translation memory, multi-agent refinement) with a **web reader** (dark theme SPA, responsive, mobile-first).
+combining a **translation pipeline** (LLM translation, glossary management, quality scoring, translation memory) with a **web reader** (dark theme SPA, responsive, mobile-first).
 
 Built on the *Transmittor Principle*: preserve the author's voice, enforce mechanical purity.
 
@@ -25,9 +25,8 @@ Built on the *Transmittor Principle*: preserve the author's voice, enforce mecha
 
 - **Translate** individual chapters or batch (1,000+) with resume support
 - **Maintain** a tiered glossary (locked → reference → auto) across thousands of terms
-- **Score** output quality via LLM-as-Judge across 4 dimensions
+- **Score** output quality via 8-dimension objective scorer
 - **Cache** translations at block level (exact + fuzzy matching)
-- **Refine** via multi-agent chain (Validator → Polisher)
 - **Read** in a premium dark theme reader on desktop or mobile
 
 ---
@@ -42,18 +41,11 @@ novelclaw/
 │   ├── translate.py            Translation pipeline (CLI entry point)
 │   ├── schema.py               Pydantic JSON schema (Chapter model)
 │   ├── validation.py           CJK/EN/completeness validation gates
-│   ├── extract_entities.py     CN entity extraction + placeholder
 │   ├── glossary.py             Glossary YAML loader (cached LRU)
-│   ├── cumulative_glossary.py  Auto-discover new terms
 │   ├── translation_memory.py   Block-level cache (exact + fuzzy)
-│   ├── quality_scorer.py       LLM-as-Judge (4 dimensions)
-│   ├── quality_report.py       Batch scoring reports
-│   ├── agent_coordinator.py    Multi-agent orchestration
 │   ├── progress.py             Resume progress tracking
-│   ├── chapter_io.py           Chapter file I/O
-│   ├── constants.py            Shared configuration
-│   ├── providers/              LLM provider abstraction (Haiku)
-│   └── build_yaml.py           Glossary YAML builder from Markdown
+│   ├── providers/              LLM provider abstraction (direct HTTP via Hermes config)
+│   ├── scorer.py               8-dimension objective quality scorer
 │
 ├── reader/                     Web reader (Node.js / Express)
 │   ├── server.js               Backend API + chapter rendering
@@ -112,10 +104,10 @@ npm install
 
 ```bash
 # Single chapter with all features
-novelclaw-translate 139 --entities --auto-glossary --score --tm --passes 2
+python tools/translate.py 139 --score --json
 
 # Batch translate (50 chapters, concurrent, resume-safe)
-novelclaw-translate 140-190 --resume --concurrent 3 --entities --auto-glossary
+python tools/translate.py 140-190 --resume --concurrent 3 --json
 ```
 
 ### Start the Reader
@@ -136,16 +128,13 @@ cd reader && npm test
 
 ## Features
 
-| Feature | Flag | Description |
-|---------|------|-------------|
-| **Entity Pipeline** | `--entities` | Extract CN entities → SHA-256 placeholders → translate → restore from glossary |
-| **Two-Pass Analysis** | `--two-pass` | Analysis pass (summary + entities) before translation |
-| **Cumulative Glossary** | `--auto-glossary` | Auto-discover new terms → append to auto.md → rebuild YAML |
-| **LLM-as-Judge** | `--score` | Score translation 0-10 across fluency, accuracy, terminology, completeness |
-| **Translation Memory** | `--tm` | Block-level cache (L1 exact SHA-256 + L2 fuzzy Jaccard) + skip-LLM for cached chapters |
-| **Multi-Agent Refinement** | `--passes 1-3` | 1=translate, 2=translate+validate, 3=translate+validate+polish |
-| **Resume** | `--resume` | Resume interrupted batch from progress file |
-| **Concurrent** | `--concurrent N` | Translate N chapters in parallel (max 5) |
+|| Feature | Flag | Description |
+||---------|------|-------------|
+|| **Translation** | `--tm` | LLM translates with glossary context + translation memory |
+|| **Quality scoring** | `--score` | Score translation 0-100 across 8 dimensions |
+|| **Translation Memory** | `--tm` | Block-level cache (L1 exact + L2 fuzzy) + skip-LLM for cached chapters |
+|| **Resume** | `--resume` | Resume interrupted batch from progress file |
+|| **Concurrent** | `--concurrent N` | Translate N chapters in parallel (max 5) |
 
 ### Glossary Tier System
 
@@ -159,11 +148,10 @@ auto.md       →  Priority 3 — Auto-discovered terms (candidates, may be gene
 
 | Command | Description |
 |---------|-------------|
-| `novelclaw-translate <ch>` | Translate chapter(s) with all features |
-| `novelclaw-quality-report <range>` | Quality scoring batch report |
-| `novelclaw-glossary --load` | Export glossary as JSON |
-| `novelclaw-search <term>` | Search chapters for a term |
-| `novelclaw-tm build | stats | lookup` | Translation memory management |
+| `python tools/translate.py <ch>` | Translate chapter(s) with all features |
+| `python tools/scorer.py chapters/ --source source/` | Quality scoring across 8 dimensions |
+| `python tools/glossary.py --novel <slug> --load` | Export glossary as JSON |
+| `python tools/translation_memory.py build\|stats\|lookup` | Translation memory management |
 
 ---
 
@@ -174,12 +162,11 @@ Source Text (CN Markdown)
     │
     ▼
 ┌──────────────────────────────────┐
-│  Entity Extractor (--entities)   │
-│  ├── Bracket entities 《》《》【】    │
-│  ├── Dialogue speakers 「」         │
-│  └── Glossary cross-reference      │
+│  Source Cleaner                   │
+│  ├── Strip CJK artifacts          │
+│  └── Normalize line endings       │
 └──────────────┬───────────────────┘
-               │  (__ENT_hash__ placeholders)
+               │
                ▼
 ┌──────────────────────────────────┐
 │  TM Cache Check (--tm)          │
@@ -195,8 +182,9 @@ Source Text (CN Markdown)
                │
                ▼
 ┌──────────────────────────────────┐
-│  Entity Restore                  │
-│  └── __ENT_hash__ → glossary    │
+│  Python Parse & Assemble         │
+│  ├── parse_translation_output()  │
+│  └── CN strip                    │
 └──────────────┬───────────────────┘
                │
                ▼
@@ -204,22 +192,14 @@ Source Text (CN Markdown)
 │  Quality Validation              │
 │  ├── Pydantic Schema check       │
 │  ├── CJK/EN/completeness gates   │
-│  └── LLM Judge (--score)         │
+│  └── 8-dim scorer (--score)     │
 └──────────────┬───────────────────┘
                │
                ▼
 ┌──────────────────────────────────┐
-│  Multi-Agent Chain (--passes 2-3)│
-│  ├── L2: Validator               │
-│  └── L3: Polisher                │
-└──────────────┬───────────────────┘
-               │
-               ▼
-┌──────────────────────────────────┐
-│  Post-Translation                │
+│  Save & Cache                    │
 │  ├── TM cache update             │
-│  ├── Auto-glossary candidates    │
-│  └── Progress save (resume)      │
+│  └── Save NNNN.json              │
 └──────────────────────────────────┘
 ```
 
@@ -257,27 +237,23 @@ The web reader is a **pure-vanilla SPA** — no React, no framework, no build st
 ## Test Suite
 
 ```
-Module Coverage: 17/17 (100%)
+Module Coverage: 10/10 (100%)
 
-Python (pytest):  293 tests  ─ ─ ─  23s total
-Node (node:test):  20+ tests (reader)
+Python (pytest):  121 tests  ─ ─ ─  2s total
+Node (jest):  20+ tests (reader)
 
 All pure-function tests — no LLM calls, no network, no Playwright.
 
 Test suites:
-  test_validate_no_cjk.py         11 tests  CJK leakage patterns
-  test_build_yaml.py              20 tests  Glossary Markdown parser
-  test_normalize_chapter_schema.py 10 tests  Chapter normalizer
+  test_schema.py                  16 tests  Chapter schema validation
+  test_validation.py              11 tests  CJK/EN/artifact leakage
   test_translate.py               10 tests  LLM parser, source cleaner
   test_glossary.py                 9 tests  Save/load roundtrip
   test_progress.py                 9 tests  Progress tracking
-  test_extract_entities.py        10 tests  Entity extraction
-  test_translation_memory.py      19 tests  Exact + fuzzy cache
-  test_quality_scorer.py          16 tests  Scoring
+  test_translation_memory.py      26 tests  Exact + fuzzy cache
   test_frontend.py                 4 tests  HTTP smoke (no Playwright)
-  test_validation.py               3 tests  Language-specific gates
-  test_translate_profile.py        3 tests  Per-language profiles
-  ... and 12 more suites
+  test_edge_cases.py              23 tests  Real chapter validation
+  ... and more
 ```
 
 ---

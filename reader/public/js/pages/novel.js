@@ -50,10 +50,6 @@ const NovelPage = {
 
       // ── Tabs ──────────────────────────────────────────────────────────
       html += `
-      <div class="c-detail__tabs">
-        <button class="c-btn c-btn--primary detail-tab-btn active" data-tab="chapters">รายการตอน (${chapters.length})</button>
-        <button class="c-btn c-btn--ghost detail-tab-btn" data-tab="reviews">รีวิว</button>
-      </div>`;
 
       // ── Chapter List ──────────────────────────────────────────────────
       const numPages = Math.ceil(chapters.length / pageSize);
@@ -81,8 +77,7 @@ const NovelPage = {
         const read = Store.isRead(slug, ch.num);
         html += `
           <a href="#novel/${slug}/${ch.num}" class="c-detail__ch-btn ${read ? 'c-detail__ch-btn--read' : ''}" data-nav>
-            ตอนที่ ${ch.num}
-            ${ch.title ? `<br><span style="font-size:10px;color:var(--c-text-muted);">${Ui.esc(ch.title)}</span>` : ''}
+            ${Ui.esc(ch.title || 'ตอนที่ ' + ch.num)}
             ${read ? '<br><span style="font-size:9px;color:var(--c-success);">✔ อ่านแล้ว</span>' : ''}
           </a>`;
       }
@@ -108,7 +103,7 @@ const NovelPage = {
             const read = Store.isRead(slug, ch.num);
             grid.appendChild(Ui.el('a',
               { href: `#novel/${slug}/${ch.num}`, class: `c-detail__ch-btn ${read ? 'c-detail__ch-btn--read' : ''}`, 'data-nav': '' },
-              `ตอนที่ ${ch.num}${ch.title ? ' ' + Ui.esc(ch.title) : ''}${read ? ' ✔' : ''}`
+              `${Ui.esc(ch.title || 'ตอนที่ ' + ch.num)}${read ? ' ✔' : ''}`
             ));
           }
           // Swap classes: remove primary from all, add ghost; add primary to clicked, remove ghost
@@ -123,25 +118,17 @@ const NovelPage = {
       }
 
       // ── Load synopsis ────────────────────────────────────────────────
-      this._loadSynopsis(slug, novel);
+      this._loadSynopsis(novel);
 
     } catch (err) {
       Ui.showError(page, 'โหลดไม่สำเร็จ', err.message);
     }
   },
 
-  async _loadSynopsis(slug, novel) {
-    try {
-      const res = await fetch(`/api/novel/${slug}/meta`);
-      if (res.ok) {
-        const meta = await res.json();
-        const synopsis = document.querySelector('.c-detail__synopsis');
-        if (synopsis && meta.description) {
-          synopsis.textContent = meta.description.slice(0, 300);
-        } else if (synopsis) {
-          synopsis.textContent = 'ยังไม่มีคำอธิบาย';
-        }
-      }
-    } catch {}
-  }
+  _loadSynopsis(novel) {
+    const synopsis = document.querySelector('.c-detail__synopsis');
+    if (synopsis) {
+      synopsis.textContent = (novel.description || '').slice(0, 300) || 'ยังไม่มีคำอธิบาย';
+    }
+  },
 };

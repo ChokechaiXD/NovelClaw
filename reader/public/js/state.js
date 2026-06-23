@@ -13,12 +13,12 @@ const Store = {
   loadState() {
     try {
       this._state = JSON.parse(localStorage.getItem(this._STATE_KEY)) || {};
-    } catch { this._state = {}; }
+    } catch(e) { this._state = {}; }
     return this._state;
   },
 
   saveState() {
-    try { localStorage.setItem(this._STATE_KEY, JSON.stringify(this._state)); } catch {}
+    try { localStorage.setItem(this._STATE_KEY, JSON.stringify(this._state)); } catch(e) {}
   },
 
   get(key) { return this._state[key]; },
@@ -44,10 +44,9 @@ const Store = {
 
   // Get reading history (filtered — excludes known non-slug keys)
   getHistory() {
-    const SKIP_KEYS = new Set(['theme']);
     const entries = [];
     for (const key of Object.keys(this._state)) {
-      if (SKIP_KEYS.has(key) || key.endsWith('-last')) continue;
+      if (key.endsWith('-last')) continue;
       const positions = this._state[key];
       if (!positions || typeof positions !== 'object') continue;
       const nums = Object.keys(positions).map(Number).filter(n => !isNaN(n)).sort((a, b) => b - a);
@@ -74,7 +73,7 @@ const Store = {
     try {
       const saved = JSON.parse(localStorage.getItem(this._SETTINGS_KEY)) || {};
       this._settings = { ...this._settings, ...saved };
-    } catch {}
+    } catch(e) {}
     return this._settings;
   },
 
@@ -82,7 +81,7 @@ const Store = {
 
   setSetting(key, val) {
     this._settings[key] = val;
-    try { localStorage.setItem(this._SETTINGS_KEY, JSON.stringify(this._settings)); } catch {}
+    try { localStorage.setItem(this._SETTINGS_KEY, JSON.stringify(this._settings)); } catch(e) {}
     this._notify('setting:' + key, val);
     if (key === 'theme') document.body.dataset.theme = val;
   },
@@ -98,13 +97,13 @@ const Store = {
       const saved = localStorage.getItem(this._PROFILE_KEY);
       if (saved) { this._profile = { ...def, ...JSON.parse(saved) }; }
       else { this._profile = def; localStorage.setItem(this._PROFILE_KEY, JSON.stringify(def)); }
-    } catch { this._profile = def; }
+    } catch(e) { this._profile = def; }
     return this._profile;
   },
 
   saveProfile(prof) {
     this._profile = prof;
-    try { localStorage.setItem(this._PROFILE_KEY, JSON.stringify(prof)); } catch {}
+    try { localStorage.setItem(this._PROFILE_KEY, JSON.stringify(prof)); } catch(e) {}
     this._notify('profile', prof);
   },
 

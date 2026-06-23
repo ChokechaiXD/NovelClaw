@@ -22,7 +22,6 @@ Source (CN/Multi) → AI Translation (TH) → Python assemble paragraphs → Val
 NovelClaw/
 ├── tools/                   — Translation & validation toolkit
 │   ├── translate.py         — Main pipeline: read → LLM → parse → validate → save
-│   ├── migrate_to_v3.py     — Schema migration helper
 │   ├── schema.py            — Pydantic Chapter schema (v3 with paragraphs)
 │   ├── validation.py        — Quality gate: CJK/EN/artifact leak checks
 │   ├── scorer.py            — 8-dimension objective quality scorer
@@ -112,7 +111,7 @@ Post-process no longer handles: block type fixing, JSON repair, dialogue reclass
 
 No block types needed — markers in text drive the styling via regex.
 
-## Validation & Quality
+## Quality
 
 ### Quality gate (pre-save)
 
@@ -128,15 +127,7 @@ Validates: CJK leak, EN leak, source artifact leak, length ratio.
 python tools/scorer.py chapters/ --source source/
 ```
 
-8 dimensions: completeness, CN leak, EN leak, end marker, speaker, dialogue ratio, block diversity, schema. Returns 0-100 weighted score.
-
-### Schema migration
-
-```bash
-python tools/migrate_to_v3.py novels/global-descent
-```
-
-Adds `paragraphs` field while preserving legacy `blocks` for backward compatibility.
+8 dimensions: completeness, CN leak, EN leak, end marker, dialogue ratio, block diversity, schema. Returns 0-100 weighted score.
 
 ## Glossary Maintenance
 

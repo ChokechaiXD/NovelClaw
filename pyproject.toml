@@ -37,9 +37,6 @@ Documentation = "https://github.com/ChokechaiXD/NovelClaw"
 where = ["."]
 include = ["tools*"]
 
-[tool.setuptools.package-data]
-tools = ["sites/*.json"]
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
