@@ -202,16 +202,24 @@ const RankingPage = {
 };
 
 const BookmarksPage = {
-  render(params) {
+  async render(params) {
     const page = Ui.$('page-bookmarks');
     if (!page) return;
     try {
       const list = JSON.parse(localStorage.getItem('nc-bookmarks')) || [];
+      if (list.length === 0) {
+        Ui.showEmpty(page, 'ยังไม่มีบุ๊กมาร์ก', 'เมื่อบุ๊กมาร์กตอนที่ชอบจะปรากฏที่นี่');
+        return;
+      }
+      const novels = await Api.getNovels();
       let html = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title">บุ๊กมาร์ก</h3></div><div class="c-list">';
-      if (list.length === 0) html += '<p class="u-text-center u-text-muted u-p-lg">ไม่มีบุ๊กมาร์ก</p>';
-      else for (const b of list) html += '<a href="#novel/' + b.novel + '/' + b.num + '" class="c-list__item" data-nav><div class="c-list__info"><span class="c-list__title">' + (b.novel||'') + ' — ตอนที่ ' + b.num + '</span></div></a>';
+      for (const b of list) {
+        const n = novels.find(x => x.slug === b.novel);
+        const title = Ui.displayTitle(n) || b.novel;
+        html += '<a href="#novel/' + b.novel + '/' + b.num + '" class="c-list__item" data-nav><div class="c-list__info"><span class="c-list__title">' + Ui.esc(title) + '</span><span class="c-list__meta">ตอนที่ ' + b.num + '</span></div></a>';
+      }
       html += '</div></section></div>';
       page.innerHTML = html;
-    } catch(_) { page.innerHTML = '<div class="c-container"><p class="u-text-muted u-text-center u-p-lg">ไม่มีบุ๊กมาร์ก</p></div>'; }
+    } catch(_) { Ui.showEmpty(page, 'เกิดข้อผิดพลาด', 'ไม่สามารถโหลดบุ๊กมาร์กได้'); }
   }
 };

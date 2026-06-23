@@ -19,7 +19,7 @@ const NovelPage = {
 
       // Update topbar title with novel name
       const titleEl = document.getElementById('page-title');
-      if (titleEl) titleEl.textContent = Ui.esc(novel.title || slug);
+      if (titleEl) titleEl.textContent = Ui.esc(Ui.displayTitle(novel));
 
       const chapters = await Api.getChapters(slug);
       const enriched = Ui.enrichNovel(novel);
@@ -37,10 +37,10 @@ const NovelPage = {
       html += `
       <div class="c-detail">
         <div class="c-detail__cover" style="background:linear-gradient(135deg,hsl(${enriched.hue},70%,40%),hsl(${(enriched.hue+40)%360},60%,30%));color:#000;">
-          ${(novel.title||slug).charAt(0)}
+          ${Ui.esc((Ui.displayTitle(novel)).charAt(0))}
         </div>
         <div class="c-detail__info">
-          <h2 class="c-detail__title">${Ui.esc(novel.title||slug)}</h2>
+          <h2 class="c-detail__title">${Ui.esc(Ui.displayTitle(novel))}</h2>
           <p class="c-detail__author">ผู้แต่ง: ${Ui.esc(novel.author||'ไม่ระบุ')}</p>
           <div class="c-detail__meta">
             <span class="c-hero__tag c-hero__tag--lang">${novel.source_lang||'cn'} → ${novel.target_lang||'th'}</span>

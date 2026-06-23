@@ -58,6 +58,9 @@ const ReaderPage = {
 
       page.innerHTML = html;
 
+      // Show loading state while chapter loads
+      Ui.$('reader-content').innerHTML = '<div class="c-skel c-skel--block" style="height:200px;"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line" style="width:75%;"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line" style="width:60%;"></div>';
+
       // ── Load chapter ─────────────────────────────────────────────────
       const loadChapter = async (chIdx) => {
         const ch = chapters[chIdx];

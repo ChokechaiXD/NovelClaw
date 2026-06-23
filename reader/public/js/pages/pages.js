@@ -15,19 +15,16 @@ const LibraryPage = {
     Ui.showSkeleton('page-library');
     try {
       const novels = await Api.getNovels();
-      const library = novels.filter(n => Store.getLastPosition(n.slug) !== null);
-      if (library.length === 0) {
-        Ui.showEmpty(page, 'หอสมุดว่างเปล่า', 'เริ่มอ่านนิยายกันเลย!');
+      if (!novels.length) {
+        Ui.showEmpty(page, 'หอสมุดว่างเปล่า', 'ยังไม่มีนิยายในระบบ เริ่มเพิ่มกันเลย!');
         return;
       }
-      let html = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-library"/></svg>หอสมุด</h3><span style="font-size:11px;color:var(--c-text-muted);">' + library.length + ' เรื่อง</span></div><div class="c-card-grid">';
-      for (const n of library) {
+      let html = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-library"/></svg>หอสมุด</h3><span style="font-size:11px;color:var(--c-text-muted);">' + novels.length + ' เรื่อง</span></div><div class="c-card-grid">';
+      for (const n of novels) {
         const h = Ui.slugToHue(n.slug);
         const lr = Store.getLastPosition(n.slug);
-        html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover" style="background:linear-gradient(135deg,hsl(' + h + ',70%,40%),hsl(' + ((h + 40) % 360) + ',60%,30%));color:#000;">' + (n.title || n.slug).charAt(0) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(n.title || n.slug) + '</span><span class="c-card__meta">อ่านล่าสุด: ตอนที่ ' + (lr || '—') + '</span><span style="font-size:10px;color:var(--c-accent);font-weight:600;">' + (n.chapterCount || 0) + ' ตอน</span></div></a>';
+        html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover" style="background:linear-gradient(135deg,hsl(' + h + ',70%,40%),hsl(' + ((h + 40) % 360) + ',60%,30%));color:#000;">' + Ui.esc(Ui.displayTitle(n).charAt(0)) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span>' + (lr ? '<span style="font-size:10px;color:var(--c-accent);font-weight:600;">อ่านล่าสุด: ตอนที่ ' + lr + '</span>' : '') + '</div></a>';
       }
-      html += '</div></section></div>';
-      page.innerHTML = html;
     } catch (err) { Ui.showError(page, 'โหลดไม่สำเร็จ', err.message); }
   }
 };
