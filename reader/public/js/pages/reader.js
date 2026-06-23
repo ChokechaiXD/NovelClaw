@@ -46,6 +46,10 @@ const ReaderPage = {
             <button class="c-btn c-btn--icon" id="reader-font-sm" title="ลดขนาดอักษร">A−</button>
             <span style="font-size:var(--text-sm);color:var(--c-text-muted);">18px</span>
             <button class="c-btn c-btn--icon" id="reader-font-lg" title="เพิ่มขนาดอักษร">A+</button>
+            <span class="c-toolbar__divider"></span>
+            <button class="c-btn c-btn--icon" id="reader-leading-sm" title="ลดช่องว่าง">↑↓</button>
+            <span style="font-size:var(--text-sm);color:var(--c-text-muted);" id="reader-leading-label">1.8</span>
+            <button class="c-btn c-btn--icon" id="reader-leading-lg" title="เพิ่มช่องว่าง">↑↑</button>
           </div>
           <div id="reader-content"></div>
         </div>
@@ -172,6 +176,28 @@ const ReaderPage = {
       Ui.$('reader-font-lg').onclick = () => {
         fontStep = Math.min(2, fontStep + 1);
         applyFont(fontStep);
+      };
+
+      // ── Line-height controls (persisted) ────────────────────────────────
+      const LEADINGS = [1.6, 1.8, 2.0, 2.2];
+      const savedLeading = parseFloat(Store.getSettings().lineHeight) || 1.8;
+      let leadingIdx = LEADINGS.indexOf(savedLeading);
+      if (leadingIdx === -1) leadingIdx = 1;
+      const applyLeading = (idx) => {
+        const val = LEADINGS[idx];
+        document.documentElement.style.setProperty('--leading-reader', `${val}`);
+        Store.setSetting('lineHeight', val);
+        const lbl = Ui.$('reader-leading-label');
+        if (lbl) lbl.textContent = `${val}`;
+      };
+      applyLeading(leadingIdx);
+      Ui.$('reader-leading-sm').onclick = () => {
+        leadingIdx = Math.max(0, leadingIdx - 1);
+        applyLeading(leadingIdx);
+      };
+      Ui.$('reader-leading-lg').onclick = () => {
+        leadingIdx = Math.min(LEADINGS.length - 1, leadingIdx + 1);
+        applyLeading(leadingIdx);
       };
 
       // ── Theme toggle ─────────────────────────────────────────────────
