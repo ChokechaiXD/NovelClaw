@@ -90,10 +90,12 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
                 continue  # autopilot: skip to next
 
         if mode == "draft":
-            # Draft mode: show but don't save
+            # Draft mode: save preview to staging/drafts/ and report
+            yield f"📝 ร่างตอน {num} (draft mode) — preview ที่ staging/drafts/{slug}/{num:04d}.th.json"
             score = tr.get("score")
-            paras = len(tr.get("chapter_data", {}).get("paragraphs", []))
-            yield report.success_translate(slug, num, tr["chapter_data"], score, tr.get("warnings"))
+            if score:
+                yield f"   Score: {score}/100"
+            yield "   ✅ ไม่มีการแก้ไข canonical file (chapters/*.th.json)"
             job = job.copy(done=job.done + [num])
             job.save()
             locks.release(slug, num)

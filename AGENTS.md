@@ -105,11 +105,16 @@ Post-process: no longer does type fix, end marker append (auto), dialogue reclas
 
 ## Bang Command Rules
 
+> ⚠️ **CRITICAL**: ห้ามเรียก `translate.py` โดยตรงเด็ดขาด — ใช้ `novelctl.py translate` เท่านั้น
+> เรียก `translate.py` ตรง = เสี่ยงสร้าง legacy format, index stale, cache corrupt
+
 | User says | MIKA does |
 |:-----------|:-----------|
 | `"แปลตอน 130"` | `terminal("python tools/novelctl.py translate 130 --slug global-descent")` |
 | `"แปล 131-135 อีก 5 ตอน"` | `terminal("python tools/novelctl.py translate 131-135 --mode autopilot --slug global-descent")` |
+| `"แปล 139 strict"` | `terminal("python tools/novelctl.py translate 139 --mode strict --slug global-descent")` |
 | `"แปลใหม่ 139"` | `terminal("python tools/novelctl.py translate 139 --force --slug global-descent")` |
+| `"ลองแปล 139"` | `terminal("python tools/novelctl.py translate 139 --mode draft --slug global-descent")` |
 | `"ตรวจ 139"` | `terminal("python tools/novelctl.py validate 139 --slug global-descent")` |
 | `"ตรวจ 131-135"` | `terminal("python tools/novelctl.py validate 131-135 --slug global-descent")` |
 | `"ตรวจคุณภาพ"` | `terminal("python tools/novelctl.py validate 1-200 --slug global-descent")` |

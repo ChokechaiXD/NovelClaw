@@ -17,16 +17,20 @@ def _python() -> str:
     return sys.executable or "python"
 
 
-def _th_path(slug: str, num: int) -> Path:
-    return _PROJECT_ROOT / "novels" / slug / "chapters" / f"{num:04d}.th.json"
+def _ch_path(slug: str, num: int, lang: str = "th") -> Path:
+    return _PROJECT_ROOT / "novels" / slug / "chapters" / f"{num:04d}.{lang}.json"
+
+
+def _draft_path(slug: str, num: int) -> Path:
+    return _PROJECT_ROOT / "staging" / "drafts" / slug / f"{num:04d}.th.json"
+
+
+def _bak_path(slug: str, num: int) -> Path:
+    return _PROJECT_ROOT / "novels" / slug / "chapters" / f"{num:04d}.th.json.bak"
 
 
 def _parse_jsonl(stdout: str) -> list[dict]:
-    """Parse JSONL output from translate.py --json.
-
-    translate.py may emit one JSON line per chapter, then a batch summary.
-    Returns a list of all successfully parsed JSON objects.
-    """
+    """Parse JSONL output from translate.py --json."""
     results = []
     for line in stdout.splitlines():
         line = line.strip()
@@ -41,104 +45,149 @@ def _parse_jsonl(stdout: str) -> list[dict]:
 
 
 def _pick_chapter_result(parsed: list[dict], num: int) -> dict | None:
-    """From a list of JSONL objects, pick the one matching the chapter number."""
+    """From a list of JSONL objects, pick the one matching chapter number."""
     for obj in parsed:
         if isinstance(obj, dict) and obj.get("ch") == num:
             return obj
-    # Fallback: return first object with status
     for obj in parsed:
         if isinstance(obj, dict) and obj.get("status"):
             return obj
-    # Last resort: return the last parseable object
     return parsed[-1] if parsed else None
 
 
 def translate_single(slug: str, num: int, mode: str = "safe",
                      force: bool = False, score: bool = True) -> dict:
-    """Translate a single chapter, return result dict.
+    """Translate a single chapter with proper error handling.
 
-    Returns: {ok: bool, chapter_data: dict|None, score: int|None, warnings: list, error: str|None,
-              draft: bool}
+    --force: backs up existing .th.json before run, restores on any failure.
+    draft:  writes to staging/drafts/ instead of canonical path.
+    Returns: {ok, chapter_data, score, warnings, error, draft, backup_restored}
     """
     result = {"ok": False, "chapter_data": None, "score": None, "warnings": [],
-              "error": None, "draft": mode == "draft"}
+              "error": None, "draft": mode == "draft", "backup_restored": False}
 
     is_draft = mode == "draft"
-    thp = _th_path(slug, num)
+    thp = _ch_path(slug, num)
+    bak = _bak_path(slug, num)
+    had_backup = False
 
-    # Handle --force: backup/delete existing before calling translate.py
+    # ── Force: backup existing file ──────────────────────────────────
     if force and thp.exists():
-        bak = thp.with_suffix(".th.json.bak")
         try:
+            bak.parent.mkdir(parents=True, exist_ok=True)
             if bak.exists():
                 bak.unlink()
             thp.rename(bak)
+            had_backup = True
         except Exception as e:
             result["error"] = f"cannot backup existing file: {e}"
             return result
 
-    # Build translate.py args
-    cmd = [_python(), str(_TOOLS_DIR / "translate.py"), str(num), "--json"]
-    if score:
-        cmd.append("--score")
-    if is_draft:
-        cmd.append("--dry-run")
-
-    env = dict(os.environ)
-    env["NOVEL_SLUG"] = slug
-
     try:
-        proc = subprocess.run(
-            cmd,
-            capture_output=True, text=True, timeout=300,
-            cwd=str(_PROJECT_ROOT),
-            env=env,
-        )
-    except subprocess.TimeoutExpired:
-        result["error"] = "translate.py timeout (300s)"
-        return result
-    except Exception as e:
-        result["error"] = f"translate.py failed: {e}"
-        return result
+        # ── Draft: use staging path ──────────────────────────────────
+        if is_draft:
+            draft_dir = _draft_path(slug, num).parent
+            draft_dir.mkdir(parents=True, exist_ok=True)
 
-    if proc.returncode != 0:
-        result["error"] = f"translate.py exit {proc.returncode}: {proc.stderr[:500]}"
-        return result
+        # ── Build translate.py args ──────────────────────────────────
+        cmd = [_python(), str(_TOOLS_DIR / "translate.py"), str(num), "--json"]
+        if score:
+            cmd.append("--score")
+        if is_draft:
+            cmd.append("--dry-run")
 
-    # Parse JSONL output
-    parsed = _parse_jsonl(proc.stdout)
-    chapter_output = _pick_chapter_result(parsed, num)
+        env = dict(os.environ)
+        env["NOVEL_SLUG"] = slug
 
-    if is_draft:
-        # Draft mode: restore backup if we backed up, and report the output
-        if force and bak.exists():
-            if thp.exists():
-                thp.unlink()
-            bak.rename(thp)
+        try:
+            proc = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=300,
+                cwd=str(_PROJECT_ROOT), env=env,
+            )
+        except subprocess.TimeoutExpired:
+            result["error"] = "translate.py timeout (300s)"
+            return result
+        except Exception as e:
+            result["error"] = f"translate.py failed: {e}"
+            return result
+
+        if proc.returncode != 0:
+            result["error"] = f"translate.py exit {proc.returncode}: {proc.stderr[:500]}"
+            return result
+
+        # ── Parse JSONL output ───────────────────────────────────────
+        parsed = _parse_jsonl(proc.stdout)
+        chapter_output = _pick_chapter_result(parsed, num)
+        if chapter_output is None:
+            result["error"] = f"cannot parse translate.py output (no JSON for ch {num}): {proc.stdout[:300]}"
+            return result
+
+        # ── Draft mode: write to staging/drafts/ ─────────────────────
+        if is_draft:
+            draft_chapter_data = {
+                "novelId": slug,
+                "chapterNo": num,
+                "sourceLang": "cn",
+                "targetLang": "th",
+                "title": {"translated": chapter_output.get("title", f"ตอนที่ {num}"), "source": ""},
+                "status": "draft",
+                "paragraphs": chapter_output.get("paragraphs", []),
+                "updatedAt": datetime.now(timezone.utc).isoformat(),
+            }
+            dp = _draft_path(slug, num)
+            dp.parent.mkdir(parents=True, exist_ok=True)
+            dp.write_text(json.dumps(draft_chapter_data, ensure_ascii=False, indent=2), encoding="utf-8")
+            result["ok"] = True
+            result["chapter_data"] = draft_chapter_data
+            result["score"] = chapter_output.get("score")
+            return result
+
+        # ── Normal mode: verify .th.json was written ─────────────────
+        if not thp.exists():
+            result["error"] = f"translate.py claimed success but no .th.json at {thp}\nstdout: {proc.stdout[:300]}"
+            return result
+
+        # Read back for validation
+        try:
+            chapter_data = json.loads(thp.read_text(encoding="utf-8"))
+        except Exception as e:
+            result["error"] = f"saved .th.json is invalid JSON: {e}"
+            return result
+
+        # ── Success path: delete backup if it exists ─────────────────
+        if had_backup and bak.exists():
+            try:
+                bak.unlink()
+                result["backup_restored"] = False  # backup deleted, new file is king
+            except Exception:
+                pass
+
         result["ok"] = True
-        result["chapter_data"] = chapter_output or {}
-        result["score"] = (chapter_output or {}).get("score")
-        result["warnings"] = []
+        result["chapter_data"] = chapter_data
+        result["score"] = chapter_output.get("score") if chapter_output else chapter_data.get("score")
+        result["warnings"] = chapter_data.get("warnings", [])
         return result
 
-    # Verify output file was written
-    if not thp.exists():
-        result["error"] = f"translate.py claimed success but no .th.json at {thp}\nstdout: {proc.stdout[:300]}"
-        return result
-
-    # Read back the chapter data for validation
-    try:
-        chapter_data = json.loads(thp.read_text(encoding="utf-8"))
-    except Exception as e:
-        result["error"] = f"saved .th.json is invalid JSON: {e}"
-        return result
-
-    result["ok"] = True
-    result["chapter_data"] = chapter_data
-    result["score"] = chapter_output.get("score") if chapter_output else chapter_data.get("score")
-    result["warnings"] = chapter_data.get("warnings", [])
-
-    return result
+    finally:
+        # ── Force rollback: on any failure, restore backup ────────────
+        # If we didn't return ok=True above, and had_backup, restore
+        if not result.get("ok") and had_backup:
+            if bak.exists():
+                try:
+                    thp.parent.mkdir(parents=True, exist_ok=True)
+                    bak.rename(thp)
+                    result["backup_restored"] = True
+                    # Don't overwrite the error message — keep original reason
+                    # but append restore note
+                    orig_error = result.get("error", "")
+                    if orig_error:
+                        result["error"] = f"{orig_error} (backup restored from .bak)"
+                    else:
+                        result["error"] = "unknown error (backup restored from .bak)"
+                except Exception as restore_err:
+                    # Worst case: both files may be in bad state
+                    result["error"] = (result.get("error", "unknown") +
+                                       f"; additionally, backup restore also failed: {restore_err}")
 
 
 def validate_single(slug: str, num: int) -> dict:
@@ -148,7 +197,7 @@ def validate_single(slug: str, num: int) -> dict:
     """
     result = {"ok": False, "score": None, "details": [], "error": None}
 
-    th_path = _PROJECT_ROOT / "novels" / slug / "chapters" / f"{num:04d}.th.json"
+    th_path = _ch_path(slug, num)
     src_path = _PROJECT_ROOT / "novels" / slug / "chapters" / "source" / f"{num:04d}.md"
 
     if not th_path.exists():
@@ -173,7 +222,6 @@ def validate_single(slug: str, num: int) -> dict:
 
     import re
     stdout = proc.stdout
-
     score_match = re.search(r"(\d{1,3})\s*/\s*100", stdout)
     score_val = int(score_match.group(1)) if score_match else None
 
@@ -190,10 +238,7 @@ def validate_single(slug: str, num: int) -> dict:
 
 
 def rebuild_index(slug: str) -> dict:
-    """Rebuild chapters.json + search-index via reader Node.js module.
-
-    Returns: {ok: bool, error: str|None}
-    """
+    """Rebuild chapters.json + search-index via reader Node.js module."""
     result = {"ok": False, "error": None}
 
     script = f"""
@@ -228,14 +273,9 @@ def rebuild_index(slug: str) -> dict:
 
 
 def smoke_test(slug: str, num: int) -> dict:
-    """Run a quick smoke test via the reader API.
-
-    Returns: {ok: bool, detail: str|None}
-    """
+    """Quick smoke test via the reader API."""
     import urllib.request
-
     result = {"ok": False, "detail": None}
-
     try:
         url = f"http://localhost:4173/api/novel/{slug}/chapter/{num}?lang=th"
         req = urllib.request.Request(url)
@@ -249,5 +289,4 @@ def smoke_test(slug: str, num: int) -> dict:
                 result["detail"] = "chapter loaded but 0 paragraphs"
     except Exception as e:
         result["detail"] = str(e)
-
     return result
