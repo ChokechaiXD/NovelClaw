@@ -22,8 +22,8 @@ const ReaderPage = {
       if (idx === -1) idx = 0;
 
       let html = `
-      <div class="c-container" style="max-width:760px;">
-        <div class="c-toolbar">
+      <div class="reader-page">
+      <div class="c-toolbar reader-toolbar">
           <a href="#novel/${slug}" class="c-toolbar__back" data-nav>
             <svg style="width:16px;height:16px;"><use xlink:href="#icon-arrow-left"/></svg>
             <span>กลับ</span>
@@ -40,14 +40,14 @@ const ReaderPage = {
           <span class="c-reader__position" id="reader-position"></span>
           <button class="c-reader__nav-btn" id="reader-next">ถัดไป ▶</button>
         </div>
-        <div class="c-reader">
-          <h1 class="c-reader__title" id="reader-title"></h1>
+        <div class="reader-content">
+          <h1 class="reader-title" id="reader-title"></h1>
           <div class="c-reader__meta">
             <button class="c-btn c-btn--icon" id="reader-font-sm" title="ลดขนาดอักษร">A−</button>
             <span style="font-size:var(--text-sm);color:var(--c-text-muted);">16px</span>
             <button class="c-btn c-btn--icon" id="reader-font-lg" title="เพิ่มขนาดอักษร">A+</button>
           </div>
-          <div class="c-reader__content" id="reader-content"></div>
+          <div id="reader-content"></div>
         </div>
         <div class="c-reader__nav">
           <button class="c-reader__nav-btn" id="reader-prev-2">◀ ก่อนหน้า</button>
@@ -158,9 +158,9 @@ const ReaderPage = {
       };
 
       // ── Theme toggle ─────────────────────────────────────────────────
-      const THEMES = ['dark', 'amoled', 'light', 'sepia'];
-      const THEME_ICONS = { light: '#icon-sun', dark: '#icon-moon', amoled: '#icon-moon', sepia: '#icon-book' };
-      let currentTheme = Store.getSettings().theme || 'dark';
+      const THEMES = ['sepia', 'night', 'amoled', 'paper'];
+      const THEME_ICONS = { sepia: '#icon-book', night: '#icon-moon', amoled: '#icon-moon', paper: '#icon-sun' };
+      let currentTheme = Store.getSettings().theme || 'sepia';
 
       const updateIcon = (t) => {
         const btn = Ui.$('reader-theme-toggle');

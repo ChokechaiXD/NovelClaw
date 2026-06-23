@@ -108,17 +108,19 @@ function initSidebar() {
 // ── Theme Initialization ────────────────────────────────────────────
 function initTheme() {
   const settings = Store.getSettings();
-  document.body.dataset.theme = settings.theme || 'dark';
+  document.body.dataset.theme = settings.theme || 'sepia';
 
   // Sidebar theme toggle
   const themeToggle = document.getElementById('theme-toggle-new');
   if (themeToggle) {
-    themeToggle.classList.toggle('c-toggle--active', (settings.theme || 'dark') === 'dark');
+    const isNight = (settings.theme || 'sepia') === 'night' || (settings.theme || 'sepia') === 'amoled';
+    themeToggle.classList.toggle('c-toggle--active', isNight);
     themeToggle.addEventListener('click', () => {
-      const current = Store.getSettings().theme || 'dark';
-      const target = current === 'dark' ? 'light' : 'dark';
+      const current = Store.getSettings().theme || 'sepia';
+      // Toggle between night and sepia (main two modes)
+      const target = (current === 'night' || current === 'amoled') ? 'sepia' : 'night';
       Store.setSetting('theme', target);
-      themeToggle.classList.toggle('c-toggle--active', target === 'dark');
+      themeToggle.classList.toggle('c-toggle--active', target === 'night');
 
       // Sync settings page select element
       const settingsSel = document.getElementById('settings-theme');
@@ -128,7 +130,7 @@ function initTheme() {
 
   // Subscribe to theme changes
   Store.on('setting:theme', (t) => {
-    if (themeToggle) themeToggle.classList.toggle('c-toggle--active', t === 'dark');
+    if (themeToggle) themeToggle.classList.toggle('c-toggle--active', t === 'night' || t === 'amoled');
   });
 }
 
