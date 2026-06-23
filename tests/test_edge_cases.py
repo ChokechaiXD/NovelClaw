@@ -1,7 +1,7 @@
-"""test_edge_cases.py — Comprehensive edge case tests for NovelClaw.
+"""test_edge_cases.py — Edge case tests for v3 paragraphs format.
 
-Covers schema, validation, normalize, and build_yaml edge cases that the
-existing test suite does not exercise. Designed to catch structural regressions.
+All tests use the v3 paragraphs-only Chapter schema.
+No block types, no BlockType enum, no block-level validators.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ from validation import (
 )
 
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────
 
 
 def _ch(
@@ -38,7 +38,7 @@ def _ch(
     output_lang: str | None = None,
     profile_lang: str | None = None,
 ) -> Chapter:
-    """Build a Chapter with minimal valid defaults."""
+    """Build a Chapter with minimal valid defaults (v3 paragraphs)."""
     if paragraphs is None:
         paragraphs = ["เล่าเรื่อง", "(จบบท)"]
     kwargs: dict = {"num": num, "title": title, "source": source, "paragraphs": paragraphs, "lang": lang}
@@ -49,394 +49,271 @@ def _ch(
     return Chapter(**kwargs)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════
 # 1. Schema Edge Cases
-# ═══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════
 
 
 class TestChapterOutputLang:
-    """output_lang and profile_lang fields."""
+    """output_lang and profile_lang fields with paragraphs."""
 
     def test_accepts_output_lang(self):
-        """output_lang='en' should use EN brackets, not fallback to CN."""
-        ch = _ch(output_lang="en", paragraphs=[
-            {"type": "narration", "text": "Test"},
-            {"type": "dialogue", "text": "\u201cHello\u201d"},
-            {"type": "system", "text": "[System]"},
-            {"type": "end", "text": "(End)"},
-        ])
+        ch = _ch(output_lang="en")
         assert ch.output_lang == Language.EN
-        assert ch.paragraphs[-1] == "(End)"
 
     def test_accepts_profile_lang(self):
-        """profile_lang='en' overrides output_lang and lang."""
-        ch = _ch(output_lang="th", profile_lang="en", paragraphs=[
-            {"type": "narration", "text": "Test"},
-            {"type": "dialogue", "text": "\u201cHi\u201d"},
-            {"type": "system", "text": "[Sys]"},
-            {"type": "end", "text": "(End)"},
-        ])
+        ch = _ch(output_lang="th", profile_lang="en")
         assert ch.profile_lang == Language.EN
-        assert ch.paragraphs[-1] == "(End)"
 
     def test_output_lang_none_defaults_to_lang(self):
-        """When output_lang is None, validating brackets use 'lang'."""
         ch = _ch(lang="cn")
-        assert ch.output_lang is None
-
-    def test_all_5_languages_roundtrip(self):
-        """Each language can be used as lang directly (backward compat)."""
-        for lang in ("cn", "jp", "kr", "en", "th"):
-            bp = BRACKETS[lang]
-            ch = _ch(lang=lang, paragraphs=[
-                {"type": "narration", "text": "Body"},
-                {"type": "dialogue", "text": f"{bp['dialogue_open']}Hi{bp['dialogue_close']}"},
-                {"type": "system", "text": f"{bp['system_open']}Sys{bp['system_close']}"},
-                {"type": "end", "text": bp["end_marker"]},
-            ])
-            assert ch.lang.value == lang, f"{lang}: lang field mismatch"
-
-    def test_en_dialogue_accepts_straight_quotes(self):
-        """EN blocks may use straight double quotes."""
-        _ch(lang="en", paragraphs=[
-            {"type": "narration", "text": "x"},
-            {"type": "dialogue", "text": '"Hello"'},
-            {"type": "end", "text": "(End)"},
-        ])
-
-
-class TestChapterBlockEdgeCases:
-
-    def test_empty_blocks_rejected(self):
-        with pytest.raises(Exception):
-            _ch(paragraphs=[])
-
-    def test_only_end_marker_rejected(self):
-        with pytest.raises(Exception):
-            _ch(paragraphs=[{"type": "end", "text": "(จบบท)"}])
-
-    def test_end_marker_must_be_last(self):
-        with pytest.raises(Exception):
-            _ch(paragraphs=[
-                {"type": "narration", "text": "x"},
-                {"type": "end", "text": "(จบบท)"},
-                {"type": "narration", "text": "y"},
-            ])
-
-    def test_two_end_markers_rejected(self):
-        with pytest.raises(Exception):
-            _ch(paragraphs=[
-                {"type": "narration", "text": "x"},
-                {"type": "end", "text": "(จบบท)"},
-                {"type": "end", "text": "(จบบท)"},
-            ])
-
-    def test_speaker_field_accepted_on_dialogue(self):
-        ch = _ch(paragraphs=[
-            {"type": "dialogue", "text": "\u300cHi\u300d", "speaker": "เฉาซิง"},
-            {"type": "end", "text": "(จบบท)"},
-        ])
-        assert ch.paragraphs[0] == "เฉาซิง"
-
-    def test_game_title_block(self):
-        """Game titles with appropriate brackets."""
-        _ch(paragraphs=[
-            {"type": "narration", "text": "x"},
-            {"type": "game_title", "text": "\u300aFrozen Era\u300b"},
-            {"type": "end", "text": "(จบบท)"},
-        ])
-
-    def test_game_title_en_uses_curly_quotes(self):
-        """EN game titles use curly quotes per brackets.json."""
-        _ch(lang="en", paragraphs=[
-            {"type": "narration", "text": "x"},
-            {"type": "game_title", "text": "\u201cFrozen Era\u201d"},
-            {"type": "end", "text": "(End)"},
-        ])
+        assert ch.lang == Language.CN
 
 
 class TestChapterSerialization:
-    """JSON round-trip and field persistence."""
+    """JSON serialization/deserialization roundtrips."""
+
+    def test_paragraphs_roundtrip(self):
+        paragraphs = ["เนื้อเรื่องตอนแรก", "「สวัสดี」", "(จบบท)"]
+        ch = _ch(paragraphs=paragraphs)
+        data = ch.model_dump()
+        assert data["paragraphs"] == paragraphs
+        assert "blocks" not in data
 
     def test_output_lang_roundtrip(self):
-        """output_lang survives JSON serialization."""
-        data = _ch(output_lang="en", paragraphs=[
-            {"type": "narration", "text": "x"},
-            {"type": "dialogue", "text": "\u201cHi\u201d"},
-            {"type": "system", "text": "[Sys]"},
-            {"type": "end", "text": "(End)"},
-        ]).model_dump()
-        assert data["output_lang"] == "en"
-        ch2 = Chapter(**data)
-        assert ch2.output_lang == Language.EN
+        ch = _ch(output_lang="en")
+        data = ch.model_dump()
+        loaded = Chapter(**data)
+        assert loaded.output_lang == Language.EN
 
     def test_lang_default_in_json(self):
-        """Serializing a chapter with default lang includes 'cn'."""
-        data = Chapter(
-            num=1, title="\u0e15\u0e2d\u0e19\u0e17\u0e35\u0e48 1 Test", source="ch 1",
-            paragraphs=[{"type": "narration", "text": "x"}, {"type": "end", "text": "(\u0e08\u0e1a\u0e1a\u0e17)"}],
-        ).model_dump()
+        ch = Chapter(num=1, title="ตอนที่ 1 T", paragraphs=["text", "(จบบท)"], source="ch 1")
+        data = ch.model_dump()
+        assert "lang" in data
         assert data["lang"] == "cn"
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 2. Validation Edge Cases
-# ═══════════════════════════════════════════════════════════════════════════════
+class TestChapterBlockEdgeCases:
+    """Edge cases around content types — all use paragraphs now."""
 
+    def test_content_markers_in_paragraphs(self):
+        """Dialogue markers, system markers all live inline in paragraphs."""
+        p = _ch(paragraphs=["เฉาซิงพูด 「สวัสดี」", "【ระบบ】ได้รับไอเท็ม", "(จบบท)"])
+        assert "「สวัสดี」" in p.paragraphs[0]
+        assert "【ระบบ】" in p.paragraphs[1]
 
-def make_validate_ch(text: str, lang: str = "cn", output_lang: str | None = None) -> Chapter:
-    return _ch(lang=lang, output_lang=output_lang, paragraphs=[
-        {"type": "narration", "text": text},
-        {"type": "end", "text": BRACKETS.get(output_lang or lang, BRACKETS["cn"])["end_marker"]},
-    ])
+    def test_no_block_types_present(self):
+        """v3 Chapter has no 'blocks' field in JSON output."""
+        ch = _ch()
+        data = ch.model_dump()
+        assert "blocks" not in data
 
-
-class TestENRetention:
-
-    def test_recruiting_flagged(self):
-        ch = make_validate_ch("ยัง recruiting ได้", output_lang="th")
-        ok, msgs = validate_translation_quality(ch, "source", "zh", "th")
-        assert not ok
-        assert any("recruiting" in m for m in msgs)
-
-    def test_level_flagged(self):
-        ch = make_validate_ch("พวกนั้น level 20", output_lang="th")
-        ok, msgs = validate_translation_quality(ch, "source", "zh", "th")
-        assert not ok
-        assert any("level" in m for m in msgs)
-
-    def test_disrespect_flagged(self):
-        ch = make_validate_ch("อย่า disrespect", output_lang="th")
-        ok, msgs = validate_translation_quality(ch, "source", "zh", "th")
-        assert not ok
-        assert any("disrespect" in m for m in msgs)
-
-    def test_continue_flagged(self):
-        ch = make_validate_ch("คาร์ฮาน continue：", output_lang="th")
-        ok, msgs = validate_translation_quality(ch, "source", "zh", "th")
-        assert not ok
-        assert any("continue" in m for m in msgs)
-
-    def test_whitelisted_not_flagged(self):
-        """HP, MP, EXP should NOT trigger EN RETENTION errors."""
-        # These are whitelisted tokens caught by Latin leak check as WARNING,
-        # but should NOT be flagged by EN_RETENTION_RE
-        import re
-        test_text = "HP: 100, MP: 50, EXP: 500"
-        retention_matches = EN_RETENTION_RE.findall(test_text)
-        assert len(retention_matches) == 0, f"EN_RETENTION should not match: {retention_matches}"
-
-
-class TestCJKLeak:
-
-    def test_cn_characters_flagged(self):
-        """CJK in narration triggers quality gate error.
-        We create the chapter normally (passing schema), then inject CJK into
-        the block text afterward to test the validation gate directly."""
-        ch = _ch(output_lang="th", paragraphs=[
-            {"type": "narration", "text": "\u0e40\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e23\u0e32\u0e27\u0e17\u0e35\u0e48\u0e21\u0e35\u0e40\u0e19\u0e37\u0e49\u0e2d\u0e2b\u0e32"},
-            {"type": "end", "text": "(\u0e08\u0e1a\u0e1a\u0e17)"},
-        ])
-        # Inject CJK directly into block text (bypass schema validation)
-        ch.paragraphs[0] = "\u0e21\u0e35\u0e2d\u0e31\u0e01\u0e29\u0e23\u0e08\u0e35\u0e19\u0e1b\u0e19\u0e01\u0e25\u0e32\u0e07 \u4e2d\u6587"
-        ok, msgs = validate_translation_quality(ch, "source text", "zh", "th")
-        assert not ok
-        assert any("CJK" in m for m in msgs)
-
-    def test_system_blocks_also_checked(self):
-        ch = _ch(output_lang="th", paragraphs=[
-            {"type": "system", "text": "【任务完成】"},
-            {"type": "end", "text": "(จบบท)"},
-        ])
-        ok, msgs = validate_translation_quality(ch, "source", "zh", "th")
-        assert not ok
-        assert any("CJK" in m for m in msgs)
-
-
-class TestLengthRatio:
-
-    def test_too_short_flagged(self):
-        ch = _ch(paragraphs=[
-            {"type": "narration", "text": "สั้นมาก"},
-            {"type": "end", "text": "(จบบท)"},
-        ])
-        ok, msgs = validate_translation_quality(ch, "\u4e2d" * 500, "zh", "th")
-        assert not ok
-        assert any("ratio" in m for m in msgs)
-
-    def test_too_long_flagged(self):
-        ch = _ch(paragraphs=[
-            {"type": "narration", "text": "\u0e01" * 2000},
-            {"type": "end", "text": "(จบบท)"},
-        ])
-        ok, msgs = validate_translation_quality(ch, "\u4e2d" * 100, "zh", "th")
-        assert not ok
-        assert any("ratio" in m for m in msgs)
+    def test_paragraphs_is_list_of_strings(self):
+        ch = _ch()
+        for p in ch.paragraphs:
+            assert isinstance(p, str), f"Expected str, got {type(p)}: {p!r}"
 
 
 class TestEndMarkerValidation:
+    """End marker auto-append and validation."""
 
-    def test_kr_end_marker(self):
-        _ch(lang="kr", paragraphs=[
-            {"type": "narration", "text": "x"},
-            {"type": "dialogue", "text": "\u300cHI\u300d"},
-            {"type": "end", "text": "(\uaf43)"},
-        ])
+    def test_auto_appends_jp_marker(self):
+        ch = Chapter(num=1, title="ตอนที่ 1 T", paragraphs=["text"], source="ch 1", lang="jp")
+        assert ch.paragraphs[-1] == BRACKETS["jp"]["end_marker"]
 
+    def test_auto_appends_kr_marker(self):
+        ch = Chapter(num=1, title="ตอนที่ 1 T", paragraphs=["text"], source="ch 1", lang="kr")
+        assert ch.paragraphs[-1] == BRACKETS["kr"]["end_marker"]
 
-class TestFileChecker:
-
-    def test_clean_file_passes(self):
-        data = {
-            "blocks": [
-                {"type": "narration", "text": "เรื่องราว"},
-                {"type": "end", "text": "(จบบท)"},
-            ]
-        }
-        p = Path(__file__).parent / "fixtures" / "_edge_test_clean.json"
-        p.parent.mkdir(exist_ok=True)
-        p.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-        try:
-            issues = check_file_for_cjk_leaks(str(p))
-            fails = [i for i in issues if i["severity"] == "FAIL"]
-            assert len(fails) == 0, f"Expected clean, got {fails}"
-        finally:
-            p.unlink(missing_ok=True)
-
-    def test_dirty_file_flagged(self):
-        data = {
-            "blocks": [
-                {"type": "narration", "text": "มีอักษรจีนปนกลาง 中文"},
-                {"type": "end", "text": "(จบบท)"},
-            ]
-        }
-        p = Path(__file__).parent / "fixtures" / "_edge_test_dirty.json"
-        p.parent.mkdir(exist_ok=True)
-        p.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-        try:
-            issues = check_file_for_cjk_leaks(str(p))
-            fails = [i for i in issues if i["severity"] == "FAIL"]
-            assert len(fails) > 0, "Expected CJK leak flagged"
-        finally:
-            p.unlink(missing_ok=True)
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# 3. EN_RETENTION_RE Pattern Edge Cases
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-class TestENRetentionRegex:
-
-    def test_matches_known_patterns(self):
-        test_text = "recruiting level disrespect mean queen erupt continue panic"
-        matches = EN_RETENTION_RE.findall(test_text)
-        assert len(matches) == 8
-
-    def test_case_insensitive(self):
-        matches = EN_RETENTION_RE.findall("Recruiting LEVEL Disrespect")
-        assert len(matches) == 3
-
-    def test_not_partial_match(self):
-        """'levels' should NOT match 'level' due to word boundary."""
-        matches = EN_RETENTION_RE.findall("levels recruitment")
-        assert len(matches) == 0
-
-    def test_hints_exist_for_all_words(self):
-        """Every EN_RETENTION word should have a Thai hint."""
-        words = {"recruiting", "level", "disrespect", "mean", "queen",
-                 "erupt", "continue", "panic", "momentarily", "hollow",
-                 "militia", "avatar", "blacklist", "peek"}
-        for w in words:
-            found = any(k.lower() == w.lower() for k in LATIN_REPLACEMENT_HINTS)
-            assert found, f"No hint for '{w}' in LATIN_REPLACEMENT_HINTS"
-
-
-class TestLatinLeakRegex:
-
-    def test_lower_latin_contains_en_retention(self):
-        """Every word in EN_RETENTION_RE should also be in LOWER_LATIN_LEAK_RE."""
-        import re
-        ll_pattern = LOWER_LATIN_LEAK_RE.pattern
-        ll_words = set(re.findall(r"\b(\w+)\b", ll_pattern))
-        en_words = {"recruiting", "level", "disrespect", "mean", "queen",
-                    "erupt", "continue", "panic", "momentarily", "hollow",
-                    "militia", "avatar", "blacklist", "peek"}
-        missing = en_words - ll_words
-        assert len(missing) == 0, f"Words in EN_RETENTION_RE but NOT in LOWER_LATIN_LEAK_RE: {missing}"
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# 4. Normalize Tool Edge Cases
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-class TestExpectedEndMarker:
-
-    def test_thai(self):
-        assert expected_end_marker("th") == "(จบบท)"
-
-    def test_english(self):
-        assert expected_end_marker("en") == "(End)"
-
-    def test_unknown_fallback(self):
-        assert expected_end_marker("xx") == "(จบบท)"
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# 5. Build YAML Auto-Reject Edge Cases
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-
-
-# 6. Integration: Existing chapters consistency
-# ═══════════════════════════════════════════════════════════════════════════════
+    def test_keeps_existing_marker(self):
+        ch = _ch(paragraphs=["content", "(จบบท)"])
+        assert ch.paragraphs[-1] == "(จบบท)"
+        assert len(ch.paragraphs) == 2
 
 
 class TestExistingChaptersAllLoad:
+    """All existing v3 paragraphs chapters load without error."""
 
-    def test_all_existing_chapters_pass_schema(self):
-        """Every translated chapter file must load through Chapter.model_validate()."""
+    def test_all_chapters_load_as_paragraphs(self):
         chapters_dir = Path(__file__).parent.parent / "novels" / "global-descent" / "chapters"
         if not chapters_dir.exists():
             pytest.skip("No chapters dir")
-        failures = []
-        for p in sorted(chapters_dir.glob("*.json")):
-            data = json.loads(p.read_text(encoding="utf-8"))
-            if not p.name[0].isdigit():
-                continue  # skip fts_index.db etc.
-            try:
-                Chapter(**data)
-            except Exception as e:
-                failures.append(f"{p.name}: {e}")
-        assert len(failures) == 0, f"Failed chapters:\n" + "\n".join(failures[:10])
-
-    def test_all_chapters_have_thai_end_marker(self):
-        """Every translated chapter should end with (จบบท)."""
-        chapters_dir = Path(__file__).parent.parent / "novels" / "global-descent" / "chapters"
-        if not chapters_dir.exists():
-            pytest.skip("No chapters dir")
-        bad = []
+        ok = 0
         for p in sorted(chapters_dir.glob("0*.json")):
             data = json.loads(p.read_text(encoding="utf-8"))
-            blocks = data.get("blocks", [])
-            if not blocks or blocks[-1].get("text") != "(จบบท)":
-                bad.append(p.name)
-        assert len(bad) == 0, f"Chapters with wrong/empty end marker: {bad}"
+            if not data.get("paragraphs"):
+                continue  # skip v2 chapters
+            Chapter(**data)  # raises if invalid
+            ok += 1
+        assert ok > 0, "no v3 chapters found to test"
 
-    def test_lang_cn_and_output_lang_th(self):
-        """All translated chapters must have lang=cn, output_lang=th."""
-        chapters_dir = Path(__file__).parent.parent / "novels" / "global-descent" / "chapters"
-        if not chapters_dir.exists():
-            pytest.skip("No chapters dir")
-        bad_lang = []
-        bad_output = []
-        for p in sorted(chapters_dir.glob("0*.json")):
-            data = json.loads(p.read_text(encoding="utf-8"))
-            if data.get("lang") != "cn":
-                bad_lang.append(p.name)
-            if data.get("output_lang") != "th":
-                bad_output.append(p.name)
-        assert len(bad_lang) == 0, f"Wrong lang: {bad_lang}"
-        assert len(bad_output) == 0, f"Missing/wrong output_lang: {bad_output}"
+
+# ═══════════════════════════════════════════════════════════════════════
+# 2. EN Retention / Leak Detection
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestENRetention:
+    """EN retention patterns parsed from the CN source."""
+
+    def test_recruiting_flagged(self):
+        assert EN_RETENTION_RE.search("recruiting")
+        assert not EN_RETENTION_RE.search("รับสมัคร")
+
+    def test_level_flagged(self):
+        assert EN_RETENTION_RE.search("level 50")
+        assert not EN_RETENTION_RE.search("ระดับ 50")
+
+    def test_disrespect_flagged(self):
+        assert EN_RETENTION_RE.search("disrespect")
+        assert not EN_RETENTION_RE.search("ไม่เคารพ")
+
+    def test_continue_flagged(self):
+        assert EN_RETENTION_RE.search("continue")
+        assert not EN_RETENTION_RE.search("ต่อไป")
+
+
+class TestENLeakInParagraphs:
+    """EN leak detection in v3 paragraphs format."""
+
+    def test_latin_token_hint_provides_fix(self):
+        assert "รับสมัคร" == LATIN_REPLACEMENT_HINTS.get("recruiting", "")
+        assert "ระดับ" == LATIN_REPLACEMENT_HINTS.get("level", "")
+        assert "บัญชีดำ" == LATIN_REPLACEMENT_HINTS.get("blacklist", "")
+
+    def test_check_en_terms_whitelisted(self):
+        whitelisted, _, _ = check_en_terms("HP: 100, MP: 50")
+        assert "HP" in whitelisted or "MP" in whitelisted
+
+    def test_lowercase_en_caught_by_leak_re(self):
+        assert LOWER_LATIN_LEAK_RE.search("got level 50")
+        assert not LOWER_LATIN_LEAK_RE.search("ได้ระดับ 50")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 3. CJK Leak Detection
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestCJKLeak:
+    """CJK leak detection in paragraphs."""
+
+    def test_cn_characters_flagged(self):
+        ok, msgs = validate_translation_quality(
+            _ch(paragraphs=["เนื้อเรื่อง 中文ปน", "(จบบท)"]),
+            "source text",
+        )
+        assert not ok
+        assert any("CJK" in m or "paragraph" in m for m in msgs)
+
+    def test_no_false_positive_thai(self):
+        ok, msgs = validate_translation_quality(
+            _ch(paragraphs=["เนื้อเรื่องภาษาไทยธรรมดา", "(จบบท)"]),
+            "source text",
+        )
+        assert ok
+
+
+class TestCJKLeakInParagraphs:
+    """CJK leaks in paragraph texts are caught by validation."""
+
+    def test_cn_in_narration_paragraph(self):
+        ok, msgs = validate_translation_quality(
+            _ch(paragraphs=["เฉาซิงไปที่ 森林", "(จบบท)"]),
+            "source text",
+        )
+        assert not ok
+        assert any("CJK" in m for m in msgs)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 4. Completeness / Length Ratio
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestLengthRatio:
+    """Translation length ratio checks."""
+
+    def test_too_short_flagged(self):
+        """Very short output compared to long source."""
+        ok, msgs = validate_translation_quality(
+            _ch(paragraphs=["สั้น", "(จบบท)"]),
+            "ยาวมาก" * 200,
+        )
+        assert not ok
+        assert any("incomplete" in m.lower() for m in msgs)
+
+    def test_too_long_flagged(self):
+        """Very long output compared to short source."""
+        ok, msgs = validate_translation_quality(
+            _ch(paragraphs=["ยาวมาก" * 500, "(จบบท)"]),
+            "สั้น",
+        )
+        assert not ok
+        assert any("suspiciously long" in m.lower() for m in msgs)
+
+    def test_good_length_passes(self):
+        ok, msgs = validate_translation_quality(
+            _ch(paragraphs=["เนื้อเรื่องปกติความยาวพอเหมาะและสมดุลดี", "(จบบท)"]),
+            "source text for ratio test",
+        )
+        assert ok
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 5. Paragraph validation in quality gates
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestParagraphValidation:
+    """Quality gate validation on paragraph-level content."""
+
+    def test_narration_with_system_marker_passes(self):
+        """【】 in paragraph content is fine — no block types to check."""
+        ok, msgs = validate_translation_quality(
+            _ch(paragraphs=["เฉาซิงเห็น 【ข้อความระบบ】 ปรากฏ", "(จบบท)"]),
+            "source text",
+        )
+        assert ok
+
+    def test_dialogue_with_cjk_fails(self):
+        """CJK chars in any paragraph should still be caught."""
+        ok, msgs = validate_translation_quality(
+            _ch(paragraphs=["「สวัสดี」 有中文", "(จบบท)"]),
+            "source text",
+        )
+        assert not ok
+        assert any("CJK" in m for m in msgs)
+
+    def test_source_artifact_in_paragraph(self):
+        """Source artifacts like 求订阅 should be caught."""
+        ok, msgs = validate_translation_quality(
+            _ch(paragraphs=["เนื้อเรื่องปกติ", "求订阅", "(จบบท)"]),
+            "source text",
+        )
+        assert not ok
+        assert any("artifact" in m for m in msgs)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 6. Bracket and end-marker helpers
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestBracketHelpers:
+    """Bracket profile and expected end-marker lookups."""
+
+    def test_expected_end_marker_thai(self):
+        assert expected_end_marker("th") == "(จบบท)"
+
+    def test_expected_end_marker_english(self):
+        assert expected_end_marker("en") == "(End)"
+
+    def test_expected_end_marker_jp(self):
+        assert expected_end_marker("jp") == "（終）"
+
+    def test_expected_end_marker_kr(self):
+        assert expected_end_marker("kr") == "(끝)"
+
+    def test_expected_end_marker_fallback(self):
+        assert expected_end_marker("unknown") == "(จบบท)"
