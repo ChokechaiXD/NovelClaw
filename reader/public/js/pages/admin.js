@@ -193,31 +193,44 @@ const AdminJobsPage = {
       const res = await fetch('/api/admin/jobs');
       const data = await res.json();
 
-      // Helper: render a section
-      const makeSection = (title, items, icon) => {
-        if (!items || items.length === 0) return '';
+      // Helper: render a section (always show, even if empty)
+      const makeSection = (title, items, icon, emptyText) => {
+        const count = items ? items.length : 0;
         let html = '<div class="c-section" style="margin-top:var(--space-md);">' +
-          '<div class="c-section__header"><h3 class="c-section__title">' + icon + ' ' + title + ' (' + items.length + ')</h3></div>' +
-          '<div class="c-table-wrap"><table class="c-table"><thead><tr><th>ไฟล์</th><th>รายละเอียด</th><th>คำสั่ง</th></tr></thead><tbody>';
-        for (const item of items) {
-          const d = item.data || {};
-          const ch = d.chapter || d.chapterNo || '';
-          const reason = d.reason || d.error || d.state || '';
-          const suggestion = d.suggestedCommand || '';
-          const createdAt = d.createdAt ? new Date(d.createdAt).toLocaleString('th-TH') : '';
-          html += '<tr>' +
-            '<td style="font-family:var(--font-mono);font-size:12px;white-space:nowrap;">' + Ui.esc(item.file) + '</td>' +
-            '<td>' +
-              '<div style="font-weight:600;">ตอนที่ ' + Ui.esc(String(ch)) + '</div>' +
-              (reason ? '<div style="font-size:11px;color:var(--c-text-muted);">' + Ui.esc(reason.slice(0, 100)) + '</div>' : '') +
-              (createdAt ? '<div style="font-size:10px;color:var(--c-text-soft);">' + createdAt + '</div>' : '') +
-            '</td>' +
-            '<td>' +
-              (suggestion ? '<code style="font-size:11px;white-space:pre-wrap;">' + Ui.esc(suggestion) + '</code>' : '') +
-            '</td>' +
-          '</tr>';
+          '<div class="c-section__header"><h3 class="c-section__title">' + icon + ' ' + title + ' (' + count + ')</h3></div>';
+
+        if (count === 0) {
+          html += '<p class="u-text-muted u-p-md">' + Ui.esc(emptyText || 'ไม่มีรายการ') + '</p>';
+        } else {
+          html += '<div class="c-table-wrap"><table class="c-table"><thead><tr><th>ไฟล์</th><th>รายละเอียด</th><th>คำสั่ง</th><th></th></tr></thead><tbody>';
+          for (const item of items) {
+            const d = item.data || {};
+            const ch = d.chapter || d.chapterNo || '';
+            const reason = d.reason || d.error || d.state || '';
+            const suggestion = d.suggestedCommand || '';
+            const slug = d.slug || '';
+            const createdAt = d.createdAt ? new Date(d.createdAt).toLocaleString('th-TH') : '';
+            const fileId = 'cmd-' + Math.random().toString(36).slice(2, 7);
+
+            html += '<tr>' +
+              '<td style="font-family:var(--font-mono);font-size:12px;white-space:nowrap;">' + Ui.esc(item.file) + '</td>' +
+              '<td>' +
+                '<div style="font-weight:600;">ตอนที่ ' + Ui.esc(String(ch)) + '</div>' +
+                (reason ? '<div style="font-size:11px;color:var(--c-text-muted);">' + Ui.esc(reason.slice(0, 100)) + '</div>' : '') +
+                (createdAt ? '<div style="font-size:10px;color:var(--c-text-soft);">' + createdAt + '</div>' : '') +
+              '</td>' +
+              '<td>' +
+                (suggestion ? '<code id="' + fileId + '" style="font-size:11px;white-space:pre-wrap;">' + Ui.esc(suggestion) + '</code>' : '') +
+              '</td>' +
+              '<td style="white-space:nowrap;">' +
+                (suggestion ? '<button class="c-btn c-btn--xs" onclick="navigator.clipboard.writeText(document.getElementById(\'' + fileId + '\').textContent)">📋</button>' : '') +
+                (slug && ch ? ' <a href="#admin/logs/' + Ui.esc(slug) + '/' + ch + '" class="c-btn c-btn--xs" data-nav>📂</a>' : '') +
+              '</td>' +
+            '</tr>';
+          }
+          html += '</tbody></table></div>';
         }
-        html += '</tbody></table></div></div>';
+        html += '</div>';
         return html;
       };
 
@@ -226,19 +239,57 @@ const AdminJobsPage = {
         renderAdminNav('jobs') +
         '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">📋 คิวงานแปล</h3></div>';
 
-      if (!jobsData.active && !jobsData.done && !jobsData.failed && !jobsData.needsReview) {
-        html += '<p class="u-text-muted u-p-lg">ไม่สามารถโหลดข้อมูลคิวงาน</p>';
-      } else {
-        html += makeSection('กำลังทำงาน', jobsData.active, '🔄');
-        html += makeSection('รอตรวจสอบ', jobsData.needsReview, '⚠️');
-        html += makeSection('ล้มเหลว', jobsData.failed, '❌');
-        html += makeSection('เสร็จแล้ว', jobsData.done, '✅');
-      }
+      html += makeSection('กำลังทำงาน', jobsData.active, '🔄', 'ไม่มี job ที่กำลังรัน');
+      html += makeSection('รอตรวจสอบ', jobsData.needsReview, '⚠️', 'ไม่มีตอนที่รอตรวจสอบ');
+      html += makeSection('ล้มเหลว', jobsData.failed, '❌', 'ไม่มีตอนที่ล้มเหลว');
+      html += makeSection('เสร็จแล้ว', jobsData.done, '✅', 'ไม่มี job ที่เสร็จ');
 
       html += '</div>';
       page.innerHTML = html;
     } catch (err) {
       Ui.showError(page, 'โหลดคิวงานไม่สำเร็จ', err.message);
+    }
+  }
+};
+
+// ── ADMIN LOGS VIEWER ────────────────────────────────────────────────────
+const AdminLogsPage = {
+  async render(params) {
+    const page = Ui.$('page-admin-logs');
+    if (!page) return;
+    Ui.showSkeleton('page-admin-logs');
+    try {
+      const slug = params.slug;
+      const num = params.num;
+      if (!slug || !num) {
+        page.innerHTML = '<div class="c-container"><p class="u-text-muted u-p-lg">ไม่ระบุ slug หรือตอน</p></div>';
+        return;
+      }
+      const res = await fetch('/api/admin/logs/' + encodeURIComponent(slug) + '/' + num);
+      const data = await res.json();
+      let html = '<div class="c-container">' +
+        renderAdminNav('logs') +
+        '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">📂 Audit Log: ' + Ui.esc(slug) + ' / ตอน ' + Ui.esc(num) + '</h3>' +
+        '<a href="#admin/jobs" class="c-btn c-btn--sm" data-nav style="margin-left:var(--space-sm);">← กลับ</a></div>';
+
+      if (!data.ok || !data.files || data.files.length === 0) {
+        html += '<p class="u-text-muted u-p-lg">' + Ui.esc(data.error || 'ไม่มี log สำหรับตอนนี้') + '</p>';
+      } else {
+        for (const file of data.files) {
+          html += '<div class="c-section" style="margin-top:var(--space-md);">' +
+            '<div class="c-section__header"><h3 class="c-section__title">' + Ui.esc(file.name) + '</h3></div>';
+          if (file.isJson) {
+            html += '<pre style="background:var(--c-surface);padding:var(--space-md);border-radius:var(--radius-sm);font-size:12px;overflow-x:auto;max-height:400px;"><code>' + Ui.esc(JSON.stringify(file.content, null, 2)) + '</code></pre>';
+          } else {
+            html += '<pre style="background:var(--c-surface);padding:var(--space-md);border-radius:var(--radius-sm);font-size:12px;overflow-x:auto;max-height:400px;"><code>' + Ui.esc(file.content) + '</code></pre>';
+          }
+          html += '</div>';
+        }
+      }
+      html += '</div>';
+      page.innerHTML = html;
+    } catch (err) {
+      Ui.showError(page, 'โหลด log ไม่สำเร็จ', err.message);
     }
   }
 };
