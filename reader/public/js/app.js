@@ -36,11 +36,11 @@ const Router = {
     if (handler && this._current !== hash) {
       this._current = hash;
       this._activatePage(page, params);
-      handler(params);
+      try { handler(params); } catch(e) { console.error('Router error', page, e); }
     } else if (!handler && this._current !== hash) {
       this._current = hash;
       this._activatePage('home');
-      this._routes.home?.();
+      try { this._routes.home?.(); } catch(e) { console.error('Router error home', e); }
     }
   },
 
