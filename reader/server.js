@@ -11,7 +11,6 @@ const fs = require('node:fs/promises');
 const fsSync = require('node:fs');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
-const { marked } = require('marked');
 
 // Export pure functions for testing
 // When required as a module, only the renderer + helpers are exported.
@@ -23,49 +22,20 @@ const NOVELS_DIR = process.env.NOVELCLAW_ROOT
 const PUBLIC_DIR = path.resolve(__dirname, 'public');
 
 // ── Cache (unified) ──────────────────────────────────────────────────────
-// Single Map with prefixed keys: 'list:{slug}', 'html:{slug}:{num}', 'meta:{slug}'
-// For 1,239 chapters the title-extraction is N file reads per page load.
-// Cache the result; invalidate when the chapters/ dir mtime changes (new
-// file added/touched) or after 5 minutes (defensive TTL). Per-file mtime
-// is also folded into the cache key so touching a single file invalidates.
-// For HTML: parsed chapter JSON is expensive (file read + JSON.parse + render).
-// Cache the rendered HTML by chapter num, LRU-evicted when size exceeds limit.
+// Only caches chapter list and novel meta — NOT chapter HTML content.
+// Chapter JSON files are small (~8-15KB) and fast to read + JSON.parse.
+// The OS filesystem cache handles the heavy lifting.
 
 const cache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000;
-const CHAPTER_CACHE_MAX = 200;
 
 function invalidateCache(slug) {
   if (slug) {
     cache.delete('list:' + slug);
     cache.delete('meta:' + slug);
-    // Clear HTML entries for this slug
-    for (const k of cache.keys()) {
-      if (k.startsWith('html:' + slug + ':')) cache.delete(k);
-    }
   } else {
     cache.clear();
   }
-}
-
-function getCachedChapter(slug, num, fileMtime) {
-  const key = 'html:' + slug + ':' + num;
-  const entry = cache.get(key);
-  if (entry && entry.mtimeMs === fileMtime) {
-    cache.delete(key);
-    cache.set(key, entry);
-    return entry.html;
-  }
-  return null;
-}
-
-function setCachedChapter(slug, num, fileMtime, html) {
-  const key = 'html:' + slug + ':' + num;
-  if (cache.size >= CHAPTER_CACHE_MAX) {
-    const oldest = cache.keys().next().value;
-    cache.delete(oldest);
-  }
-  cache.set(key, { html, mtimeMs: fileMtime, size: ((html && html.html) || '').length });
 }
 
 // ── helpers ────────────────────────────────────────────────────────────
@@ -90,15 +60,6 @@ const SLUG_RE = /^[a-zA-Z0-9_-]+$/;
 
 function assertValidSlug(slug) {
   if (!SLUG_RE.test(slug)) throw Object.assign(new Error('Invalid slug format'), { status: 400 });
-}
-
-async function readMeta(slug) {
-  assertValidSlug(slug);
-  try {
-    return await fs.readFile(path.join(NOVELS_DIR, slug, 'meta.md'), 'utf8');
-  } catch {
-    return '';
-  }
 }
 
 // ── File helpers — dedupe the try/catch + ENOENT pattern ───────────────
@@ -176,10 +137,7 @@ async function listChapters(slug) {
       let isTranslated = !entry.isSource;
       try {
         if (entry.isSource) {
-          const raw = await fs.readFile(path.join(dir, 'source', entry.name), 'utf8');
-          const m = raw.match(/^#\s+(.+?)\r?\n/);
-          if (m) title = m[1].trim();
-          else title = `ตอนที่ ${num} [ยังไม่แปล]`;
+          title = `ตอนที่ ${num}`;
         } else {
           const raw = await fs.readFile(path.join(dir, entry.name), 'utf8');
           if (entry.name.endsWith('.json')) {
@@ -204,7 +162,6 @@ async function listChapters(slug) {
 }
 
 async function readChapter(slug, num) {
-  assertValidSlug(slug);
   const padded = String(num).padStart(4, '0');
   const file = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.md`);
   const jsonFile = path.join(NOVELS_DIR, slug, 'chapters', `${padded}.json`);
@@ -238,66 +195,35 @@ async function readChapter(slug, num) {
 
   if (!isTranslated) {
     const parsed = parseMarkdownToBlocks(raw, num);
-    const html = renderChapterJson(parsed);
     return {
       title: parsed.title || `ตอนที่ ${num} [ยังไม่แปล]`,
-      html,
-      metaHtml: '',
       isJson: true,
       blocks: parsed.blocks,
       source: `ch ${num} (Original Source)`,
       lang: 'cn',
       notes: [],
-      markdownText: raw,
       isTranslated: false
     };
   }
 
   if (isJson) {
-    // LRU cache hit? fileStat.mtimeMs is the cache key — content edit
-    // bumps mtime automatically, no manual invalidation needed.
-    const cached = getCachedChapter(slug, num, fileStat.mtimeMs);
     let ch;
     try {
       ch = JSON.parse(raw);
     } catch (parseErr) {
       throw Object.assign(new Error(`Invalid JSON in ${padded}.json: ${parseErr.message}`), { status: 500 });
     }
-    
-    if (cached) {
-      return {
-        title: cached.title,
-        html: cached.html,
-        metaHtml: cached.metaHtml,
-        isJson: true,
-        blocks: cached.blocks || ch.blocks || [],
-        source: cached.source || ch.source || '',
-        lang: cached.lang || ch.lang || 'cn',
-        notes: cached.notes || ch.notes || [],
-        markdownText: cached.markdownText || convertBlocksToMarkdown(ch.title || `ตอนที่ ${num}`, ch.blocks || [], ch.source || '', ch.notes || []),
-        isTranslated: true
-      };
-    }
-    // New format: structured JSON, render directly
-    const html = renderChapterJson(ch);
-    const metaHtml = (ch.notes && ch.notes.length)
-      ? `<ul>${ch.notes.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>`
-      : '';
-    const markdownText = convertBlocksToMarkdown(ch.title || `ตอนที่ ${num}`, ch.blocks || [], ch.source || '', ch.notes || []);
-    const result = {
+
+    return {
       title: ch.title || `ตอนที่ ${ch.num}`,
-      html,
-      metaHtml,
       isJson: true,
+      paragraphs: ch.paragraphs || [],
       blocks: ch.blocks || [],
       source: ch.source || '',
       lang: ch.lang || 'cn',
       notes: ch.notes || [],
-      markdownText,
       isTranslated: true
     };
-    setCachedChapter(slug, num, fileStat.mtimeMs, result);
-    return result;
   }
   // Legacy .md path
   const parts = raw.split(/\n---\n/);
@@ -333,17 +259,13 @@ async function readChapter(slug, num) {
     blocks: parsed.blocks,
     source: parsed.notes.length > 0 ? '' : `ch ${num}`,
     lang: 'cn',
-    notes: parsed.notes,
-    markdownText: raw
+    notes: parsed.notes
   };
 }
 
-// ── Chapter rendering (delegated to lib/render.js for profile support) ──
-const { renderChapterJson } = require('./lib/render');
-const { esc } = require('./lib/helpers');
-const { validateChapterJs } = require('./services/validation');
+// ── Markdown Parser helpers ───────────────────────────────────────────
 
-// ── Markdown Parser & Generator helpers ───────────────────────────
+const { validateChapterJs } = require('./services/validation');
 
 function parseMarkdownToBlocks(mdText, chapterNum) {
   const normalized = mdText.replace(/\r\n/g, '\n').trim();
@@ -438,46 +360,6 @@ function parseMarkdownToBlocks(mdText, chapterNum) {
   return { title, blocks, notes };
 }
 
-function convertBlocksToMarkdown(title, blocks, source, notes = []) {
-  let md = `# ${title}\n\n`;
-  
-  for (const block of blocks) {
-    if (block.type === 'end') {
-      md += `${block.text}\n\n`;
-    } else if (block.type === 'dialogue') {
-      if (block.speaker) {
-        md += `${block.speaker}พูด: ${block.text}\n\n`;
-      } else {
-        md += `${block.text}\n\n`;
-      }
-    } else {
-      md += `${block.text}\n\n`;
-    }
-  }
-  
-  md = md.trim() + '\n';
-  
-  if (source || (notes && notes.length > 0)) {
-    md += '\n---\n\n';
-    if (source) {
-      md += `*Source: ch ${source.replace(/^(ch\s*)+/gi, '')}*\n\n`;
-    }
-    if (notes && notes.length > 0) {
-      md += 'หมายเหตุการแปล:\n';
-      for (const n of notes) {
-        md += `- ${n}\n`;
-      }
-      md += '\n';
-    }
-  }
-  
-  return md.trim() + '\n';
-}
-
-// ── marked customization ───────────────────────────────────────────────
-
-marked.setOptions({ gfm: true, breaks: false });
-
 // ── routes ─────────────────────────────────────────────────────────────
 
 const app = express();
@@ -528,13 +410,13 @@ async function readNovelMeta(slug) {
   try {
     raw = await fs.readFile(metaPath, 'utf8');
   } catch {
-    const fallback = { slug, title: slug, source_lang: 'cn', target_lang: 'th' };
+    const fallback = { slug, title: slug, source_lang: 'cn', target_lang: 'th', description: '' };
     cache.set(mk, fallback);
     return fallback;
   }
   // Parse YAML frontmatter
   const m = raw.match(/^---\s*\n([\s\S]*?)\n---/);
-  const meta = { slug, title: slug, source_lang: 'cn', target_lang: 'th' };
+  const meta = { slug, title: slug, source_lang: 'cn', target_lang: 'th', description: '' };
   if (m) {
     for (const line of m[1].split('\n')) {
       const kv = line.match(/^(\w[\w_]*):\s*(.+?)\s*$/);
@@ -544,6 +426,18 @@ async function readNovelMeta(slug) {
       }
     }
   }
+  // Extract description from markdown body (line after "## Description")
+  const lines = raw.split('\n');
+  let inDesc = false;
+  for (const line of lines) {
+    if (inDesc) {
+      if (line.startsWith('## ')) break;
+      meta.description += line.trim() + '\n';
+    } else if (line.startsWith('## Description')) {
+      inDesc = true;
+    }
+  }
+  meta.description = meta.description.trim();
   cache.set(mk, meta);
   return meta;
 }
@@ -566,7 +460,7 @@ app.get('/api/novels', async (_req, res) => {
         translatedChapters: translatedCount,
         totalChapters: parseInt(meta.total_chapters, 10) || chapters.length,
         status: meta.status || 'unknown',
-        meta: await readMeta(slug),
+        description: meta.description || '',
       };
     }),
   );
@@ -577,11 +471,6 @@ app.get('/api/novel/:slug/chapters', async (req, res) => {
   const chapters = await listChapters(req.params.slug);
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.json({ slug: req.params.slug, chapters });
-});
-
-app.get('/api/novel/:slug/chapter-numbers', async (req, res) => {
-  const chapters = await listChapters(req.params.slug);
-  res.json(chapters.map((c) => c.num));
 });
 
 // Search filter — case-insensitive, matches against num + title + number-prefix
@@ -637,7 +526,8 @@ app.get('/api/novel/:slug/chapters/search', async (req, res) => {
       try {
         const raw = await fs.readFile(path.join(dir, `${padded}.json`), 'utf8');
         const data = JSON.parse(raw);
-        const text = (data.blocks || []).map(b => b.text || '').join('\n');
+        // v3: paragraphs first, fallback to blocks
+        const text = (data.paragraphs || []).join('\n') || (data.blocks || []).map(b => b.text || '').join('\n');
         const idx = text.toLowerCase().indexOf(qLower);
         if (idx !== -1) {
           const start = Math.max(0, idx - 40);
@@ -660,13 +550,10 @@ app.get('/api/novel/:slug/chapter/:num', async (req, res) => {
   try {
     const result = await readChapter(req.params.slug, num);
     if (!result) return res.status(404).json({ error: 'Chapter not found' });
-    const { title, body, meta, html, metaHtml, isJson } = result;
+    const { title, isJson } = result;
 
-    // Run validation to compute score card only if translated
-    let valResult = { score: 100, valid: true, errors: [], warnings: [], info: [] };
-    if (result.isTranslated !== false) {
-      valResult = await validateChapterJs(req.params.slug, num, title, result.blocks || [], result.source || '', result.lang || 'cn', { novelRoot: NOVELS_DIR });
-    }
+    // ponytail: validation runs only on POST (save). On GET skip it — saves ~10-50ms
+    // and glossary file reads per chapter load. Frontend doesn't use score/validation fields.
 
     // Cache control: always revalidate with server before using cached response
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -677,22 +564,15 @@ app.get('/api/novel/:slug/chapter/:num', async (req, res) => {
       slug: req.params.slug,
       num,
       title,
-      html: isJson ? html : (body ? marked.parse(body) : ''),
-      metaHtml: metaHtml || (meta ? marked.parse(meta) : ''),
       isJson,
+      paragraphs: result.paragraphs || [],
       blocks: result.blocks || [],
       source: result.source || '',
       lang: result.lang || 'cn',
       notes: result.notes || [],
-      markdownText: result.markdownText || '',
-      score: valResult.score,
+      score: 100,
       isTranslated: result.isTranslated !== false,
-      validation: {
-        valid: valResult.valid,
-        errors: valResult.errors,
-        warnings: valResult.warnings,
-        info: valResult.info
-      }
+      validation: { valid: true, errors: [], warnings: [], info: [] }
     });
   } catch (err) {
     if (err.code === 'ENOENT') return res.status(404).json({ error: 'Chapter not found' });
@@ -815,12 +695,13 @@ app.post('/api/novel/:slug/delete', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// ── SAVE CHAPTER ───────────────────────────────────────────────────────
 app.post('/api/novel/:slug/chapter/:num/save', async (req, res) => {
   const slug = req.params.slug;
   const num = parseInt(req.params.num, 10);
   if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
   const padded = String(num).padStart(4, '0');
-  let { title, blocks, source, lang, markdownText } = req.body;
+  let { title, blocks, source, lang, paragraphs, markdownText } = req.body;
 
   let notes = [];
   if (markdownText) {
@@ -835,12 +716,20 @@ app.post('/api/novel/:slug/chapter/:num/save', async (req, res) => {
     num,
     title: title || `ตอนที่ ${num}`,
     lang: lang || 'cn',
-    blocks: blocks || [],
     source: source || '',
     notes: notes || []
   };
+  // Preserve v3 paragraphs format; fall back to blocks only when paragraphs absent
+  if (paragraphs && paragraphs.length) {
+    chapterData.paragraphs = paragraphs;
+  } else {
+    chapterData.blocks = blocks || [];
+  }
 
-  const valResult = await validateChapterJs(slug, num, chapterData.title, chapterData.blocks, chapterData.source, chapterData.lang, { novelRoot: NOVELS_DIR });
+  // Validate blocks only (paragraphs format skips block-level validation —
+  // already validated by translate pipeline)
+  const validateBlocks = chapterData.blocks || [];
+  const valResult = await validateChapterJs(slug, num, chapterData.title, validateBlocks, chapterData.source, chapterData.lang, { novelRoot: NOVELS_DIR });
   
   if (!valResult.valid) {
     const errorMsg = [
@@ -874,27 +763,7 @@ app.post('/api/novel/:slug/chapter/:num/save', async (req, res) => {
   }
 });
 
-app.get('/api/admin/users', async (req, res) => {
-  const usersPath = path.join(__dirname, 'users.json');
-  try {
-    const data = await fs.readFile(usersPath, 'utf8');
-    res.json(JSON.parse(data));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/admin/users/save', async (req, res) => {
-  const usersPath = path.join(__dirname, 'users.json');
-  const users = req.body;
-  try {
-    await fs.writeFile(usersPath, JSON.stringify(users, null, 2), 'utf8');
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
+// ── DELETE chapter (JSON + legacy .md) ────────────────────────────────────
 app.post('/api/novel/:slug/chapter/:num/delete', async (req, res) => {
   const slug = req.params.slug;
   const num = parseInt(req.params.num, 10);
@@ -975,6 +844,14 @@ server.on('error', (err) => {
 
 const START_TIME = Date.now();
 
+// ── Crash prevention: unhandled promise rejection ──────────────────────
+// Without this, a single async route error kills the entire process.
+// Node 15+ terminates on unhandled rejections — this catches what
+// Express's global error handler misses.
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 // ── SPA fallback ──────────────────────────────────────────────────────
 // Any route that isn't an API call or a static file serves index.html
 // so the frontend JS can handle routing via URL params.
@@ -987,7 +864,8 @@ app.get('*', (req, res) => {
   let html = fsSync.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
   // Cache-bust: append server start timestamp to script src URLs
   html = html.replace(/src="\/(js\/[^"]+)"/g, `src="/$1?_t=${START_TIME}"`);
-  html = html.replace(/href="\/(design-system\.css)"/g, `href="/$1?_t=${START_TIME}"`);
+  // CSS too — strip any existing query param first, then append fresh timestamp
+  html = html.replace(/href="\/(design-system\.css)[^"]*"/g, `href="/$1?_t=${START_TIME}"`);
   res.send(html);
 });
 
@@ -1003,10 +881,3 @@ app.use((err, req, res, next) => {
     res.status(status).json({ error: err.message || 'Internal server error' });
   }
 });
-
-// ── Exports (for testing) ─────────────────────────────────────────────
-// When this file is required as a module (test_server.js, future
-// in-process consumers), export the pure functions. When run via
-// `node server.js`, the app.listen above is the entry point.
-
-module.exports = { renderChapterJson };

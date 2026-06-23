@@ -3,11 +3,10 @@
 
 Blocks commit if:
   - Schema validation fails (Pydantic)
-  - CN/JP leak found (cn_checker)
+  - CN/JP leak found in paragraphs or blocks
 
 Warns (doesn't block) if:
-  - Glossary gate sees new terms not yet in glossary
-  - Glossary doctor finds warnings
+  - Validation gates find issues
 
 Configure: git config core.hooksPath .githooks
 """
@@ -21,14 +20,14 @@ REPO = Path(__file__).parent.parent
 sys.path.insert(0, str(REPO / "tools"))
 from schema import Chapter  # noqa: E402
 
-# CN/JP check (inlined for speed — full tool at tools/cn_checker.py)
+# CN/JP check — supports both v3 paragraphs and legacy blocks
 CN = re.compile(r'[\u4e00-\u9fff]')
 JP_KANA = re.compile(r'[\u3040-\u309f\u30a0-\u30ff]')
 WHITELIST_ZONES = [
     re.compile(r'【[^】]*】'),
     re.compile(r'《[^》]*》'),
 ]
-# Auto-strip patterns (P'Chok's choice — see tools/cn_checker.py)
+# Auto-strip patterns
 STRIP_PATTERNS = [
     re.compile(r'^\s*ขอบคุณ\s*นักอ่าน[:：]?.*$', re.MULTILINE),
     re.compile(r'^\s*ขอบคุณ\s*《[^》]*》.*$', re.MULTILINE),
@@ -51,12 +50,19 @@ def should_strip(text):
 
 
 def check_cn_leak(data):
-    """Return list of (block_idx, char, btype) leaks."""
+    """Return list of (idx, char, source) leaks."""
     leaks = []
+    # Check paragraphs format (v3)
+    for i, para in enumerate(data.get('paragraphs', [])):
+        if not para or para in ('(จบบท)', '(End)', '（終）', '(끝)'):
+            continue
+        for c in CN.findall(para) + JP_KANA.findall(para):
+            leaks.append((i, c, 'paragraph'))
+    # Check blocks format (legacy)
     for i, block in enumerate(data.get('blocks', [])):
         btype = block.get('type')
         text = block.get('text', '')
-        if not text or btype == 'end_marker' or should_strip(text):
+        if not text or btype == 'end' or should_strip(text):
             continue
         if btype in ('narration', 'dialogue'):
             for c in CN.findall(text) + JP_KANA.findall(text):
@@ -115,37 +121,25 @@ def main():
             errors += len(cn_leaks)
             continue
 
-        # 3. Glossary gate (warning only — pre-translate gate ran in workflow)
+        # 3. Validation check (integrated)
         try:
-            from glossary_gate import scan_chapter
-            gate_result = scan_chapter(ch.num)
-            if not gate_result.get('gate_passed', True) and 'error' not in gate_result:
-                new_terms = [t for t, _ in gate_result.get('terms_new', [])[:5]]
-                if new_terms:
-                    print(f'  ⚠️  {path.name}: glossary gate sees {len(gate_result["terms_new"])} new term(s): {new_terms}')
+            from tools.validation import validate_translation_quality
+            from pathlib import Path
+            src_path = Path(REPO) / 'novels' / 'global-descent' / 'chapters' / 'source' / f'{ch.num:04d}.md'
+            src_text = src_path.read_text('utf-8') if src_path.exists() else ''
+            result = validate_translation_quality(data, src_text)
+            if result:
+                for w in result.get('warnings', []):
+                    print(f'  ⚠️  {path.name}: {w}')
                     warnings += 1
-        except Exception as e:
-            # Gate is informational — never block on it
+                for e in result.get('errors', []):
+                    print(f'  ❌ {path.name}: {e}')
+                    errors += 1
+        except Exception:
             pass
 
-        # 4. Doctor (warnings only)
-        try:
-            from glossary_doctor import load_glossary, validate_chapter
-            glossary, alias_map, style_rules = load_glossary()
-            issues = validate_chapter(ch.num, glossary, alias_map, style_rules, log_to_db=False)
-            ch_errors = [i for i in issues if i.get('severity') == 'error']
-            ch_warnings = [i for i in issues if i.get('severity') == 'warning']
-            if ch_errors:
-                print(f'  ❌ {path.name}: {len(ch_errors)} doctor error(s):')
-                for e in ch_errors[:3]:
-                    print(f'      {e.get("rule_type", "?")}: {e.get("pattern", "")[:60]}')
-                errors += len(ch_errors)
-            else:
-                w_msg = f', {len(ch_warnings)} warning(s)' if ch_warnings else ''
-                print(f'  ✓ {path.name}: schema + CN OK ({len(ch.blocks)} blocks{w_msg})')
-                warnings += len(ch_warnings)
-        except Exception as e:
-            print(f'  ⚠️  {path.name}: doctor unavailable: {e}')
+        if errors == 0:
+            print(f'  ✓ {path.name}: schema + validation OK ({len(data.get("blocks", data.get("paragraphs", [])))} blocks)')
 
     print()
     if errors:

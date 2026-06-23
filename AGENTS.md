@@ -79,7 +79,7 @@ Post-process: no longer does type fix, end marker append (auto), dialogue reclas
 - ❌ อย่าใส่ API keys ใน code หรือ .env ของ project
 - ❌ อย่าใช้ cloudscraper — project ตายแล้ว
 - ❌ อย่าใช้ `git add -A` — git root = C:\ จะ time out
-- ❌ อย่าใช้ `--entities`, `--two-pass`, `--passes` flags — ไม่มีผลแล้ว (entity pipeline ถูกลบ)
+- ❌ อย่าใช้ `--entities`, `--two-pass`, `--passes` — ถูกถอนออกจาก translate.py แล้ว
 - ❌ อย่าให้ LLM output JSON — ใช้ `parse_translation_output()` แทน
 
 ---
