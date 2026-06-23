@@ -22,7 +22,7 @@ const HomePage = {
         <div class="c-hero">
           <div class="c-hero__content">
             <span class="c-hero__badge"><svg style="width:14px;height:14px;margin-right:4px;vertical-align:-2px;"><use xlink:href="#icon-ranking"/></svg>ยอดนิยม</span>
-            <h2 class="c-hero__title">${Ui.esc(featured.title || featured.slug)}</h2>
+            <h2 class="c-hero__title">${Ui.esc(Ui.displayTitle(featured))}</h2>
             <p class="c-hero__subtitle">${Ui.esc(featured.slug)} • ${Ui.esc(featured.source_lang||'cn')} → ${Ui.esc(featured.target_lang||'th')}</p>
             <div class="c-hero__meta">
               <span class="c-hero__tag c-hero__tag--lang">${Ui.esc(featured.source_lang||'cn')} → ${Ui.esc(featured.target_lang||'th')}</span>
@@ -60,7 +60,7 @@ const HomePage = {
           <a href="#novel/${n.slug}" class="c-card" data-nav>
             <div class="c-card__cover" style="background:linear-gradient(135deg,hsl(${n.hue},70%,40%),hsl(${(n.hue+40)%360},60%,30%));color:#000;">${(n.title||n.slug).charAt(0)}</div>
             <div class="c-card__info">
-              <span class="c-card__title">${Ui.esc(n.title||n.slug)}</span>
+              <span class="c-card__title">${Ui.esc(Ui.displayTitle(n))}</span>
               <span class="c-card__meta">${n.lastRead ? 'ตอนที่ ' + n.lastRead + ' / ' + n.totalCount : '0 / ' + n.totalCount}</span>
               <div class="c-card__progress">
                 <div class="c-card__progress-bar"><div class="c-card__progress-fill" style="width:${n.translationPct}%"></div></div>
@@ -91,7 +91,7 @@ const HomePage = {
               <span class="c-update__badge">NEW</span>
               ${(n.title||n.slug).charAt(0)}
             </div>
-            <span class="c-update__title">${Ui.esc(n.title||n.slug)}</span>
+            <span class="c-update__title">${Ui.esc(Ui.displayTitle(n))}</span>
             <span class="c-update__ch">ตอนที่ ${n.chapterCount||0}</span>
           </a>`;
       }
@@ -113,7 +113,7 @@ const HomePage = {
             <span class="c-popular__rank ${rankClass}">${idx + 1}</span>
             <div class="c-popular__cover" style="background:linear-gradient(135deg,hsl(${n.hue},70%,40%),hsl(${(n.hue+40)%360},60%,30%));color:#000;">${(n.title||n.slug).charAt(0)}</div>
             <div class="c-popular__info">
-              <span class="c-popular__title">${Ui.esc(n.title||n.slug)}</span>
+              <span class="c-popular__title">${Ui.esc(Ui.displayTitle(n))}</span>
               <span class="c-popular__meta">${n.source_lang||'cn'} → ${n.target_lang||'th'} • โดย ${n.author||'ไม่ระบุ'}</span>
               <span class="c-popular__views"><svg style="width:12px;height:12px;margin-right:4px;vertical-align:-2px;"><use xlink:href="#icon-book"/></svg>${n.chapterCount||0}+ ตอน</span>
             </div>

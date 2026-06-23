@@ -37,7 +37,7 @@ const SearchPage = {
   async render(params) {
     const page = Ui.$('page-search');
     if (!page) return;
-    page.innerHTML = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-search"/></svg>ค้นหานิยาย</h3></div><div class="c-search"><input type="text" id="search-input-field" placeholder="พิมพ์ชื่อนิยาย ผู้แต่ง หรือคีย์เวิร์ด..." class="c-search__input" /><div class="c-search__tags"><span class="c-tag c-tag--active" data-genre="all">ทั้งหมด</span><span class="c-tag" data-genre="fantasy">แฟนตาซี</span><span class="c-tag" data-genre="action">แอคชัน</span><span class="c-tag" data-genre="sci-fi">ไซไฟ</span><span class="c-tag" data-genre="romance">โรแมนติก</span></div><div id="search-results"></div></div></section></div>';
+    page.innerHTML = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-search"/></svg>ค้นหานิยาย</h3></div><div class="c-search"><input type="text" id="search-input-field" placeholder="พิมพ์ชื่อ ภาษาไทย จีน อังกฤษ หรือ slug..." class="c-search__input" autofocus /><div id="search-results"></div></div></section></div>';
     Ui.$('search-input-field')?.addEventListener('input', async (e) => {
       const q = e.target.value.trim().toLowerCase();
       const results = Ui.$('search-results');
@@ -45,12 +45,20 @@ const SearchPage = {
       if (q.length < 2) { results.innerHTML = ''; return; }
       try {
         const novels = await Api.getNovels();
-        const filtered = novels.filter(n => (n.title || n.slug).toLowerCase().includes(q) || (n.author || '').toLowerCase().includes(q));
-        if (filtered.length === 0) { results.innerHTML = '<p class="u-text-center u-text-muted u-p-lg">ไม่พบนิยายที่ค้นหา</p>'; return; }
+        const filtered = novels.filter(n =>
+          (n.title || '').toLowerCase().includes(q) ||
+          (n.translatedTitle || '').toLowerCase().includes(q) ||
+          (n.slug || '').toLowerCase().includes(q) ||
+          (n.author || '').toLowerCase().includes(q)
+        );
+        if (filtered.length === 0) {
+          results.innerHTML = '<div class="c-empty" style="padding:32px 0;"><div class="c-empty__title">ไม่พบนิยาย</div><div class="c-empty__desc">ลองค้นด้วยชื่อเรื่อง ภาษาไทย จีน หรือ slug เช่น global-descent</div></div>';
+          return;
+        }
         let html = '<div class="c-card-grid" style="margin-top:16px;">';
         for (const n of filtered) {
           const h = Ui.slugToHue(n.slug);
-          html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover" style="background:linear-gradient(135deg,hsl(' + h + ',70%,40%),hsl(' + ((h + 40) % 360) + ',60%,30%));color:#000;">' + (n.title || n.slug).charAt(0) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(n.title || n.slug) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span></div></a>';
+          html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover" style="background:linear-gradient(135deg,hsl(' + h + ',70%,40%),hsl(' + ((h + 40) % 360) + ',60%,30%));color:#000;">' + Ui.esc((n.title || n.slug).charAt(0)) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span></div></a>';
         }
         html += '</div>';
         results.innerHTML = html;
@@ -61,23 +69,51 @@ const SearchPage = {
 
 // ── HISTORY ──────────────────────────────────────────────────────────────
 const HistoryPage = {
-  render(params) {
+  async render(params) {
     const page = Ui.$('page-history');
     if (!page) return;
     const recent = Store.getHistory();
+    const novels = await Api.getNovels();
     let html = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title">ประวัติการอ่าน</h3></div><div class="c-list">';
     if (recent.length === 0) {
-      html += '<p class="u-text-center c-empty__desc u-p-lg">ไม่มีประวัติการอ่าน</p>';
+      html += '<div class="c-empty" style="padding:40px 0;"><svg class="c-empty__mascot"><use xlink:href="#mascot-crab-reading"/></svg><div class="c-empty__title">ยังไม่มีประวัติ</div><div class="c-empty__desc">เมื่ออ่านนิยายจะปรากฏที่นี่</div></div>';
     } else {
       for (const e of recent) {
+        const n = novels.find(x => x.slug === e.slug);
+        const title = Ui.displayTitle(n) || e.slug;
         const dateStr = (e.ts && !isNaN(new Date(e.ts)))
           ? new Date(e.ts).toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })
           : 'ไม่ระบุวันที่';
-        html += '<a href="#novel/' + e.slug + '/' + e.num + '" class="c-list__item" data-nav><div class="c-list__info"><span class="c-list__title">' + e.slug + ' — ตอนที่ ' + e.num + '</span><span class="c-list__meta">' + dateStr + '</span></div><span style="color:var(--c-accent);font-weight:600;font-size:12px;">อ่านต่อ →</span></a>';
+        html += '<a href="#novel/' + e.slug + '/' + e.num + '" class="c-list__item" data-nav><div class="c-list__info"><span class="c-list__title">' + Ui.esc(title) + '</span><span class="c-list__meta">ตอนที่ ' + e.num + ' · ' + dateStr + '</span></div><span style="color:var(--c-accent);font-weight:600;font-size:12px;">อ่านต่อ →</span></a>';
       }
     }
     html += '</div></section></div>';
     page.innerHTML = html;
+  }
+};
+
+// ── RANKING ──────────────────────────────────────────────────────────────
+const RankingPage = {
+  async render(params) {
+    const page = Ui.$('page-ranking');
+    if (!page) return;
+    try {
+      const novels = await Api.getNovels();
+      if (!novels.length) {
+        Ui.showEmpty(page.querySelector('.c-container') || page, 'ไม่มีข้อมูลอันดับ', 'เริ่มอ่านนิยายเพื่อสะสมสถิติ');
+        return;
+      }
+      const sorted = [...novels].sort((a, b) => (b.translatedChapters || 0) - (a.translatedChapters || 0));
+      let html = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title"><svg style="width:16px;height:16px;margin-right:6px;"><use xlink:href="#icon-ranking"/></svg>อันดับนิยาย</h3><span style="font-size:11px;color:var(--c-text-muted);">เรียงตามจำนวนตอนที่แปล</span></div><div class="c-popular">';
+      for (let i = 0; i < Math.min(10, sorted.length); i++) {
+        const n = sorted[i];
+        const h = Ui.slugToHue(n.slug);
+        const rankClass = 'c-popular__rank--' + (i + 1);
+        html += '<a href="#novel/' + n.slug + '" class="c-popular__item" data-nav><span class="c-popular__rank ' + rankClass + '">' + (i + 1) + '</span><div class="c-popular__cover" style="background:linear-gradient(135deg,hsl(' + h + ',70%,40%),hsl(' + ((h + 40) % 360) + ',60%,30%));">' + (n.title ? n.title.charAt(0) : '?') + '</div><div class="c-popular__info"><span class="c-popular__title">' + Ui.displayTitle(n) + '</span><span class="c-popular__meta">' + (n.author || '') + '</span><span class="c-popular__views">' + (n.translatedChapters || 0) + '/' + (n.totalChapters || n.chapterCount || 0) + ' ตอนที่แปลแล้ว</span></div></a>';
+      }
+      html += '</div></section></div>';
+      page.innerHTML = html;
+    } catch (err) { Ui.showError(page, 'โหลดไม่สำเร็จ', err.message); }
   }
 };
 
