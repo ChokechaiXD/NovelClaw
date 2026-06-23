@@ -1143,4 +1143,5 @@ ul, ol { list-style: none; }
 .dialogue { color: var(--c-accent); }
 .system-msg { color: var(--c-text-muted); font-style: italic; }
 .game-title { color: var(--c-warning); font-weight: var(--font-weight-bold); }
+.thought { font-style: italic; color: var(--c-marker-thought, #7C3AED); }
 .end-marker { text-align: center; color: var(--c-text-muted); font-size: var(--text-sm); margin: 3rem 0 1.5rem; letter-spacing: 0.15em; }
