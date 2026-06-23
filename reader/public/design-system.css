@@ -796,6 +796,8 @@ ul, ol { list-style: none; }
 .c-badge { display: inline-block; padding: 1px 8px; border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: var(--font-weight-medium); }
 .c-badge--teal { background: var(--c-accent-soft); color: var(--c-accent); }
 .c-badge--purple { background: var(--c-accent-2-soft); color: var(--c-accent-2); }
+.c-badge--amber { background: rgba(217, 119, 6, 0.12); color: var(--c-warning); }
+.c-badge--red { background: var(--c-error-glow, rgba(220,38,38,0.1)); color: var(--c-error); }
 .c-badge--gray { background: rgba(148, 163, 184, 0.1); color: var(--c-text-muted); }
 
 

@@ -88,18 +88,104 @@ const AdminChaptersPage = {
     if (!page) return;
     try {
       const novels = await Api.getNovels();
-      const slug = novels[0]?.slug;
+      const slug = params.slug || novels[0]?.slug;
       if (!slug) { page.innerHTML = '<div class="c-container">' + renderAdminNav('chapters') + '<p class="u-text-muted u-p-lg">ไม่มีนิยายในระบบ</p></div>'; return; }
       const chapters = await Api.getChapters(slug);
-      let html = '<div class="c-container">' + renderAdminNav('chapters') +
-        '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">ตอนทั้งหมด: ' + Ui.esc(slug) + '</h3><span style="font-size:var(--text-sm);color:var(--c-text-muted);">' + chapters.length + ' ตอน</span></div>' +
-        '<div class="c-table-wrap"><table class="c-table"><thead><tr><th>#</th><th>ชื่อตอน</th><th>สถานะ</th></tr></thead><tbody>';
-      for (const ch of chapters.slice(-100)) {
-        const read = Store.isRead(slug, ch.num);
-        html += '<tr><td style="font-family:var(--font-mono);">' + ch.num + '</td><td>' + Ui.esc(ch.title||'') + '</td><td>' + (read ? '<span class="c-badge c-badge--teal">อ่านแล้ว</span>' : '<span class="c-badge c-badge--gray">ยังไม่ได้อ่าน</span>') + '</td></tr>';
+      if (!chapters || chapters.length === 0) {
+        page.innerHTML = '<div class="c-container">' + renderAdminNav('chapters') + '<p class="u-text-muted u-p-lg">ไม่มีตอนในนิยายนี้</p></div>';
+        return;
       }
-      html += '</tbody></table></div></div>';
-      page.innerHTML = html;
+
+      let filtered = [...chapters];
+      let filterStatus = 'all';
+      let searchQuery = '';
+      let pageSize = 100;
+      let currentPage = 0;
+
+      const renderTable = () => {
+        // Apply filters
+        let list = [...chapters];
+        if (filterStatus === 'translated') list = list.filter(c => c.status === 'translated');
+        else if (filterStatus === 'source_only') list = list.filter(c => c.status === 'source_only');
+        else if (filterStatus === 'read') list = list.filter(c => Store.isRead(slug, c.num));
+        else if (filterStatus === 'unread') list = list.filter(c => !Store.isRead(slug, c.num));
+
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          list = list.filter(c =>
+            c.num.toString().includes(q) ||
+            (c.title && c.title.toLowerCase().includes(q))
+          );
+        }
+
+        const totalFiltered = list.length;
+        const maxPage = Math.ceil(totalFiltered / pageSize) - 1;
+        if (currentPage > maxPage) currentPage = Math.max(0, maxPage);
+        const start = currentPage * pageSize;
+        const pageList = list.slice(start, start + pageSize);
+
+        let html = '<div class="c-container">' + renderAdminNav('chapters') +
+          '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">📖 ตอนทั้งหมด: ' + Ui.esc(slug) + '</h3><span style="font-size:var(--text-sm);color:var(--c-text-muted);">' + totalFiltered + ' / ' + chapters.length + ' ตอน</span></div>' +
+
+          // ── Search + Filter Controls ──
+          '<div class="c-form__row" style="display:flex;gap:var(--space-sm);margin-bottom:var(--space-md);flex-wrap:wrap;">' +
+          '<input id="ch-filter-search" type="text" placeholder="ค้นหาเลขตอน หรือชื่อ..." class="c-form__input" style="flex:1;min-width:160px;" value="' + Ui.esc(searchQuery) + '" />' +
+          '<select id="ch-filter-status" class="c-form__select" style="min-width:140px;">' +
+          '<option value="all"' + (filterStatus === 'all' ? ' selected' : '') + '>ทั้งหมด</option>' +
+          '<option value="translated"' + (filterStatus === 'translated' ? ' selected' : '') + '>✅ แปลแล้ว</option>' +
+          '<option value="source_only"' + (filterStatus === 'source_only' ? ' selected' : '') + '>📄 ต้นฉบับ</option>' +
+          '<option value="read"' + (filterStatus === 'read' ? ' selected' : '') + '>📖 อ่านแล้ว</option>' +
+          '<option value="unread"' + (filterStatus === 'unread' ? ' selected' : '') + '>📕 ยังไม่อ่าน</option>' +
+          '</select>' +
+          '<input id="ch-jump-num" type="number" min="1" max="' + chapters.length + '" placeholder="ไปตอน..." class="c-form__input" style="width:100px;" />' +
+          '<button id="ch-jump-btn" class="c-btn c-btn--sm">ไป</button>' +
+          '</div>' +
+
+          // ── Pagination ──
+          '<div style="display:flex;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-sm);font-size:var(--text-sm);color:var(--c-text-muted);">' +
+          '<button class="c-btn c-btn--xs" id="ch-page-prev"' + (currentPage <= 0 ? ' disabled' : '') + '>◀ ก่อนหน้า</button>' +
+          '<span>หน้า ' + (currentPage + 1) + ' / ' + (maxPage + 1) + '</span>' +
+          '<button class="c-btn c-btn--xs" id="ch-page-next"' + (currentPage >= maxPage ? ' disabled' : '') + '>ถัดไป ▶</button>' +
+          '</div>' +
+
+          // ── Table ──
+          '<div class="c-table-wrap"><table class="c-table"><thead><tr><th>#</th><th>ชื่อตอน</th><th>สถานะ</th></tr></thead><tbody>';
+
+        for (const ch of pageList) {
+          const read = Store.isRead(slug, ch.num);
+          const statusLabel = ch.status === 'translated' ? '✅ แปลแล้ว' : (ch.status === 'source_only' ? '📄 ต้นฉบับ' : '⬜');
+          const statusClass = ch.status === 'translated' ? 'c-badge--teal' : (ch.status === 'source_only' ? 'c-badge--amber' : 'c-badge--gray');
+          html += '<tr><td style="font-family:var(--font-mono);font-weight:600;">' + ch.num + '</td>' +
+            '<td><a href="#novel/' + slug + '/' + ch.num + '" class="c-link" data-nav>' + Ui.esc(ch.title || '') + '</a></td>' +
+            '<td><span class="c-badge ' + statusClass + '">' + statusLabel + '</span></td></tr>';
+        }
+
+        html += '</tbody></table></div></div>';
+        page.innerHTML = html;
+
+        // Bind filter events
+        Ui.$('ch-filter-search').oninput = () => {
+          searchQuery = Ui.$('ch-filter-search').value;
+          currentPage = 0;
+          renderTable();
+        };
+        Ui.$('ch-filter-status').onchange = () => {
+          filterStatus = Ui.$('ch-filter-status').value;
+          currentPage = 0;
+          renderTable();
+        };
+        Ui.$('ch-page-prev').onclick = () => { if (currentPage > 0) { currentPage--; renderTable(); } };
+        Ui.$('ch-page-next').onclick = () => { if (currentPage < maxPage) { currentPage++; renderTable(); } };
+        Ui.$('ch-jump-btn').onclick = () => {
+          const num = parseInt(Ui.$('ch-jump-num').value, 10);
+          if (num) {
+            window.location.hash = '#novel/' + slug + '/' + num;
+          }
+        };
+        Ui.$('ch-jump-num').onkeydown = (e) => { if (e.key === 'Enter') Ui.$('ch-jump-btn').click(); };
+      };
+
+      renderTable();
     } catch (err) { Ui.showError(page, 'โหลดไม่สำเร็จ', err.message); }
   }
 };
