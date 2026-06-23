@@ -17,6 +17,10 @@ const NovelPage = {
       const novel = novels.find(n => n.slug === slug);
       if (!novel) { Ui.showError(page, 'ไม่พบนิยาย'); return; }
 
+      // Update topbar title with novel name
+      const titleEl = document.getElementById('page-title');
+      if (titleEl) titleEl.textContent = Ui.esc(novel.title || slug);
+
       const chapters = await Api.getChapters(slug);
       const enriched = Ui.enrichNovel(novel);
 
