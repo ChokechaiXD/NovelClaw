@@ -74,6 +74,10 @@ def build_parser() -> argparse.ArgumentParser:
     c = sub.add_parser("check", help="Show needs_review queue")
     c.add_argument("range", nargs="?", help="Optional chapter range: '139', '140-150'")
 
+    # backup
+    b = sub.add_parser("backup", help="Create timestamped backup of novels, jobs, and logs")
+    b.add_argument("--output", help="Backup directory (default: backups/YYYY-MM-DD-novelclaw/)")
+
     return parser
 
 
@@ -135,5 +139,8 @@ def run(args: list[str] | None = None) -> dict:
 
     elif cmd == "check":
         return {**base, "ok": True, "command": "check", "range": parsed.range}
+
+    elif cmd == "backup":
+        return {**base, "ok": True, "command": "backup", "output": parsed.output}
 
     return {"ok": False, "message": f"Unknown command: {cmd}"}

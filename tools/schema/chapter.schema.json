@@ -1,34 +1,69 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "NovelClaw Chapter",
-  "description": "Canonical chapter JSON format for NovelClaw — per-language chapter files",
+  "description": "Canonical chapter JSON format for translated/source chapters",
   "type": "object",
-  "required": ["novelId", "chapterNo", "sourceLang", "targetLang", "title", "paragraphs"],
+  "required": ["novelId", "chapterNo", "sourceLang", "targetLang", "title", "status", "paragraphs", "updatedAt"],
   "properties": {
-    "novelId": {"type": "string", "description": "Novel slug (e.g. global-descent)"},
-    "chapterNo": {"type": "integer", "minimum": 1},
-    "sourceLang": {"type": "string", "pattern": "^[a-z]{2}$", "description": "Source language code (e.g. cn)"},
-    "targetLang": {"type": "string", "pattern": "^[a-z]{2}$", "description": "Target language code (e.g. th)"},
+    "novelId": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "description": "Novel slug — must match novel directory name"
+    },
+    "chapterNo": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 99999,
+      "description": "Chapter number — should match filename (zero-padded to 4 digits)"
+    },
+    "sourceLang": {
+      "type": "string",
+      "enum": ["cn", "jp", "kr", "en"],
+      "default": "cn"
+    },
+    "targetLang": {
+      "type": "string",
+      "enum": ["th", "cn", "jp", "kr", "en"],
+      "default": "th"
+    },
     "title": {
       "type": "object",
       "required": ["source", "translated"],
       "properties": {
-        "source": {"type": "string"},
-        "translated": {"type": "string"}
+        "source": { "type": "string" },
+        "translated": { "type": "string" }
       }
     },
-    "status": {"type": "string", "enum": ["translated", "source_only", "legacy"]},
+    "status": {
+      "type": "string",
+      "enum": ["translated", "source_only", "source", "legacy"]
+    },
     "paragraphs": {
       "type": "array",
-      "description": "Translated paragraphs with inline markers",
-      "items": {"type": "string"}
+      "items": { "type": "string" },
+      "description": "Array of paragraph strings — canonical content storage"
     },
     "blocks": {
       "type": "array",
-      "description": "Legacy block format (backward compat)",
-      "items": {"type": "object"}
+      "items": {
+        "type": "object",
+        "required": ["type", "text"],
+        "properties": {
+          "type": { "type": "string", "enum": ["narration", "dialogue", "system", "game_title", "end"] },
+          "text": { "type": "string" },
+          "speaker": { "type": "string" }
+        }
+      },
+      "description": "Legacy block format — present only for backward compat"
     },
-    "notes": {"type": "string"},
-    "updatedAt": {"type": "string", "format": "date-time"}
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of last update"
+    }
   }
 }

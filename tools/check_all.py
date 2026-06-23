@@ -105,6 +105,10 @@ def main():
     else:
         print(f"  API smoke tests {SKIP} (server not running on :4173)")
 
+    # ── 6. Schema validation ────────────────────────────────────────
+    print("\n📦 Schema Validation")
+    check("validate_data", [sys.executable, "tools/validate_data.py", "--all"])
+
     # ── Summary ──────────────────────────────────────────────────────
     elapsed = time.time() - start
     print(f"\n{'=' * 60}")

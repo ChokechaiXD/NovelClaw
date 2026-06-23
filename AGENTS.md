@@ -125,7 +125,12 @@ Post-process: no longer does type fix, end marker append (auto), dialogue reclas
 | `"ต่อ"` | `terminal("python tools/novelctl.py --slug global-descent resume")` |
 | `"รายงาน"` | `terminal("python tools/novelctl.py --slug global-descent report")` |
 | `"rebuild"` | `terminal("python tools/novelctl.py --slug global-descent rebuild")` |
+| `"backup"` | `terminal("python tools/novelctl.py backup")` |
 | `"scrape ตอน 128"` | `terminal("python tools/scrape_chapters.py 128")` |
+| `"check schema"` | `terminal("python tools/validate_data.py --all")` |
+| `"ตรวจ schema"` | `terminal("python tools/validate_data.py --novel global-descent")` |
+| `"quality check"` | `terminal("python tools/check_all.py")` |
+| `"ตรวจคุณภาพโค้ด"` | `terminal("python tools/check_all.py")` |
 
 ## Anti-Patterns (ห้ามทำเด็ดขาด)
 

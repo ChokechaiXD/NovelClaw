@@ -1,48 +1,82 @@
-# Quality Tooling Baseline
+# Quality Tooling Baseline — Phase B
 
-**Date:** 2026-06-24  
-**Status:** ✅ Implemented  
-**Checks:** 36/36 passing
+## Existing Tooling
 
-## Tools Added
+### ✅ check_all.py (Python quality runner)
+- Compiles all Python files (py_compile)
+- Runs novelctl smoke tests (no LLM)
+- Checks novelctl commands (status/report/check)
+- JS syntax checks all reader/public/js/*.js
+- API smoke tests (if server running on :4173)
+- **Exit code**: 0 = pass, 1 = fail
 
-| Tool | Purpose | Command |
-|:-----|:--------|:--------|
-| `tools/check_all.py` | All-in-one quality check | `python tools/check_all.py` |
-| `tools/schema/chapter.schema.json` | Canonical chapter JSON schema | — |
-| `tools/schema/novel.schema.json` | novel.json schema | — |
-| `tools/schema/job.schema.json` | Job state file schema | — |
-| `tools/schema/needs-review.schema.json` | Needs review entry schema | — |
-| `tools/schema/glossary.schema.json` | Glossary JSON schema | — |
+### ✅ CI Workflow (.github/workflows/ci.yml)
+- Runs on: push/PR to main
+- OS: ubuntu-latest
+- Node.js 22 + Python 3.12
+- `npm install` in reader/
+- `python tools/check_all.py`
+- Status: Functional
 
-## Scripts Updated
+### ✅ Pre-commit Hook (.githooks/pre-commit)
+- Validates staged chapter JSON files
+- Checks: JSON parse, Pydantic schema, CN/JP leaks, validation warnings
+- Blocks commit on errors, allows warnings
+- Requires: `git config core.hooksPath .githooks`
 
-| File | Change |
-|:-----|:-------|
-| `reader/package.json` | `npm run check` now includes `novel.js` |
-| `reader/package.json` | `npm run syntax` uses Windows-compatible node script |
-| `.github/workflows/ci.yml` | Simplified to single `check_all.py` call |
+### ✅ npm Scripts (reader/package.json)
+| Script | Command | Status |
+|--------|---------|--------|
+| `start` | `node server.js` | ✅ |
+| `dev` | `node --watch server.js` | ✅ |
+| `check` | Syntax-check all JS files (explicit list) | ✅ Works |
+| `syntax` | Node-based find + syntax check | ⚠️ Windows-only |
+| `test` | `node --check server.js` | ✅ |
+| `test:api` | `node tests/test-api.js` | ✅ Needs running server |
 
-## Dead Code Removed
+### Missing (Optional)
+- ESLint — not configured (vanilla JS, no build step)
+- Prettier — not configured
+- ruff — not in pyproject.toml
+- mypy/pyright — not configured
 
-- `reader/public/js/pages/admin.v3.js` — not loaded in index.html, no references
+## Recommended Improvements
 
-## Check Results (36/36)
+### 1. Fix `syntax` Script (Cross-Platform)
+**Current**: Uses Windows `dir /s /b` — breaks on Linux/CI
+**Recommended**: Replace with Node-based glob:
 
-### Python Syntax (21 files)
-All 21 `.py` files compile clean.
+```json
+"syntax": "node -e \"const{execSync}=require('child_process');const{globSync}=require('fs');const files=globSync('public/js/**/*.js',{cwd:'reader'});files.forEach(f=>{try{execSync('node --check '+f,{cwd:'reader',stdio:'pipe'})}catch(e){process.exit(1)}});console.log('JS syntax: OK')\""
+```
 
-### novelctl Smoke Tests (12 tests)
-JSONL parser, force rollback, draft isolation — all pass.
+### 2. Add Python Ruff to pyproject.toml
+```toml
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+```
 
-### novelctl Commands (3 checks)
-`status`, `report`, `check` — all work without LLM.
+### 3. Test Baseline One-Liner
+```bash
+python tools/check_all.py
+```
+This should be the single command that verifies everything before any commit.
 
-### Reader JS Syntax (10 files)
-All 8 page modules + `app.js` + `api.js` + `state.js` + `components.js` + `server.js` pass `node --check`.
+## Current Test Results (Smoke)
 
-### API Smoke Tests (10 tests)
-All API endpoints respond correctly (requires running server).
+As of foundation v1 (2026-06-24):
+- novelctl smoke tests: ✅ 4/4 pass
+- Python compile: ✅ 21/21 pass
+- novelctl commands: ✅ 3/3 pass
+- JS syntax: ✅ 9/9 pass
+- server.js syntax: ✅ 1/1 pass
 
-## Next Phase
-Phase 3 — Safe Fixes: unused test slugs, missing guards, duplicated helpers, NaN display, route/container gaps.
+## Phase B Deliverables
+
+| File | Status |
+|------|--------|
+| This report (`reports/audit/tooling-baseline.md`) | ✅ |
+| CI workflow `.github/workflows/ci.yml` | ✅ Already exists |
+| `npm run syntax` cross-platform fix | ⬜ Not yet done |
+| Python ruff config | ⬜ Optional |

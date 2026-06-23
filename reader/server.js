@@ -9,6 +9,8 @@
 //   AUTO_KILL_PORT   — set 'true' to auto-kill old process (default off)
 
 const express = require('express');
+const helmet = require('helmet');
+const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const fsSync = require('node:fs');
 const path = require('node:path');
@@ -33,7 +35,8 @@ const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 
 // ── Middleware ─────────────────────────────────────────────────────
 const app = express();
-app.use(express.json());
+app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+app.use(express.json({ limit: '5mb' }));
 
 // Static files with cache disabled for dev
 app.use(express.static(PUBLIC_DIR, {
@@ -60,9 +63,14 @@ const asyncHandler = (fn) => (req, res, next) =>
 // Admin auth middleware
 function requireAdmin(req, res, next) {
   if (!ADMIN_TOKEN) return next(); // no auth configured
-  const provided = req.query.token || (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-  if (provided === ADMIN_TOKEN) return next();
-  res.status(401).json({ error: 'Unauthorized — provide ?token= or Authorization: Bearer' });
+  const provided = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (!provided) {
+    return res.status(401).json({ error: 'Unauthorized — provide Authorization: Bearer <token>' });
+  }
+  if (provided.length === ADMIN_TOKEN.length && crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(ADMIN_TOKEN))) {
+    return next();
+  }
+  res.status(401).json({ error: 'Unauthorized — invalid token' });
 }
 
 // File read helper
@@ -391,7 +399,7 @@ app.get('/api/admin/logs/:slug/:num', requireAdmin, asyncHandler(async (req, res
         const isJson = e.name.endsWith('.json');
         files.push({
           name: e.name,
-          content: isJson ? JSON.parse(content) : content.slice(0, 50000),
+          content: content.slice(0, 50000),
           isJson,
         });
       }
@@ -435,6 +443,23 @@ const server = app.listen(PORT, BIND_HOST, () => {
   console.log(`Serving novels from: ${NOVELS_DIR}`);
 });
 
+// ── Graceful shutdown ─────────────────────────────────────────────
+
+function shutdown(signal) {
+  console.log(`\n${signal} received — shutting down gracefully...`);
+  server.close(() => {
+    console.log('All connections closed.');
+    process.exit(0);
+  });
+  setTimeout(() => {
+    console.error('Forced exit after 10s timeout.');
+    process.exit(1);
+  }, 10000);
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
 // ── EADDRINUSE recovery (opt-in) ───────────────────────────────────
 
 let _eaddrRetries = 0;
@@ -473,14 +498,15 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // ── SPA fallback — serve index.html for all non-API routes ─────────
 
+const INDEX_HTML = fsSync.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
+
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'API not found' });
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
-  let html = fsSync.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
   // Cache-bust: strip existing query, append _t
-  html = html.replace(/src="\/(js\/[^"?]+)(\?[^"]*)?"/g, `src="/$1?_t=${START_TIME}"`);
+  let html = INDEX_HTML.replace(/src="\/(js\/[^"?]+)(\?[^"]*)?"/g, `src="/$1?_t=${START_TIME}"`);
   html = html.replace(/href="\/(design-system\.css)[^"]*"/g, `href="/$1?_t=${START_TIME}"`);
   res.send(html);
 });
