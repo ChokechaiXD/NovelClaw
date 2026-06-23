@@ -98,3 +98,25 @@ def save_style_rules(rules: dict[str, list[dict]], slug: str = "global-descent")
         json.dumps(cleaned_rules, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+
+
+# ── CLI Entry Point ─────────────────────────────────────────────────────
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="NovelClaw Glossary Tool")
+    parser.add_argument("--novel", default="global-descent", help="Novel slug")
+    parser.add_argument("--load", action="store_true", help="Load and print glossary JSON")
+    parser.add_argument("--save", nargs="?", const="-", help="Save glossary from stdin JSON")
+    args = parser.parse_args()
+
+    if args.load:
+        terms = load_terms(args.novel)
+        print(json.dumps({"terms": terms}, ensure_ascii=False))
+    elif args.save:
+        import sys
+        raw = sys.stdin.read() if args.save == "-" else open(args.save, encoding="utf-8").read()
+        data = json.loads(raw)
+        save_terms(data if isinstance(data, list) else data.get("terms", []), args.novel)
+        print(json.dumps({"ok": True, "count": len(data if isinstance(data, list) else data.get("terms", []))}))
+    else:
+        parser.print_help()
