@@ -108,21 +108,64 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
         vr = runner.validate_single(slug, num)
         score = vr.get("score") or tr.get("score")
 
-        if mode == "strict" and score is not None and score < 90:
-            yield f"⚠️ ตอน {num} score {score}/100 — ต่ำกว่า threshold (90) — หยุด"
-            job = job.copy(state="needs_review",
-                           failed=job.failed + [{"chapter": num, "reason": f"low_score:{score}", "retryCount": 0}])
-            job.save()
-            locks.release(slug, num)
-            break
+        # Validate result enforcement
+        val_ok = vr.get("ok", False)
+        val_error = vr.get("error")
+        score_ok = score is not None and score >= 70  # minimum pass
 
-        # Auto repair (autopilot mode)
-        if mode == "autopilot" and (score is None or score < 80):
-            yield f"🔧 ซ่อมตอน {num} (score {score}/100)..."
-            rr = repair.repair_chapter(slug, num)
-            if rr.fixes:
-                for fix in rr.fixes:
-                    yield f"  {fix}"
+        # Determine if validation failed enough to block
+        val_failed = not val_ok or (val_error is not None) or not score_ok
+
+        if val_failed:
+            reason_parts = []
+            if not val_ok:
+                reason_parts.append(f"scorer exit fail")
+            if val_error:
+                reason_parts.append(val_error[:100])
+            if score is not None and not score_ok:
+                reason_parts.append(f"score {score}/100 < 70")
+            reason = "; ".join(reason_parts)
+
+            if mode == "safe":
+                yield f"❌ ตอน {num} validation ล้มเหลว: {reason} — หยุด"
+                job = job.copy(state="failed",
+                              failed=job.failed + [{"chapter": num, "reason": reason, "retryCount": 0}])
+                job.save()
+                locks.release(slug, num)
+                break  # safe mode: stop on any failure
+
+            elif mode == "strict":
+                yield f"⚠️ ตอน {num} validation ล้มเหลว: {reason} — needs_review"
+                job = job.copy(state="needs_review",
+                              failed=job.failed + [{"chapter": num, "reason": f"strict:{reason}", "retryCount": 0}])
+                job.save()
+                locks.release(slug, num)
+                break  # strict: stop and flag needs_review
+
+            else:  # autopilot
+                yield f"⚠️ ตอน {num} validation ล้มเหลว: {reason} — จะ repair แล้ว continue"
+                # Attempt repair
+                rr = repair.repair_chapter(slug, num)
+                if rr.fixes:
+                    for fix in rr.fixes:
+                        yield f"  🔧 {fix}"
+                    # Re-validate after repair
+                    vr2 = runner.validate_single(slug, num)
+                    score = vr2.get("score") or score
+                    if vr2.get("ok") and (score is not None and score >= 60):
+                        yield f"  ✅ repair ช่วยให้ผ่าน validation แล้ว"
+                    else:
+                        yield f"  ⚠️ repair ไม่พอ — เก็บเป็น needs_review"
+                        job = job.copy(failed=job.failed + [{"chapter": num, "reason": f"autopilot:{reason}", "retryCount": 1}])
+                        job.save()
+                        locks.release(slug, num)
+                        continue
+                else:
+                    yield f"  ⚠️ ไม่มี repair ที่ทำได้ — เก็บเป็น needs_review"
+                    job = job.copy(failed=job.failed + [{"chapter": num, "reason": f"autopilot:{reason}", "retryCount": 1}])
+                    job.save()
+                    locks.release(slug, num)
+                    continue
 
         # translate.py already wrote .th.json — verify exists
         yield f"💾 ตรวจสอบตอน {num}..."
@@ -132,7 +175,7 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
             job = job.copy(failed=job.failed + [{"chapter": num, "reason": "th.json_not_found_after_translate", "retryCount": 0}])
             job.save()
             locks.release(slug, num)
-            if mode == "safe":
+            if mode == "safe" or mode == "strict":
                 break
             continue
 

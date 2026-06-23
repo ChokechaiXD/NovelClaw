@@ -70,6 +70,7 @@ def translate_single(slug: str, num: int, mode: str = "safe",
     thp = _ch_path(slug, num)
     bak = _bak_path(slug, num)
     had_backup = False
+    draft_moved = False  # Track if draft moved a file out of canonical path
 
     # ── Force: backup existing file ──────────────────────────────────
     if force and thp.exists():
@@ -84,17 +85,14 @@ def translate_single(slug: str, num: int, mode: str = "safe",
             return result
 
     try:
-        # ── Draft: use staging path ──────────────────────────────────
-        if is_draft:
-            draft_dir = _draft_path(slug, num).parent
-            draft_dir.mkdir(parents=True, exist_ok=True)
-
-        # ── Build translate.py args ──────────────────────────────────
+        # ── Build translate.py args — NO --dry-run for draft ──────────
+        # Draft mode: call LLM normally (translate.py writes canonical),
+        # then we MOV it to staging/drafts/ after success.
+        # This ensures draft is a real translation preview, not a context dump.
         cmd = [_python(), str(_TOOLS_DIR / "translate.py"), str(num), "--json"]
         if score:
             cmd.append("--score")
-        if is_draft:
-            cmd.append("--dry-run")
+        # DO NOT add --dry-run for draft — we want real LLM output
 
         env = dict(os.environ)
         env["NOVEL_SLUG"] = slug
@@ -122,24 +120,48 @@ def translate_single(slug: str, num: int, mode: str = "safe",
             result["error"] = f"cannot parse translate.py output (no JSON for ch {num}): {proc.stdout[:300]}"
             return result
 
-        # ── Draft mode: write to staging/drafts/ ─────────────────────
+        # ── Draft mode: move from canonical to staging/drafts/ ────────
         if is_draft:
-            draft_chapter_data = {
-                "novelId": slug,
-                "chapterNo": num,
-                "sourceLang": "cn",
-                "targetLang": "th",
-                "title": {"translated": chapter_output.get("title", f"ตอนที่ {num}"), "source": ""},
-                "status": "draft",
-                "paragraphs": chapter_output.get("paragraphs", []),
-                "updatedAt": datetime.now(timezone.utc).isoformat(),
-            }
-            dp = _draft_path(slug, num)
-            dp.parent.mkdir(parents=True, exist_ok=True)
-            dp.write_text(json.dumps(draft_chapter_data, ensure_ascii=False, indent=2), encoding="utf-8")
+            if thp.exists():
+                dp = _draft_path(slug, num)
+                dp.parent.mkdir(parents=True, exist_ok=True)
+                # Read back what was written, save to draft path
+                try:
+                    draft_data = json.loads(thp.read_text(encoding="utf-8"))
+                    draft_data["status"] = "draft"
+                    dp.write_text(json.dumps(draft_data, ensure_ascii=False, indent=2), encoding="utf-8")
+                    # Remove canonical file — draft should not leave artifacts
+                    thp.unlink()
+                    draft_moved = True
+                except Exception as e:
+                    result["error"] = f"draft write failed: {e}"
+                    return result
+            else:
+                # translate.py may write to stdout JSON but not save (if --dry-run was used internally)
+                # Build from parsed output
+                draft_chapter_data = {
+                    "novelId": slug,
+                    "chapterNo": num,
+                    "sourceLang": "cn",
+                    "targetLang": "th",
+                    "title": {"translated": chapter_output.get("title", f"ตอนที่ {num}"), "source": ""},
+                    "status": "draft",
+                    "paragraphs": chapter_output.get("paragraphs", []),
+                    "updatedAt": datetime.now(timezone.utc).isoformat(),
+                }
+                dp = _draft_path(slug, num)
+                dp.parent.mkdir(parents=True, exist_ok=True)
+                dp.write_text(json.dumps(draft_chapter_data, ensure_ascii=False, indent=2), encoding="utf-8")
+                draft_moved = True
+
             result["ok"] = True
-            result["chapter_data"] = draft_chapter_data
-            result["score"] = chapter_output.get("score")
+            # Read draft result regardless of which path was taken
+            dp_check = _draft_path(slug, num)
+            if dp_check.exists():
+                result["chapter_data"] = json.loads(dp_check.read_text(encoding="utf-8"))
+            else:
+                result["chapter_data"] = {"status": "draft", "chapterNo": num}
+            result["score"] = chapter_output.get("score") if chapter_output else None
             return result
 
         # ── Normal mode: verify .th.json was written ─────────────────
