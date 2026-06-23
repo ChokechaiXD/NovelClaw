@@ -63,7 +63,7 @@ const Store = {
   // ── Settings (novelclaw-settings) ──────────────────────────────────
   _SETTINGS_KEY: 'novelclaw-settings',
   _settings: {
-    theme: 'dark',
+    theme: 'sepia',
     autoTranslate: false,
     sidebarCollapsed: false,
     rightbarCollapsed: false,
