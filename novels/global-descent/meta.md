@@ -8,9 +8,9 @@ source_url: https://tw.hjwzw.com/Book/Chapter/50356
 total_chapters: 1239
 status: in_progress
 started: '2026-06-13'
-last_translated: 138
-next_chapter: 139
-translated_chapters: 138
+last_translated: 153
+next_chapter: 154
+translated_chapters: 83
 ---
 
 # 全球降臨：帶著嫂嫂末世種田
@@ -23,11 +23,14 @@ translated_chapters: 138
 - **Target language:** Thai (TH)
 - **Slug:** global-descent
 - **Source URL:** https://tw.hjwzw.com/Book/Chapter/50356
-- **Status:** 138 of 1,239 chapters translated (11.14%)
-- **Last translated:** ch 138
-- **Next chapter:** ch 139
-- **Style drift acknowledged:** ch 97-100 literary, ch 101+ mechanical/batch translation. Run normalization and mechanical QA before continuing large batch translation.
-- **Started (NovelClaw):** 2026-06-13
+- **Status:** 83 of 1,239 chapters translated (6.70%)
+- **Translated range:** ch 1, 2, 42, 71–153
+- **Missing in range:** ch 3–41, 43–70, 131–133
+- **Pipeline:** v3 paragraphs (LLM plain text → Python assemble JSON)
+- **Scorer avg:** ~90/100 (83/83 passed)
+- **Last translated:** ch 153
+- **Next chapter:** ch 154
+- **Started:** 2026-06-13
 
 ## Description
 
@@ -35,8 +38,6 @@ translated_chapters: 138
 
 ## Note on source
 
-- The site hjwzw.com serves Traditional Chinese (繁體). Mika handles both
-  Simplified and Traditional Chinese inputs identically.
-- Chapter list URL: https://tw.hjwzw.com/Book/Chapter/50356
-- Read chapter URL pattern: https://tw.hjwzw.com/Book/Read/50356,{chapterId}
+- The site hjwzw.com serves Traditional Chinese (繁體). MIKA handles both Simplified and Traditional Chinese inputs identically.
+- Python requests to qidian.com (no Cloudflare) is the preferred scraping method for new chapters.
 - 1,239 chapters total.
