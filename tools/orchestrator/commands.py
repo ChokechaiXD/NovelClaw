@@ -70,6 +70,10 @@ def build_parser() -> argparse.ArgumentParser:
     # report
     sub.add_parser("report", help="Summary of translated/source_only/failed")
 
+    # check
+    c = sub.add_parser("check", help="Show needs_review queue")
+    c.add_argument("range", nargs="?", help="Optional chapter range: '139', '140-150'")
+
     return parser
 
 
@@ -128,5 +132,8 @@ def run(args: list[str] | None = None) -> dict:
 
     elif cmd == "report":
         return {**base, "ok": True, "command": "report"}
+
+    elif cmd == "check":
+        return {**base, "ok": True, "command": "check", "range": parsed.range}
 
     return {"ok": False, "message": f"Unknown command: {cmd}"}
