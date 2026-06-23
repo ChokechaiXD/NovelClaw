@@ -39,6 +39,73 @@ from schema import CN_RE as _cn_re_re
 CN_RE = _cn_re_re
 
 
+# ── NPC Bank for speaker detection ──────────────────────────────────────
+
+_NPC_NAMES: list[str] | None = None
+
+def _get_novel_root() -> Path:
+    """Get novel root from schema module, or infer from file path."""
+    try:
+        from schema import get_novel_root
+        return get_novel_root()
+    except (ImportError, Exception):
+        # Fallback: infer from scorer.py location
+        return Path(__file__).resolve().parent.parent / "novels" / "global-descent"
+
+
+def _load_npc_names() -> list[str]:
+    """Load character names from glossary locked.md + reference.md.
+
+    Reads 'ตัวละคร' (character) entries from the glossary markdown tables.
+    Returns sorted list of Thai names, longest first (to match multi-word names first).
+    Cached after first load.
+    """
+    global _NPC_NAMES
+    if _NPC_NAMES is not None:
+        return _NPC_NAMES
+
+    novel_root = _get_novel_root()
+    glossary_dir = novel_root / "glossary"
+    names: set[str] = set()
+
+    _TABLE_ROW_RE = re.compile(r'^\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*ตัวละคร\s*\|')
+
+    for fname in ("locked.md", "reference.md"):
+        fpath = glossary_dir / fname
+        if not fpath.exists():
+            continue
+        try:
+            text = fpath.read_text(encoding="utf-8")
+            for line in text.splitlines():
+                m = _TABLE_ROW_RE.search(line)
+                if m:
+                    name = m.group(2).strip()
+                    if len(name) >= 2:  # ignore single-char artifacts
+                        names.add(name)
+        except (OSError, UnicodeDecodeError):
+            continue
+
+    # Sort longest first so longer names match before substrings
+    _NPC_NAMES = sorted(names, key=lambda n: (-len(n), n))
+    return _NPC_NAMES
+
+
+def _has_npc_speaker(paragraph: str) -> bool:
+    """Check if a paragraph has an NPC name that identifies the speaker.
+
+    Scans the entire paragraph for known character names.
+    A name counts if it appears ANYWHERE in a paragraph that also has a quote,
+    since in Thai the speaker name can be before, after, or mixed with the quote.
+    """
+    if not DIALOGUE_QUOTE_RE.search(paragraph):
+        return False
+
+    for name in _load_npc_names():
+        if name in paragraph:
+            return True
+    return False
+
+
 # ── Config ────────────────────────────────────────────────────────────
 
 EN_BLACKLIST: set[str] = {
@@ -60,7 +127,7 @@ ALLOWED_LATIN_TOKENS: set[str] = {
     "HP", "MP", "EXP", "SSS", "SSR", "UR", "SP", "ID", "VIP",
     "S", "SS", "LR", "CD", "NPC", "PVP", "PVE",
     "LV", "LVL", "ATK", "DEF", "DMG", "BUFF", "DEBUFF",
-    "AOE", "DPS", "TPS",
+    "AOE", "DPS", "TPS", "ELITE",
 }
 
 # Completeness ratio range
@@ -283,33 +350,20 @@ def _score_speaker(data: dict) -> DimensionScore:
     """Check paragraphs with dialogue have speaker attribution.
 
     For v3 (paragraphs): detect dialogue via inline quote markers,
-    then scan preceding paragraphs for character names.
+    then scan for known NPC names near the quote (using glossary bank).
     For v2 (blocks): use the speaker field on dialogue blocks.
     """
     texts, non_end, _ = _get_texts(data)
 
     if data.get("paragraphs"):
-        # v3 paragraphs mode — detect dialogue paragraphs with inline marker
-        dialogue_paras = [t for t in texts if DIALOGUE_QUOTE_RE.search(t) and t not in ("(จบบท)", "(End)", "（終）", "(끝)")]
+        # v3 paragraphs mode — use NPC bank for speaker detection
+        dialogue_paras = [t for t in texts if DIALOGUE_QUOTE_RE.search(t)
+                          and t not in ("(จบบท)", "(End)", "（終）", "(끝)")]
         if not dialogue_paras:
             return DimensionScore("Speaker", 0.10, 0.0,
                                   detail="No dialogue paragraphs detected", passed=False)
 
-        # Count dialogue paragraphs that have an inline speaker name before the quote
-        with_speaker = 0
-        for t in dialogue_paras:
-            # A character name directly before the quote
-            m = re.match(
-                r'^([\u0e00-\u0e7f]{2,10}(?:\s[\u0e00-\u0e7f]{1,10})?)'
-                r'\s*(?:พูด|บอก|ถาม|ตอบ|ว่า|ตะโกน|กระซิบ|ร้อง|หัวเราะ|อุทาน|ไขว่|คิด|นึก|รำพึง)'
-                r'[\s:]?[\s""」「]',
-                t
-            )
-            if m:
-                name = m.group(1).strip()
-                if name not in ("เขาคิด", "เขาพูด", "เธอพูด", "พอเห็น", "ได้ยิน", "นึก", "คิด", "พูด", "บอก", "ถาม"):
-                    with_speaker += 1
-                    continue
+        with_speaker = sum(1 for t in dialogue_paras if _has_npc_speaker(t))
 
         total = len(dialogue_paras)
         ratio = with_speaker / total if total > 0 else 0
@@ -322,7 +376,7 @@ def _score_speaker(data: dict) -> DimensionScore:
         return DimensionScore("Speaker", 0.10, min(score, 1.0),
                               detail=detail, passed=ratio >= SPEAKER_TARGET)
     else:
-        # v2 blocks mode
+        # v2 blocks mode — unchanged
         blocks = data.get("blocks", [])
         dialogues = [b for b in blocks if b.get("type") == "dialogue"]
         if not dialogues:
@@ -339,8 +393,14 @@ def _score_speaker(data: dict) -> DimensionScore:
                               detail=detail, passed=ratio >= SPEAKER_TARGET)
 
 
-def _score_dialogue_ratio(data: dict) -> DimensionScore:
+def _score_dialogue_ratio(data: dict, source_text: str | None = None) -> DimensionScore:
     """Dialogue paragraphs / total paragraphs.
+
+    Two modes:
+    1. Source-relative (when source available): compare DIALOGUE CHAR RATIO
+       in translation vs source (characters in quotes / total characters).
+       This is unit-agnostic — works even when paragraph grouping differs.
+    2. Hard thresholds (fallback when no source).
 
     For v3: detect dialogue via inline quote markers.
     For v2: use block type.
@@ -359,12 +419,47 @@ def _score_dialogue_ratio(data: dict) -> DimensionScore:
         blocks = data.get("blocks", [])
         non_end_blocks = [b for b in blocks if b.get("type") != "end"]
         dialogue = sum(1 for b in non_end_blocks if b.get("type") == "dialogue")
-        non_end = non_end_blocks  # for total count
+        non_end = non_end_blocks
 
     total = len(non_end)
     ratio = dialogue / total if total > 0 else 0
     detail = f"{dialogue}/{total} blocks = {ratio*100:.0f}% dialogue"
 
+    # ── Source-relative check (CHAR-based, unit-agnostic) ──────────
+    if source_text:
+        # Count dialogue characters in source (chars inside CN quote markers)
+        src_dialogue_chars = sum(
+            len(m.group()) for m in re.finditer(r'「[^」]*」', source_text)
+        )
+        src_total_chars = len(source_text)
+        src_char_ratio = src_dialogue_chars / src_total_chars if src_total_chars > 0 else 0
+
+        # Count dialogue characters in translation (chars inside quotes)
+        th_dialogue_chars = 0
+        for t in non_end:
+            # Handle both straight "..." and curly "..." (U+201C/U+201D) quotes
+            for m in re.finditer(
+                r'\u201c[^\u201d]*\u201d|"[^"]*"|\u300c[^\u300d]*\u300d',
+                t
+            ):
+                th_dialogue_chars += len(m.group())
+        th_total_chars = sum(len(t) for t in non_end)
+        th_char_ratio = th_dialogue_chars / th_total_chars if th_total_chars > 0 else 0
+
+        diff = abs(th_char_ratio - src_char_ratio)
+        detail += f"\n       Source: {src_dialogue_chars}/{src_total_chars} = {src_char_ratio*100:.0f}% dialogue chars"
+        detail += f"\n       Trans:  {th_dialogue_chars}/{th_total_chars} = {th_char_ratio*100:.0f}% dialogue chars"
+        detail += f"\n       Δ{diff*100:.0f}pp"
+
+        if diff <= 0.20:
+            return DimensionScore("Dialogue Ratio", 0.10, 1.0,
+                                  detail=f"✅ {detail}")
+
+        score = max(0, 1.0 - (diff - 0.20) * 2)
+        return DimensionScore("Dialogue Ratio", 0.10, min(score, 1.0),
+                              detail=detail, passed=False)
+
+    # ── Fallback: hard thresholds (no source available) ─────────────
     if ratio < DIALOGUE_RATIO_MIN:
         score = ratio / DIALOGUE_RATIO_MIN * 0.5
         return DimensionScore("Dialogue Ratio", 0.10, score,
@@ -504,7 +599,7 @@ def score_chapter(data: dict, source_text: str | None = None,
         _score_en_leak(data),
         _score_end_marker(data),
         _score_speaker(data),
-        _score_dialogue_ratio(data),
+        _score_dialogue_ratio(data, source_text),
         _score_content_diversity(data),
         _score_schema(data),
     ]
