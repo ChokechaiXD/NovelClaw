@@ -72,7 +72,7 @@ const SearchPage = {
         let html = '<div class="c-card-grid" style="margin-top:16px;">';
         for (const n of filtered) {
           const h = Ui.slugToHue(n.slug);
-          html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover" style="background:linear-gradient(135deg,hsl(' + h + ',70%,40%),hsl(' + ((h + 40) % 360) + ',60%,30%));color:#000;">' + Ui.esc((n.title || n.slug).charAt(0)) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span></div></a>';
+          html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover" style="background:linear-gradient(135deg,hsl(' + h + ',70%,40%),hsl(' + ((h + 40) % 360) + ',60%,30%));color:#000;">' + Ui.esc(Ui.displayTitle(n).charAt(0)) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span></div></a>';
         }
         html += '</div>';
         results.innerHTML = html;
@@ -123,7 +123,7 @@ const RankingPage = {
         const n = sorted[i];
         const h = Ui.slugToHue(n.slug);
         const rankClass = 'c-popular__rank--' + (i + 1);
-        html += '<a href="#novel/' + n.slug + '" class="c-popular__item" data-nav><span class="c-popular__rank ' + rankClass + '">' + (i + 1) + '</span><div class="c-popular__cover" style="background:linear-gradient(135deg,hsl(' + h + ',70%,40%),hsl(' + ((h + 40) % 360) + ',60%,30%));">' + (n.title ? n.title.charAt(0) : '?') + '</div><div class="c-popular__info"><span class="c-popular__title">' + Ui.displayTitle(n) + '</span><span class="c-popular__meta">' + (n.author || '') + '</span><span class="c-popular__views">' + (n.translatedChapters || 0) + '/' + (n.totalChapters || n.chapterCount || 0) + ' ตอนที่แปลแล้ว</span></div></a>';
+        html += '<a href="#novel/' + n.slug + '" class="c-popular__item" data-nav><span class="c-popular__rank ' + rankClass + '">' + (i + 1) + '</span><div class="c-popular__cover" style="background:linear-gradient(135deg,hsl(' + h + ',70%,40%),hsl(' + ((h + 40) % 360) + ',60%,30%));">' + Ui.esc(Ui.displayTitle(n).charAt(0)) + '</div><div class="c-popular__info"><span class="c-popular__title">' + Ui.displayTitle(n) + '</span><span class="c-popular__meta">' + (n.author || '') + '</span><span class="c-popular__views">' + (n.translatedChapters || 0) + '/' + (n.totalChapters || n.chapterCount || 0) + ' ตอนที่แปลแล้ว</span></div></a>';
       }
       html += '</div></section></div>';
       page.innerHTML = html;
@@ -137,12 +137,18 @@ const SettingsPage = {
     const page = Ui.$('page-settings');
     if (!page) return;
     const settings = Store.getSettings();
-    page.innerHTML = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title">ตั้งค่า</h3></div><div class="c-settings-form"><div class="c-settings__group"><div class="c-form__group"><label class="c-form__label" for="settings-theme">ธีม</label><select class="c-form__select" id="settings-theme"><option value="sepia"' + (settings.theme === 'sepia' ? ' selected' : '') + '>คลาสสิก (Sepia) ★</option><option value="night"' + (settings.theme === 'night' ? ' selected' : '') + '>กลางคืน (Night)</option><option value="paper"' + (settings.theme === 'paper' ? ' selected' : '') + '>สว่าง (Paper)</option><option value="amoled"' + (settings.theme === 'amoled' ? ' selected' : '') + '>AMOLED Black</option></select></div><div class="c-form__group"><label class="c-form__label">ขนาดตัวอักษร</label><div class="u-flex u-gap-sm" style="align-items:center;"><button class="c-btn c-btn--ghost" id="settings-font-sm" style="font-size:var(--text-lg);padding:8px 16px;">A−</button><span id="settings-font-label" style="font-size:var(--text-base);color:var(--c-text);min-width:40px;text-align:center;">18px</span><button class="c-btn c-btn--ghost" id="settings-font-lg" style="font-size:var(--text-lg);padding:8px 16px;">A+</button></div></div></div></div></section></div>';
+    page.innerHTML = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title">ตั้งค่า</h3></div><div class="c-settings-form"><div class="c-settings__group"><div class="c-form__group"><label class="c-form__label" for="settings-theme">ธีม</label><select class="c-form__select" id="settings-theme"><option value="sepia"' + (settings.theme === 'sepia' ? ' selected' : '') + '>คลาสสิก (Sepia) ★</option><option value="night"' + (settings.theme === 'night' ? ' selected' : '') + '>กลางคืน (Night)</option><option value="paper"' + (settings.theme === 'paper' ? ' selected' : '') + '>สว่าง (Paper)</option><option value="amoled"' + (settings.theme === 'amoled' ? ' selected' : '') + '>AMOLED Black</option></select></div><div class="c-form__group"><label class="c-form__label" for="settings-reader-lang">ภาษาใน Reader</label><select class="c-form__select" id="settings-reader-lang"><option value="th"' + (settings.readerLang === 'th' ? ' selected' : '') + '>ไทย (แปลแล้ว)</option><option value="cn"' + (settings.readerLang === 'cn' ? ' selected' : '') + '>จีนต้นฉบับ</option></select></div><div class="c-form__group"><label class="c-form__label">ขนาดตัวอักษร</label><div class="u-flex u-gap-sm" style="align-items:center;"><button class="c-btn c-btn--ghost" id="settings-font-sm" style="font-size:var(--text-lg);padding:8px 16px;">A−</button><span id="settings-font-label" style="font-size:var(--text-base);color:var(--c-text);min-width:40px;text-align:center;">18px</span><button class="c-btn c-btn--ghost" id="settings-font-lg" style="font-size:var(--text-lg);padding:8px 16px;">A+</button></div></div></div></div></section></div>';
 
     const sel = document.getElementById('settings-theme');
     if (sel) {
       sel.addEventListener('change', () => { Store.setSetting('theme', sel.value); });
       Store.on('setting:theme', (t) => { sel.value = t; });
+    }
+
+    const langSel = document.getElementById('settings-reader-lang');
+    if (langSel) {
+      langSel.addEventListener('change', () => { Store.setSetting('readerLang', langSel.value); });
+      Store.on('setting:readerLang', (l) => { langSel.value = l; });
     }
 
     // Font size controls (persisted)

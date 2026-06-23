@@ -58,7 +58,7 @@ const HomePage = {
       for (const n of enriched) {
         html += `
           <a href="#novel/${n.slug}" class="c-card" data-nav>
-            <div class="c-card__cover" style="background:linear-gradient(135deg,hsl(${n.hue},70%,40%),hsl(${(n.hue+40)%360},60%,30%));color:#000;">${(n.title||n.slug).charAt(0)}</div>
+            <div class="c-card__cover" style="background:linear-gradient(135deg,hsl(${n.hue},70%,40%),hsl(${(n.hue+40)%360},60%,30%));color:#000;">${Ui.esc(Ui.displayTitle(n).charAt(0))}</div>
             <div class="c-card__info">
               <span class="c-card__title">${Ui.esc(Ui.displayTitle(n))}</span>
               <span class="c-card__meta">${n.lastRead ? 'ตอนที่ ' + n.lastRead + ' / ' + n.totalCount : '0 / ' + n.totalCount}</span>
@@ -89,7 +89,7 @@ const HomePage = {
           <a href="#novel/${n.slug}" class="c-update" data-nav>
             <div class="c-update__cover" style="background:linear-gradient(135deg,hsl(${n.hue},70%,40%),hsl(${(n.hue+40)%360},60%,30%));color:#000;">
               <span class="c-update__badge">NEW</span>
-              ${(n.title||n.slug).charAt(0)}
+              ${Ui.esc(Ui.displayTitle(n).charAt(0))}
             </div>
             <span class="c-update__title">${Ui.esc(Ui.displayTitle(n))}</span>
             <span class="c-update__ch">ตอนที่ ${n.chapterCount||0}</span>
@@ -111,7 +111,7 @@ const HomePage = {
         html += `
           <a href="#novel/${n.slug}" class="c-popular__item" data-nav>
             <span class="c-popular__rank ${rankClass}">${idx + 1}</span>
-            <div class="c-popular__cover" style="background:linear-gradient(135deg,hsl(${n.hue},70%,40%),hsl(${(n.hue+40)%360},60%,30%));color:#000;">${(n.title||n.slug).charAt(0)}</div>
+            <div class="c-popular__cover" style="background:linear-gradient(135deg,hsl(${n.hue},70%,40%),hsl(${(n.hue+40)%360},60%,30%));color:#000;">${Ui.esc(Ui.displayTitle(n).charAt(0))}</div>
             <div class="c-popular__info">
               <span class="c-popular__title">${Ui.esc(Ui.displayTitle(n))}</span>
               <span class="c-popular__meta">${n.source_lang||'cn'} → ${n.target_lang||'th'} • โดย ${n.author||'ไม่ระบุ'}</span>

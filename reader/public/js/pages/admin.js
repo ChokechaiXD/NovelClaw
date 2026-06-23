@@ -114,7 +114,7 @@ const AdminGlossaryPage = {
       const slug = novels[0]?.slug;
       let html = '<div class="c-container">' + renderAdminNav('glossary') +
         '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">คลังคำศัพท์</h3></div>' +
-        '<p class="u-text-muted u-mb-md">ดูคำศัพท์จาก glossary.yml</p>';
+        '<p class="u-text-muted u-mb-md">ดูคำศัพท์จาก glossary.json</p>';
       if (slug) {
         html += '<div class="c-table-wrap"><table class="c-table"><thead><tr><th>จีน</th><th>ไทย</th><th>ประเภท</th><th>ระดับ</th></tr></thead><tbody>';
         try {
