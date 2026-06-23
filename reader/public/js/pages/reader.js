@@ -79,14 +79,22 @@ const ReaderPage = {
                 contentHtml += `<p class="end-marker">${t}</p>`;
                 continue;
               }
-              // Inline marker styling
-              const html = t
-                .replace(/【([^】]+)】/g, '<span class="c-marker--system">【$1】</span>')
-                .replace(/『([^』]+)』/g, '<span class="c-marker--thought">『$1』</span>')
-                .replace(/"([^"\n]+)"/g, '<span class="c-marker--dialogue">"$1"</span>')
-                .replace(/「([^」]+)」/g, '<span class="c-marker--dialogue">「$1」</span>')
-                .replace(/\u201c([^\u201d\n]+)\u201d/g, '<span class="c-marker--dialogue">\u201c$1\u201d</span>');
-              contentHtml += `<p>${html}</p>`;
+              // Inline marker styling — single-pass approach
+              // Replace each marker type in isolation, using text that has NO HTML yet
+              // Then combine results into one final string
+              const replaceDialogue = (s) => s
+                .replace(/\u201c([^\u201d\n]+)\u201d/g, '<span class=\"c-marker--dialogue\">$&</span>')
+                .replace(/「([^」]+)」/g, '<span class=\"c-marker--dialogue\">$&</span>');
+              const replaceSystem = (s) => s
+                .replace(/【([^】]+)】/g, '<span class=\"c-marker--system\">$&</span>');
+              const replaceThought = (s) => s
+                .replace(/『([^』]+)』/g, '<span class=\"c-marker--thought\">$&</span>');
+              // Order: dialogue first (uses " in HTML), then system+thought (no " conflict)
+              let html = t;
+              html = replaceDialogue(html);
+              html = replaceSystem(html);
+              html = replaceThought(html);
+              contentHtml += '<p>' + html + '</p>';
             }
           }
           // Legacy format: blocks with types (backward compat)

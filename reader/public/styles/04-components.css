@@ -1581,12 +1581,12 @@
 }
 .c-marker--system {
   font-size: 0.9em;
-  font-style: italic;
-  color: var(--c-text-muted);
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--c-marker-system, #f59e0b);
 }
 .c-marker--thought {
   font-style: italic;
-  color: var(--c-text-soft);
+  color: var(--c-marker-thought, #a78bfa);
 }
 .c-marker--end {
   display: block;
