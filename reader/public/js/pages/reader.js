@@ -239,12 +239,12 @@ const ReaderPage = {
 
       // ── Distraction-free mode ────────────────────────────────────────
       Ui.$('reader-distraction-toggle').onclick = () => {
-        const app = document.getElementById('app-layout');
+        const app = document.querySelector('.c-app');
         if (!app) return;
-        const isCollapsed = app.classList.contains('c-app__sidebar--collapsed');
-        app.classList.toggle('c-app__sidebar--collapsed');
-        app.classList.toggle('c-app__rightbar--collapsed');
-        Ui.showToast(isCollapsed ? 'เปิดแถบเมนูแล้ว' : 'โหมดอ่านหนังสือ');
+        app.classList.toggle('c-app--sidebar-collapsed');
+        app.classList.toggle('c-app--rightbar-collapsed');
+        const isActive = app.classList.contains('c-app--sidebar-collapsed');
+        Ui.showToast(isActive ? 'โหมดอ่านหนังสือ' : 'เปิดแถบเมนูแล้ว');
       };
 
       // ── Keyboard shortcuts ──────────────────────────────────────────
