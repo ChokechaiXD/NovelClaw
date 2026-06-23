@@ -158,49 +158,7 @@ const AdminNovelEditPage = {
   }
 };
 
-// ── ADMIN TRANSLATE ──────────────────────────────────────────────────────
-const AdminTranslatePage = {
-  render(params) {
-    const page = Ui.$('page-admin-translate');
-    if (!page) return;
-    page.innerHTML = '<div class="c-container"><p class="u-text-muted u-text-center u-p-lg">หน้ากำลังแปล (Translate) — กำลังพัฒนา</p></div>';
-  }
-};
-
-const AdminTranslateJobPage = {
-  render(params) {
-    const page = Ui.$('page-admin-translate-job');
-    if (!page) return;
-    page.innerHTML = '<div class="c-container"><p class="u-text-muted u-text-center u-p-lg">งานแปล (Translate Job) — กำลังพัฒนา</p></div>';
-  }
-};
-
-// ── ADMIN USERS ──────────────────────────────────────────────────────────
-const AdminUsersPage = {
-  async render(params) {
-    const page = Ui.$('page-admin-users');
-    if (!page) return;
-    try {
-      const res = await fetch('/api/admin/users');
-      const users = res.ok ? await res.json() : [];
-      let html = '<div class="c-container"><div class="c-section__header"><h3 class="c-section__title">ผู้ใช้</h3></div><div class="c-table-wrap"><table class="c-table"><thead><tr><th>ชื่อ</th><th>บทบาท</th></tr></thead><tbody>';
-      if (users.length === 0) html += '<tr><td colspan="2" class="u-text-center u-text-muted">ไม่มีผู้ใช้</td></tr>';
-      else for (const u of users) html += '<tr><td>' + Ui.esc(u.username||'') + '</td><td>' + Ui.esc(u.role||'') + '</td></tr>';
-      html += '</tbody></table></div></div>';
-      page.innerHTML = html;
-    } catch(_) { page.innerHTML = '<div class="c-container"><p class="u-text-muted u-text-center u-p-lg">ไม่สามารถโหลดข้อมูลผู้ใช้</p></div>'; }
-  }
-};
-
-// ── Other pages (dummies) ────────────────────────────────────────────────
-const RankingPage = {
-  render(params) {
-    const page = Ui.$('page-ranking');
-    if (!page) return;
-    page.innerHTML = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-ranking"/></svg>อันดับ</h3></div><p class="u-text-muted">หน้านี้กำลังพัฒนา</p></section></div>';
-  }
-};
-
+// ── BOOKMARKS ────────────────────────────────────────────────────────────
 const BookmarksPage = {
   async render(params) {
     const page = Ui.$('page-bookmarks');

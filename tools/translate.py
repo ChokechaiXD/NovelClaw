@@ -594,18 +594,51 @@ def load_chapter(path) -> Chapter:
     return Chapter(**data)
 
 
-def save_chapter(ch: Chapter, path) -> None:
-    """Save a Chapter to a .json file. Pretty-printed for git diff."""
+def to_reader_canonical(ch: 'Chapter', slug: str) -> dict:
+    """Convert Chapter model to reader canonical JSON format.
+
+    Reader expects:
+    {
+      novelId, chapterNo, sourceLang, targetLang,
+      title: {translated, source},
+      status, paragraphs, updatedAt
+    }
+    """
+    from datetime import datetime, timezone
+    title_str = ch.title if isinstance(ch.title, str) else ""
+    return {
+        "novelId": slug,
+        "chapterNo": ch.num,
+        "sourceLang": "cn",
+        "targetLang": "th",
+        "title": {
+            "translated": title_str,
+            "source": "",
+        },
+        "status": "translated",
+        "paragraphs": ch.paragraphs,
+        "updatedAt": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def save_chapter(ch: Chapter, path, slug: str = "global-descent") -> None:
+    """Save a Chapter to a .json file using reader canonical format.
+
+    Does NOT write legacy {num}.json — always writes {num}.th.json
+    with canonical shape (novelId, chapterNo, title.translated, etc).
+    Pretty-printed for git diff.
+    """
     p = Path(path)
+    data = to_reader_canonical(ch, slug)
     p.write_text(
-        json.dumps(ch.model_dump(), ensure_ascii=False, indent=2) + '\n',
+        json.dumps(data, ensure_ascii=False, indent=2) + '\n',
         encoding='utf-8',
     )
 
 
 def chapter_path(novel_root, num: int) -> Path:
-    """Get the canonical path for a ch: chapters/NNNN.json"""
-    return Path(novel_root) / 'chapters' / f'{num:04d}.json'
+    """Get the canonical path for a chapter: chapters/NNNN.th.json"""
+    return Path(novel_root) / 'chapters' / f'{num:04d}.th.json'
 
 
 def _load_ch(path) -> Chapter:
@@ -639,7 +672,7 @@ def translate_one(
     normalized_target_lang = normalize_language_key(target_lang, "th")
 
     src_path = _get_source_dir() / f"{ch_num:04d}.md"
-    out_path = CHAPTERS_DIR / f"{ch_num:04d}.json"
+    out_path = CHAPTERS_DIR / f"{ch_num:04d}.th.json"
 
     if not src_path.exists():
         if json_mode:
@@ -781,7 +814,7 @@ def translate_one(
     else:
         quality_messages = []
 
-    save_chapter(ch, out_path)
+    save_chapter(ch, out_path, slug=progress_slug)
     n = len(ch.paragraphs) if ch.paragraphs else (len(ch.blocks) if ch.blocks else 0)
     if json_mode:
         import json as _json
