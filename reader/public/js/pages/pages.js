@@ -19,11 +19,28 @@ const LibraryPage = {
         Ui.showEmpty(page, 'หอสมุดว่างเปล่า', 'ยังไม่มีนิยายในระบบ เริ่มเพิ่มกันเลย!');
         return;
       }
-      let html = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-library"/></svg>หอสมุด</h3><span style="font-size:11px;color:var(--c-text-muted);">' + novels.length + ' เรื่อง</span></div><div class="c-card-grid">';
-      for (const n of novels) {
+      const sortBy = params.sort || Store.getSettings().librarySort || 'title';
+      const sorted = [...novels].sort((a, b) => {
+        if (sortBy === 'progress') return (b.translatedChapters || 0) - (a.translatedChapters || 0);
+        if (sortBy === 'chapters') return (b.chapterCount || 0) - (a.chapterCount || 0);
+        return (Ui.displayTitle(a) || '').localeCompare(Ui.displayTitle(b) || '');
+      });
+      let html = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-library"/></svg>หอสมุด</h3><div class="u-flex u-gap-sm" style="align-items:center;"><span style="font-size:11px;color:var(--c-text-muted);">' + novels.length + ' เรื่อง</span><select id="library-sort" style="font-size:11px;background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);padding:4px 6px;color:var(--c-text-secondary);cursor:pointer;"><option value="title"' + (sortBy === 'title' ? ' selected' : '') + '>ชื่อ</option><option value="progress"' + (sortBy === 'progress' ? ' selected' : '') + '>ความคืบหน้า</option><option value="chapters"' + (sortBy === 'chapters' ? ' selected' : '') + '>ตอน</option></select></div></div><div class="c-card-grid">';
+      for (const n of sorted) {
         const h = Ui.slugToHue(n.slug);
         const lr = Store.getLastPosition(n.slug);
         html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover" style="background:linear-gradient(135deg,hsl(' + h + ',70%,40%),hsl(' + ((h + 40) % 360) + ',60%,30%));color:#000;">' + Ui.esc(Ui.displayTitle(n).charAt(0)) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span>' + (lr ? '<span style="font-size:10px;color:var(--c-accent);font-weight:600;">อ่านล่าสุด: ตอนที่ ' + lr + '</span>' : '') + '</div></a>';
+      }
+      html += '</div></section></div>';
+      page.innerHTML = html;
+      
+      // Wire sort dropdown
+      const sel = document.getElementById('library-sort');
+      if (sel) {
+        sel.addEventListener('change', () => {
+          Store.setSetting('librarySort', sel.value);
+          LibraryPage.render({ sort: sel.value });
+        });
       }
     } catch (err) { Ui.showError(page, 'โหลดไม่สำเร็จ', err.message); }
   }
