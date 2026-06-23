@@ -68,6 +68,10 @@ const ReaderPage = {
           Ui.$('reader-title').textContent = ch.title || `ตอนที่ ${ch.num}`;
           Ui.$('reader-position').textContent = `${chIdx + 1} / ${chapters.length}`;
 
+          // Update topbar title with novel + chapter info
+          const titleEl = document.getElementById('page-title');
+          if (titleEl) titleEl.textContent = (novel ? Ui.esc(novel.title || slug) : slug) + ' — ตอนที่ ' + ch.num;
+
           let contentHtml = '';
           // New format: paragraphs (type-less, inline markers)
           if (data.paragraphs && data.paragraphs.length) {

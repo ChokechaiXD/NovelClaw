@@ -64,8 +64,10 @@ const Router = {
 
     // Update sidebar active state
     document.querySelectorAll('.c-nav-item').forEach(n => n.classList.remove('c-nav-item--active'));
-    const navMap = { home: 'home', library: 'library', search: 'search', ranking: 'ranking', profile: 'profile', history: 'history', bookmarks: 'bookmarks', settings: 'settings', admin: 'admin' };
-    const navPage = navMap[page] || (page === 'novel' ? 'home' : null);
+    const navMap = { home: 'home', library: 'library', search: 'search', ranking: 'ranking', profile: 'profile', history: 'history', bookmarks: 'bookmarks', settings: 'settings', admin: 'admin', novel: 'novel' };
+    let navPage = navMap[page] || null;
+    // Reader mode: novel detail and reader both highlight "library" for now
+    if (page === 'novel') navPage = 'library';
     if (navPage) {
       const navItem = document.querySelector('.c-nav-item[data-page="' + navPage + '"]');
       if (navItem) navItem.classList.add('c-nav-item--active');
@@ -74,8 +76,14 @@ const Router = {
     // Update page title
     const titleEl = document.getElementById('page-title');
     if (titleEl) {
-      const titles = { home: 'หน้าหลัก', library: 'หอสมุด', search: 'ค้นหา', ranking: 'อันดับ', profile: 'โปรไฟล์', history: 'ประวัติ', bookmarks: 'บุ๊กมาร์ก', settings: 'ตั้งค่า', admin: 'จัดการ', novel: 'รายละเอียด' };
-      titleEl.textContent = titles[page] || 'หน้าหลัก';
+      const titles = { home: 'หน้าหลัก', library: 'หอสมุด', search: 'ค้นหา', ranking: 'อันดับ', profile: 'โปรไฟล์', history: 'ประวัติ', bookmarks: 'บุ๊กมาร์ก', settings: 'ตั้งค่า', admin: 'จัดการ' };
+      if (page === 'novel' && params && params.num) {
+        titleEl.textContent = 'กำลังอ่าน...';
+      } else if (page === 'novel' && params && params.slug) {
+        titleEl.textContent = 'รายละเอียด';
+      } else {
+        titleEl.textContent = titles[page] || 'หน้าหลัก';
+      }
     }
   }
 };
