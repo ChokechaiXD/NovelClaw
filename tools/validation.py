@@ -102,6 +102,22 @@ ALLOWED_LATIN_TOKENS = {
     "Bloodyland",
     "C",
 }
+
+# EN blacklist — game terms that should be translated
+EN_BLACKLIST: set[str] = {
+    "recruiting", "level", "disrespect", "mean", "queen",
+    "erupt", "continue", "panic", "momentarily", "hollow",
+    "militia", "avatar", "blacklist", "peek",
+    "first", "kill", "recruit", "loot", "skill", "quest", "boss",
+    "dungeon", "party", "guild", "raid", "tank", "healer",
+    "damage", "defense", "attack", "speed",
+    "inventory", "equip", "item", "craft",
+    "summon", "portal", "shield", "weapon", "armor",
+    "pet", "mount", "crystal", "stone", "potion",
+    "common", "uncommon", "rare", "epic", "legendary",
+    "hybrid", "ancient", "elite", "melee", "ranged",
+    "plants", "zombies",
+}
 COMPLETENESS_MIN_RATIO = 0.90
 COMPLETENESS_MAX_RATIO = 3.20
 

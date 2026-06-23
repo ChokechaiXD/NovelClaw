@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any
 
 from schema import CN_RE as _cn_re_re
+from validation import ALLOWED_LATIN_TOKENS, EN_BLACKLIST
 CN_RE = _cn_re_re
 
 
