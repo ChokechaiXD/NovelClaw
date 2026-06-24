@@ -151,6 +151,11 @@ async function getChapter(slug, num, lang) {
       const cleanTitle = (t) => {
         if (!t) return `ตอนที่ ${num}`;
         if (t.includes('黃金') || t.includes('>>')) return `ตอนที่ ${num}`;
+        // Strip Chinese chapter number prefix like "第78章" or "第78장"
+        if (/^第\d+[章장]/.test(t.trim())) {
+          const rest = t.replace(/^第\d+[章장]\s*/, '').trim();
+          return rest ? `ตอนที่ ${num} ${rest}` : `ตอนที่ ${num}`;
+        }
         return t;
       };
       return {

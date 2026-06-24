@@ -83,7 +83,8 @@ const AdminChaptersPage = {
     if (!page) return;
     try {
       const novels = await Api.getNovels();
-      const slug = params.slug || novels[0]?.slug;
+      const firstReal = novels.find(n => !n.slug?.startsWith('test-') && !n.slug?.startsWith('fixture-') && !n.slug?.startsWith('tmp-'));
+      const slug = params.slug || firstReal?.slug || novels[0]?.slug;
       if (!slug) { page.innerHTML = '<div class="c-container">' + Ui.adminNav('chapters') + '<p class="u-text-muted u-p-lg">ไม่มีนิยายในระบบ</p></div>'; return; }
       const chapters = await Api.getChapters(slug);
       if (!chapters || chapters.length === 0) {
@@ -193,7 +194,8 @@ const AdminGlossaryPage = {
     try {
       const res = await fetch('/api/novels');
       const novels = await res.json();
-      const slug = novels[0]?.slug;
+      const firstReal = novels.find(n => !n.slug?.startsWith('test-') && !n.slug?.startsWith('fixture-') && !n.slug?.startsWith('tmp-'));
+      const slug = firstReal?.slug || novels[0]?.slug;
       let html = '<div class="c-container">' + Ui.adminNav('glossary') +
         '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">คลังคำศัพท์</h3></div>' +
         '<p class="u-text-muted u-mb-md">ดูคำศัพท์จาก glossary.json</p>';
