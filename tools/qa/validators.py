@@ -13,6 +13,17 @@ from pathlib import Path
 from typing import Any
 
 
+# ── Re-export script policy ──────────────────────────────────────────
+
+from qa.script_policy import (  # noqa: E402
+    detect_script_leaks,
+    ScriptLeak,
+    ScriptLeakResult,
+    format_leak_report,
+    TARGET_SCRIPT_POLICY,
+)
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # SHARED REGEX PATTERNS (SSOT — import from here ONLY)
 # ═══════════════════════════════════════════════════════════════════════

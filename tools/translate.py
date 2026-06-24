@@ -897,23 +897,20 @@ def translate_one(
         # Parse plain text output → paragraphs (no JSON, no parse errors)
         ch_data = parse_translation_output(output, ch_num)
 
-    # ── Post-process: minimal (just CN strip — WITH WARNING) ──────
-    from schema import CN_RE as _cn_re
+    # ── Script purity gate (replaces silent CJK deletion) ──────────
+    # Do NOT delete leaked characters — let retry/needs_review handle them
     paragraphs = ch_data.get("paragraphs", [])
-    _cn_cleaned = 0
-    _cn_warnings = []
-    for i, para in enumerate(paragraphs):
-        if para == "(จบบท)":
-            continue
-        old = para
-        paragraphs[i] = _cn_re.sub("", old)
-        if paragraphs[i] != old:
-            _cn_cleaned += 1
-            _cn_warnings.append(f"para {i}: had CN chars removed")
-    if _cn_cleaned > 0:
-        print(f"  ⚠️  {_cn_cleaned} paragraphs had CN chars removed — needs_review")
-        # Store warnings for quality record
-        ch_data["_warnings"] = ch_data.get("_warnings", []) + [f"CN chars removed from {_cn_cleaned} paragraphs"]
+    from qa.script_policy import detect_script_leaks as _dsl, format_leak_report as _flr
+    _sl_result = _dsl(paragraphs, target_lang="th")
+    if not _sl_result.ok:
+        _sl_report = _flr(_sl_result)
+        print(f"  ⚠️  Script leaks detected — {_sl_result.error_count} errors")
+        for line in _sl_report.split("\n"):
+            print(f"  {line}")
+        ch_data["_warnings"] = ch_data.get("_warnings", []) + [
+            f"Script leaks: {_sl_result.error_count} errors "
+            f"({', '.join(f'{s}×{c}' for s,c in _sl_result.foreign_script_counts.items())})"]
+        ch_data["_script_leaks"] = True
 
     # Validate via Pydantic schema
     # Ensure required top-level fields are set (LLM sometimes omits num)
@@ -991,10 +988,11 @@ def translate_one(
             fb_ch_data = parse_translation_output(fb_output, ch_num) if not fb_output.startswith('{"mock"') else None
             if fb_ch_data:
                 fb_paragraphs = fb_ch_data.get("paragraphs", [])
-                for i, para in enumerate(fb_paragraphs):
-                    if para == "(จบบท)":
-                        continue
-                    fb_paragraphs[i] = _cn_re.sub("", fb_paragraphs[i])
+                # Check script purity on retry output
+                from qa.script_policy import detect_script_leaks as _dsl2
+                if not _dsl2(fb_paragraphs, target_lang="th").ok:
+                    print(f"  ⚠️  Retry also has script leaks — marking needs_review")
+                    fb_ch_data["_warnings"] = fb_ch_data.get("_warnings", []) + ["Script leaks after retry"]
                 fb_ch_data.setdefault("num", ch_num)
                 fb_ch_data.setdefault("lang", normalized_source_lang)
                 fb_ch_data["output_lang"] = normalized_target_lang
