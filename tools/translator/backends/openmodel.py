@@ -17,7 +17,7 @@ _LLM_CONFIG_PATH = _PROJECT_ROOT / "llm.json"
 _DEFAULTS = {
     "base_url": "https://api.openmodel.ai/v1",
     "model": "deepseek-v4-flash",
-    "mode": "openai",
+    "mode": "anthropic_messages",
 }
 
 
