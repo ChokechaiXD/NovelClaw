@@ -142,6 +142,28 @@ async function getChapter(slug, num, lang) {
     };
   } catch {}
 
+  // Fallback: try source language (.cn.json) when target not found
+  if (lang !== 'cn') {
+    try {
+      const srcFile = chapterPath(slug, num, 'cn');
+      const raw = await fs.readFile(srcFile, 'utf8');
+      const ch = JSON.parse(raw);
+      const cleanTitle = (t) => {
+        if (!t) return `ตอนที่ ${num}`;
+        if (t.includes('黃金') || t.includes('>>')) return `ตอนที่ ${num}`;
+        return t;
+      };
+      return {
+        title: cleanTitle(ch.title?.source || `ตอนที่ ${num}`),
+        isJson: true,
+        paragraphs: ch.paragraphs || [],
+        blocks: ch.blocks || [],
+        lang: 'cn',
+        isTranslated: false,
+      };
+    } catch {}
+  }
+
   // Fallback: legacy combined format
   const jsonFile = legacyChapterPath(slug, num);
   const mdFile = legacyMdPath(slug, num);

@@ -201,6 +201,31 @@ function disableReaderMode() {
 function initReaderBottomToolbar() {
   const toolbar = document.getElementById('reader-bottom-toolbar');
   if (toolbar) toolbar.classList.add('c-reader-bottom-toolbar--show');
+
+  // Wire bottom toolbar buttons
+  document.getElementById('reader-bottom-back')?.addEventListener('click', () => {
+    window.history.back();
+  });
+
+  document.getElementById('reader-bottom-sm')?.addEventListener('click', () => {
+    const btn = document.getElementById('reader-font-sm');
+    if (btn) btn.click();
+  });
+
+  document.getElementById('reader-bottom-lg')?.addEventListener('click', () => {
+    const btn = document.getElementById('reader-font-lg');
+    if (btn) btn.click();
+  });
+
+  document.getElementById('reader-bottom-book')?.addEventListener('click', () => {
+    const btn = document.getElementById('reader-distraction-toggle');
+    if (btn) btn.click();
+  });
+
+  document.getElementById('reader-bottom-theme')?.addEventListener('click', () => {
+    const btn = document.getElementById('reader-theme-toggle');
+    if (btn) btn.click();
+  });
 }
 function hideReaderBottomToolbar() {
   const toolbar = document.getElementById('reader-bottom-toolbar');
