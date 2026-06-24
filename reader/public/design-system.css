@@ -595,6 +595,11 @@ ul, ol { list-style: none; }
 .c-reader-bottom-toolbar--show {
   transform: translateY(0);
 }
+/* Reserve space for floating toolbar so nav buttons aren't covered */
+.c-app--reader .reader-body,
+.c-app--reader .reader-shell {
+  padding-bottom: 68px;
+}
 .c-reader-bottom-toolbar .c-btn {
   min-width: var(--touch-min);
   min-height: var(--touch-min);
