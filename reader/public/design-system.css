@@ -409,6 +409,7 @@ ul, ol { list-style: none; }
 .c-app--book-mode .c-toolbar,
 .c-app--book-mode .c-reader__nav,
 .c-app--book-mode .reader-bottom-toolbar,
+.c-app--book-mode .c-reader-bottom-toolbar,
 .c-app--book-mode .c-app__header {
   display: none !important;
 }
@@ -598,7 +599,7 @@ ul, ol { list-style: none; }
 /* Reserve space for floating toolbar so nav buttons aren't covered */
 .c-app--reader .reader-body,
 .c-app--reader .reader-shell {
-  padding-bottom: 68px;
+  padding-bottom: 80px;
 }
 .c-reader-bottom-toolbar .c-btn {
   min-width: var(--touch-min);
