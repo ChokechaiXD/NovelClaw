@@ -237,8 +237,39 @@ const AdminNovelEditPage = {
     try {
       const novels = await Api.getNovels();
       const novel = novels.find(n => n.slug === slug);
-      page.innerHTML = '<div class="c-container"><div class="c-section__header"><h3 class="c-section__title">แก้ไขนิยาย: ' + Ui.esc(slug||'') + '</h3></div><div class="c-settings-form"><div class="c-form"><div class="c-form__group"><label class="c-form__label">ชื่อเรื่อง</label><input class="c-form__input" id="edit-title" value="' + Ui.esc(novel?.title||'') + '" /></div><div class="c-form__group"><label class="c-form__label">ผู้แต่ง</label><input class="c-form__input" id="edit-author" value="' + Ui.esc(novel?.author||'') + '" /></div></div></div></div>';
+      page.innerHTML = '<div class="c-container"><div class="c-section__header"><h3 class="c-section__title">แก้ไขนิยาย: ' + Ui.esc(slug||'') + '</h3></div><div class="c-settings-form"><div class="c-form"><div class="c-form__group"><label class="c-form__label">ชื่อไทย</label><input class="c-form__input" id="edit-translated-title" value="' + Ui.esc(novel?.translatedTitle||'') + '" /></div><div class="c-form__group"><label class="c-form__label">ชื่อต้นฉบับ</label><input class="c-form__input" id="edit-title" value="' + Ui.esc(novel?.title||'') + '" /></div><div class="c-form__group"><label class="c-form__label">ผู้แต่ง</label><input class="c-form__input" id="edit-author" value="' + Ui.esc(novel?.author||'') + '" /></div><div class="c-form__group" style="margin-top:var(--space-md);"><button class="c-btn c-btn--primary" id="edit-save">บันทึก</button><span id="edit-status" style="margin-left:var(--space-sm);"></span></div></div></div></div>';
     } catch(_) { Ui.showError(page, 'เกิดข้อผิดพลาด'); }
+
+    // ── Save handler ────────────────────────────────────────────────
+    const saveBtn = document.getElementById('edit-save');
+    const statusEl = document.getElementById('edit-status');
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        const title = document.getElementById('edit-title')?.value?.trim() || '';
+        const translatedTitle = document.getElementById('edit-translated-title')?.value?.trim() || '';
+        const author = document.getElementById('edit-author')?.value?.trim() || '';
+        statusEl.textContent = 'กำลังบันทึก...';
+        statusEl.style.color = 'var(--c-text-muted)';
+        try {
+          const res = await fetch('/api/novel/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug, title, author, translatedTitle }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            statusEl.textContent = '✅ บันทึกสำเร็จ';
+            statusEl.style.color = 'var(--c-success)';
+          } else {
+            statusEl.textContent = '❌ ' + (data.error || 'เกิดข้อผิดพลาด');
+            statusEl.style.color = 'var(--c-error)';
+          }
+        } catch (e) {
+          statusEl.textContent = '❌ ' + e.message;
+          statusEl.style.color = 'var(--c-error)';
+        }
+      };
+    }
   }
 };
 
