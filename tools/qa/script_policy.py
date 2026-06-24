@@ -147,7 +147,15 @@ def detect_script_leaks(
     allowed_scripts = policy["allowed_scripts"]
     hard_fail_scripts = policy["hard_fail_scripts"]
     if allowed_latin_tokens is None:
-        allowed_latin_tokens = policy["allowed_latin_tokens"]
+        # Load from term_policy (dynamic) with fallback to legacy static list
+        try:
+            from qa.term_policy import get_term_policy
+            tp = get_term_policy(target_lang)
+            # Normalize: add both raw and uppercase versions for matching
+            raw = tp.preserve_tokens | set(tp.terms.keys())
+            allowed_latin_tokens = raw | {t.upper() for t in raw}
+        except ImportError:
+            allowed_latin_tokens = policy.get("allowed_latin_tokens", set())
 
     result = ScriptLeakResult()
     char_counts: dict[str, int] = {}

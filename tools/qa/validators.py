@@ -65,14 +65,24 @@ EN_RETENTION_RE = re.compile(
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# LATIN TOKEN ALLOW/REPLACE LISTS
+# LATIN TOKEN ALLOW/REPLACE LISTS [DEPRECATED]
+# ═══════════════════════════════════════════════════════════════════════
+#
+# These lists are DEPRECATED. Term decisions should be made via
+# tools/config/term_policy.{lang}.yaml + tools/qa/term_policy.py
+#
+# ALLOWED_LATIN_TOKENS is still used by script_policy.py for fallback.
+# Keep minimal set here for backward compat — ELITE removed.
 # ═══════════════════════════════════════════════════════════════════════
 
 ALLOWED_LATIN_TOKENS: set[str] = {
-    "HP", "MP", "EXP", "SSS", "SSR", "UR", "SP", "ID", "VIP",
-    "S", "SS", "LR", "CD", "NPC", "PVP", "PVE", "LV", "LVL",
-    "ATK", "DEF", "DMG", "BUFF", "DEBUFF", "AOE", "DPS", "TPS",
-    "ELITE", "BloodyLand", "Bloodyland", "C",
+    # Game stats (preserve — notation, not English)
+    "HP", "MP", "EXP",
+    # Ranks (preserve)
+    "SSR", "UR", "VIP",
+    ## Removed: ELITE → moved to term_policy.th.yaml (replace: อีลิท)
+    ## Removed: BloodyLand, Bloodyland → moved to term_policy.th.yaml (preserve: proper_noun)
+    ## Removed: C → false positive (single char)
 }
 
 EN_BLACKLIST: set[str] = {
