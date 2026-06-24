@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -19,6 +20,18 @@ sys.path.insert(0, str(_PROJECT_ROOT / "tools"))
 
 from orchestrator import jobs, locks, preflight, quality, repair, runner, report
 from orchestrator.policy import get_policy
+
+
+# ── Data classes ──────────────────────────────────────────────────────
+
+
+@dataclass
+class ChapterPipelineResult:
+    """Structured result from processing a single chapter."""
+
+    job: object
+    stop: bool
+    lines: list[str] = field(default_factory=list)
 
 
 # ── Pipeline helpers ──────────────────────────────────────────────────
@@ -39,19 +52,19 @@ def fail_translate(job, slug, num, reason, mode, score=None, retry_count=0):
     return job
 
 
-def handle_validation_failure(slug, num, mode, score, reason, job):
-    """Route validation failure per mode (safe/strict/autopilot)."""
-    yield f"⚠️ ตอน {num} validation: {reason}"
-    if mode == "safe":
-        yield f"❌ ตอน {num} validation ล้มเหลว: {reason} — หยุด"
-        job = fail_translate(job, slug, num, reason, mode, score=score)
-        yield from []
-        return job, True  # True = stop
+def handle_validation_failure(slug, num, policy, score, reason, job):
+    """Route validation failure per mode (safe/strict/autopilot).
 
-    elif mode == "strict":
-        yield f"⚠️ ตอน {num} validation ล้มเหลว: {reason} — needs_review"
+    Uses policy object directly — no magic strings.
+    Returns ChapterPipelineResult.
+    """
+    lines = [f"⚠️ ตอน {num} validation: {reason}"]
+
+    if policy["stop_on_fail"] and policy["pass_score"] >= 85:
+        # Strict mode
+        lines.append(f"⚠️ ตอน {num} validation ล้มเหลว: {reason} — needs_review")
         quality.write_needs_review(
-            slug, num, f"strict:{reason}", score=score, mode=mode,
+            slug, num, f"strict:{reason}", score=score, mode="strict",
             fix_command=f"/แปลใหม่ {num}"
         )
         job = job.copy(
@@ -60,58 +73,65 @@ def handle_validation_failure(slug, num, mode, score, reason, job):
         )
         job.save()
         locks.release(slug, num)
-        yield from []
-        return job, True  # strict also stops
+        return ChapterPipelineResult(job=job, stop=True, lines=lines)
 
-    else:  # autopilot
-        yield f"⚠️ ตอน {num} จะ repair ก่อน continue"
+    elif policy["stop_on_fail"]:
+        # Safe mode
+        lines.append(f"❌ ตอน {num} validation ล้มเหลว: {reason} — หยุด")
+        job = fail_translate(job, slug, num, reason, "safe", score=score)
+        return ChapterPipelineResult(job=job, stop=True, lines=lines)
+
+    else:
+        # Autopilot — attempt repair before giving up
+        lines.append(f"⚠️ ตอน {num} จะ repair ก่อน continue")
         rr = repair.repair_chapter(slug, num)
         if rr.fixes:
             for fix in rr.fixes:
-                yield f"  🔧 {fix}"
+                lines.append(f"  🔧 {fix}")
             vr2 = runner.validate_single(slug, num)
             score2 = vr2.get("score") or score
             if vr2.get("ok") and (score2 is not None and score2 >= policy["repair_score"]):
-                yield f"  ✅ repair ช่วยให้ผ่าน validation แล้ว"
-                return job, False  # continue
-        yield f"  ⚠️ repair ไม่พอ — เก็บเป็น needs_review"
-        job = fail_translate(job, slug, num, f"autopilot:{reason} (repair failed)", mode,
+                lines.append(f"  ✅ repair ช่วยให้ผ่าน validation แล้ว")
+                return ChapterPipelineResult(job=job, stop=False, lines=lines)
+
+        lines.append(f"  ⚠️ repair ไม่พอ — เก็บเป็น needs_review")
+        job = fail_translate(job, slug, num, f"autopilot:{reason} (repair failed)", "autopilot",
                              score=score, retry_count=1)
-        yield from []
-        return job, False  # still continue (autopilot)
+        return ChapterPipelineResult(job=job, stop=False, lines=lines)
 
 
-def process_chapter(slug, num, mode, force, job):
+def process_chapter(slug, num, mode, force, job) -> ChapterPipelineResult:
     """Process a single chapter: translate → validate → success/fail.
 
-    Yields status lines. Returns (updated_job, should_stop).
+    NOT a generator — returns ChapterPipelineResult with lines, job, stop.
+    This avoids the Python generator return-value gotcha.
     """
+    lines = []
     policy = get_policy(mode)
+
     # Check lock
     if not locks.acquire(slug, num, job.id):
         existing = locks.who_holds(slug, num)
-        yield f"⚠️ ตอน {num} กำลังทำงานโดย job: {existing} — ข้าม"
+        lines.append(f"⚠️ ตอน {num} กำลังทำงานโดย job: {existing} — ข้าม")
         job = job.copy(failed=job.failed + [{"chapter": num, "reason": "locked", "retryCount": 0}])
         job.save()
-        yield from []
-        return job, False
+        return ChapterPipelineResult(job=job, stop=False, lines=lines)
 
     # Check if already translated (safe mode)
     th_path = _PROJECT_ROOT / "novels" / slug / "chapters" / f"{num:04d}.th.json"
     if th_path.exists() and not force and mode != "draft":
-        yield f"⏭️ ตอน {num} มี th.json แล้ว — ข้าม (ใช้ --force เพื่อแปลใหม่)"
+        lines.append(f"⏭️ ตอน {num} มี th.json แล้ว — ข้าม (ใช้ --force เพื่อแปลใหม่)")
         job = job.copy(done=job.done + [num], current=num)
         job.save()
         locks.release(slug, num)
-        yield from []
-        return job, False
+        return ChapterPipelineResult(job=job, stop=False, lines=lines)
 
     # Update job state
     job = job.copy(state="running", current=num)
     job.save()
 
     # ── Translate step ────────────────────────────────────────────
-    yield f"🔄 กำลังแปลตอน {num}..."
+    lines.append(f"🔄 กำลังแปลตอน {num}...")
     tr = runner.translate_single(slug, num, mode=mode, force=force, score=(mode != "draft"))
 
     # Audit: log translate result
@@ -120,27 +140,25 @@ def process_chapter(slug, num, mode, force, job):
 
     if not tr["ok"]:
         err = tr.get("error", "unknown error")
-        yield f"❌ ตอน {num} ล้มเหลว: {err}"
+        lines.append(f"❌ ตอน {num} ล้มเหลว: {err}")
         job = fail_translate(job, slug, num, err, mode)
-        yield from []
-        return job, mode in ("safe", "strict")  # stop on safe/strict
+        return ChapterPipelineResult(job=job, stop=policy["stop_on_fail"], lines=lines)
 
     if mode == "draft":
-        yield f"📝 ร่างตอน {num} (draft mode) — preview ที่ staging/drafts/{slug}/{num:04d}.th.json"
+        lines.append(f"📝 ร่างตอน {num} (draft mode) — preview ที่ staging/drafts/{slug}/{num:04d}.th.json")
         score = tr.get("score")
         if score:
-            yield f"   Score: {score}/100"
-        yield "   ✅ ไม่มีการแก้ไข canonical file (chapters/*.th.json)"
+            lines.append(f"   Score: {score}/100")
+        lines.append("   ✅ ไม่มีการแก้ไข canonical file (chapters/*.th.json)")
         job = job.copy(done=job.done + [num])
         job.save()
         locks.release(slug, num)
-        yield from []
-        return job, False
+        return ChapterPipelineResult(job=job, stop=False, lines=lines)
 
     # ── Validate step ─────────────────────────────────────────────
     job = job.copy(state="validating")
     job.save()
-    yield f"🔍 ตรวจสอบตอน {num}..."
+    lines.append(f"🔍 ตรวจสอบตอน {num}...")
     vr = runner.validate_single(slug, num)
     score = vr.get("score") or tr.get("score")
 
@@ -159,28 +177,26 @@ def process_chapter(slug, num, mode, force, job):
         if val_error:
             reason_parts.append(val_error[:100])
         if score is not None and not score_ok:
-            reason_parts.append(f"score {score}/100 < 70")
+            reason_parts.append(f"score {score}/100 < {policy['pass_score']}")
         reason = "; ".join(reason_parts)
-        job = handle_validation_failure(slug, num, mode, score, reason, job)
-        yield from []
-        return job, mode in ("safe", "strict")
+        result = handle_validation_failure(slug, num, policy, score, reason, job)
+        result.lines = lines + result.lines
+        return result
 
     # ── Verify file exists ────────────────────────────────────────
-    yield f"💾 ตรวจสอบตอน {num}..."
+    lines.append(f"💾 ตรวจสอบตอน {num}...")
     if not th_path.exists():
-        yield f"❌ ตอน {num} ไม่พบ .th.json หลังแปล"
+        lines.append(f"❌ ตอน {num} ไม่พบ .th.json หลังแปล")
         job = fail_translate(job, slug, num, "th.json_not_found_after_translate", mode)
-        yield from []
-        return job, mode in ("safe", "strict")
+        return ChapterPipelineResult(job=job, stop=policy["stop_on_fail"], lines=lines)
 
     # ── Success ───────────────────────────────────────────────────
     job = job.copy(state="done", done=job.done + [num])
     job.save()
     locks.release(slug, num)
 
-    yield report.success_translate(slug, num, tr["chapter_data"], score, tr.get("warnings"))
-    yield from []
-    return job, False
+    lines.append(report.success_translate(slug, num, tr["chapter_data"], score, tr.get("warnings")))
+    return ChapterPipelineResult(job=job, stop=False, lines=lines)
 
 
 # ── Command handlers ─────────────────────────────────────────────────
@@ -205,15 +221,13 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
         yield pf.summary()
         return
 
-    # Per-chapter pipeline
+    # Per-chapter pipeline (NOT generator — clean result object)
     for num in nums:
-        stop = False
-        pipeline_gen = process_chapter(slug, num, mode, force, job)
-        for msg in pipeline_gen:
+        result = process_chapter(slug, num, mode, force, job)
+        job = result.job
+        for msg in result.lines:
             yield msg
-            if isinstance(msg, tuple):
-                job, stop = msg
-        if stop:
+        if result.stop:
             break
 
     # After all chapters: rebuild
@@ -222,12 +236,12 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
     yield ("✅ Index rebuilt" if ri["ok"]
            else f"⚠️ Index rebuild failed: {ri.get('error', 'unknown')}")
 
-    # Final status
-    if len(job.pending) == 0 and len(job.failed) == 0:
+    # Final status — job state is now 100% accurate
+    if len(job.failed) == 0:
         job = job.copy(state="done")
         job.archive("done")
         yield f"✅ เสร็จทั้งหมด {len(job.done)}/{len(job.chapters)} ตอน"
-    elif len(job.failed) > 0:
+    elif len(job.done) > 0:
         job.archive("failed")
         yield f"⚠️ เสร็จ {len(job.done)}/{len(job.chapters)} ล้มเหลว {len(job.failed)}"
     else:
@@ -289,13 +303,11 @@ def handle(slug: str, command: str, *args, **kwargs):
         if latest.state not in ("failed", "needs_review"):
             return [f"Job {latest.id} ยังไม่ fail (status: {latest.state})"]
 
-        # Get pending chapters from failed
         failed_nums = [f["chapter"] for f in latest.failed]
         if not failed_nums:
             return ["ไม่มีตอนที่ล้มเหลวให้ resume"]
 
         nums = sorted(set(failed_nums))
-        # Respect job's original mode
         out = handle_translate(slug, nums, mode=latest.mode, force=True)
         return out
 
@@ -305,7 +317,6 @@ def handle(slug: str, command: str, *args, **kwargs):
     elif command == "report":
         chapters = kwargs.get("chapters_list", [])
         if not chapters:
-            # Read from disk
             ch_path = _NOVELS_DIR / slug / "chapters.json"
             if ch_path.exists():
                 import json
@@ -348,19 +359,16 @@ def run_backup():
         dest = backup_dir / slug
         dest.mkdir(parents=True, exist_ok=True)
 
-        # chapters.json
         src = novel_dir / "chapters.json"
         if src.exists():
             content = src.read_text(encoding="utf-8")
             (dest / "chapters.json").write_text(content)
-            # Integrity: verify it parses
             try:
                 json.loads(content)
                 verified += 1
             except json.JSONDecodeError:
                 lines.append(f"  ⚠️ {slug}: chapters.json corrupt (backed up anyway)")
                 failed += 1
-        # search-index
         for si in novel_dir.glob("search-index*.json"):
             content = si.read_text(encoding="utf-8")
             (dest / si.name).write_text(content)
@@ -370,12 +378,11 @@ def run_backup():
             except json.JSONDecodeError:
                 lines.append(f"  ⚠️ {slug}: {si.name} corrupt (backed up anyway)")
                 failed += 1
-        # chapter list
         ch_dir = novel_dir / "chapters"
         if ch_dir.exists():
             ch_dest = dest / "chapters"
             ch_dest.mkdir(exist_ok=True)
-            for f in sorted(ch_dir.glob("*.th.json"))[:5]:  # first 5 only
+            for f in sorted(ch_dir.glob("*.th.json"))[:5]:
                 content = f.read_text(encoding="utf-8")
                 (ch_dest / f.name).write_text(content)
                 try:
@@ -386,10 +393,7 @@ def run_backup():
                     failed += 1
 
     lines.append(f"  ตรวจสอบแล้ว: {verified} ไฟล์ถูกต้อง")
-    if failed:
-        lines.append(f"  ⚠️ พบ {failed} ไฟล์เสียหาย (backup ไว้ก่อน)")
-    else:
-        lines.append("  ✅ integrity ผ่านทั้งหมด")
+    lines.append(f"  ✅ integrity ผ่านทั้งหมด" if not failed else f"  ⚠️ พบ {failed} ไฟล์เสียหาย (backup ไว้ก่อน)")
     return lines
 
 
@@ -433,7 +437,6 @@ def main():
     kwargs = {}
 
     if hasattr(args, "range") and args.range:
-        # Parse chapter range
         m = re.match(r"^(\d+)(?:-(\d+))?$", args.range)
         if not m:
             print("❌ Invalid range. Use: 42 or 131-135")
