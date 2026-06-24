@@ -86,6 +86,14 @@ nul
 tmp/
 reader/novels/
 
+# Runtime orchestration state (generated on each run)
+jobs/active/
+jobs/done/
+jobs/failed/
+jobs/needs_review/
+logs/
+staging/drafts/
+
 # Cleanup 2026-06-22
 _Archive/
 docs/

@@ -329,6 +329,7 @@ function init() {
       enableReaderMode();
       initReaderBottomToolbar();
     } else {
+      ReaderPage._cleanupEvents?.();
       disableReaderMode();
       hideReaderBottomToolbar();
     }
@@ -344,9 +345,12 @@ function init() {
   // Start router
   Router.init();
 
-  // Initial activity update + polling (stopped by onPageChange if not home)
+  // Initial activity — only start polling if on home page
   updateActivityFeed();
-  startActivityPolling();
+  const currentPage = (window.location.hash.replace(/^#/, '') || 'home').split('/')[0];
+  if (currentPage === 'home') {
+    startActivityPolling();
+  }
 }
 
 // Auto-boot

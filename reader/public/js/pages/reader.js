@@ -153,7 +153,6 @@ const ReaderPage = {
       // ── Font size controls (persisted) ──────────────────────────────────
       const savedFontSize = parseInt(Store.getSettings().fontSize, 10) || 18;
       let fontStep = Math.round((savedFontSize - 18) / 2);
-      const BASE_FONT = 18;
       const applyFont = (step) => {
         const px = Math.max(14, Math.min(28, 18 + step * 2));
         document.documentElement.style.setProperty('--reader-font-size', `${px}px`);
