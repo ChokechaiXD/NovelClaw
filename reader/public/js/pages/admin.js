@@ -274,7 +274,42 @@ const AdminJobsPage = {
       const res = await fetch('/api/admin/jobs');
       const data = await res.json();
 
-      let filter = 'all';
+      let filter = 'needs_review';  // Default: only show pending items
+
+      // Helper: format chapter list as ranges
+      const fmtChapters = (ch) => {
+        if (!ch || ch === '') return '';
+        // Already a plain number string
+        if (/^\d+$/.test(String(ch))) return String(ch);
+        // Array of numbers — convert to ranges
+        if (Array.isArray(ch)) {
+          if (ch.length <= 3) return ch.join(', ');
+          const sorted = [...ch].sort((a,b) => a-b);
+          let ranges = [];
+          let start = sorted[0], end = sorted[0];
+          for (let i = 1; i < sorted.length; i++) {
+            if (sorted[i] === end + 1) { end = sorted[i]; }
+            else { ranges.push(start === end ? `${start}` : `${start}-${end}`); start = end = sorted[i]; }
+          }
+          ranges.push(start === end ? `${start}` : `${start}-${end}`);
+          return ranges.join(', ');
+        }
+        return String(ch).slice(0, 30);
+      };
+
+      // Helper: clean error message
+      const fmtError = (msg) => {
+        if (!msg) return '';
+        // Show only first meaningful line (not traceback)
+        const lines = msg.split('\n');
+        for (const line of lines) {
+          const t = line.trim();
+          if (t && !t.includes('Traceback') && !t.includes('File "') && !t.startsWith('^^')) {
+            return t.slice(0, 80);
+          }
+        }
+        return lines[0].slice(0, 80);
+      };
 
       const renderJobs = () => {
         let allItems = [];
@@ -322,7 +357,7 @@ const AdminJobsPage = {
         } else {
           for (const item of filtered) {
             const d = item.data || {};
-            const ch = d.chapter || d.chapterNo || (d.chapters ? d.chapters.join(',') : '');
+            const ch = d.chapter || d.chapterNo || (d.chapters ? d.chapters : '');
             const reason = d.reason || d.error || d.state || '';
             const suggestion = d.suggestedCommand || '';
             const slug = d.slug || '';
@@ -338,10 +373,10 @@ const AdminJobsPage = {
             else if (item._type === 'done') { typeLabel = 'เสร็จแล้ว'; badgeClass = 'c-badge--teal'; }
 
             html += '<tr>' +
-              '<td style="font-family:var(--font-mono);font-weight:600;white-space:nowrap;">' + Ui.esc(String(ch)) + '</td>' +
+              '<td style="font-family:var(--font-mono);font-weight:600;white-space:nowrap;">' + Ui.esc(fmtChapters(ch)) + '</td>' +
               '<td><span class="c-badge c-badge--gray" style="font-size:10px;">' + Ui.esc(mode || typeLabel) + '</span></td>' +
               '<td><span class="c-badge ' + badgeClass + '">' + typeLabel + '</span>' +
-                (reason ? '<div style="font-size:10px;color:var(--c-text-muted);margin-top:2px;">' + Ui.esc(reason.slice(0, 60)) + '</div>' : '') +
+                (reason ? '<div style="font-size:10px;color:var(--c-text-muted);margin-top:2px;" title="' + Ui.esc(reason) + '">' + Ui.esc(fmtError(reason)) + '</div>' : '') +
                 (createdAt ? '<div style="font-size:10px;color:var(--c-text-soft);margin-top:1px;">' + createdAt + '</div>' : '') +
               '</td>' +
               '<td>' +
