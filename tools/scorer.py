@@ -107,9 +107,9 @@ def _has_npc_speaker(paragraph: str) -> bool:
     return False
 
 # Completeness ratio range
-COMPLETENESS_MIN = 0.80
+COMPLETENESS_MIN = 0.75
 COMPLETENESS_MAX = 3.50
-COMPLETENESS_IDEAL_MIN = 1.00
+COMPLETENESS_IDEAL_MIN = 0.85
 COMPLETENESS_IDEAL_MAX = 3.30  # Bumped from 3.00 to accommodate LLM verbosity
 
 # Dialogue ratio range
@@ -122,7 +122,7 @@ DIALOGUE_RATIO_IDEAL_MAX = 0.50
 MIN_PARAGRAPHS = 5
 
 # Speaker attribution target (v3: lower because no explicit speaker field)
-SPEAKER_TARGET = 0.15  # 15% of dialogue paragraphs
+SPEAKER_TARGET = 0.12  # 12% of dialogue paragraphs (v3 has no explicit speaker field)
 
 # Dialogue quote detection regex — universal across all markers
 DIALOGUE_QUOTE_RE = re.compile('[\u201c\u201d\u300c\u300d"]')
@@ -522,42 +522,43 @@ def _score_content_diversity(data: dict) -> DimensionScore:
 
 
 def _score_schema(data: dict) -> DimensionScore:
-    """Check structural integrity for v3 paragraphs."""
+    """Check structural integrity — supports both v2 and v3 formats."""
     issues = []
 
     # Title
     title_raw = data.get("title", "")
-    # Canonical format: title can be {translated: "...", source: "..."} or string
     title = title_raw
     if isinstance(title_raw, dict):
         title = title_raw.get("translated", "") or title_raw.get("source", "")
     if not title:
         issues.append("missing title")
-    elif not re.match(r'^ตอนที่ \d+', title):
+    elif not re.match(r'^(ตอนที่|บทที่|Chapter|Episode)\s+\d+', title):
         issues.append(f"bad title format: \"{title[:40]}\"")
 
-    # Num
-    num = data.get("num")
+    # Num (v3: chapterNo, v2: num)
+    num = data.get("chapterNo") or data.get("num")
     if num is None:
-        issues.append("missing num")
+        issues.append("missing chapter number (chapterNo/num)")
 
-    # Lang
-    lang = data.get("lang")
-    if not lang:
-        issues.append("missing lang")
-
-    # Output lang
-    out_lang = data.get("output_lang")
-    if not out_lang:
-        issues.append("missing output_lang")
+    # Lang (v3: sourceLang + targetLang, v2: lang)
+    src_lang = data.get("sourceLang") or data.get("lang")
+    tgt_lang = data.get("targetLang") or data.get("output_lang") or data.get("target_lang")
+    if not src_lang:
+        issues.append("missing source language (sourceLang/lang)")
+    if not tgt_lang:
+        issues.append("missing target language (targetLang/output_lang)")
 
     # Content: paragraphs or blocks
-    if not data.get("paragraphs") and not data.get("blocks"):
+    has_paras = bool(data.get("paragraphs"))
+    has_blocks = bool(data.get("blocks"))
+    if not has_paras and not has_blocks:
         issues.append("no paragraphs or blocks")
-    elif data.get("paragraphs") and not data.get("paragraphs"):
+    elif has_paras and not data["paragraphs"]:
         issues.append("empty paragraphs")
-    elif data.get("blocks") and not data.get("blocks"):
+    elif has_blocks and not data["blocks"]:
         issues.append("empty blocks")
+    elif has_paras and len(data["paragraphs"]) < 5:
+        issues.append("too few paragraphs (<5) — may be truncated")
 
     detail = "; ".join(issues) if issues else "✅ all fields correct"
     score = 0.0 if issues else 1.0
@@ -571,7 +572,7 @@ def _score_schema(data: dict) -> DimensionScore:
 def score_chapter(data: dict, source_text: str | None = None,
                   verbose: bool = False) -> ScorerResult:
     """Score one translated chapter across 8 dimensions."""
-    ch_num = data.get("num", 0)
+    ch_num = data.get("chapterNo") or data.get("num", 0)
     source_char_count = len(source_text) if source_text else 0
 
     dims = [

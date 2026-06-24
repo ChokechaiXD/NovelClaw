@@ -361,15 +361,17 @@ Output only the Thai translation, one paragraph per line.
 {get_style_summary()}
 </style>
 
-<rules>
-- Translate faithfully, do NOT skip or edit paragraphs
-- Zero CJK characters (Chinese characters) allowed in output
-- Use straight "..." for spoken dialogue
-- Use 【...】 for system/game notifications
-- Use 『...』 for inner thoughts
-- Keep character names consistent with glossary
-- Output length should be similar to source length
-</rules>
+|<rules>
+|- Translate faithfully, do NOT skip or edit paragraphs
+|- Zero CJK characters (Chinese characters) allowed in output
+|- Use straight "..." for spoken dialogue
+|- Use 【...】 for system/game notifications
+|- Use 『...』 for inner thoughts
+|- Keep character names consistent with glossary
+|- Output length should be similar to source length
+|- **Translate ALL monster/skill/item names to Thai** — no English names allowed
+|- **REMOVE Chinese web novel footer** messages about donations, reader thanks, author notes at the end
+|</rules>
 
 <continuity_context>
 {continuity}
@@ -468,31 +470,85 @@ def get_chapter_context(
 # ── LLM call ──
 
 
-def _call_llm(prompt: str, max_retries: int = 3, system: str | None = None, timeout: int = 120) -> str:
-    """Call the LLM via Hermes (api.py handles retry + fallback).
-    
+def _call_llm(prompt: str, max_retries: int = 3, system: str | None = None, timeout: int = 120,
+              model_override: str | None = None) -> str:
+    """Call the LLM via NovelClaw Fallback Router (preferred) or legacy api.py.
+
+    Router handles Z.AI → OpenRouter fallback chain with circuit breaker,
+    output validation, and per-model logging.
+
     Args:
         prompt: The user text to send.
-        max_retries: Max retry attempts (passed to call_llm).
+        max_retries: Ignored when router is used (router has its own retry).
         system: System prompt (optional).
-        timeout: Overall timeout in seconds (default 120s).
+        timeout: Overall timeout in seconds.
+        model_override: Force specific model (e.g. "fallback:1" for first fallback).
     """
-    import concurrent.futures
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exec:
-        fut = exec.submit(call_llm, prompt, max_retries, system)
-        try:
-            return fut.result(timeout=timeout)
-        except concurrent.futures.TimeoutError:
-            print(f"✗ LLM timeout after {timeout}s")
-            return '{"mock": "no LLM configured"}'
-        except RuntimeError as e:
-            print(f"✗ LLM error after all retries: {e}")
-            print("⏭ Falling back to mock output...")
-            return '{"mock": "no LLM configured"}'
-        except Exception as e:
-            print(f"✗ Unexpected LLM error: {e}")
-            print("⏭ Falling back to mock output...")
-            return '{"mock": "no LLM configured"}'
+    # If model_override is set, use legacy call_llm (for retry scenarios)
+    if model_override:
+        from providers import call_llm as legacy_call
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exec:
+            fut = exec.submit(legacy_call, prompt, max_retries, system, model_override)
+            try:
+                return fut.result(timeout=timeout)
+            except concurrent.futures.TimeoutError:
+                print(f"✗ LLM timeout after {timeout}s")
+                return '{"mock": "no LLM configured"}'
+            except RuntimeError as e:
+                print(f"✗ LLM error after all retries: {e}")
+                print("⏭ Falling back to mock output...")
+                return '{"mock": "no LLM configured"}'
+            except Exception as e:
+                print(f"✗ Unexpected LLM error: {e}")
+                print("⏭ Falling back to mock output...")
+                return '{"mock": "no LLM configured"}'
+
+    # Default: use the NovelClaw LLM Router (translate_fast profile)
+    try:
+        from llm_router.router import call_profile
+
+        # Use ThreadPoolExecutor to enforce overall timeout
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exec:
+            fut = exec.submit(
+                call_profile,
+                "translate_fast",
+                prompt,
+                system,
+            )
+            try:
+                result = fut.result(timeout=timeout)
+            except concurrent.futures.TimeoutError:
+                print(f"✗ Router timeout after {timeout}s — falling back to mock")
+                return '{"mock": "no LLM configured"}'
+
+        if result.ok:
+            print(f"  ✅ Router: {result.provider}:{result.model} ({result.elapsed_sec:.1f}s, {len(result.text)} chars)")
+            return result.text
+
+        # Router completely failed
+        print(f"  ⚠ Router failed: {result.error}")
+        # Write last-attempt info for debugging
+        for attempt in result.attempts[-3:]:
+            print(f"    → {attempt.get('provider', '?')}:{attempt.get('model', '?')} = "
+                  f"{attempt.get('status', '?')} ({attempt.get('error', '')[:60]})")
+        print("  ⏭ Falling back to mock output...")
+        return '{"mock": "no LLM configured"}'
+    except ImportError as e:
+        print(f"  ⚠ llm_router not available ({e}) — using legacy call_llm")
+        from providers import call_llm as legacy_call
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exec:
+            fut = exec.submit(legacy_call, prompt, max_retries, system)
+            try:
+                return fut.result(timeout=timeout)
+            except concurrent.futures.TimeoutError:
+                print(f"✗ LLM timeout after {timeout}s")
+                return '{"mock": "no LLM configured"}'
+    except Exception as e:
+        print(f"✗ Router unexpected error: {e} — falling back to mock")
+        return '{"mock": "no LLM configured"}'
 
 
 def mock_translate(
@@ -799,18 +855,98 @@ def translate_one(
             profile_lang=profile_lang,
         )
         if not quality_ok:
-            if json_mode:
-                import json as _json
-                print(_json.dumps({"status": "failed", "ch": ch_num,
-                                    "reason": "quality_gate", "messages": quality_messages},
-                                   ensure_ascii=False))
+            # ── Save output before retry so repair can fix formatting ──
+            try:
+                save_chapter(ch, out_path, slug=progress_slug)
+            except Exception:
+                pass
+
+            # ── Retry with translate_quality router profile ───────────
+            fallback_retried = False
+            print(f"  ⚠ Quality gate failed — retrying with translate_quality profile (router)")
+            fb_prompt = build_prompt(
+                ch_num,
+                translate_source,
+                unknown_terms=unknown_terms,
+                source_lang=source_lang,
+                target_lang=target_lang,
+                profile_lang=profile_lang,
+                source_cleaned=source,
+            )
+            sys_end = fb_prompt.find("<continuity_context>")
+            if sys_end > 0:
+                fb_system = fb_prompt[:sys_end].strip()
+                fb_user = fb_prompt[sys_end:].strip()
             else:
-                print(f"  Quality Gate failed for ch{ch_num}:")
-                for msg in quality_messages:
-                    print(f"  {msg}")
-            if progress_state is not None:
-                mark_failed(ch_num, progress_slug, progress_state)
-            return False
+                fb_system = None
+                fb_user = fb_prompt
+
+            # Use llm_router with translate_quality profile
+            import concurrent.futures
+            fb_result = None
+            try:
+                from llm_router.router import call_profile
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exec:
+                    fut = exec.submit(call_profile, "translate_quality", fb_user, fb_system)
+                    fb_result = fut.result(timeout=120)
+            except ImportError:
+                from providers import call_llm as legacy_call
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exec:
+                    fut = exec.submit(legacy_call, fb_user, 3, fb_system, "fallback:1")
+                    fb_raw = fut.result(timeout=120)
+                fb_result = type('obj', (object,), {'ok': True, 'text': fb_raw})()
+
+            if fb_result and fb_result.ok:
+                fb_output = fb_result.text
+                print(f"  ✅ Router (translate_quality): {fb_result.provider}:{fb_result.model}")
+            else:
+                print("  ⚠ Router translate_quality failed — using mock")
+                fb_output = '{"mock": "no LLM configured"}'
+
+            fb_ch_data = parse_translation_output(fb_output, ch_num) if not fb_output.startswith('{"mock"') else None
+            if fb_ch_data:
+                fb_paragraphs = fb_ch_data.get("paragraphs", [])
+                for i, para in enumerate(fb_paragraphs):
+                    if para == "(จบบท)":
+                        continue
+                    fb_paragraphs[i] = _cn_re.sub("", fb_paragraphs[i])
+                fb_ch_data.setdefault("num", ch_num)
+                fb_ch_data.setdefault("lang", normalized_source_lang)
+                fb_ch_data["output_lang"] = normalized_target_lang
+                try:
+                    ch = Chapter(**fb_ch_data)
+                    fb_quality_ok, fb_quality_messages = validate_translation_quality(
+                        ch, source,
+                        source_lang=source_lang,
+                        target_lang=target_lang,
+                        profile_lang=profile_lang,
+                    )
+                    if fb_quality_ok:
+                        paragraph_blocks = fb_ch_data.get("paragraphs", [])
+                        ch_data = fb_ch_data
+                        quality_messages = ["✅ Fallback retry passed quality gate"]
+                        fallback_retried = True
+                        print(f"  ✅ ch{ch_num}: quality retry passed via translate_quality profile")
+                    else:
+                        print(f"  ⚠ translate_quality also failed quality gate — reporting original failure")
+                except Exception as e:
+                    print(f"  ⚠ translate_quality also failed schema: {str(e)[:200]}")
+            else:
+                print(f"  ⚠ translate_quality parse failed — reporting original failure")
+
+            if not fallback_retried:
+                if json_mode:
+                    import json as _json
+                    print(_json.dumps({"status": "failed", "ch": ch_num,
+                                        "reason": "quality_gate", "messages": quality_messages},
+                                       ensure_ascii=False))
+                else:
+                    print(f"  Quality Gate failed for ch{ch_num}:")
+                    for msg in quality_messages:
+                        print(f"  {msg}")
+                if progress_state is not None:
+                    mark_failed(ch_num, progress_slug, progress_state)
+                return False
     else:
         quality_messages = []
 

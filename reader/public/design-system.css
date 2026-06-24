@@ -385,14 +385,35 @@ ul, ol { list-style: none; }
   pointer-events: none;
 }
 
-/* Reader full-width: hide both sidebars */
-.c-app--reader {
+/* Reader full-width: hide both sidebars when on reader page */
+.c-app--reader-page {
   --sidebar-col: 0px;
   --rightbar-col: 0px;
 }
-.c-app--reader .c-app__sidebar,
-.c-app--reader .c-app__rightbar {
+.c-app--reader-page .c-app__sidebar,
+.c-app--reader-page .c-app__rightbar {
   display: none;
+}
+
+/* Book mode: distraction-free reading — hides everything except content */
+.c-app--book-mode {
+  --sidebar-col: 0px;
+  --rightbar-col: 0px;
+}
+.c-app--book-mode .c-app__sidebar,
+.c-app--book-mode .c-app__rightbar,
+.c-app--book-mode .c-toolbar,
+.c-app--book-mode .c-reader__nav,
+.c-app--book-mode .reader-bottom-toolbar,
+.c-app--book-mode .c-app__header {
+  display: none !important;
+}
+.c-app--book-mode .reader-shell {
+  max-width: 100%;
+  padding: 0 10%;
+}
+.c-app--book-mode .reader-exit-btn {
+  display: flex !important;
 }
 
 /* ── App shell children ────────────────────────────────────────────── */
@@ -1035,7 +1056,7 @@ button.c-form__input,
   background: var(--c-surface-hover);
   color: var(--c-text-primary);
 }
-.c-app--reader .reader-exit-btn {
+.c-app--book-mode .reader-exit-btn {
   opacity: 1;
   pointer-events: auto;
 }
@@ -1562,6 +1583,67 @@ a.c-rc__item:hover { color: var(--c-accent); }
 /* ── Toggle wrapper ─────────────────────────────────────────────────── */
 .c-toggle-wrap { display: flex; align-items: center; gap: var(--space-sm); }
 
+
+/* ── Mini-stat cards (rightbar stats) ─────────────────────────────── */
+.c-mini-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.c-mini-stat {
+  background: var(--c-surface);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  text-align: center;
+}
+.c-mini-stat__num {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--c-accent);
+}
+.c-mini-stat__num--warn {
+  color: var(--c-warning);
+}
+.c-mini-stat__num--success {
+  color: var(--c-success);
+}
+.c-mini-stat__label {
+  font-size: 10px;
+  color: var(--c-text-muted);
+}
+
+/* ── Activity feed items ─────────────────────────────────────────── */
+.c-rc__item-time {
+  font-size: 10px;
+  color: var(--c-text-soft);
+}
+.c-rc__item-date {
+  font-size: 10px;
+  color: var(--c-text-muted);
+}
+.c-rc__item--empty {
+  font-size: 11px;
+  color: var(--c-text-muted);
+  padding: 8px 0;
+}
+
+/* ── Admin stats grid ────────────────────────────────────────────── */
+.c-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+/* ── Admin health summary row ────────────────────────────────────── */
+.c-health-row {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+
+/*─────────────────────────────────────────────────────────────────────*/
 
 /* ═══════════════════════════════════════════════════════════════════════
    MISC old compat styles

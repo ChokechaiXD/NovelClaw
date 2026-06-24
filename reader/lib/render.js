@@ -1,6 +1,12 @@
 /**
  * lib/render.js — Chapter JSON → HTML renderer.
  *
+ * ⚠️  TEST SUPPORT ONLY — Not used in production.
+ *     Frontend rendering is handled by js/pages/reader.js + js/reader-renderer.js.
+ *     This file exists only for server-side Node tests.
+ *     Consider using reader/tests/stub-renderer.js for future tests.
+ *
+ *
  * Converts a Chapter object (with blocks array) into HTML string.
  * Uses the active language profile (output_lang / profile_lang / lang)
  * for bracket styling and end-marker display.

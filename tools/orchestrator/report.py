@@ -140,6 +140,30 @@ def job_status(jobs_list: list) -> str:
     return "\n".join(lines)
 
 
+def check_needs_review(slug: str) -> str:
+    """List needs_review entries for a slug."""
+    if not _NEEDS_DIR.exists():
+        return "📋 ไม่มีตอนที่รอตรวจสอบ"
+
+    entries = sorted(_NEEDS_DIR.glob(f"{slug}_*.json"))
+    if not entries:
+        return f"📋 ไม่มีตอนที่รอตรวจสอบสำหรับ {slug}"
+
+    lines = [f"📋 รอตรวจสอบ {len(entries)} ตอน:"]
+    for p in entries:
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+            num = data.get("num", "?")
+            reason = data.get("reason", "?")
+            fix = data.get("fix_command", "")
+            lines.append(f"  ❌ ตอน {num}: {reason[:80]}")
+            if fix:
+                lines.append(f"     แก้: {fix}")
+        except (json.JSONDecodeError, OSError):
+            lines.append(f"  ❌ {p.stem}: cannot read")
+    return "\n".join(lines)
+
+
 def novel_report(slug: str, chapters_list: list[dict]) -> str:
     """Format novel translation status report."""
     total = len(chapters_list)

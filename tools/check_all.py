@@ -94,16 +94,48 @@ def main():
     # ── 5. server.js syntax ──────────────────────────────────────────
     check("  server.js syntax", ["node", "--check", str(READER / "server.js")])
 
-    # ── 6. API smoke tests (if server running) ───────────────────────
+    # ── 6. API smoke tests (auto-start server if needed) ─────────────
     print("\n📦 API Smoke Tests")
     import socket
+    import subprocess as sp
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_running = s.connect_ex(('127.0.0.1', 4173)) == 0
     s.close()
-    if server_running:
-        check("API smoke tests", ["node", "tests/test-api.js"], cwd=READER, skip_on_fail=True)
+    server_proc = None
+    if not server_running:
+        print(f"  → Starting reader server on :4173...", end=" ", flush=True)
+        try:
+            server_proc = sp.Popen(
+                ["node", "server.js"],
+                cwd=READER,
+                stdout=sp.DEVNULL,
+                stderr=sp.DEVNULL,
+            )
+            # Wait for server to be ready
+            for _ in range(15):
+                time.sleep(1)
+                s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                if s2.connect_ex(('127.0.0.1', 4173)) == 0:
+                    s2.close()
+                    print("✅ ready")
+                    break
+                s2.close()
+            else:
+                print("❌ failed to start")
+                server_proc.kill()
+                server_proc = None
+        except FileNotFoundError:
+            print("⏭️  (node not found)")
+    if server_running or server_proc:
+        api_ok = check("API smoke tests", ["node", "tests/test-api.js"], cwd=READER, skip_on_fail=True)
     else:
-        print(f"  API smoke tests {SKIP} (server not running on :4173)")
+        print(f"  API smoke tests ⏭️ (server unavailable)")
+    if server_proc:
+        server_proc.terminate()
+        try:
+            server_proc.wait(timeout=5)
+        except sp.TimeoutExpired:
+            server_proc.kill()
 
     # ── 6. Schema validation ────────────────────────────────────────
     print("\n📦 Schema Validation")

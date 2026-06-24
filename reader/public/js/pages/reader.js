@@ -4,9 +4,12 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 const ReaderPage = {
-  _readerKeyHandler: null,
+  _readerAbortController: null,
 
   async render(params) {
+    // ── Cleanup previous events before re-render ─────────────────────
+    this._cleanupEvents();
+
     const page = Ui.$('page-reader');
     if (!page) return;
     const slug = params.slug;
@@ -90,48 +93,7 @@ const ReaderPage = {
           const titleEl = document.getElementById('page-title');
           if (titleEl) titleEl.textContent = Ui.esc(Ui.displayTitle(novel) || slug) + ' — ตอนที่ ' + ch.num;
 
-          let contentHtml = '';
-          // New format: paragraphs (type-less, inline markers)
-          if (data.paragraphs && data.paragraphs.length) {
-            for (const para of data.paragraphs) {
-              if (!para || !para.trim()) continue;
-              const t = Ui.esc(para.trim());
-              // End marker paragraph
-              if (t === '(จบบท)' || t === '(End)' || t === '（終）' || t === '(끝)' || /^\([\u0e00-\u0e7f]+\)$/.test(t)) {
-                contentHtml += `<p class="end-marker">${t}</p>`;
-                continue;
-              }
-              // Inline marker styling — single-pass approach
-              // Replace each marker type in isolation, using text that has NO HTML yet
-              // Then combine results into one final string
-              const replaceDialogue = (s) => s
-                .replace(/\u201c([^\u201d\n]+)\u201d/g, '<span class=\"c-marker--dialogue\">$&</span>')
-                .replace(/「([^」]+)」/g, '<span class=\"c-marker--dialogue\">$&</span>');
-              const replaceSystem = (s) => s
-                .replace(/【([^】]+)】/g, '<span class=\"c-marker--system\">$&</span>');
-              const replaceThought = (s) => s
-                .replace(/『([^』]+)』/g, '<span class=\"c-marker--thought\">$&</span>');
-              // Order: dialogue first (uses " in HTML), then system+thought (no " conflict)
-              let html = t;
-              html = replaceDialogue(html);
-              html = replaceSystem(html);
-              html = replaceThought(html);
-              contentHtml += '<p>' + html + '</p>';
-            }
-          }
-          // Legacy format: blocks with types (backward compat)
-          else {
-            const blocks = data.blocks || [];
-            for (const b of blocks) {
-              const t = (b.text || '').trim();
-              if (!t) continue;
-              if (b.type === 'dialogue') contentHtml += `<p class="dialogue">${Ui.esc(t)}</p>`;
-              else if (b.type === 'system') contentHtml += `<p class="system-msg">${Ui.esc(t)}</p>`;
-              else if (b.type === 'game_title') contentHtml += `<p class="game-title">${Ui.esc(t)}</p>`;
-              else if (b.type === 'end') contentHtml += `<p class="end-marker">${Ui.esc(t)}</p>`;
-              else contentHtml += `<p>${Ui.esc(t)}</p>`;
-            }
-          }
+          let contentHtml = ReaderRenderer.renderChapter(data);
           Ui.$('reader-content').innerHTML = contentHtml;
 
           // Mark as read
@@ -200,14 +162,8 @@ const ReaderPage = {
         if (lbl) lbl.textContent = `${px}px`;
       };
       applyFont(fontStep);
-      Ui.$('reader-font-sm').onclick = () => {
-        fontStep = Math.max(-1, fontStep - 1);
-        applyFont(fontStep);
-      };
-      Ui.$('reader-font-lg').onclick = () => {
-        fontStep = Math.min(2, fontStep + 1);
-        applyFont(fontStep);
-      };
+      Ui.$('reader-font-sm').onclick = () => { fontStep = Math.max(-1, fontStep - 1); applyFont(fontStep); };
+      Ui.$('reader-font-lg').onclick = () => { fontStep = Math.min(2, fontStep + 1); applyFont(fontStep); };
 
       // ── Line-height controls (persisted) ────────────────────────────────
       const LEADINGS = [1.6, 1.8, 2.0, 2.2];
@@ -223,26 +179,18 @@ const ReaderPage = {
         if (lbl) lbl.textContent = `${val}`;
       };
       applyLeading(leadingIdx);
-      Ui.$('reader-leading-sm').onclick = () => {
-        leadingIdx = Math.max(0, leadingIdx - 1);
-        applyLeading(leadingIdx);
-      };
-      Ui.$('reader-leading-lg').onclick = () => {
-        leadingIdx = Math.min(LEADINGS.length - 1, leadingIdx + 1);
-        applyLeading(leadingIdx);
-      };
+      Ui.$('reader-leading-sm').onclick = () => { leadingIdx = Math.max(0, leadingIdx - 1); applyLeading(leadingIdx); };
+      Ui.$('reader-leading-lg').onclick = () => { leadingIdx = Math.min(LEADINGS.length - 1, leadingIdx + 1); applyLeading(leadingIdx); };
 
       // ── Theme toggle ─────────────────────────────────────────────────
       const THEMES = ['sepia', 'night', 'amoled', 'paper'];
       const THEME_ICONS = { sepia: '#icon-book', night: '#icon-moon', amoled: '#icon-moon', paper: '#icon-sun' };
       let currentTheme = Store.getSettings().theme || 'sepia';
-
       const updateIcon = (t) => {
         const btn = Ui.$('reader-theme-toggle');
         if (btn) btn.innerHTML = `<svg style="width:16px;height:16px;"><use xlink:href="${THEME_ICONS[t] || '#icon-moon'}"/></svg>`;
       };
       updateIcon(currentTheme);
-
       Ui.$('reader-theme-toggle').onclick = () => {
         currentTheme = THEMES[(THEMES.indexOf(currentTheme) + 1) % THEMES.length];
         Store.setSetting('theme', currentTheme);
@@ -253,41 +201,67 @@ const ReaderPage = {
       Ui.$('reader-distraction-toggle').onclick = () => {
         const app = document.querySelector('.c-app');
         if (!app) return;
-        app.classList.toggle('c-app--reader');
-        const isActive = app.classList.contains('c-app--reader');
+        app.classList.toggle('c-app--book-mode');
+        const isActive = app.classList.contains('c-app--book-mode');
         Ui.showToast(isActive ? 'โหมดอ่านหนังสือ' : 'ออกจากโหมดอ่านหนังสือ');
       };
 
       // ── Exit book mode button ──────────────────────────────────────
       Ui.$('reader-exit-btn').onclick = () => {
         const app = document.querySelector('.c-app');
-        app?.classList.remove('c-app--reader');
+        app?.classList.remove('c-app--book-mode');
         Ui.showToast('ออกจากโหมดอ่านหนังสือ');
       };
 
-      // ── Scroll progress bar (debounced) ──────────────────────────────
-      const updateProgress = () => {
+      // ── Bind events with AbortController for cleanup ──────────────────
+      this._bindReaderEvents();
+
+      // ── Scroll progress initial ────────────────────────────────────
+      const doUpdateProgress = () => {
         const sc = document.querySelector('.c-content');
         if (!sc) return;
         const pct = (sc.scrollTop / (sc.scrollHeight - sc.clientHeight)) * 100;
         const fill = Ui.$('reader-progress-fill');
         if (fill) fill.style.width = Math.min(100, Math.max(0, pct)) + '%';
       };
-      const debouncedProgress = Ui.debounce(updateProgress, 100);
-      document.querySelector('.c-content')?.addEventListener('scroll', debouncedProgress);
-      updateProgress(); // initial
-
-      // ── Keyboard shortcuts ──────────────────────────────────────────
-      if (this._readerKeyHandler) document.removeEventListener('keydown', this._readerKeyHandler);
-      this._readerKeyHandler = (e) => {
-        if (e.target.matches('input, textarea')) return;
-        if (e.key === 'ArrowLeft') Ui.$('reader-prev')?.click();
-        if (e.key === 'ArrowRight') Ui.$('reader-next')?.click();
-      };
-      document.addEventListener('keydown', this._readerKeyHandler);
+      doUpdateProgress(); // initial
 
     } catch (err) {
       Ui.showError(page, 'โหลดไม่สำเร็จ', err.message);
+    }
+  },
+
+  /* ── Bind persistent events with AbortController cleanup ────────── */
+  _bindReaderEvents() {
+    this._cleanupEvents();
+    this._readerAbortController = new AbortController();
+    const { signal } = this._readerAbortController;
+
+    // Scroll progress bar (debounced)
+    const updateProgress = () => {
+      const sc = document.querySelector('.c-content');
+      if (!sc) return;
+      const pct = (sc.scrollTop / (sc.scrollHeight - sc.clientHeight)) * 100;
+      const fill = Ui.$('reader-progress-fill');
+      if (fill) fill.style.width = Math.min(100, Math.max(0, pct)) + '%';
+    };
+    const debouncedProgress = Ui.debounce(updateProgress, 100);
+    document.querySelector('.c-content')?.addEventListener('scroll', debouncedProgress, { signal });
+
+    // Keyboard shortcuts
+    const keyHandler = (e) => {
+      if (e.target.matches('input, textarea')) return;
+      if (e.key === 'ArrowLeft') Ui.$('reader-prev')?.click();
+      if (e.key === 'ArrowRight') Ui.$('reader-next')?.click();
+    };
+    document.addEventListener('keydown', keyHandler, { signal });
+  },
+
+  /* ── Cleanup all AbortController-bound events ──────────────────── */
+  _cleanupEvents() {
+    if (this._readerAbortController) {
+      this._readerAbortController.abort();
+      this._readerAbortController = null;
     }
   }
 };

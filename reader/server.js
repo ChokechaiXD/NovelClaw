@@ -33,6 +33,49 @@ const BIND_HOST = process.env.HOST || '127.0.0.1';
 const PUBLIC_DIR = path.resolve(__dirname, 'public');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 
+// ── API response helpers ──────────────────────────────────────────
+function ok(res, data = {}) {
+  return res.json({ ok: true, data });
+}
+function fail(res, status, code, message, details) {
+  const body = { ok: false, error: { code, message } };
+  if (details !== undefined) body.error.details = details;
+  return res.status(status).json(body);
+}
+
+// ── Simple in-memory cache for GET responses ─────────────────────
+const _responseCache = new Map();
+const CACHE_TTL = {
+  novels: 30_000,        // 30s — fast-moving
+  chapters: 60_000,      // 60s — chapter list
+  chapterContent: 20_000, // 20s — single chapter (stale-while-revalidate on client)
+};
+
+function cacheMiddleware(ttl) {
+  return (req, res, next) => {
+    const key = req.originalUrl;
+    const cached = _responseCache.get(key);
+    if (cached && (Date.now() - cached.time) < ttl) {
+      res.set('X-Cache', 'HIT');
+      return res.json(cached.data);
+    }
+    // Wrap res.json to cache the response
+    const _json = res.json.bind(res);
+    res.json = (body) => {
+      _responseCache.set(key, { data: body, time: Date.now() });
+      res.set('X-Cache', 'MISS');
+      return _json(body);
+    };
+    next();
+  };
+}
+
+function invalidateCache(prefix) {
+  for (const key of _responseCache.keys()) {
+    if (key.startsWith(prefix)) _responseCache.delete(key);
+  }
+}
+
 // ── Middleware ─────────────────────────────────────────────────────
 const app = express();
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
@@ -51,7 +94,7 @@ app.use(express.static(PUBLIC_DIR, {
 // Slug validation param middleware
 app.param('slug', (req, res, next, slug) => {
   if (!SLUG_RE.test(slug)) {
-    return res.status(400).json({ error: 'Invalid slug format' });
+    return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');
   }
   next();
 });
@@ -65,12 +108,12 @@ function requireAdmin(req, res, next) {
   if (!ADMIN_TOKEN) return next(); // no auth configured
   const provided = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!provided) {
-    return res.status(401).json({ error: 'Unauthorized — provide Authorization: Bearer <token>' });
+    return fail(res, 401, 'AUTH_REQUIRED', 'Unauthorized — provide Authorization: Bearer <token>');
   }
   if (provided.length === ADMIN_TOKEN.length && crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(ADMIN_TOKEN))) {
     return next();
   }
-  res.status(401).json({ error: 'Unauthorized — invalid token' });
+  fail(res, 401, 'AUTH_INVALID', 'Unauthorized — invalid token');
 }
 
 // File read helper
@@ -81,7 +124,7 @@ async function readTextOrNull(filepath) {
 
 // ── Novel listing and metadata ─────────────────────────────────────
 
-app.get('/api/novels', asyncHandler(async (_req, res) => {
+app.get('/api/novels', cacheMiddleware(CACHE_TTL.novels), asyncHandler(async (_req, res) => {
   const slugs = await novelRepo.listNovels();
   const novels = await Promise.all(
     slugs.map(async (slug) => {
@@ -122,7 +165,7 @@ app.get('/api/novel/:slug/meta', asyncHandler(async (req, res) => {
 
 // ── Chapter listing ────────────────────────────────────────────────
 
-app.get('/api/novel/:slug/chapters', asyncHandler(async (req, res) => {
+app.get('/api/novel/:slug/chapters', cacheMiddleware(CACHE_TTL.chapters), asyncHandler(async (req, res) => {
   const chapters = await chapterRepo.listChapters(req.params.slug);
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.json({ slug: req.params.slug, chapters });
@@ -136,9 +179,9 @@ app.get('/api/novel/:slug/chapters/search', asyncHandler(async (req, res) => {
   const lang = (req.query.lang || 'all').toString();
   const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
   if (!q) return res.json([]);
-  if (q.length > 200) return res.status(400).json({ error: 'Query too long (max 200 chars)' });
+  if (q.length > 200) return fail(res, 400, 'QUERY_TOO_LONG', 'Query too long (max 200 chars)');
   if (!['title', 'content', 'all'].includes(mode)) {
-    return res.status(400).json({ error: 'Unknown mode (use title|content|all)' });
+    return fail(res, 400, 'INVALID_MODE', 'Unknown mode (use title|content|all)');
   }
 
   let results = [];
@@ -164,14 +207,13 @@ app.get('/api/novel/:slug/chapters/search', asyncHandler(async (req, res) => {
 
 app.get('/api/novel/:slug/chapter/:num', asyncHandler(async (req, res) => {
   const num = parseInt(req.params.num, 10);
-  if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
+  if (Number.isNaN(num)) return fail(res, 400, 'INVALID_NUM', 'Invalid chapter number');
   const lang = (req.query.lang || 'th').toString();
   const result = await chapterRepo.getChapter(req.params.slug, num, lang);
-  if (!result) return res.status(404).json({ error: 'Chapter not found' });
+  if (!result) return fail(res, 404, 'CHAPTER_NOT_FOUND', 'Chapter not found');
 
-  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.set('Pragma', 'no-cache');
-  res.set('Expires', '0');
+  res.set('Cache-Control', 'public, max-age=20, stale-while-revalidate=60');
+  res.set('X-Cache-TTL', '20');
 
   res.json({
     slug: req.params.slug,
@@ -194,9 +236,9 @@ app.get('/api/novel/:slug/chapter/:num', asyncHandler(async (req, res) => {
 app.get('/api/novel/:slug/source/:num', asyncHandler(async (req, res) => {
   assertValidSlug(req.params.slug);
   const num = parseInt(req.params.num, 10);
-  if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
+  if (Number.isNaN(num)) return fail(res, 400, 'INVALID_NUM', 'Invalid chapter number');
   const raw = await readTextOrNull(sourceMdPath(req.params.slug, num));
-  if (raw === null) return res.status(404).json({ error: 'Source not found' });
+  if (raw === null) return fail(res, 404, 'SOURCE_NOT_FOUND', 'Source not found');
   res.type('text/plain').send(raw);
 }));
 
@@ -205,7 +247,7 @@ app.get('/api/novel/:slug/source/:num', asyncHandler(async (req, res) => {
 app.get('/api/novel/:slug/glossary', asyncHandler(async (req, res) => {
   assertValidSlug(req.params.slug);
   const raw = await readTextOrNull(glossaryMdPath(req.params.slug));
-  if (raw === null) return res.status(404).json({ error: 'No glossary' });
+  if (raw === null) return fail(res, 404, 'GLOSSARY_NOT_FOUND', 'No glossary');
   res.type('text/plain').send(raw);
 }));
 
@@ -217,7 +259,7 @@ app.get('/api/novel/:slug/glossary/data', asyncHandler(async (req, res) => {
     const data = JSON.parse(raw);
     res.json({ terms: data.terms || [] });
   } catch (err) {
-    res.status(500).json({ error: 'Invalid glossary.json', details: err.message });
+    fail(res, 500, 'GLOSSARY_PARSE_ERROR', 'Invalid glossary.json', err.message);
   }
 }));
 
@@ -234,10 +276,10 @@ app.post('/api/novel/:slug/glossary/save', requireAdmin, asyncHandler(async (req
   child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
   child.on('close', (code) => {
     if (code !== 0) {
-      return res.status(500).json({ error: `glossary.py exited ${code}: ${stderr}` });
+      return fail(res, 500, 'GLOSSARY_SAVE_FAILED', `glossary.py exited ${code}: ${stderr}`);
     }
     chapterRepo.invalidateAll(slug);
-    res.json({ ok: true });
+    ok(res, { saved: true });
   });
   child.stdin.write(JSON.stringify(req.body));
   child.stdin.end();
@@ -248,7 +290,7 @@ app.post('/api/novel/:slug/glossary/save', requireAdmin, asyncHandler(async (req
 app.get('/api/novel/:slug/characters', asyncHandler(async (req, res) => {
   assertValidSlug(req.params.slug);
   const raw = await readTextOrNull(charactersMdPath(req.params.slug));
-  if (raw === null) return res.status(404).json({ error: 'No characters' });
+  if (raw === null) return fail(res, 404, 'CHARACTERS_NOT_FOUND', 'No characters');
   res.type('text/plain').send(raw);
 }));
 
@@ -257,17 +299,18 @@ app.get('/api/novel/:slug/characters', asyncHandler(async (req, res) => {
 app.post('/api/novel/update', requireAdmin, asyncHandler(async (req, res) => {
   const { slug, title, author, source_lang, target_lang, status, total_chapters, translatedTitle } = req.body;
   if (!slug || !SLUG_RE.test(slug)) {
-    return res.status(400).json({ error: 'Invalid slug format' });
+    return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');
   }
   await novelRepo.saveNovelMeta(slug, { title, author, source_lang, target_lang, status, total_chapters, translatedTitle });
-  res.json({ ok: true });
+  invalidateCache('/api/novels');
+  ok(res, { slug });
 }));
 
 // ── Admin delete novel ─────────────────────────────────────────────
 
 app.post('/api/novel/:slug/delete', requireAdmin, asyncHandler(async (req, res) => {
   await novelRepo.deleteNovel(req.params.slug);
-  res.json({ ok: true });
+  ok(res, { deleted: true });
 }));
 
 // ── Admin save chapter ─────────────────────────────────────────────
@@ -275,7 +318,7 @@ app.post('/api/novel/:slug/delete', requireAdmin, asyncHandler(async (req, res) 
 app.post('/api/novel/:slug/chapter/:num/save', requireAdmin, asyncHandler(async (req, res) => {
   const slug = req.params.slug;
   const num = parseInt(req.params.num, 10);
-  if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
+  if (Number.isNaN(num)) return fail(res, 400, 'INVALID_NUM', 'Invalid chapter number');
   let { title, blocks, source, lang, paragraphs, markdownText } = req.body;
   let notes = [];
 
@@ -312,7 +355,7 @@ app.post('/api/novel/:slug/chapter/:num/save', requireAdmin, asyncHandler(async 
       ...valResult.errors.map(line => `  ✗  ${line}`), '',
       `❌ FAILED — ${valResult.errors.length} error(s) found`,
     ].join('\n');
-    return res.status(422).json({ error: 'Validation Error', details: errorMsg });
+    return fail(res, 422, 'VALIDATION_ERROR', 'Validation Error', errorMsg);
   }
 
   // Validation passed — now write
@@ -322,7 +365,9 @@ app.post('/api/novel/:slug/chapter/:num/save', requireAdmin, asyncHandler(async 
 
   await chapterRepo.rebuildChaptersIndex(slug);
   chapterRepo.invalidateAll(slug);
-  res.json({ ok: true });
+  invalidateCache('/api/novel/' + slug);
+  invalidateCache('/api/novels');
+  ok(res, { slug, num });
 }));
 
 // ── Admin delete chapter ───────────────────────────────────────────
@@ -330,18 +375,20 @@ app.post('/api/novel/:slug/chapter/:num/save', requireAdmin, asyncHandler(async 
 app.post('/api/novel/:slug/chapter/:num/delete', requireAdmin, asyncHandler(async (req, res) => {
   const slug = req.params.slug;
   const num = parseInt(req.params.num, 10);
-  if (Number.isNaN(num)) return res.status(400).json({ error: 'Invalid chapter number' });
+  if (Number.isNaN(num)) return fail(res, 400, 'INVALID_NUM', 'Invalid chapter number');
   await chapterRepo.deleteChapter(slug, num);
   await chapterRepo.rebuildChaptersIndex(slug);
   chapterRepo.invalidateAll(slug);
-  res.json({ ok: true });
+  invalidateCache('/api/novel/' + slug);
+  invalidateCache('/api/novels');
+  ok(res, { slug, num });
 }));
 
 // ── Manual cache invalidation ──────────────────────────────────────
 
 app.post('/api/invalidate-cache', requireAdmin, (req, res) => {
   chapterRepo.invalidateAll();
-  res.json({ ok: true });
+  ok(res, { invalidated: true });
 });
 
 // ── Admin Jobs Dashboard API ───────────────────────────────────────
@@ -351,6 +398,7 @@ const JOBS_DIR = path.resolve(__dirname, '..', 'jobs');
 const LOGS_DIR = path.resolve(__dirname, '..', 'logs', 'translate');
 
 async function readJsonDir(dirPath) {
+  const warnings = [];
   try {
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
     const results = [];
@@ -359,11 +407,13 @@ async function readJsonDir(dirPath) {
         try {
           const data = JSON.parse(await fs.readFile(path.join(dirPath, e.name), 'utf8'));
           results.push({ file: e.name, data });
-        } catch { /* skip unparseable */ }
+        } catch (parseErr) {
+          warnings.push({ file: e.name, error: parseErr.message });
+        }
       }
     }
-    return results;
-  } catch { return []; }
+    return { items: results, warnings };
+  } catch { return { items: [], warnings: [{ file: dirPath, error: 'Directory not found' }] }; }
 }
 
 app.get('/api/admin/jobs', requireAdmin, asyncHandler(async (req, res) => {
@@ -373,7 +423,19 @@ app.get('/api/admin/jobs', requireAdmin, asyncHandler(async (req, res) => {
     readJsonDir(path.join(JOBS_DIR, 'failed')),
     readJsonDir(path.join(JOBS_DIR, 'needs_review')),
   ]);
-  res.json({ active, done, failed, needsReview });
+  const allWarnings = [
+    ...active.warnings,
+    ...done.warnings,
+    ...failed.warnings,
+    ...needsReview.warnings,
+  ];
+  res.json({
+    active: active.items,
+    done: done.items,
+    failed: failed.items,
+    needsReview: needsReview.items,
+    warnings: allWarnings.length > 0 ? allWarnings : undefined,
+  });
 }));
 
 // ── Admin audit log viewer ─────────────────────────────────────────
@@ -385,7 +447,7 @@ app.get('/api/admin/logs/:slug/:num', requireAdmin, asyncHandler(async (req, res
 
   // Validate params — prevent path traversal
   if (!SLUG_RE_LOOSE.test(slug) || !NUM_RE.test(num)) {
-    return res.status(400).json({ ok: false, error: 'Invalid slug or num format' });
+    return fail(res, 400, 'INVALID_PARAMS', 'Invalid slug or num format');
   }
 
   const logDir = path.join(LOGS_DIR, slug, num);
@@ -404,9 +466,9 @@ app.get('/api/admin/logs/:slug/:num', requireAdmin, asyncHandler(async (req, res
         });
       }
     }
-    res.json({ ok: true, files });
+    ok(res, { files });
   } catch {
-    res.json({ ok: false, error: 'Log directory not found' });
+    ok(res, { files: [], warning: 'Log directory not found' });
   }
 }));
 
@@ -501,7 +563,7 @@ process.on('unhandledRejection', (reason, promise) => {
 const INDEX_HTML = fsSync.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
 
 app.get('*', (req, res) => {
-  if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'API not found' });
+  if (req.path.startsWith('/api/')) return fail(res, 404, 'API_NOT_FOUND', 'API not found');
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
@@ -518,6 +580,6 @@ app.use((err, req, res, next) => {
   console.error('Server error:', err);
   if (!res.headersSent) {
     const status = err.status && Number.isInteger(err.status) ? err.status : 500;
-    res.status(status).json({ error: err.message || 'Internal server error' });
+    fail(res, status, 'INTERNAL_ERROR', err.message || 'Internal server error');
   }
 });

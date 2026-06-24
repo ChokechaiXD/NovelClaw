@@ -28,11 +28,11 @@
     },
     "title": {
       "type": "object",
-      "required": ["source", "translated"],
       "properties": {
         "source": { "type": "string" },
         "translated": { "type": "string" }
-      }
+      },
+      "description": "Title object. cn-only files may omit 'translated'; th-only files may omit 'source'"
     },
     "status": {
       "type": "string",

@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { renderChapterJson } = require('../lib/render');
+const { renderChapterJson } = require('../lib/test-renderer');
 
 test('renderChapterJson uses output_lang bracket profile', () => {
   const html = renderChapterJson({

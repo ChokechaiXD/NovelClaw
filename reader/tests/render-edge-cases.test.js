@@ -7,7 +7,7 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { renderChapterJson } = require('../lib/render');
+const { renderChapterJson } = require('../lib/test-renderer');
 const { validateChapterJs } = require('../services/validation');
 
 // ── Renderer: All 5 languages ─────────────────────────────────────────────

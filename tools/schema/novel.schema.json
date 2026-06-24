@@ -13,6 +13,7 @@
     "targetLang": { "type": "string", "enum": ["th", "cn", "jp", "kr", "en"], "default": "th" },
     "status": { "type": "string", "enum": ["ongoing", "complete", "in_progress", "paused", "hiatus"], "default": "ongoing" },
     "totalChapters": { "type": "integer", "minimum": 0 },
+    "translatedChapters": { "type": "integer", "minimum": 0 },
     "description": { "type": "string" },
     "updatedAt": { "type": "string", "format": "date-time" }
   }
