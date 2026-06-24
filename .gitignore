@@ -97,6 +97,7 @@ staging/
 # Temp/backup files
 *.bak
 *.swp
+*.whl
 
 # Cleanup 2026-06-22
 _Archive/

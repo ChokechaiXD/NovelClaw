@@ -128,6 +128,7 @@
   --c-marker-system: var(--stat-text);
   --c-marker-thought: #7C3AED;
   --c-success: #059669;
+  --c-success-glow: rgba(5, 150, 105, 0.3);
   --c-warning: #D97706;
   --c-error: #DC2626;
   --c-hero-start: #0D9488;
@@ -182,6 +183,7 @@
   --c-marker-system: var(--stat-text);
   --c-marker-thought: #A78BFA;
   --c-success: #34D399;
+  --c-success-glow: rgba(52, 211, 153, 0.3);
   --c-warning: #FBBF24;
   --c-error: #F87171;
   --c-hero-start: #0D9488;
@@ -239,6 +241,7 @@
   --c-marker-system: var(--stat-text);
   --c-marker-thought: #6D28D9;
   --c-success: #059669;
+  --c-success-glow: rgba(5, 150, 105, 0.4);
   --c-warning: #D97706;
   --c-error: #DC2626;
   --c-hero-start: #0D9488;
@@ -296,6 +299,7 @@
   --c-marker-system: var(--stat-text);
   --c-marker-thought: #C084FC;
   --c-success: #34D399;
+  --c-success-glow: rgba(52, 211, 153, 0.4);
   --c-warning: #FBBF24;
   --c-error: #F87171;
   --c-hero-start: #0D9488;

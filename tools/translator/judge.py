@@ -16,6 +16,7 @@ Usage:
 
 from __future__ import annotations
 
+import re
 import time
 from dataclasses import dataclass, field
 
@@ -79,7 +80,6 @@ def _deterministic_check(paragraphs: list[str], source_text: str | None = None) 
         score -= 5 * empty_count
 
     # 3. Basic CJK leak check
-    import re
     cjk = re.compile(r"[\u4e00-\u9fff]")
     cjk_count = sum(len(cjk.findall(p)) for p in paragraphs)
     if cjk_count > 0:
@@ -88,7 +88,6 @@ def _deterministic_check(paragraphs: list[str], source_text: str | None = None) 
 
     # 4. Length ratio (if source provided)
     if source_text:
-        import re
         target_text = "".join(p for p in paragraphs if p not in ("(จบบท)", "(End)", "（終）", "(끝)"))
         ratio = len(target_text) / max(1, len(source_text))
         if ratio < 0.5:
@@ -109,8 +108,7 @@ def _deterministic_check(paragraphs: list[str], source_text: str | None = None) 
 
 # ── LLM Judge ─────────────────────────────────────────────────────────
 
-def _llm_judge(paragraphs: list[str], config: JudgeConfig,
-               source_text: str | None = None) -> JudgeResult:
+def _llm_judge(paragraphs: list[str], config: JudgeConfig) -> JudgeResult:
     """Run LLM-based quality evaluation using judge profile.
 
     Note: This is a placeholder that returns a pass-through result.
@@ -133,7 +131,7 @@ def _llm_judge(paragraphs: list[str], config: JudgeConfig,
 
     return JudgeResult(
         ok=True,
-        score=None,  # TODO: parse score from JSON response
+        score=None,  # score from LLM judge — not parsed in deterministic-only mode
         llm_used=True,
         deterministic_passed=True,
     )
@@ -180,7 +178,7 @@ def judge_chapter(
         det_result.elapsed_ms = int((time.time() - start) * 1000)
         return det_result
 
-    llm_result = _llm_judge(paragraphs, config, source_text)
+    llm_result = _llm_judge(paragraphs, config)
     elapsed_ms = int((time.time() - start) * 1000)
 
     # Merge: use LLM score if available, else deterministic
