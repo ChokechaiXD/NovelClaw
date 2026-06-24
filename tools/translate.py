@@ -680,12 +680,29 @@ def to_reader_canonical(ch: 'Chapter', slug: str) -> dict:
 def save_chapter(ch: Chapter, path, slug: str = "global-descent") -> None:
     """Save a Chapter to a .json file using reader canonical format.
 
-    Does NOT write legacy {num}.json — always writes {num}.th.json
-    with canonical shape (novelId, chapterNo, title.translated, etc).
-    Pretty-printed for git diff.
+    Validates against chapter.schema.json BEFORE writing.
+    Raises ValueError if schema validation fails.
     """
     p = Path(path)
     data = to_reader_canonical(ch, slug)
+
+    # Schema validation gate — fail-fast before write
+    schema_path = Path(__file__).parent / "schema" / "chapter.schema.json"
+    if schema_path.exists():
+        try:
+            from jsonschema import Draft7Validator, FormatChecker
+            schema = json.loads(schema_path.read_text(encoding="utf-8"))
+            validator = Draft7Validator(schema, format_checker=FormatChecker())
+            errors = sorted(validator.iter_errors(data), key=lambda e: e.path)
+            if errors:
+                err_msgs = [f"[{' → '.join(str(p) for p in e.path)}] {e.message}" for e in errors]
+                raise ValueError(
+                    f"Schema validation failed for ch {ch.num}:\n"
+                    + "\n".join(err_msgs)
+                )
+        except ImportError:
+            pass  # jsonschema not installed — skip gate (degraded mode)
+
     p.write_text(
         json.dumps(data, ensure_ascii=False, indent=2) + '\n',
         encoding='utf-8',

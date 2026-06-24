@@ -36,11 +36,12 @@ else:
     }
 
 
-# ── Shared CN regex (SSOT — import from schema) ───────────────────────
+# ── Shared CN regex (SSOT — import from qa/validators) ─────────────────
 
-CN_RE = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf]')
-CN_WIDE_RE = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]')
-CN_INLINE_RE = re.compile(r'[\u4e00-\u9fff]{2,}')
+from qa.validators import CN_RE as _cn_re, CN_WIDE_RE as _cn_wide, CN_INLINE_RE as _cn_inline  # noqa: E402
+CN_RE = _cn_re
+CN_WIDE_RE = _cn_wide
+CN_INLINE_RE = _cn_inline
 
 
 # ── Language key normalization ─────────────────────────────────────────

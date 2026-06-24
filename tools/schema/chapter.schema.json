@@ -1,9 +1,9 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "NovelClaw Chapter",
-  "description": "Canonical chapter JSON format for translated/source chapters",
+  "description": "Canonical chapter JSON format — SSOT. Auto-generated from contracts.py ChapterV2 Pydantic model.",
   "type": "object",
-  "required": ["novelId", "chapterNo", "sourceLang", "targetLang", "title", "status", "paragraphs", "updatedAt"],
+  "required": ["novelId", "chapterNo", "paragraphs"],
   "properties": {
     "novelId": {
       "type": "string",
@@ -14,56 +14,57 @@
       "type": "integer",
       "minimum": 1,
       "maximum": 99999,
-      "description": "Chapter number — should match filename (zero-padded to 4 digits)"
+      "description": "Chapter number — should match filename"
     },
     "sourceLang": {
       "type": "string",
-      "enum": ["cn", "jp", "kr", "en"],
-      "default": "cn"
+      "pattern": "^(cn|jp|kr|en)$",
+      "default": "cn",
+      "description": "Source language code"
     },
     "targetLang": {
       "type": "string",
-      "enum": ["th", "cn", "jp", "kr", "en"],
-      "default": "th"
+      "pattern": "^(th|cn|jp|kr|en)$",
+      "default": "th",
+      "description": "Target language code"
     },
     "title": {
       "type": "object",
       "properties": {
-        "source": { "type": "string" },
-        "translated": { "type": "string" }
+        "source": { "type": "string", "description": "Original chapter title" },
+        "translated": { "type": "string", "description": "Translated chapter title" }
       },
-      "description": "Title object. cn-only files may omit 'translated'; th-only files may omit 'source'"
+      "description": "Chapter title in source and translated languages"
     },
     "status": {
       "type": "string",
-      "enum": ["translated", "source_only", "source", "legacy"]
+      "enum": ["translated", "source_only", "source", "legacy"],
+      "default": "translated"
     },
     "paragraphs": {
       "type": "array",
       "items": { "type": "string" },
+      "minItems": 1,
       "description": "Array of paragraph strings — canonical content storage"
     },
-    "blocks": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["type", "text"],
-        "properties": {
-          "type": { "type": "string", "enum": ["narration", "dialogue", "system", "game_title", "end"] },
-          "text": { "type": "string" },
-          "speaker": { "type": "string" }
-        }
-      },
-      "description": "Legacy block format — present only for backward compat"
+    "model": {
+      "type": "string",
+      "default": "unknown",
+      "description": "Model name used for translation"
     },
-    "notes": {
-      "type": "array",
-      "items": { "type": "string" }
+    "provider": {
+      "type": "string",
+      "default": "unknown",
+      "description": "Provider used for translation"
     },
     "updatedAt": {
       "type": "string",
       "format": "date-time",
       "description": "ISO 8601 timestamp of last update"
+    },
+    "qualityRecord": {
+      "type": "object",
+      "description": "Quality metrics at translation time"
     }
   }
 }
