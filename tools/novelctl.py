@@ -138,6 +138,16 @@ def process_chapter(slug, num, mode, force, job) -> ChapterPipelineResult:
     quality.write_audit_log(slug, num, "translate", mode,
                             chapter_data=tr.get("chapter_data"), result=tr)
 
+    # Quality record: translate
+    quality.write_quality_record(
+        slug, num, action="translate",
+        model=tr.get("model", "unknown"),
+        provider=tr.get("provider", "unknown"),
+        score=tr.get("score"),
+        duration_ms=tr.get("elapsed_ms"),
+        error=tr.get("error") if not tr["ok"] else None,
+    )
+
     if not tr["ok"]:
         err = tr.get("error", "unknown error")
         lines.append(f"❌ ตอน {num} ล้มเหลว: {err}")
@@ -164,6 +174,13 @@ def process_chapter(slug, num, mode, force, job) -> ChapterPipelineResult:
 
     quality.write_audit_log(slug, num, "validate", mode,
                             validation_result=vr, result=vr)
+
+    # Quality record: validate
+    quality.write_quality_record(
+        slug, num, action="validate",
+        score=vr.get("score"),
+        error=vr.get("error") if not vr.get("ok", False) else None,
+    )
 
     val_ok = vr.get("ok", False)
     val_error = vr.get("error")
@@ -205,6 +222,9 @@ def process_chapter(slug, num, mode, force, job) -> ChapterPipelineResult:
 def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
     """Full translate pipeline with job state + checkpoint."""
     job = jobs.create(slug, nums, mode=mode, force=force)
+
+    # Clean stale locks from previous crashes
+    locks.cleanup_stale()
 
     lines = [f"🚀 เริ่มแปล {slug} {nums[0]}-{nums[-1]} ({len(nums)} ตอน)"]
     lines.append(f"   Mode: {mode}")

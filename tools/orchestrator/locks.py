@@ -31,6 +31,20 @@ def release(slug: str, num: int):
         lp.unlink(missing_ok=True)
 
 
+def cleanup_stale(ttl_secs: int = 3600):
+    """Remove locks older than ttl_secs. Called at start of handle_translate."""
+    import time
+    _ensure_locks_dir()
+    now = time.time()
+    for p in _LOCKS_DIR.glob("*.lock"):
+        try:
+            age = now - p.stat().st_mtime
+            if age > ttl_secs:
+                p.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
 def release_all(slug: str):
     """Release all locks for a slug."""
     _ensure_locks_dir()
