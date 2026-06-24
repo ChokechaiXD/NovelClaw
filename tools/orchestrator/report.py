@@ -1,30 +1,16 @@
 """
-Telegram-friendly report formatting.
+report.py — Telegram-friendly report formatting.
 Includes needs_review queue counts.
 """
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
+from orchestrator.quality import count_needs_review
+
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-
-# Import needs_review counter
-_NEEDS_DIR = _PROJECT_ROOT / "jobs" / "needs_review"
-
-
-def _count_needs_review(slug: str | None = None) -> int:
-    """Count needs_review entries."""
-    if not _NEEDS_DIR.exists():
-        return 0
-    count = 0
-    for p in _NEEDS_DIR.glob("*.json"):
-        if slug and not p.name.startswith(slug):
-            continue
-        count += 1
-    return count
 
 
 def _reader_url(slug: str, num: int) -> str:
@@ -131,7 +117,7 @@ def job_status(jobs_list: list) -> str:
                 lines.append(f"    ...และอีก {len(j.pending) - 10} ตอน")
 
     # Add needs_review count
-    nr = _count_needs_review()
+    nr = count_needs_review()
     if nr:
         lines.append("")
         lines.append(f"📋 รอตรวจสอบ (needs_review): {nr} ตอน")
@@ -142,25 +128,19 @@ def job_status(jobs_list: list) -> str:
 
 def check_needs_review(slug: str) -> str:
     """List needs_review entries for a slug."""
-    if not _NEEDS_DIR.exists():
-        return "📋 ไม่มีตอนที่รอตรวจสอบ"
-
-    entries = sorted(_NEEDS_DIR.glob(f"{slug}_*.json"))
+    from orchestrator.quality import list_needs_review as _list_nr
+    entries = _list_nr(slug)
     if not entries:
         return f"📋 ไม่มีตอนที่รอตรวจสอบสำหรับ {slug}"
 
     lines = [f"📋 รอตรวจสอบ {len(entries)} ตอน:"]
-    for p in entries:
-        try:
-            data = json.loads(p.read_text(encoding="utf-8"))
-            num = data.get("num", "?")
-            reason = data.get("reason", "?")
-            fix = data.get("fix_command", "")
-            lines.append(f"  ❌ ตอน {num}: {reason[:80]}")
-            if fix:
-                lines.append(f"     แก้: {fix}")
-        except (json.JSONDecodeError, OSError):
-            lines.append(f"  ❌ {p.stem}: cannot read")
+    for data in entries:
+        num = data.get("chapter", data.get("num", "?"))
+        reason = data.get("reason", "?")
+        fix = data.get("suggestedCommand", data.get("fix_command", ""))
+        lines.append(f"  ❌ ตอน {num}: {reason[:80]}")
+        if fix:
+            lines.append(f"     แก้: {fix}")
     return "\n".join(lines)
 
 
@@ -170,7 +150,7 @@ def novel_report(slug: str, chapters_list: list[dict]) -> str:
     translated = sum(1 for c in chapters_list if c.get("status") == "translated")
     source_only = sum(1 for c in chapters_list if c.get("status") == "source_only")
     pct = int((translated / total) * 100) if total else 0
-    nr = _count_needs_review(slug)
+    nr = count_needs_review(slug)
     lines = [
         f"📊 {slug}",
         f"  ทั้งหมด: {total} ตอน",

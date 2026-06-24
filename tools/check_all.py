@@ -127,7 +127,7 @@ def main():
         except FileNotFoundError:
             print("⏭️  (node not found)")
     if server_running or server_proc:
-        api_ok = check("API smoke tests", ["node", "tests/test-api.js"], cwd=READER, skip_on_fail=True)
+        check("API smoke tests", ["node", "tests/test-api.js"], cwd=READER, skip_on_fail=True)
     else:
         print(f"  API smoke tests ⏭️ (server unavailable)")
     if server_proc:
