@@ -125,26 +125,28 @@ def validate_novel_dir(slug: str, novel_dir: Path) -> bool:
     else:
         print(f"  ⚠️  chapters.json missing")
 
-    # Validate search-index.json
+    # Validate search-index.json using schema
     si_path = novel_dir / "search-index.th.json"
     if si_path.exists():
         try:
             si_data = json.loads(si_path.read_text(encoding="utf-8"))
-            entries = si_data.get("entries", [])
-            # Check entry structure
-            si_ok = True
-            for i, entry in enumerate(entries):
-                if not isinstance(entry, dict):
-                    print(f"  ❌ search-index.th.json entry [{i}]: not an object")
-                    si_ok = False
-                    continue
-                if "num" not in entry:
-                    print(f"  ❌ search-index.th.json entry [{i}]: missing 'num'")
-                    si_ok = False
-                if "text" in entry and len(entry["text"]) > 15000:
-                    print(f"  ⚠️  search-index.th.json entry [{i}]: text > 15K chars ({len(entry['text'])}")
-            if si_ok:
-                print(f"  ✓ search-index.th.json ({len(entries)} entries)")
+            si_schema = load_schema("search-index.schema.json")
+            if si_schema:
+                si_errors = validate_with_schema(si_data, si_schema)
+                if si_errors:
+                    print(f"  ❌ search-index.th.json:")
+                    for e in si_errors:
+                        print(f"      • {e}")
+                    all_ok = False
+                else:
+                    entries = si_data.get("entries", [])
+                    # Extra: check entry text length
+                    for i, entry in enumerate(entries):
+                        if "text" in entry and len(entry["text"]) > 15000:
+                            print(f"  ⚠️  search-index.th.json entry [{i}]: text > 15K chars ({len(entry['text'])})")
+                    print(f"  ✓ search-index.th.json ({len(entries)} entries)")
+            else:
+                print(f"  ⏭️  search-index.th.json (no schema)")
         except (json.JSONDecodeError, OSError):
             print(f"  ❌ search-index.th.json: Invalid JSON")
             all_ok = False
