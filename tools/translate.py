@@ -361,41 +361,21 @@ Output only the Thai translation, one paragraph per line.
 {get_style_summary()}
 </style>
 
-|<rules>
-|- Translate faithfully, do NOT skip or edit paragraphs
-|- Zero CJK characters (Chinese characters) allowed in output
-|- Use straight "..." for spoken dialogue
-|- Use 【...】 for system/game notifications
-|- Use 『...』 for inner thoughts
-|- Keep character names consistent with glossary
-|- Output length should be similar to source length
-|- **Translate ALL monster/skill/item names to Thai** — no English names allowed
-|- **REMOVE Chinese web novel footer** messages about donations, reader thanks, author notes at the end
-|</rules>
-
-<continuity_context>
-{continuity}
-<source_chapter>
-{source_text}
-</source_chapter>
-</continuity_context>
-
-<output>
-
-"""
-
-    # Check if we have continuity context to append
-    if continuity:
-        prompt += f"""
+<rules>
+- Translate faithfully, do NOT skip or edit paragraphs
+- Zero CJK characters (Chinese characters) allowed in output
+- Use straight "..." for spoken dialogue
+- Use 【...】 for system/game notifications
+- Use 『...』 for inner thoughts
+- Keep character names consistent with glossary
+- Output length should be similar to source length
+- **Translate ALL monster/skill/item names to Thai** — no English names allowed
+- **REMOVE Chinese web novel footer** messages about donations, reader thanks, author notes at the end
+</rules>
 
 <continuity_context>
 {continuity}
 </continuity_context>
-
-"""
-
-    # Source text
-    prompt += f"""
 
 <source_chapter>
 {source_text}
@@ -403,6 +383,86 @@ Output only the Thai translation, one paragraph per line.
 
 <now_translate>
 """
+
+    return prompt
+
+
+def build_translate_prompt_v4(
+    ch_num: int,
+    source_text: str,
+    source_lang: str = "zh",
+    target_lang: str = "th",
+    profile_lang: str | None = None,
+    slug: str = "global-descent",
+    example: str = "",
+) -> str:
+    """Build a prompt with optimal prefix caching layout.
+
+    ORDER (most cache-friendly):
+      1. Static: task, style rules, format rules (IDENTICAL every call)
+      2. Semi-static: full glossary (same per novel, not per-chapter filtered)
+      3. Dynamic: chapter memory/TM context
+      4. Most dynamic: source text
+
+    This layout maximizes prefix caching: the first ~60% of the prompt
+    is identical across all chapters of the same novel.
+    """
+    from glossary import load_terms, format_tm_prompt
+
+    # Static parts (100% identical every call)
+    static = """<task>
+You are a Chinese→Thai novel translator specializing in web novels.
+Output only the Thai translation, one paragraph per line.
+</task>
+
+<style>
+{style}
+</style>
+
+<rules>
+- Translate faithfully, do NOT skip or edit paragraphs
+- Zero CJK characters (Chinese characters) in output
+- Use straight "..." for spoken dialogue
+- Use 【...】 for system/game notifications
+- Use 『...』 for inner thoughts
+- Keep character names consistent with glossary
+- Output length similar to source length
+- Translate ALL monster/skill/item names to Thai — no English names
+- REMOVE Chinese web novel footer (donations, thanks, author notes)
+</rules>
+
+<glossary>
+{glossary}
+</glossary>
+"""
+
+    # Semi-static: full glossary (same for all chapters)
+    terms = load_terms(slug)
+    glossary_text = "\n".join(
+        f'{t["source"]} → {t["thai"]}  ({t.get("category", "-")})'
+        for t in terms[:100]
+        if t.get("source") and t.get("thai")
+    ) if terms else "(no glossary)"
+
+    # Style summary
+    from glossary import load_style_rules
+    rules = load_style_rules(slug)
+    style_text = "; ".join(
+        item.get("text", "") for section in rules.values()
+        for item in section
+    ) if rules else "(default style)"
+
+    # TM context (changes per chapter)
+    tm_context = format_tm_prompt(slug, ch_num)
+
+    # Build final prompt — static first, dynamic last
+    prompt = static.format(style=style_text, glossary=glossary_text)
+
+    if tm_context:
+        prompt += f"\n<memory>\n{tm_context}\n</memory>\n"
+
+    prompt += f"\n<source_chapter>\n{source_text}\n</source_chapter>\n\n<now_translate>\n"
+
     return prompt
 
 
