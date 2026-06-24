@@ -1,7 +1,8 @@
 /**
- * lib/render.js — Chapter JSON → HTML renderer.
+ * lib/test-renderer.js — Chapter JSON → HTML renderer.  [TEST SUPPORT ONLY]
  *
- * Converts a Chapter object (with blocks array) into HTML string.
+ * ⚠️  This file is referenced by Node test files only.
+ *     Production rendering uses reader/public/js/reader-renderer.js.
  * Uses the active language profile (output_lang / profile_lang / lang)
  * for bracket styling and end-marker display.
  *

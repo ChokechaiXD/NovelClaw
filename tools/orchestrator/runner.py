@@ -2,10 +2,11 @@
 
 import json
 import os
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+from orchestrator.subprocess_runner import run_cmd
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _TOOLS_DIR = _PROJECT_ROOT / "tools"
@@ -92,32 +93,24 @@ def translate_single(slug: str, num: int, mode: str = "safe",
         cmd = [_python(), str(_TOOLS_DIR / "translate.py"), str(num), "--json"]
         if score:
             cmd.append("--score")
-        # DO NOT add --dry-run for draft — we want real LLM output
 
         env = dict(os.environ)
         env["NOVEL_SLUG"] = slug
 
-        try:
-            proc = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=300,
-                cwd=str(_PROJECT_ROOT), env=env,
-            )
-        except subprocess.TimeoutExpired:
+        cr = run_cmd(cmd, timeout=300, cwd=str(_PROJECT_ROOT), env=env)
+
+        if cr.timed_out:
             result["error"] = "translate.py timeout (300s)"
             return result
-        except Exception as e:
-            result["error"] = f"translate.py failed: {e}"
-            return result
-
-        if proc.returncode != 0:
-            result["error"] = f"translate.py exit {proc.returncode}: {proc.stderr[:500]}"
+        if not cr.ok:
+            result["error"] = f"translate.py exit {cr.returncode}: {cr.stderr[:500]}"
             return result
 
         # ── Parse JSONL output ───────────────────────────────────────
-        parsed = _parse_jsonl(proc.stdout)
+        parsed = _parse_jsonl(cr.stdout)
         chapter_output = _pick_chapter_result(parsed, num)
         if chapter_output is None:
-            result["error"] = f"cannot parse translate.py output (no JSON for ch {num}): {proc.stdout[:300]}"
+            result["error"] = f"cannot parse translate.py output (no JSON for ch {num}): {cr.stdout[:300]}"
             return result
 
         # ── Draft mode: move from canonical to staging/drafts/ ────────
@@ -166,7 +159,7 @@ def translate_single(slug: str, num: int, mode: str = "safe",
 
         # ── Normal mode: verify .th.json was written ─────────────────
         if not thp.exists():
-            result["error"] = f"translate.py claimed success but no .th.json at {thp}\nstdout: {proc.stdout[:300]}"
+            result["error"] = f"translate.py claimed success but no .th.json at {thp}\\nstdout: {cr.stdout[:300]}"
             return result
 
         # Read back for validation
@@ -233,17 +226,13 @@ def validate_single(slug: str, num: int) -> dict:
     if src_path.exists():
         cmd += ["--source", str(src_path)]
 
-    try:
-        proc = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=30,
-            cwd=str(_PROJECT_ROOT),
-        )
-    except Exception as e:
-        result["error"] = str(e)
+    cr = run_cmd(cmd, timeout=30, cwd=str(_PROJECT_ROOT))
+    if not cr.ok and not cr.stdout:
+        result["error"] = cr.error or "scorer.py failed"
         return result
 
     import re
-    stdout = proc.stdout
+    stdout = cr.stdout
     score_match = re.search(r"(\d{1,3})\s*/\s*100", stdout)
     score_val = int(score_match.group(1)) if score_match else None
 
@@ -253,7 +242,7 @@ def validate_single(slug: str, num: int) -> dict:
         if stripped and ("⚠" in stripped or "✗" in stripped or "✅" in stripped or "fail" in stripped.lower()):
             details.append(stripped)
 
-    result["ok"] = proc.returncode == 0
+    result["ok"] = cr.ok
     result["score"] = score_val
     result["details"] = details
     return result
@@ -276,18 +265,10 @@ def rebuild_index(slug: str) -> dict:
     """
 
     reader_dir = _PROJECT_ROOT / "reader"
-    try:
-        proc = subprocess.run(
-            ["node", "-e", script],
-            capture_output=True, text=True, timeout=30,
-            cwd=str(reader_dir),
-        )
-    except Exception as e:
-        result["error"] = str(e)
-        return result
+    cr = run_cmd(["node", "-e", script], timeout=30, cwd=str(reader_dir))
 
-    if proc.returncode != 0:
-        result["error"] = proc.stderr[:500]
+    if not cr.ok:
+        result["error"] = cr.stderr[:500]
         return result
 
     result["ok"] = True
