@@ -1,8 +1,9 @@
-"""
-tools/validation.py — Shared chapter validation helpers. [THIN WRAPPER]
+"""Shared chapter validation helpers for NovelClaw. [THIN WRAPPER]
 
 Canonical regex patterns and validator functions live in tools/qa/.
 This module re-exports for backward compatibility.
+
+Also re-exports universal script leak detection from qa.script_policy.
 """
 
 from __future__ import annotations

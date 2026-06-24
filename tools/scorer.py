@@ -265,47 +265,44 @@ def _score_cn_leak(data: dict) -> DimensionScore:
                           detail=detail, passed=total_cn == 0)
 
 
-def _score_en_leak(data: dict) -> DimensionScore:
-    """Count blacklisted English words."""
+def _score_script_purity(data: dict) -> DimensionScore:
+    """Universal script purity check using target-language policy.
+
+    Replaces _score_en_leak — catches ALL foreign scripts,
+    not just blacklisted English words.
+
+    Uses TARGET_SCRIPT_POLICY: for target_lang=th:
+    - Han, Hiragana, Katakana, Hangul = auto fail
+    - Latin not in allowlist = auto fail
+    """
+    from qa.script_policy import detect_script_leaks
+
     texts, non_end, _ = _get_texts(data)
-    found = []
+    if not non_end:
+        return DimensionScore("Script Purity", 0.15, 0.0, detail="no paragraphs")
 
-    for i, t in enumerate(texts):
-        if t in ("(จบบท)", "(End)", "（終）", "(끝)"):
-            continue
-        for m in re.finditer(r'\b([a-zA-Z]{3,})\b', t):
-            word = m.group(1).lower()
-            if word.upper() in ALLOWED_LATIN_TOKENS:
-                continue
-            if word in EN_BLACKLIST:
-                found.append((i, word, "blacklist"))
-            elif word not in ("open", "beta", "the", "and"):
-                # Unknown English — also penalize (caught by production gate)
-                found.append((i, word, "unknown"))
+    target_lang = data.get("targetLang", "th")
+    result = detect_script_leaks(non_end, target_lang=target_lang)
 
-    unique_words = set(w for _, w, _ in found)
-    detail_parts = [f"{len(found)} EN words ({len(unique_words)} unique)"]
-    word_counts = Counter(w for _, w, _ in found)
-    for word, n in word_counts.most_common(5):
-        detail_parts.append(f'  "{word}" ×{n}')
+    if result.ok:
+        return DimensionScore("Script Purity", 0.15, 1.0,
+                             detail="✅ pure — no script leaks")
 
-    detail = "; ".join(detail_parts)
+    n_errors = result.error_count
+    scripts_summary = ", ".join(f"{s}×{c}" for s, c in result.foreign_script_counts.items())
 
-    if not found:
-        return DimensionScore("EN Leak", 0.15, 1.0, detail="0 EN blacklist words — ✅ clean")
-
-    n = len(found)
-    if n <= 2:
-        score = 0.7
-    elif n <= 5:
-        score = 0.4
-    elif n <= 10:
-        score = 0.2
+    if n_errors <= 1:
+        score = 0.5
+    elif n_errors <= 3:
+        score = 0.3
+    elif n_errors <= 8:
+        score = 0.1
     else:
         score = 0.0
 
-    return DimensionScore("EN Leak", 0.15, score,
-                          detail=detail, passed=n <= 2)
+    return DimensionScore("Script Purity", 0.15, score,
+                          detail=f"⚠️ {n_errors} leaks ({scripts_summary})",
+                          passed=n_errors == 0)
 
 
 def _score_end_marker(data: dict) -> DimensionScore:
@@ -607,7 +604,7 @@ def score_chapter(data: dict, source_text: str | None = None,
     dims = [
         _score_completeness(data, source_char_count),
         _score_cn_leak(data),
-        _score_en_leak(data),
+        _score_script_purity(data),
         _score_end_marker(data),
         _score_speaker(data),
         _score_dialogue_ratio(data, source_text),
