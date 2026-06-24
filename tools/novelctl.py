@@ -397,6 +397,90 @@ def handle(slug: str, command: str, **kwargs):
     elif command == "backup":
         return run_backup()
 
+    elif command == "gate":
+        nums = kwargs.get("nums", [])
+        gate_mode = kwargs.get("gate_mode", "production")
+        results = []
+        for num in nums:
+            from qa.quality_gate import quality_gate as _qg
+            from orchestrator.runner import _ch_path
+            import json
+            p = _ch_path(slug, num)
+            if not p.exists():
+                results.append(f"❌ ตอน {num}: ไม่พบไฟล์ {p}")
+                continue
+            data = json.loads(p.read_text(encoding="utf-8"))
+            src_p = _ch_path(slug, num).parent / f"{num:04d}.cn.json"
+            src = json.loads(src_p.read_text(encoding="utf-8")) if src_p.exists() else None
+            src_txt = " ".join(src.get("paragraphs", [])) if src else None
+            r = _qg(data.get("paragraphs", []), source_text=src_txt, mode=gate_mode, target_lang="th")
+            status = "✅" if r.ok else "⚠️"
+            score_str = f"คะแนน {r.score:.0f}/100"
+            results.append(f"{status} ตอน {num}: {score_str}")
+            if r.issues:
+                for issue in r.issues[:5]:
+                    results.append(f"  [{issue['severity']}] {issue['message']}")
+            if r.needs_review:
+                results.append(f"  📋 needs_review")
+        return results
+
+    elif command == "terms":
+        action = kwargs.get("action", "review")
+        if action == "review":
+            from qa.term_policy import get_term_policy
+            tp = get_term_policy("th")
+            lines = [f"📋 Term Policy (th): {len(tp.terms)} terms"]
+            for action_type in ("replace", "preserve", "review", "fail"):
+                terms = [f"{k} → {t.value}" if t.value else k 
+                        for k, t in sorted(tp.terms.items()) if t.action == action_type]
+                if terms:
+                    lines.append(f"  {action_type} ({len(terms)}): {' | '.join(terms[:15])}")
+                    if len(terms) > 15:
+                        lines.append(f"    ...และอีก {len(terms)-15} คำ")
+            lines.append(f"\n  preserve_tokens: {sorted(tp.preserve_tokens)}")
+            return lines
+        elif action == "approve":
+            token = kwargs.get("token", "")
+            if not token:
+                return ["❌ ระบุ token: terms approve <token> --replace <thai>"]
+            if kwargs.get("preserve"):
+                action_txt = f"action: preserve\ncategory: custom"
+            elif kwargs.get("replace"):
+                action_txt = f"action: replace\nvalue: {kwargs['replace']}\ncategory: custom"
+            else:
+                return ["❌ ระบุ --replace <thai> หรือ --preserve"]
+            return [
+                f"📝 เพิ่ม token '{token}' ลง term_policy.th.yaml:",
+                f"  {token}:",
+                f"    {action_txt}",
+                f"",
+                f"⏳ กรุณาเพิ่มใน tools/config/term_policy.th.yaml ด้วยตนเอง",
+            ]
+
+    elif command == "reparse":
+        nums = kwargs.get("nums", [])
+        from qa.quality_gate import _smart_segment
+        import json
+        dr_dir = _NOVELS_DIR.parent / "staging" / "drafts" / slug
+        results = []
+        for num in nums:
+            dp = dr_dir / f"{num:04d}.th.json"
+            if not dp.exists():
+                results.append(f"❌ ตอน {num}: ไม่มี draft")
+                continue
+            old = json.loads(dp.read_text(encoding="utf-8"))
+            old_paras = [p for p in old.get("paragraphs", []) if p != "(จบบท)"]
+            old_count = len(old_paras)
+            new_paras = [p for p in _smart_segment(old_paras) if p != "(จบบท)"]
+            new_count = len(new_paras)
+            if new_count > old_count and new_count > 20:
+                old["paragraphs"] = new_paras + ["(จบบท)"]
+                dp.write_text(json.dumps(old, ensure_ascii=False, indent=2), encoding="utf-8")
+                results.append(f"✅ ตอน {num}: {old_count} → {new_count} paras")
+            else:
+                results.append(f"🔶 ตอน {num}: {old_count} → {new_count} paras (no change)")
+        return results
+
     return [f"❌ Unknown command: {command}"]
 
 
@@ -490,6 +574,22 @@ def main():
     subparsers.add_parser("resume", help="Resume failed job")
     subparsers.add_parser("backup", help="Backup novel data")
 
+    # ── Quality gate commands ────────────────────────────────────────
+    g = subparsers.add_parser("gate", help="Run quality gate on chapters")
+    g.add_argument("range", help="Chapter range")
+    g.add_argument("--mode", choices=["production", "draft", "debug"], default="production",
+                   help="Gate strictness (default: production)")
+
+    t = subparsers.add_parser("terms", help="Term policy review")
+    t.add_argument("action", choices=["review", "approve"], help="review: show unknown, approve: add term")
+    t.add_argument("token", nargs="?", help="Token to approve")
+    t.add_argument("--replace", help="Thai replacement value")
+    t.add_argument("--preserve", action="store_true", help="Preserve instead of replace")
+
+    r = subparsers.add_parser("reparse", help="Re-parse draft paragraphs with fixed parser")
+    r.add_argument("range", help="Chapter range")
+    r.add_argument("--draft-only", action="store_true", default=True, help="Only re-parse drafts (default)")
+
     args = parser.parse_args()
     slug = args.slug
     mode = args.mode
@@ -502,6 +602,19 @@ def main():
         if not kwargs["nums"]:
             print("❌ Invalid range. Use: 42, 131-135, 140,142,145")
             sys.exit(1)
+
+    if hasattr(args, "command") and args.command in ("terms",):
+        if hasattr(args, "action"):
+            kwargs["action"] = args.action
+        if hasattr(args, "token") and args.token:
+            kwargs["token"] = args.token
+        if hasattr(args, "replace") and args.replace:
+            kwargs["replace"] = args.replace
+        if hasattr(args, "preserve"):
+            kwargs["preserve"] = args.preserve
+
+    if hasattr(args, "command") and args.command == "gate" and hasattr(args, "mode"):
+        kwargs["gate_mode"] = args.mode
 
     kwargs["workers"] = args.workers
     kwargs["mode"] = args.mode

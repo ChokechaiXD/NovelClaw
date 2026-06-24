@@ -88,18 +88,28 @@ def validate_translation_quality(
     source_lang: str = "zh",
     target_lang: str = "th",
     profile_lang: str | None = None,
+    mode: str = "production",
 ) -> tuple[bool, list[str]]:
     """Validate translation quality before saving a chapter.
+
+    Uses consolidated quality_gate() from qa.quality_gate for
+    term actions, script purity, style lint, and structure checks.
+    Keeps length ratio and end marker from the original.
 
     Returns:
         (is_ok, messages) where fatal messages are prefixed with ERROR.
     """
+    from qa.quality_gate import quality_gate as _gate
+
     messages: list[str] = []
+    
     # Handle both paragraphs and blocks format
     if ch.paragraphs:
         target_text = "".join(p for p in ch.paragraphs if p != "(จบบท)")
     else:
         target_text = "".join(str(block.text) for block in ch.blocks) if ch.blocks else ""
+    
+    # Length ratio check (kept from original)
     source_len = max(1, len(source_text))
     ratio = len(target_text) / source_len
     if ratio < COMPLETENESS_MIN_RATIO:
@@ -112,50 +122,30 @@ def validate_translation_quality(
             f"ERROR ch{ch.num}: suspiciously long translation length ratio {ratio:.2f} "
             f"above {COMPLETENESS_MAX_RATIO:.2f} ({len(target_text)}/{source_len} chars)"
         )
-
-    output_lang_value = getattr(ch, "output_lang", None)
-    if output_lang_value is not None:
-        output_lang_value = getattr(output_lang_value, "value", output_lang_value)
-    active_profile = profile_lang or output_lang_value or target_lang
-    active_profile_key = get_profile_lang(source_lang, active_profile, profile_lang)
-    bracket_profile = get_bracket_profile(source_lang, active_profile, profile_lang)
-
+    
+    # Run consolidated quality gate for term/script/style
     if ch.paragraphs:
-        # Paragraphs mode — check each paragraph directly (no block types)
-        for i, para in enumerate(ch.paragraphs):
-            if para == "(จบบท)":
-                continue
-            text = para
-            cjk = CJK_LEAK_RE.findall(text)
-            if cjk:
-                messages.append(f"ERROR paragraph {i}: CJK leak chars {cjk[:8]}")
-            if SOURCE_ARTIFACT_RE.search(text):
-                messages.append(f"ERROR paragraph {i}: source artifact leaked into translation")
-            for match in LATIN_LEAK_RE.finditer(text):
-                token = match.group(0)
-                if token in ALLOWED_LATIN_TOKENS:
-                    continue
-                hint = _latin_token_hint(token)
-                if hint:
-                    messages.append(f'ERROR paragraph {i}: Latin leak "{token}" -> {hint}')
-                else:
-                    messages.append(
-                        f'WARNING paragraph {i}: Latin token "{token}" is not in allowed list'
-                    )
-            for match in LOWER_LATIN_LEAK_RE.finditer(text):
-                token = match.group(0)
-                hint = _latin_token_hint(token) or "review/translate this token"
-                messages.append(
-                    f'ERROR paragraph {i}: lowercase/mixed Latin leak "{token}" -> {hint}'
-                )
-        # Check end marker - last paragraph must be expected end marker
+        paragraphs = list(ch.paragraphs)
+        gate_result = _gate(paragraphs, source_text=source_text,
+                            mode=mode, target_lang=target_lang)
+        
+        for issue in gate_result.issues:
+            severity = "ERROR" if issue["severity"] == "error" else "WARNING"
+            messages.append(f"{severity} {issue['type']}: {issue['message']}")
+        
+        # End marker check (kept from original)
+        output_lang_value = getattr(ch, "output_lang", None)
+        if output_lang_value is not None:
+            output_lang_value = getattr(output_lang_value, "value", output_lang_value)
+        active_profile = profile_lang or output_lang_value or target_lang
+        active_profile_key = get_profile_lang(source_lang, active_profile, profile_lang)
+        bracket_profile = get_bracket_profile(source_lang, active_profile, profile_lang)
         expected_marker = bracket_profile.get("end_marker", "(จบบท)")
         if ch.paragraphs[-1] != expected_marker:
             messages.append(
                 f'ERROR ch{ch.num}: last paragraph must be end marker "{expected_marker}"'
             )
-    # (blocks mode removed in v3 — all chapters use paragraphs)
-
+    
     return not any(message.startswith("ERROR") for message in messages), messages
 
 

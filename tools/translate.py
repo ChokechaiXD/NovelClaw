@@ -680,6 +680,25 @@ def parse_translation_output(output: str, ch_num: int) -> dict:
     paragraphs = re.split(r"\n\n+", output.strip())
     paragraphs = [p.strip() for p in paragraphs if p.strip()]
 
+    # Post-split: if any paragraph contains inline \n (Gemma merges), split it
+    split_paras = []
+    for p in paragraphs:
+        # If paragraph is long and has line breaks, split by single \n too
+        has_inline_newlines = "\n" in p
+        is_long_single = len(paragraphs) <= 5 and len(p) > 2000
+        if has_inline_newlines and is_long_single:
+            # Gemma-style: single newline = paragraph separator
+            parts = [s.strip() for s in p.split("\n") if s.strip()]
+            # Only split if at least some parts look like standalone paragraphs
+            long_parts = [pt for pt in parts if len(pt) > 30]
+            if len(long_parts) >= 3:
+                split_paras.extend(long_parts)
+            else:
+                split_paras.append(p)
+        else:
+            split_paras.append(p)
+    paragraphs = split_paras
+
     # Fallback: if LLM didn't paragraph (single giant block), split by sentences
     if len(paragraphs) <= 2 and any(len(p) > 3000 for p in paragraphs):
         giant = paragraphs[0] if paragraphs else ""
@@ -897,20 +916,20 @@ def translate_one(
         # Parse plain text output → paragraphs (no JSON, no parse errors)
         ch_data = parse_translation_output(output, ch_num)
 
-    # ── Script purity gate (replaces silent CJK deletion) ──────────
-    # Do NOT delete leaked characters — let retry/needs_review handle them
+    # ── Consolidated quality gate (handles segmentation + term actions +
+    #    script purity + style lint + structure) ──────────────────
     paragraphs = ch_data.get("paragraphs", [])
-    from qa.script_policy import detect_script_leaks as _dsl, format_leak_report as _flr
-    _sl_result = _dsl(paragraphs, target_lang="th")
-    if not _sl_result.ok:
-        _sl_report = _flr(_sl_result)
-        print(f"  ⚠️  Script leaks detected — {_sl_result.error_count} errors")
-        for line in _sl_report.split("\n"):
-            print(f"  {line}")
+    from qa.quality_gate import quality_gate as _qg
+    _qg_result = _qg(paragraphs, mode="draft" if mock else "production", target_lang="th")
+    if not _qg_result.ok:
+        _qg_text = "; ".join(i["message"] for i in _qg_result.issues)
+        print(f"  ⚠️  Quality gate failed — {len(_qg_result.issues)} issues")
+        for issue in _qg_result.issues:
+            print(f"  [{issue['severity']}] {issue['message']}")
         ch_data["_warnings"] = ch_data.get("_warnings", []) + [
-            f"Script leaks: {_sl_result.error_count} errors "
-            f"({', '.join(f'{s}×{c}' for s,c in _sl_result.foreign_script_counts.items())})"]
-        ch_data["_script_leaks"] = True
+            f"Quality gate: {_qg_text}"]
+        ch_data["_script_leaks"] = not _qg_result.ok
+        ch_data["paragraphs"] = _qg_result.paragraphs  # Use post-gate paragraphs
 
     # Validate via Pydantic schema
     # Ensure required top-level fields are set (LLM sometimes omits num)
@@ -935,6 +954,7 @@ def translate_one(
             source_lang=source_lang,
             target_lang=target_lang,
             profile_lang=profile_lang,
+            mode="draft" if mock else "production",
         )
         if not quality_ok:
             # ── Save output before retry so repair can fix formatting ──
