@@ -1,4 +1,11 @@
-"""progress.py — Chapter translation progress tracker.
+"""progress.py — Chapter translation progress tracker.  [LEGACY]
+
+⚠️  DEPRECATED — This module is kept only because translate.py
+    imports it directly when run as a standalone subprocess.
+    New pipeline tracking uses orchestrator/jobs instead.
+
+    translate.py calls this as a subprocess dependency.
+    Do NOT use for new code — use orchestrator.jobs instead.
 
 Tracks chapter translation status in a JSON file per novel.
 Prevents duplicate work, enables resume, and provides progress visibility.

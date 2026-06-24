@@ -21,14 +21,14 @@ const AdminDashboardPage = {
       page.innerHTML = '<div class="c-container">' + Ui.adminNav('dashboard') +
         '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">ระบบหลังบ้าน</h3></div>' +
         // ── Stats ──
-        '<div class="c-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--space-sm);margin-bottom:var(--space-md);">' +
+        '<div class="c-stats">' +
         '<div class="c-stat"><span class="c-stat__num">' + novels.length + '</span><span class="c-stat__label">นิยาย</span></div>' +
         '<div class="c-stat"><span class="c-stat__num">' + totalChapters + '</span><span class="c-stat__label">ตอนทั้งหมด</span></div>' +
         '<div class="c-stat"><span class="c-stat__num" style="color:var(--c-success);">' + translatedChapters + '</span><span class="c-stat__label">แปลแล้ว</span></div>' +
         '<div class="c-stat"><span class="c-stat__num" style="color:var(--c-warning);">' + untranslated + '</span><span class="c-stat__label">รอแปล</span></div>' +
         '</div>' +
         // ── Health Summary ──
-        '<div style="display:flex;gap:var(--space-sm);flex-wrap:wrap;margin-bottom:var(--space-lg);font-size:var(--text-sm);">' +
+        '<div class="c-health-row">'
         '<span class="c-badge c-badge--teal">✅ ระบบปกติ</span>' +
         '<span class="c-badge' + (translatedChapters > 0 ? ' c-badge--teal' : ' c-badge--gray') + '">📖 แปลแล้ว ' + translatedChapters + ' ตอน</span>' +
         '<span class="c-badge' + (untranslated > 0 ? ' c-badge--amber' : ' c-badge--gray') + '">📄 รอแปล ' + untranslated + ' ตอน</span>' +

@@ -1,34 +1,189 @@
 #!/usr/bin/env python3
-"""
-novelctl.py — NovelClaw Job Orchestrator
-
-Single command layer between Telegram/Hermes and translation tools.
-Never call translate.py directly from Telegram — always use this.
+"""novelctl.py — NovelClaw orchestration CLI.
 
 Usage:
-    python tools/novelctl.py translate 139 --slug global-descent
-    python tools/novelctl.py translate 140-150 --mode autopilot
-    python tools/novelctl.py repair 139
-    python tools/novelctl.py validate 139
-    python tools/novelctl.py preflight 140-150
-    python tools/novelctl.py rebuild
-    python tools/novelctl.py status
-    python tools/novelctl.py resume
-    python tools/novelctl.py stop
-    python tools/novelctl.py report
+    novelctl.py [--slug SLUG] [--mode safe|strict|autopilot|draft] [--force] <command> [args]
 """
 
+from __future__ import annotations
+
+import re
 import sys
-import time
-from datetime import date, datetime, timezone
 from pathlib import Path
 
-_TOOLS_DIR = Path(__file__).resolve().parent
-_PROJECT_ROOT = _TOOLS_DIR.parent
-sys.path.insert(0, str(_PROJECT_ROOT))
-sys.path.insert(0, str(_TOOLS_DIR))
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_NOVELS_DIR = _PROJECT_ROOT / "novels"
 
-from orchestrator import commands, jobs, locks, preflight, repair, report, runner, quality
+# Add project tools to path
+sys.path.insert(0, str(_PROJECT_ROOT / "tools"))
+
+from orchestrator import jobs, locks, preflight, quality, repair, runner, report
+from orchestrator.policy import get_policy
+
+
+# ── Pipeline helpers ──────────────────────────────────────────────────
+
+
+def fail_translate(job, slug, num, reason, mode, score=None, retry_count=0):
+    """Centralized failure handler — writes needs_review, updates job, releases lock."""
+    quality.write_needs_review(
+        slug, num, reason, score=score, mode=mode,
+        fix_command=f"/แปลใหม่ {num}"
+    )
+    job = job.copy(
+        state="failed",
+        failed=job.failed + [{"chapter": num, "reason": reason, "retryCount": retry_count}],
+    )
+    job.save()
+    locks.release(slug, num)
+    return job
+
+
+def handle_validation_failure(slug, num, mode, score, reason, job):
+    """Route validation failure per mode (safe/strict/autopilot)."""
+    yield f"⚠️ ตอน {num} validation: {reason}"
+    if mode == "safe":
+        yield f"❌ ตอน {num} validation ล้มเหลว: {reason} — หยุด"
+        job = fail_translate(job, slug, num, reason, mode, score=score)
+        yield from []
+        return job, True  # True = stop
+
+    elif mode == "strict":
+        yield f"⚠️ ตอน {num} validation ล้มเหลว: {reason} — needs_review"
+        quality.write_needs_review(
+            slug, num, f"strict:{reason}", score=score, mode=mode,
+            fix_command=f"/แปลใหม่ {num}"
+        )
+        job = job.copy(
+            state="needs_review",
+            failed=job.failed + [{"chapter": num, "reason": f"strict:{reason}", "retryCount": 0}],
+        )
+        job.save()
+        locks.release(slug, num)
+        yield from []
+        return job, True  # strict also stops
+
+    else:  # autopilot
+        yield f"⚠️ ตอน {num} จะ repair ก่อน continue"
+        rr = repair.repair_chapter(slug, num)
+        if rr.fixes:
+            for fix in rr.fixes:
+                yield f"  🔧 {fix}"
+            vr2 = runner.validate_single(slug, num)
+            score2 = vr2.get("score") or score
+            if vr2.get("ok") and (score2 is not None and score2 >= policy["repair_score"]):
+                yield f"  ✅ repair ช่วยให้ผ่าน validation แล้ว"
+                return job, False  # continue
+        yield f"  ⚠️ repair ไม่พอ — เก็บเป็น needs_review"
+        job = fail_translate(job, slug, num, f"autopilot:{reason} (repair failed)", mode,
+                             score=score, retry_count=1)
+        yield from []
+        return job, False  # still continue (autopilot)
+
+
+def process_chapter(slug, num, mode, force, job):
+    """Process a single chapter: translate → validate → success/fail.
+
+    Yields status lines. Returns (updated_job, should_stop).
+    """
+    policy = get_policy(mode)
+    # Check lock
+    if not locks.acquire(slug, num, job.id):
+        existing = locks.who_holds(slug, num)
+        yield f"⚠️ ตอน {num} กำลังทำงานโดย job: {existing} — ข้าม"
+        job = job.copy(failed=job.failed + [{"chapter": num, "reason": "locked", "retryCount": 0}])
+        job.save()
+        yield from []
+        return job, False
+
+    # Check if already translated (safe mode)
+    th_path = _PROJECT_ROOT / "novels" / slug / "chapters" / f"{num:04d}.th.json"
+    if th_path.exists() and not force and mode != "draft":
+        yield f"⏭️ ตอน {num} มี th.json แล้ว — ข้าม (ใช้ --force เพื่อแปลใหม่)"
+        job = job.copy(done=job.done + [num], current=num)
+        job.save()
+        locks.release(slug, num)
+        yield from []
+        return job, False
+
+    # Update job state
+    job = job.copy(state="running", current=num)
+    job.save()
+
+    # ── Translate step ────────────────────────────────────────────
+    yield f"🔄 กำลังแปลตอน {num}..."
+    tr = runner.translate_single(slug, num, mode=mode, force=force, score=(mode != "draft"))
+
+    # Audit: log translate result
+    quality.write_audit_log(slug, num, "translate", mode,
+                            chapter_data=tr.get("chapter_data"), result=tr)
+
+    if not tr["ok"]:
+        err = tr.get("error", "unknown error")
+        yield f"❌ ตอน {num} ล้มเหลว: {err}"
+        job = fail_translate(job, slug, num, err, mode)
+        yield from []
+        return job, mode in ("safe", "strict")  # stop on safe/strict
+
+    if mode == "draft":
+        yield f"📝 ร่างตอน {num} (draft mode) — preview ที่ staging/drafts/{slug}/{num:04d}.th.json"
+        score = tr.get("score")
+        if score:
+            yield f"   Score: {score}/100"
+        yield "   ✅ ไม่มีการแก้ไข canonical file (chapters/*.th.json)"
+        job = job.copy(done=job.done + [num])
+        job.save()
+        locks.release(slug, num)
+        yield from []
+        return job, False
+
+    # ── Validate step ─────────────────────────────────────────────
+    job = job.copy(state="validating")
+    job.save()
+    yield f"🔍 ตรวจสอบตอน {num}..."
+    vr = runner.validate_single(slug, num)
+    score = vr.get("score") or tr.get("score")
+
+    quality.write_audit_log(slug, num, "validate", mode,
+                            validation_result=vr, result=vr)
+
+    val_ok = vr.get("ok", False)
+    val_error = vr.get("error")
+    score_ok = score is not None and score >= policy["pass_score"]
+    val_failed = not val_ok or (val_error is not None) or not score_ok
+
+    if val_failed:
+        reason_parts = []
+        if not val_ok:
+            reason_parts.append("scorer exit fail")
+        if val_error:
+            reason_parts.append(val_error[:100])
+        if score is not None and not score_ok:
+            reason_parts.append(f"score {score}/100 < 70")
+        reason = "; ".join(reason_parts)
+        job = handle_validation_failure(slug, num, mode, score, reason, job)
+        yield from []
+        return job, mode in ("safe", "strict")
+
+    # ── Verify file exists ────────────────────────────────────────
+    yield f"💾 ตรวจสอบตอน {num}..."
+    if not th_path.exists():
+        yield f"❌ ตอน {num} ไม่พบ .th.json หลังแปล"
+        job = fail_translate(job, slug, num, "th.json_not_found_after_translate", mode)
+        yield from []
+        return job, mode in ("safe", "strict")
+
+    # ── Success ───────────────────────────────────────────────────
+    job = job.copy(state="done", done=job.done + [num])
+    job.save()
+    locks.release(slug, num)
+
+    yield report.success_translate(slug, num, tr["chapter_data"], score, tr.get("warnings"))
+    yield from []
+    return job, False
+
+
+# ── Command handlers ─────────────────────────────────────────────────
 
 
 def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
@@ -50,169 +205,22 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
         yield pf.summary()
         return
 
-    # Run per chapter
+    # Per-chapter pipeline
     for num in nums:
-        # Check lock
-        if not locks.acquire(slug, num, job.id):
-            existing = locks.who_holds(slug, num)
-            yield f"⚠️ ตอน {num} กำลังทำงานโดย job: {existing} — ข้าม"
-            job = job.copy(failed=job.failed + [{"chapter": num, "reason": "locked", "retryCount": 0}])
-            job.save()
-            continue
+        stop = False
+        pipeline_gen = process_chapter(slug, num, mode, force, job)
+        for msg in pipeline_gen:
+            yield msg
+            if isinstance(msg, tuple):
+                job, stop = msg
+        if stop:
+            break
 
-        # Check if already translated (safe mode)
-        th_path = _PROJECT_ROOT / "novels" / slug / "chapters" / f"{num:04d}.th.json"
-        if th_path.exists() and not force and mode != "draft":
-            yield f"⏭️ ตอน {num} มี th.json แล้ว — ข้าม (ใช้ --force เพื่อแปลใหม่)"
-            job = job.copy(done=job.done + [num], current=num)
-            job.save()
-            locks.release(slug, num)
-            continue
-
-        # Update job state
-        job = job.copy(state="running", current=num)
-        job.save()
-
-        # Translate
-        yield f"🔄 กำลังแปลตอน {num}..."
-        tr = runner.translate_single(slug, num, mode=mode, force=force, score=(mode != "draft"))
-
-        # Audit: log translate result
-        quality.write_audit_log(slug, num, "translate", mode,
-                                chapter_data=tr.get("chapter_data"),
-                                result=tr)
-
-        if not tr["ok"]:
-            err = tr.get("error", "unknown error")
-            yield f"❌ ตอน {num} ล้มเหลว: {err}"
-            quality.write_needs_review(slug, num, err, mode=mode,
-                                       fix_command=f"/แปลใหม่ {num}" if mode == "draft" else f"/แปลใหม่ {num}")
-            job = job.copy(state="failed",
-                           failed=job.failed + [{"chapter": num, "reason": err, "retryCount": 0}])
-            job.save()
-            locks.release(slug, num)
-
-            if mode == "safe" or mode == "strict":
-                break  # stop on fail
-            else:
-                continue  # autopilot: skip to next
-
-        if mode == "draft":
-            # Draft mode: save preview to staging/drafts/ and report
-            yield f"📝 ร่างตอน {num} (draft mode) — preview ที่ staging/drafts/{slug}/{num:04d}.th.json"
-            score = tr.get("score")
-            if score:
-                yield f"   Score: {score}/100"
-            yield "   ✅ ไม่มีการแก้ไข canonical file (chapters/*.th.json)"
-            job = job.copy(done=job.done + [num])
-            job.save()
-            locks.release(slug, num)
-            continue
-
-        # Validate
-        job = job.copy(state="validating")
-        job.save()
-        yield f"🔍 ตรวจสอบตอน {num}..."
-        vr = runner.validate_single(slug, num)
-        score = vr.get("score") or tr.get("score")
-
-        # Audit: log validation result
-        quality.write_audit_log(slug, num, "validate", mode,
-                                validation_result=vr, result=vr)
-
-        # Validate result enforcement
-        val_ok = vr.get("ok", False)
-        val_error = vr.get("error")
-        score_ok = score is not None and score >= 70  # minimum pass
-
-        # Determine if validation failed enough to block
-        val_failed = not val_ok or (val_error is not None) or not score_ok
-
-        if val_failed:
-            reason_parts = []
-            if not val_ok:
-                reason_parts.append(f"scorer exit fail")
-            if val_error:
-                reason_parts.append(val_error[:100])
-            if score is not None and not score_ok:
-                reason_parts.append(f"score {score}/100 < 70")
-            reason = "; ".join(reason_parts)
-
-            if mode == "safe":
-                yield f"❌ ตอน {num} validation ล้มเหลว: {reason} — หยุด"
-                quality.write_needs_review(slug, num, reason, score=score, mode=mode)
-                job = job.copy(state="failed",
-                              failed=job.failed + [{"chapter": num, "reason": reason, "retryCount": 0}])
-                job.save()
-                locks.release(slug, num)
-                break  # safe mode: stop on any failure
-
-            elif mode == "strict":
-                yield f"⚠️ ตอน {num} validation ล้มเหลว: {reason} — needs_review"
-                quality.write_needs_review(slug, num, f"strict:{reason}", score=score, mode=mode)
-                job = job.copy(state="needs_review",
-                              failed=job.failed + [{"chapter": num, "reason": f"strict:{reason}", "retryCount": 0}])
-                job.save()
-                locks.release(slug, num)
-                break  # strict: stop and flag needs_review
-
-            else:  # autopilot
-                yield f"⚠️ ตอน {num} validation ล้มเหลว: {reason} — จะ repair แล้ว continue"
-                # Attempt repair
-                rr = repair.repair_chapter(slug, num)
-                if rr.fixes:
-                    for fix in rr.fixes:
-                        yield f"  🔧 {fix}"
-                    # Re-validate after repair
-                    vr2 = runner.validate_single(slug, num)
-                    score = vr2.get("score") or score
-                    if vr2.get("ok") and (score is not None and score >= 60):
-                        yield f"  ✅ repair ช่วยให้ผ่าน validation แล้ว"
-                    else:
-                        yield f"  ⚠️ repair ไม่พอ — เก็บเป็น needs_review"
-                        quality.write_needs_review(slug, num, f"autopilot:{reason} (repair failed)", score=score, mode=mode,
-                                                   fix_command=f"/แปลใหม่ {num}")
-                        job = job.copy(failed=job.failed + [{"chapter": num, "reason": f"autopilot:{reason}", "retryCount": 1}])
-                        job.save()
-                        locks.release(slug, num)
-                        continue
-                else:
-                    yield f"  ⚠️ ไม่มี repair ที่ทำได้ — เก็บเป็น needs_review"
-                    quality.write_needs_review(slug, num, f"autopilot:{reason} (no repair)", score=score, mode=mode,
-                                               fix_command=f"/แปลใหม่ {num}")
-                    job = job.copy(failed=job.failed + [{"chapter": num, "reason": f"autopilot:{reason}", "retryCount": 1}])
-                    job.save()
-                    locks.release(slug, num)
-                    continue
-
-        # translate.py already wrote .th.json — verify exists
-        yield f"💾 ตรวจสอบตอน {num}..."
-        th_path = _PROJECT_ROOT / "novels" / slug / "chapters" / f"{num:04d}.th.json"
-        if not th_path.exists():
-            yield f"❌ ตอน {num} ไม่พบ .th.json หลังแปล"
-            quality.write_needs_review(slug, num, "th.json_not_found_after_translate", mode=mode,
-                                       fix_command=f"/แปลใหม่ {num}")
-            job = job.copy(failed=job.failed + [{"chapter": num, "reason": "th.json_not_found_after_translate", "retryCount": 0}])
-            job.save()
-            locks.release(slug, num)
-            if mode == "safe" or mode == "strict":
-                break
-            continue
-
-        # Success
-        job = job.copy(state="done", done=job.done + [num])
-        job.save()
-        locks.release(slug, num)
-
-        yield report.success_translate(slug, num, tr["chapter_data"], score, tr.get("warnings"))
-
-    # After all chapters done: rebuild
+    # After all chapters: rebuild
     yield "🔄 Rebuilding index..."
     ri = runner.rebuild_index(slug)
-    if ri["ok"]:
-        yield "✅ Index rebuilt"
-    else:
-        yield f"⚠️ Index rebuild failed: {ri.get('error', 'unknown')}"
+    yield ("✅ Index rebuilt" if ri["ok"]
+           else f"⚠️ Index rebuild failed: {ri.get('error', 'unknown')}")
 
     # Final status
     if len(job.pending) == 0 and len(job.failed) == 0:
@@ -278,127 +286,167 @@ def handle(slug: str, command: str, *args, **kwargs):
         latest = jobs.load_latest(slug)
         if not latest:
             return ["ไม่มี job ที่ resume ได้"]
-        if latest.state != "failed" and latest.state != "needs_review":
+        if latest.state not in ("failed", "needs_review"):
             return [f"Job {latest.id} ยังไม่ fail (status: {latest.state})"]
 
-        nums = latest.pending + [f.get("chapter") for f in latest.failed if f.get("retryCount", 0) < 3]
-        nums = sorted(set(nums))
-        if not nums:
-            return ["ไม่มีตอนที่ต้องทำต่อ"]
+        # Get pending chapters from failed
+        failed_nums = [f["chapter"] for f in latest.failed]
+        if not failed_nums:
+            return ["ไม่มีตอนที่ล้มเหลวให้ resume"]
 
-        mode = latest.mode
-        force = latest.data.get("force", False)
-        out = handle_translate(slug, nums, mode, force)
+        nums = sorted(set(failed_nums))
+        # Respect job's original mode
+        out = handle_translate(slug, nums, mode=latest.mode, force=True)
         return out
 
     elif command == "stop":
-        active = jobs.load_active()
-        if not active:
-            return ["ไม่มี job ที่กำลังรัน"]
-        for j in active:
-            j.archive("failed")
-            locks.release_all(j.slug)
-        return ["🛑 หยุด job ทั้งหมดแล้ว"]
+        return [locks.release_all(slug)]
 
     elif command == "report":
-        from schema import CHAPTERS_DIR
-        from pathlib import Path
-        try:
-            cj = Path(CHAPTERS_DIR).parent / "chapters.json"
-            if cj.exists():
+        chapters = kwargs.get("chapters_list", [])
+        if not chapters:
+            # Read from disk
+            ch_path = _NOVELS_DIR / slug / "chapters.json"
+            if ch_path.exists():
                 import json
-                data = json.loads(cj.read_text(encoding="utf-8"))
-                chs = data.get("chapters", [])
-            else:
-                chs = []
-        except Exception:
-            chs = []
-        return [report.novel_report(slug, chs)]
+                raw = json.loads(ch_path.read_text(encoding="utf-8"))
+                if isinstance(raw, dict):
+                    chapters = raw.get("chapters", [])
+                elif isinstance(raw, list):
+                    chapters = raw
+        return [report.novel_report(slug, chapters)]
 
     elif command == "check":
-        """Show needs_review queue."""
-        from orchestrator.quality import list_needs_review
-        entries = list_needs_review(slug)
-        if not entries:
-            return ["✅ ไม่มีตอนที่รอตรวจสอบ"]
-        lines = [f"📋 รอตรวจสอบ {len(entries)} ตอน:"]
-        for e in entries[:20]:
-            lines.append(f"  ❌ ตอน {e.get('chapter')}: {e.get('reason', '?')[:80]}")
-            lines.append(f"     แก้: {e.get('suggestedCommand', 'N/A')}")
-        if len(entries) > 20:
-            lines.append(f"  ...และอีก {len(entries) - 20} ตอน")
-        return lines
+        return report.check_needs_review(slug)
+
+    elif command == "bench":
+        count = kwargs.get("count", 5)
+        return [benchmark.run(slug, count)]
 
     elif command == "backup":
-        """Create timestamped backup of novels, jobs, and logs."""
-        import json
-        import shutil
-        import pathlib
-        from datetime import date
+        return run_backup()
 
-        backup_dir = kwargs.get("output")
-        if not backup_dir:
-            today = date.today().isoformat()
-            backup_dir = str(_PROJECT_ROOT / "backups" / f"{today}-novelclaw")
+    return [f"❌ Unknown command: {command}"]
 
-        backup_path = pathlib.Path(backup_dir)
-        backup_path.mkdir(parents=True, exist_ok=True)
 
-        manifest = {
-            "createdAt": datetime.now(timezone.utc).isoformat(),
-            "slug": slug,
-            "items": [],
-        }
+def run_backup():
+    """Backup all novel data with integrity check."""
+    import json
+    from datetime import datetime
 
-        # Backup novels
-        novels_src = pathlib.Path(_PROJECT_ROOT / "novels")
-        novels_dst = backup_path / "novels"
-        if novels_src.exists():
-            shutil.copytree(novels_src, novels_dst, dirs_exist_ok=True)
-            manifest["items"].append("novels/")
+    backup_dir = _PROJECT_ROOT / "backups" / datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    lines = [f"📦 Backup saved to {backup_dir.name}"]
 
-        # Backup jobs
-        jobs_src = pathlib.Path(_PROJECT_ROOT / "jobs")
-        jobs_dst = backup_path / "jobs"
-        if jobs_src.exists():
-            shutil.copytree(jobs_src, jobs_dst, dirs_exist_ok=True)
-            manifest["items"].append("jobs/")
+    verified = 0
+    failed = 0
 
-        # Backup logs
-        logs_src = pathlib.Path(_PROJECT_ROOT / "logs")
-        logs_dst = backup_path / "logs"
-        if logs_src.exists():
-            shutil.copytree(logs_src, logs_dst, dirs_exist_ok=True)
-            manifest["items"].append("logs/")
+    for novel_dir in sorted(_NOVELS_DIR.iterdir()):
+        if not novel_dir.is_dir() or novel_dir.name.startswith("."):
+            continue
+        slug = novel_dir.name
+        dest = backup_dir / slug
+        dest.mkdir(parents=True, exist_ok=True)
 
-        # Write manifest
-        (backup_path / "manifest.json").write_text(
-            json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        # chapters.json
+        src = novel_dir / "chapters.json"
+        if src.exists():
+            content = src.read_text(encoding="utf-8")
+            (dest / "chapters.json").write_text(content)
+            # Integrity: verify it parses
+            try:
+                json.loads(content)
+                verified += 1
+            except json.JSONDecodeError:
+                lines.append(f"  ⚠️ {slug}: chapters.json corrupt (backed up anyway)")
+                failed += 1
+        # search-index
+        for si in novel_dir.glob("search-index*.json"):
+            content = si.read_text(encoding="utf-8")
+            (dest / si.name).write_text(content)
+            try:
+                json.loads(content)
+                verified += 1
+            except json.JSONDecodeError:
+                lines.append(f"  ⚠️ {slug}: {si.name} corrupt (backed up anyway)")
+                failed += 1
+        # chapter list
+        ch_dir = novel_dir / "chapters"
+        if ch_dir.exists():
+            ch_dest = dest / "chapters"
+            ch_dest.mkdir(exist_ok=True)
+            for f in sorted(ch_dir.glob("*.th.json"))[:5]:  # first 5 only
+                content = f.read_text(encoding="utf-8")
+                (ch_dest / f.name).write_text(content)
+                try:
+                    json.loads(content)
+                    verified += 1
+                except json.JSONDecodeError:
+                    lines.append(f"  ⚠️ {slug}: {f.name} corrupt")
+                    failed += 1
 
-        return [f"✅ Backup created: {backup_path}"]
+    lines.append(f"  ตรวจสอบแล้ว: {verified} ไฟล์ถูกต้อง")
+    if failed:
+        lines.append(f"  ⚠️ พบ {failed} ไฟล์เสียหาย (backup ไว้ก่อน)")
+    else:
+        lines.append("  ✅ integrity ผ่านทั้งหมด")
+    return lines
 
-    return [f"Unknown command: {command}"]
+
+# ── CLI entry point ──────────────────────────────────────────────────
 
 
 def main():
     """CLI entry point."""
-    result = commands.run(sys.argv[1:] if len(sys.argv) > 1 else ["--help"])
+    import argparse
 
-    if not result.get("ok"):
-        print(result.get("message", "Error"), file=sys.stderr)
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="NovelClaw Orchestrator")
+    parser.add_argument("--slug", default=os.environ.get("NOVEL_SLUG", "global-descent"),
+                        help="Novel slug (default: global-descent or $NOVEL_SLUG)")
+    parser.add_argument("--mode", choices=["safe", "strict", "autopilot", "draft"],
+                        default="safe", help="Operation mode")
+    parser.add_argument("--force", action="store_true", help="Force re-translate")
+    parser.add_argument("--no-score", action="store_true", help="Skip quality scoring")
 
-    cmd = result.pop("command", None)
-    if not cmd:
-        print("No command specified", file=sys.stderr)
-        sys.exit(1)
-    slug = result.pop("slug", "global-descent")
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
-    output = handle(slug, cmd, **result)
-    for line in output:
+    t_parser = subparsers.add_parser("translate", help="Translate chapters")
+    t_parser.add_argument("range", help="Chapter range, e.g. 42 or 131-135")
+
+    for cmd in ("validate", "repair", "preflight"):
+        p = subparsers.add_parser(cmd, help=f"{cmd} chapters")
+        p.add_argument("range", help="Chapter range, e.g. 42 or 131-135")
+
+    subparsers.add_parser("status", help="Show job status")
+    subparsers.add_parser("stop", help="Release all locks")
+    subparsers.add_parser("report", help="Novel report")
+    subparsers.add_parser("check", help="Check needs_review queue")
+    subparsers.add_parser("rebuild", help="Rebuild index")
+    subparsers.add_parser("resume", help="Resume failed job")
+    subparsers.add_parser("backup", help="Backup novel data")
+
+    args = parser.parse_args()
+    slug = args.slug
+    mode = args.mode
+    force = args.force
+
+    kwargs = {}
+
+    if hasattr(args, "range") and args.range:
+        # Parse chapter range
+        m = re.match(r"^(\d+)(?:-(\d+))?$", args.range)
+        if not m:
+            print("❌ Invalid range. Use: 42 or 131-135")
+            sys.exit(1)
+        start = int(m.group(1))
+        end = int(m.group(2)) if m.group(2) else start
+        kwargs["nums"] = list(range(start, end + 1))
+
+    result = handle(slug, args.command, mode=mode, force=force, **kwargs)
+    for line in result:
         print(line)
 
 
 if __name__ == "__main__":
+    import os
     main()

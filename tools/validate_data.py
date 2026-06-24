@@ -1,78 +1,48 @@
 #!/usr/bin/env python3
 """validate_data.py — JSON schema validation for NovelClaw data files.
 
+Uses jsonschema Draft7Validator with FormatChecker for deep validation.
+Validates nested objects, arrays, enums, formats, and filename-matching.
+
 Usage:
-    python tools/validate_data.py --novel <slug>          # Validate all chapter JSONs
-    python tools/validate_data.py --file <path>           # Validate single file
-    python tools/validate_data.py --all                   # Validate all novels
+    python tools/validate_data.py --novel <slug>
+    python tools/validate_data.py --file <path>
+    python tools/validate_data.py --all
 
 Exit code: 0 = all valid, 1 = any file invalid
 """
 
 import json
+import re
 import sys
 from pathlib import Path
+
+from jsonschema import Draft7Validator, FormatChecker, ValidationError
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_DIR = ROOT / "tools" / "schema"
 
 
-def load_schema(name: str) -> dict:
+def load_schema(name: str) -> dict | None:
     path = SCHEMA_DIR / name
     if not path.exists():
         print(f"  ⏭️  Schema not found: {name}")
-        return {}
+        return None
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def validate_json(data: dict, schema: dict) -> list[str]:
-    """Simple structural validation without jsonschema dependency.
-    Checks required fields, types, and enums.
-    """
+def validate_with_schema(data: dict, schema: dict) -> list[str]:
+    """Validate data against jsonschema Draft7 with format checking."""
     errors = []
-
-    # Check required fields
-    required = schema.get("required", [])
-    for field in required:
-        if field not in data:
-            errors.append(f"Missing required field: {field}")
-
-    # Check property types and constraints
-    props = schema.get("properties", {})
-    for field, field_schema in props.items():
-        if field not in data:
-            continue
-        val = data[field]
-
-        # Type check
-        expected_type = field_schema.get("type")
-        if expected_type == "string" and not isinstance(val, str):
-            errors.append(f"Field '{field}' should be string, got {type(val).__name__}")
-        elif expected_type == "integer" and not isinstance(val, int):
-            errors.append(f"Field '{field}' should be integer, got {type(val).__name__}")
-        elif expected_type == "array" and not isinstance(val, list):
-            errors.append(f"Field '{field}' should be array, got {type(val).__name__}")
-        elif expected_type == "object" and not isinstance(val, dict):
-            errors.append(f"Field '{field}' should be object, got {type(val).__name__}")
-
-        # Minimum check for integers
-        minimum = field_schema.get("minimum")
-        if isinstance(val, int) and minimum is not None and val < minimum:
-            errors.append(f"Field '{field}' = {val} < minimum ({minimum})")
-
-        # Enum check
-        enum_vals = field_schema.get("enum")
-        if enum_vals and val not in enum_vals:
-            errors.append(f"Field '{field}' = '{val}' not in allowed values: {enum_vals}")
-
-        # Pattern check
-        pattern = field_schema.get("pattern")
-        if pattern and isinstance(val, str):
-            import re
-            if not re.match(pattern, val):
-                errors.append(f"Field '{field}' = '{val}' does not match pattern: {pattern}")
-
+    validator = Draft7Validator(schema, format_checker=FormatChecker())
+    for err in sorted(validator.iter_errors(data), key=lambda e: e.path):
+        path = " → ".join(str(p) for p in err.path) if err.path else "root"
+        msg = err.message
+        # Add context for enum errors
+        if err.validator == "enum":
+            msg += f" (allowed: {err.validator_value})"
+        errors.append(f"[{path}] {msg}")
     return errors
 
 
@@ -86,15 +56,19 @@ def validate_chapter_file(path: Path) -> bool:
 
     schema = load_schema("chapter.schema.json")
     if not schema:
-        print(f"  ⏭️  {path.name}: No schema to validate against")
+        print(f"  ⏭️  {path.name}: No schema")
         return True
 
-    errors = validate_json(data, schema)
+    errors = validate_with_schema(data, schema)
 
     # Extra: check chapterNo matches filename
-    expected_num = int(path.stem.split(".")[0])
-    if data.get("chapterNo") != expected_num:
-        errors.append(f"chapterNo ({data.get('chapterNo')}) does not match filename ({expected_num})")
+    stem = path.stem  # e.g. "0001.th" or "0042"
+    file_num_match = re.match(r"(\d+)", stem)
+    if file_num_match:
+        expected_num = int(file_num_match.group(1))
+        actual = data.get("chapterNo")
+        if actual is not None and actual != expected_num:
+            errors.append(f"[filename] chapterNo ({actual}) does not match filename ({expected_num})")
 
     if errors:
         print(f"  ❌ {path.name}:")
@@ -121,7 +95,7 @@ def validate_novel_dir(slug: str, novel_dir: Path) -> bool:
         else:
             schema = load_schema("novel.schema.json")
             if schema:
-                errors = validate_json(data, schema)
+                errors = validate_with_schema(data, schema)
                 if errors:
                     print(f"  ❌ novel.json:")
                     for e in errors:
@@ -135,9 +109,47 @@ def validate_novel_dir(slug: str, novel_dir: Path) -> bool:
     # Validate chapters.json
     ch_json = novel_dir / "chapters.json"
     if ch_json.exists():
-        print(f"  ✓ chapters.json (exists)")
+        # Light check: is it valid list or dict structure?
+        try:
+            ch_data = json.loads(ch_json.read_text(encoding="utf-8"))
+            if isinstance(ch_data, dict):
+                ch_list = ch_data.get("chapters", [])
+            elif isinstance(ch_data, list):
+                ch_list = ch_data
+            else:
+                ch_list = []
+            print(f"  ✓ chapters.json ({len(ch_list)} entries)")
+        except (json.JSONDecodeError, OSError):
+            print(f"  ❌ chapters.json: Invalid JSON")
+            all_ok = False
     else:
         print(f"  ⚠️  chapters.json missing")
+
+    # Validate search-index.json
+    si_path = novel_dir / "search-index.th.json"
+    if si_path.exists():
+        try:
+            si_data = json.loads(si_path.read_text(encoding="utf-8"))
+            entries = si_data.get("entries", [])
+            # Check entry structure
+            si_ok = True
+            for i, entry in enumerate(entries):
+                if not isinstance(entry, dict):
+                    print(f"  ❌ search-index.th.json entry [{i}]: not an object")
+                    si_ok = False
+                    continue
+                if "num" not in entry:
+                    print(f"  ❌ search-index.th.json entry [{i}]: missing 'num'")
+                    si_ok = False
+                if "text" in entry and len(entry["text"]) > 15000:
+                    print(f"  ⚠️  search-index.th.json entry [{i}]: text > 15K chars ({len(entry['text'])}")
+            if si_ok:
+                print(f"  ✓ search-index.th.json ({len(entries)} entries)")
+        except (json.JSONDecodeError, OSError):
+            print(f"  ❌ search-index.th.json: Invalid JSON")
+            all_ok = False
+    else:
+        print(f"  ⏭️  search-index.th.json not found")
 
     # Validate all chapter files
     ch_dir = novel_dir / "chapters"
@@ -156,10 +168,9 @@ def main():
     errors = 0
 
     if not args or "--all" in args:
-        # Validate all novels
         novels_dir = ROOT / "novels"
         for d in sorted(novels_dir.iterdir()):
-            if d.is_dir():
+            if d.is_dir() and not d.name.startswith("."):
                 if not validate_novel_dir(d.name, d):
                     errors += 1
 

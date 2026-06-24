@@ -174,5 +174,49 @@ const Ui = {
       clearTimeout(timer);
       timer = setTimeout(() => fn.apply(this, args), delay);
     };
-  }
+  },
+
+  /* ── Template helpers ──────────────────────────────────────────── */
+
+  /**
+   * Create a stat card (for dashboards).
+   * @param {string} label — short label text
+   * @param {string|number} value — numeric/stat value
+   * @param {object} opts — { tone: 'accent'|'success'|'warn'|'muted', class: '' }
+   */
+  stat(label, value, opts = {}) {
+    const tone = opts.tone || 'accent';
+    const numClass = tone === 'warn' ? 'c-mini-stat__num--warn'
+      : tone === 'success' ? 'c-mini-stat__num--success'
+      : '';
+    return `<div class="c-mini-stat${opts.class ? ' ' + opts.class : ''}">`
+      + `<div class="c-mini-stat__num ${numClass}">${value}</div>`
+      + `<div class="c-mini-stat__label">${this.esc(String(label))}</div></div>`;
+  },
+
+  /**
+   * Create a card container.
+   * @param {object} opts — { title, body, href, icon }
+   */
+  card(opts = {}) {
+    const tag = opts.href ? 'a' : 'div';
+    const hrefAttr = opts.href ? ` href="${opts.href}"` : '';
+    const navAttr = opts.href ? ' data-nav' : '';
+    const iconHtml = opts.icon
+      ? `<svg style="width:16px;height:16px;"><use xlink:href="${opts.icon}"/></svg> `
+      : '';
+    return `<${tag} class="c-card"${hrefAttr}${navAttr}>`
+      + (opts.title ? `<div class="c-card__title">${iconHtml}${this.esc(opts.title)}</div>` : '')
+      + (opts.body ? `<div class="c-card__body">${opts.body}</div>` : '')
+      + `</${tag}>`;
+  },
+
+  /**
+   * Create a copy-to-clipboard button.
+   * @param {string} text — text to copy
+   */
+  copyButton(text) {
+    const encoded = this.esc(text);
+    return `<button class="c-btn c-btn--sm c-btn--ghost" onclick="navigator.clipboard.writeText('${encoded.replace(/'/g, "\\'")}')">📋</button>`;
+  },
 };

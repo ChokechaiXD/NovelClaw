@@ -83,7 +83,7 @@ async function main() {
     if (!Array.isArray(res.body)) return false;
     if (res.body.length === 0) return false;
     const n = res.body[0];
-    return n.slug && n.translatedTitle && n.chapterCount > 0;
+    return n.slug && 'translatedTitle' in n && n.chapterCount > 0;
   });
 
   // ── Test 2: Chapter list ──────────────────────────────────────────

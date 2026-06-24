@@ -96,7 +96,80 @@ def repair_chapter(slug: str, num: int) -> RepairResult:
         data["paragraphs"] = new_paras
         result.add_fix(f"ลบ CN leak {changed} ย่อหน้า (mechanical clean)")
 
-    # 4. Schema: ensure required fields
+    # 4. LLM artifact removal (</now_translate>, <now_translate>, etc.)
+    llm_artifacts_fixed = 0
+    for pattern in [r"</?now_translate>", r"```[\s\S]*?```"]:
+        new_paras = []
+        for p in data["paragraphs"]:
+            cleaned = re.sub(pattern, "", p)
+            if cleaned != p:
+                llm_artifacts_fixed += 1
+            new_paras.append(cleaned)
+        if llm_artifacts_fixed:
+            data["paragraphs"] = new_paras
+    if llm_artifacts_fixed:
+        result.add_fix(f"ลบ LLM artifact {llm_artifacts_fixed} ย่อหน้า")
+
+    # 5. Split paragraphs with embedded newlines (legacy chapters)
+    old_count = len(data["paragraphs"])
+    split_paras = []
+    for p in data["paragraphs"]:
+        if "\n" in p and p.strip() not in ("(จบบท)", "(End)", "（終）", "(끝)"):
+            parts = [part.strip() for part in p.split("\n") if part.strip()]
+            split_paras.extend(parts)
+        else:
+            split_paras.append(p)
+    if len(split_paras) > old_count:
+        data["paragraphs"] = split_paras
+        result.add_fix(f"split {old_count} → {len(split_paras)} paragraphs on newlines")
+
+    # 7. Remove CN source donation/reader footer messages
+    donation_pattern = re.compile(
+        r'(?:ขอบคุณ.*(?:เพื่อนนักอ่าน|แฟนคลับ|มอบ\s*\d+|เหรียญ|point\s*coin|นักเขียน|สนับสนุน|โดเนท|ทิป|โค้งคำนับ))'
+        r'|(?:ผู้เขียนน้อยขอ)'
+        r'|(?:คะแนนแนะนำและการ)'
+    )
+    old_count = len(data["paragraphs"])
+    data["paragraphs"] = [
+        p for p in data["paragraphs"]
+        if not donation_pattern.search(p)
+    ]
+    removed = old_count - len(data["paragraphs"])
+    if removed:
+        result.add_fix(f"ลบ footer donation CN {removed} ย่อหน้า")
+
+    # 8. Translate known EN terms to Thai
+    en_map = {
+        r'\bHuman Face Tree\b': 'ต้นไม้หน้ามนุษย์',
+        r'\bHuman Face Tree Guardian\b': 'ผู้พิทักษ์ต้นไม้หน้ามนุษย์',
+        r'\bHuman Face Tree Elite\b': 'ต้นไม้หน้ามนุษย์ระดับสูง',
+        r'\bElite\b': 'อีลิท',
+        r'\bBoss\b': 'บอส',
+        r'\bSnow Demon\b': 'ปีศาจหิมะ',
+        r'\bBingluan Hua\b': 'ดอกบิงหลวน',
+        r'\bBingluan\b': 'บิงหลวน',
+        r'\bWitch Forest\b': 'ป่าแม่มด',
+        r'\bIce Witch\b': 'แม่มดน้ำแข็ง',
+        r'\bLittle Wally\b': 'วอลลี่น้อย',
+        r'\bPale Tree\b': 'ต้นไม้สีซีด',
+        r'\bTotem\b': 'โทเท็ม',
+        r'\bElite\b': 'อีลิท',
+    }
+    en_fixed = 0
+    new_paras = []
+    for p in data["paragraphs"]:
+        cleaned = p
+        for pattern, replacement in en_map.items():
+            new_text = re.sub(pattern, replacement, cleaned)
+            if new_text != cleaned:
+                en_fixed += 1
+                cleaned = new_text
+        new_paras.append(cleaned)
+    if en_fixed:
+        data["paragraphs"] = new_paras
+        result.add_fix(f"แปล EN terms {en_fixed} จุด")
+
+    # 9. Schema: ensure required fields
     if "novelId" not in data:
         data["novelId"] = slug
         result.add_fix("เพิ่ม novelId")
