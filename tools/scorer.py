@@ -124,6 +124,10 @@ MIN_PARAGRAPHS = 5
 # Speaker attribution target (v3: lower because no explicit speaker field)
 SPEAKER_TARGET = 0.12  # 12% of dialogue paragraphs (v3 has no explicit speaker field)
 
+# Thai style thresholds
+GO_DENSITY_THRESHOLD = 22  # max % of paragraphs with "ก็" before penalty
+GO_DENSITY_IDEAL = 15      # ideal % — no penalty below this
+
 # Dialogue quote detection regex — universal across all markers
 DIALOGUE_QUOTE_RE = re.compile('[\u201c\u201d\u300c\u300d"]')
 
@@ -274,11 +278,14 @@ def _score_en_leak(data: dict) -> DimensionScore:
             if word.upper() in ALLOWED_LATIN_TOKENS:
                 continue
             if word in EN_BLACKLIST:
-                found.append((i, word))
+                found.append((i, word, "blacklist"))
+            elif word not in ("open", "beta", "the", "and"):
+                # Unknown English — also penalize (caught by production gate)
+                found.append((i, word, "unknown"))
 
-    unique_words = set(w for _, w in found)
+    unique_words = set(w for _, w, _ in found)
     detail_parts = [f"{len(found)} EN words ({len(unique_words)} unique)"]
-    word_counts = Counter(w for _, w in found)
+    word_counts = Counter(w for _, w, _ in found)
     for word, n in word_counts.most_common(5):
         detail_parts.append(f'  "{word}" ×{n}')
 
@@ -567,11 +574,33 @@ def _score_schema(data: dict) -> DimensionScore:
     return DimensionScore("Schema", 0.10, score, detail=detail, passed=passed)
 
 
+# ── Thai style: "ก็" density ────────────────────────────────────────
+
+def _score_thai_style(data: dict) -> DimensionScore:
+    """Check Thai style: "ก็" density (CN→TH artifact marker)."""
+    texts, non_end, _ = _get_texts(data)
+    if not non_end:
+        return DimensionScore("Thai Style", 0.05, 0.0, detail="no paragraphs")
+
+    go_count = sum(1 for t in non_end if "ก็" in t)
+    density = (go_count / len(non_end)) * 100
+    detail = f'"{chr(0x0E01)}{chr(0x0E63)}" in {go_count}/{len(non_end)} ({density:.1f}%)'
+
+    if density <= GO_DENSITY_IDEAL:
+        return DimensionScore("Thai Style", 0.05, 1.0, detail=f"{detail} — natural")
+    elif density <= GO_DENSITY_THRESHOLD:
+        score = 1.0 - ((density - GO_DENSITY_IDEAL) / (GO_DENSITY_THRESHOLD - GO_DENSITY_IDEAL)) * 0.5
+        return DimensionScore("Thai Style", 0.05, max(0.5, score), detail=f"{detail} — high")
+    else:
+        score = max(0, 0.5 - ((density - GO_DENSITY_THRESHOLD) / 20) * 0.5)
+        return DimensionScore("Thai Style", 0.05, score, detail=f"{detail} — exceeds {GO_DENSITY_THRESHOLD}%")
+
+
 # ── Main scorer ───────────────────────────────────────────────────────
 
 def score_chapter(data: dict, source_text: str | None = None,
                   verbose: bool = False) -> ScorerResult:
-    """Score one translated chapter across 8 dimensions."""
+    """Score one translated chapter across 9 dimensions."""
     ch_num = data.get("chapterNo") or data.get("num", 0)
     source_char_count = len(source_text) if source_text else 0
 
@@ -584,6 +613,7 @@ def score_chapter(data: dict, source_text: str | None = None,
         _score_dialogue_ratio(data, source_text),
         _score_content_diversity(data),
         _score_schema(data),
+        _score_thai_style(data),
     ]
 
     weighted = sum(d.score * d.weight for d in dims) * 100
