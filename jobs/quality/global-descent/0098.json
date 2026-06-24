@@ -1,0 +1,31 @@
+{
+  "slug": "global-descent",
+  "num": 98,
+  "records": [
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:15:51.783079+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-24T09:15:52.247646+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 102
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:50:07.080389+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:53:26.214785+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    }
+  ]
+}

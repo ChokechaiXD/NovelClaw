@@ -4,7 +4,7 @@ tools/llm_router/providers.py — Low-level HTTP callers [CONSOLIDATED]
 Canonical implementations now live in tools/translator/backends/.
 This module re-exports via PROVIDER_DISPATCH for backward compat.
 
-Supported providers: openmodel, openrouter, z_ai
+Supported providers: openmodel, openrouter
 """
 
 import json
@@ -25,37 +25,6 @@ def _log(msg: str) -> None:
 
 # ── Z.AI (deprecated — kept for backward compat) ──────────────────────
 
-def call_zai(
-    prompt: str,
-    system: str | None = None,
-    model: str = "glm-4.7-flash",
-    timeout_sec: int = 90,
-    max_tokens: int = 4096,
-    temperature: float = 0.35,
-) -> str:
-    """Call Z.AI API. OpenAI-compatible endpoint."""
-    from .config import ZAI_BASE_URL, ZAI_API_KEY, check_zai_model
-    check_zai_model(model)
-    if not ZAI_API_KEY:
-        raise RuntimeError("ZAI_API_KEY not set in environment")
-
-    messages = []
-    if system:
-        messages.append({"role": "system", "content": system})
-    messages.append({"role": "user", "content": prompt})
-
-    extra_body = {"thinking": {"type": "disabled"}}
-
-    return _call_openai_compat(
-        base_url=ZAI_BASE_URL,
-        model=model,
-        messages=messages,
-        api_key=ZAI_API_KEY,
-        timeout_sec=timeout_sec,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        extra_body=extra_body,
-    )
 
 
 # ── Providers using new backends ──────────────────────────────────────
@@ -134,7 +103,6 @@ def _call_openai_compat(
 
 PROVIDER_DISPATCH = {
     "openmodel": call_openmodel,
-    "z_ai": call_zai,
     "openrouter": call_openrouter,
 }
 

@@ -1,0 +1,19 @@
+{
+  "slug": "global-descent",
+  "num": 7,
+  "records": [
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T14:41:34.548639+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-24T14:41:35.677412+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 63
+    }
+  ]
+}

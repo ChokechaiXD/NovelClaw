@@ -1,0 +1,45 @@
+{
+  "slug": "global-descent",
+  "num": 81,
+  "records": [
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:09:18.640967+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-24T09:09:19.132711+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 100
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:21:25.621721+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "error": "translate.py exit 1: Traceback (most recent call last):\n  File \"C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\tools\\translate.py\", line 1276, in <module>\n    main()\n  File \"C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\tools\\translate.py\", line 1238, in main\n    if translate_one(\n       ^^^^^^^^^^^^^^\n  File \"C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\tools\\translate.py\", line 973, in translate_one\n    fb_result = fut.result(timeout=120)\n                ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\BlankSc; additionally, backup restore also failed: [WinError 183] Cannot create a file when that file already exists: 'C:\\\\Users\\\\BlankScreen\\\\Workspace\\\\Projects\\\\NovelClaw\\\\novels\\\\global-descent\\\\chapters\\\\0081.th.json.bak' -> 'C:\\\\Users\\\\BlankScreen\\\\Workspace\\\\Projects\\\\NovelClaw\\\\novels\\\\global-descent\\\\chapters\\\\0081.th.json'"
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:32:15.065685+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:33:12.598877+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-24T09:33:13.070162+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 100
+    }
+  ]
+}
