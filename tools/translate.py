@@ -363,14 +363,16 @@ Output only the Thai translation, one paragraph per line.
 
 <rules>
 - Translate faithfully, do NOT skip or edit paragraphs
-- Zero CJK characters (Chinese characters) allowed in output
+- Zero CJK characters (Chinese characters) in output
 - Use straight "..." for spoken dialogue
 - Use 【...】 for system/game notifications
 - Use 『...』 for inner thoughts
 - Keep character names consistent with glossary
-- Output length should be similar to source length
-- **Translate ALL monster/skill/item names to Thai** — no English names allowed
-- **REMOVE Chinese web novel footer** messages about donations, reader thanks, author notes at the end
+- Output length similar to source length
+- Translate ALL monster/skill/item names to Thai — no English
+- REMOVE Chinese web novel footer (donations, thanks, author notes)
+- **No English words** — translate everything including "Open Beta", "Level", "Quest" etc
+- **Minimize "ก็"** — Thai reads more natural without excessive "ก็" connectors
 </rules>
 
 <continuity_context>
@@ -427,8 +429,10 @@ Output only the Thai translation, one paragraph per line.
 - Use 『...』 for inner thoughts
 - Keep character names consistent with glossary
 - Output length similar to source length
-- Translate ALL monster/skill/item names to Thai — no English names
+- Translate ALL monster/skill/item names to Thai — no English
 - REMOVE Chinese web novel footer (donations, thanks, author notes)
+- **No English words** — translate everything including "Open Beta", "Level", "Quest" etc
+- **Minimize "ก็"** — Thai reads more natural without excessive "ก็" connectors
 </rules>
 
 <glossary>
@@ -893,10 +897,11 @@ def translate_one(
         # Parse plain text output → paragraphs (no JSON, no parse errors)
         ch_data = parse_translation_output(output, ch_num)
 
-    # ── Post-process: minimal (just CN strip) ─────────────────────
+    # ── Post-process: minimal (just CN strip — WITH WARNING) ──────
     from schema import CN_RE as _cn_re
     paragraphs = ch_data.get("paragraphs", [])
     _cn_cleaned = 0
+    _cn_warnings = []
     for i, para in enumerate(paragraphs):
         if para == "(จบบท)":
             continue
@@ -904,8 +909,11 @@ def translate_one(
         paragraphs[i] = _cn_re.sub("", old)
         if paragraphs[i] != old:
             _cn_cleaned += 1
+            _cn_warnings.append(f"para {i}: had CN chars removed")
     if _cn_cleaned > 0:
-        print(f"  🧹 Cleaned CN chars from {_cn_cleaned} paragraphs")
+        print(f"  ⚠️  {_cn_cleaned} paragraphs had CN chars removed — needs_review")
+        # Store warnings for quality record
+        ch_data["_warnings"] = ch_data.get("_warnings", []) + [f"CN chars removed from {_cn_cleaned} paragraphs"]
 
     # Validate via Pydantic schema
     # Ensure required top-level fields are set (LLM sometimes omits num)

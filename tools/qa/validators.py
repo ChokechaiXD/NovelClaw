@@ -77,6 +77,9 @@ EN_BLACKLIST: set[str] = {
     "common", "uncommon", "rare", "epic", "legendary",
     "hybrid", "ancient", "elite", "melee", "ranged",
     "plants", "zombies",
+    # Game terms that should be Thai
+    "open", "beta",  # "Open Beta" → "โอเพนเบตา"
+    "invite", "daily", "login", "reward",
 }
 
 LATIN_REPLACEMENT_HINTS: dict[str, str] = {
@@ -98,6 +101,8 @@ LATIN_REPLACEMENT_HINTS: dict[str, str] = {
     "continue": "กล่าวต่อ",
     "momentarily": "ชั่วขณะ",
     "hollow": "กลวง",
+    "Open Beta": "โอเพนเบตา",
+    "open beta": "โอเพนเบตา",
 }
 
 
