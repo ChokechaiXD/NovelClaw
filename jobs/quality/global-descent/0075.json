@@ -1,0 +1,58 @@
+{
+  "slug": "global-descent",
+  "num": 75,
+  "records": [
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:04:06.322089+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-24T09:04:06.803589+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 93
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:12:40.244816+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "error": "translate.py exit 1: Traceback (most recent call last):\n  File \"C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\tools\\translate.py\", line 1276, in <module>\n    main()\n  File \"C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\tools\\translate.py\", line 1238, in main\n    if translate_one(\n       ^^^^^^^^^^^^^^\n  File \"C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\tools\\translate.py\", line 898, in translate_one\n    ch_data = parse_translation_output(output, ch_num)\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ (backup restored from .bak)"
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:26:34.030505+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-24T09:26:34.505608+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 105
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:32:13.155612+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T16:53:19.946957+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-24T16:53:20.934407+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 95
+    }
+  ]
+}

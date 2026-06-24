@@ -1,0 +1,52 @@
+{
+  "slug": "global-descent",
+  "num": 74,
+  "records": [
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:01:01.185720+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-24T09:01:01.670147+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 102
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:13:45.676109+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "error": "translate.py exit 1: Traceback (most recent call last):\n  File \"C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\tools\\translate.py\", line 1276, in <module>\n    main()\n  File \"C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\tools\\translate.py\", line 1238, in main\n    if translate_one(\n       ^^^^^^^^^^^^^^\n  File \"C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\tools\\translate.py\", line 973, in translate_one\n    fb_result = fut.result(timeout=120)\n                ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\BlankSc; additionally, backup restore also failed: [WinError 183] Cannot create a file when that file already exists: 'C:\\\\Users\\\\BlankScreen\\\\Workspace\\\\Projects\\\\NovelClaw\\\\novels\\\\global-descent\\\\chapters\\\\0074.th.json.bak' -> 'C:\\\\Users\\\\BlankScreen\\\\Workspace\\\\Projects\\\\NovelClaw\\\\novels\\\\global-descent\\\\chapters\\\\0074.th.json'"
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:23:23.248099+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-24T09:23:23.726625+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 100
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:32:12.574598+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T16:50:18.486744+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "error": "translate.py exit 1: Traceback (most recent call last):\n  File \"C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\tools\\translate.py\", line 1296, in <module>\n    main()\n  File \"C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\tools\\translate.py\", line 1258, in main\n    if translate_one(\n       ^^^^^^^^^^^^^^\n  File \"C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\tools\\translate.py\", line 993, in translate_one\n    fb_result = fut.result(timeout=120)\n                ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\BlankSc"
+    }
+  ]
+}

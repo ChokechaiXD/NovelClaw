@@ -1,0 +1,51 @@
+{
+  "slug": "global-descent",
+  "num": 80,
+  "records": [
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:06:04.067422+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-24T09:06:04.539184+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 101
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:17:33.240463+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-24T09:17:33.713700+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 101
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:30:21.997216+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-24T09:30:22.479432+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 102
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T09:32:14.458682+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    }
+  ]
+}
