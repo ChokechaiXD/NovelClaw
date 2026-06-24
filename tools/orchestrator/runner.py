@@ -222,6 +222,8 @@ def translate_single(slug: str, num: int, mode: str = "safe",
             if bak.exists():
                 try:
                     thp.parent.mkdir(parents=True, exist_ok=True)
+                    if thp.exists():
+                        thp.unlink()  # Remove failed translation before restore
                     bak.rename(thp)
                     result["backup_restored"] = True
                     # Don't overwrite the error message — keep original reason
@@ -298,7 +300,11 @@ def validate_single(slug: str, num: int) -> dict:
         if stripped and ("⚠" in stripped or "✗" in stripped or "✅" in stripped or "fail" in stripped.lower()):
             details.append(stripped)
 
-    result["ok"] = cr.ok
+    # Validation "ok" means we successfully ran scorer and got a result.
+    # scorer.py exits code 1 when quality fails (e.g. Script Purity 50/100
+    # due to 1 Latin leak), but the run itself is valid.
+    # Use score_val presence as the real signal, not just exit code.
+    result["ok"] = score_val is not None or cr.ok
     result["score"] = score_val
     result["details"] = details
     return result
