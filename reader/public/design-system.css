@@ -497,6 +497,14 @@ ul, ol { list-style: none; }
 .c-content {
   flex: 1;
   max-width: 900px;
+  /* Performance: only render visible content */
+  content-visibility: auto;
+  contain-intrinsic-size: 800px;
+}
+
+.c-content p {
+  content-visibility: auto;
+  contain-intrinsic-size: 1.5em;
 }
 .c-rightbar {
   width: var(--rightbar-w);

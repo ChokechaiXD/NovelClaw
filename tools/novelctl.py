@@ -219,7 +219,7 @@ def process_chapter(slug, num, mode, force, job) -> ChapterPipelineResult:
 # ── Command handlers ─────────────────────────────────────────────────
 
 
-def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
+def handle_translate(slug: str, nums: list[int], mode: str, force: bool, workers: int = 1) -> str:
     """Full translate pipeline with job state + checkpoint."""
     job = jobs.create(slug, nums, mode=mode, force=force)
 
@@ -241,14 +241,33 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool) -> str:
         yield pf.summary()
         return
 
-    # Per-chapter pipeline (NOT generator — clean result object)
-    for num in nums:
-        result = process_chapter(slug, num, mode, force, job)
-        job = result.job
-        for msg in result.lines:
-            yield msg
-        if result.stop:
-            break
+    # Per-chapter pipeline — sequential or parallel
+    if workers > 1 and len(nums) > 1:
+        import concurrent.futures
+        yield f"⚡ ใช้ {workers} workers แปลขนาน...\n"
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(process_chapter, slug, num, mode, force, job): num for num in nums}
+            done_count = 0
+            for f in concurrent.futures.as_completed(futures):
+                num = futures[f]
+                done_count += 1
+                try:
+                    result = f.result()
+                    job = result.job
+                    for msg in result.lines:
+                        yield msg
+                    if result.stop:
+                        yield f"\n⚠️ Worker {num} หยุด chain (mode={mode})"
+                except Exception as e:
+                    yield f"❌ Worker {num} exception: {e}\n"
+    else:
+        for num in nums:
+            result = process_chapter(slug, num, mode, force, job)
+            job = result.job
+            for msg in result.lines:
+                yield msg
+            if result.stop:
+                break
 
     # After all chapters: rebuild
     yield "🔄 Rebuilding index..."
@@ -277,7 +296,7 @@ def handle(slug: str, command: str, *args, **kwargs):
         nums = kwargs.get("nums", [])
         mode = kwargs.get("mode", "safe")
         force = kwargs.get("force", False)
-        out = handle_translate(slug, nums, mode, force)
+        out = handle_translate(slug, nums, mode, force, workers=args.workers)
         return out
 
     elif command == "validate":
@@ -328,7 +347,7 @@ def handle(slug: str, command: str, *args, **kwargs):
             return ["ไม่มีตอนที่ล้มเหลวให้ resume"]
 
         nums = sorted(set(failed_nums))
-        out = handle_translate(slug, nums, mode=latest.mode, force=True)
+        out = handle_translate(slug, nums, mode=latest.mode, force=True, workers=1)  # resume uses 1 worker
         return out
 
     elif command == "stop":
@@ -431,6 +450,7 @@ def main():
                         default="safe", help="Operation mode")
     parser.add_argument("--force", action="store_true", help="Force re-translate")
     parser.add_argument("--no-score", action="store_true", help="Skip quality scoring")
+    parser.add_argument("--workers", type=int, default=1, help="Concurrent workers (default: 1)")
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
