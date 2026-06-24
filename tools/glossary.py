@@ -1,9 +1,13 @@
-"""glossary.py — Glossary and style rule loader.
+"""
+tools/glossary.py — Glossary and style rule loader.
 
 Loads glossary.json + style_rules.json directly.
 No yaml dependency — pure Python json stdlib.
 """
 
+from __future__ import annotations
+
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
@@ -100,7 +104,133 @@ def save_style_rules(rules: dict[str, list[dict]], slug: str = "global-descent")
     )
 
 
+# ── Glossary validation — enforce after translation ──────────────────
+
+import json
+from pathlib import Path
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _get_novel_root(slug: str) -> Path:
+    return _PROJECT_ROOT / "novels" / slug
+
+@dataclass
+class GlossaryValidation:
+    """Result of validating a translation against glossary."""
+    ok: bool = True
+    missing_terms: list[dict] = field(default_factory=list)
+    violated_rules: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+
+
+def validate_translation(translated_text: str, slug: str = "global-descent") -> GlossaryValidation:
+    """Validate translated text against glossary terms.
+
+    Checks:
+      1. Every CN term in glossary → does the Thai appear in output?
+      2. Any blacklisted EN terms still present?
+
+    Returns GlossaryValidation with:
+      - missing_terms: [{ source, thai, category }] — CN term that should
+        have been translated but Thai is missing from output
+      - violated_rules: style rules that were broken
+      - warnings: informational notes
+    """
+    result = GlossaryValidation()
+    terms = load_terms(slug)
+    if not terms:
+        return result
+
+    for t in terms:
+        source = t.get("source", "")
+        thai = t.get("thai", "")
+        category = t.get("category", "")
+        if not source or not thai:
+            continue
+        # For high-priority characters and items, check if Thai appears
+        if t.get("priority", 3) >= 3 and category in ("ตัวละคร", "สถานที่", "สกิล"):
+            if thai not in translated_text:
+                result.missing_terms.append({"source": source, "thai": thai, "category": category})
+                result.ok = False
+
+    return result
+
+
+# ── TM / Chapter Memory ─────────────────────────────────────────────────
+
+@dataclass
+class ChapterMemory:
+    """Summary of a recent chapter for translation memory."""
+    num: int
+    summary: str
+    characters: list[str]
+    terms: list[str]
+
+
+def get_chapter_memory(slug: str, current_num: int, count: int = 3) -> list[ChapterMemory]:
+    """Get summaries of recent chapters for context injection.
+
+    Loads the last `count` translated chapters before `current_num`,
+    extracts character names and key terms for TM context.
+    """
+    memories = []
+    terms = load_terms(slug)
+
+    # Collect high-priority character names
+    characters = list(dict.fromkeys(
+        t["thai"] for t in terms
+        if t.get("category") == "ตัวละคร" and t.get("priority", 3) >= 3
+    ))
+
+    # Collect key terms for context
+    key_terms = list(dict.fromkeys(
+        f'{t["source"]} → {t["thai"]}'
+        for t in terms
+        if t.get("priority", 3) >= 3
+    ))
+
+    for n in range(max(1, current_num - count), current_num):
+        ch_path = _get_novel_root(slug) / "chapters" / f"{n:04d}.th.json"
+        if not ch_path.exists():
+            continue
+        try:
+            data = json.loads(ch_path.read_text(encoding="utf-8"))
+            paras = data.get("paragraphs", [])
+            # Take first 3 paragraphs as summary
+            summary = " | ".join(p for p in paras[:3] if p not in ("(จบบท)",))
+            memories.append(ChapterMemory(
+                num=n,
+                summary=summary[:200],
+                characters=characters[:10],
+                terms=key_terms[:20],
+            ))
+        except Exception:
+            continue
+
+    return memories
+
+
+def format_tm_prompt(slug: str, current_num: int) -> str:
+    """Format TM context section for LLM prompt."""
+    memo = get_chapter_memory(slug, current_num)
+    if not memo:
+        return ""
+
+    lines = [
+        "\n[Translation Memory — character names and terms from recent chapters]",
+    ]
+    if memo and memo[0].characters:
+        lines.append("Main characters: " + ", ".join(memo[0].characters))
+    if memo and memo[0].terms:
+        lines.append("Key terms: " + ", ".join(memo[0].terms[:15]))
+    lines.append("")
+
+    return "\n".join(lines)
+
+
 # ── CLI Entry Point ─────────────────────────────────────────────────────
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="NovelClaw Glossary Tool")

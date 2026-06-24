@@ -169,6 +169,38 @@ def translate_single(slug: str, num: int, mode: str = "safe",
             result["error"] = f"saved .th.json is invalid JSON: {e}"
             return result
 
+        # ── Schema validation gate (redundant safety) ─────────────────
+        try:
+            from jsonschema import Draft7Validator, FormatChecker
+            schema_path = _TOOLS_DIR / "schema" / "chapter.schema.json"
+            if schema_path.exists():
+                schema = json.loads(schema_path.read_text(encoding="utf-8"))
+                validator = Draft7Validator(schema, format_checker=FormatChecker())
+                errs = sorted(validator.iter_errors(chapter_data), key=lambda e: e.path)
+                if errs:
+                    if had_backup and bak.exists():
+                        thp.write_bytes(bak.read_bytes())
+                        result["backup_restored"] = True
+                    msgs = [f"[{' → '.join(str(p) for p in e.path)}] {e.message}" for e in errs]
+                    result["error"] = "Schema validation failed:\n" + "\n".join(msgs)
+                    return result
+        except ImportError:
+            pass
+
+        # ── Glossary validation gate ──────────────────────────────
+        try:
+            paragraph_text = "\n".join(
+                p for p in chapter_data.get("paragraphs", [])
+                if p not in ("(จบบท)", "(End)", "（終）", "(끝)")
+            )
+            from glossary import validate_translation
+            gv = validate_translation(paragraph_text, slug)
+            if not gv.ok:
+                result["glossary_warnings"] = [f'Missing term: {m["source"]} → {m["thai"]} ({m["category"]})' for m in gv.missing_terms]
+                result["warnings"] = result.get("warnings", []) + result["glossary_warnings"]
+        except ImportError:
+            pass
+
         # ── Success path: delete backup if it exists ─────────────────
         if had_backup and bak.exists():
             try:
@@ -213,11 +245,35 @@ def validate_single(slug: str, num: int) -> dict:
     result = {"ok": False, "score": None, "details": [], "error": None}
 
     th_path = _ch_path(slug, num)
-    src_path = _PROJECT_ROOT / "novels" / slug / "chapters" / "source" / f"{num:04d}.md"
 
     if not th_path.exists():
         result["error"] = f"ไม่พบไฟล์ {th_path}"
         return result
+
+    # ── Schema validation gate ──────────────────────────────────────
+    try:
+        import json
+        from jsonschema import Draft7Validator, FormatChecker
+
+        schema_path = _TOOLS_DIR / "schema" / "chapter.schema.json"
+        if schema_path.exists():
+            data = json.loads(th_path.read_text(encoding="utf-8"))
+            schema = json.loads(schema_path.read_text(encoding="utf-8"))
+            validator = Draft7Validator(schema, format_checker=FormatChecker())
+            errors = sorted(validator.iter_errors(data), key=lambda e: e.path)
+            if errors:
+                err_msgs = [f"[{' → '.join(str(p) for p in e.path)}] {e.message}" for e in errors]
+                result["error"] = f"Schema validation failed:\n" + "\n".join(err_msgs)
+                result["ok"] = False
+                result["score"] = 0
+                return result
+    except ImportError:
+        pass  # jsonschema not installed — skip gate
+    except json.JSONDecodeError as e:
+        result["error"] = f"Invalid JSON: {e}"
+        return result
+
+    src_path = _PROJECT_ROOT / "novels" / slug / "chapters" / "source" / f"{num:04d}.md"
 
     cmd = [
         _python(), str(_TOOLS_DIR / "scorer.py"),
