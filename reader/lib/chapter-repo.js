@@ -199,8 +199,11 @@ async function getChapter(slug, num, lang) {
   if (!isTranslated) {
     const { parseMarkdownToBlocks } = require('./blocks');
     const parsed = parseMarkdownToBlocks(raw, num);
+    const _mdTitle = parsed.title || '';
+    // Strip Chinese chapter prefix like md source files
+    const _mdClean = _mdTitle.replace(/^第\d+[章장]\s*/, '').trim();
     return {
-      title: parsed.title || `ตอนที่ ${num} [ยังไม่แปล]`,
+      title: _mdClean ? `ตอนที่ ${num} ${_mdClean}` : (_mdTitle || `ตอนที่ ${num} [ยังไม่แปล]`),
       isJson: true,
       blocks: parsed.blocks,
       source: `ch ${num} (Original Source)`,
@@ -217,7 +220,9 @@ async function getChapter(slug, num, lang) {
       throw Object.assign(new Error(`Invalid JSON in ${padded}: ${parseErr.message}`), { status: 500 });
     }
     return {
-      title: ch.title || `ตอนที่ ${ch.num}`,
+      title: ch.title
+        ? (`${ch.title}`.replace(/^第\d+[章장]\s*/, '').trim() ? `ตอนที่ ${ch.num} ${`${ch.title}`.replace(/^第\d+[章장]\s*/, '').trim()}` : `ตอนที่ ${ch.num}`)
+        : `ตอนที่ ${ch.num}`,
       isJson: true,
       paragraphs: ch.paragraphs || [],
       blocks: ch.blocks || [],
