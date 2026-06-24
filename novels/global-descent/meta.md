@@ -6,11 +6,11 @@ source_lang: cn
 target_lang: th
 source_url: https://tw.hjwzw.com/Book/Chapter/50356
 total_chapters: 1239
-status: in_progress
+status: reset
 started: '2026-06-13'
-last_translated: 153
-next_chapter: 154
-translated_chapters: 83
+last_translated: 0
+next_chapter: 1
+translated_chapters: 0
 ---
 
 # 全球降臨：帶著嫂嫂末世種田
@@ -23,14 +23,12 @@ translated_chapters: 83
 - **Target language:** Thai (TH)
 - **Slug:** global-descent
 - **Source URL:** https://tw.hjwzw.com/Book/Chapter/50356
-- **Status:** 83 of 1,239 chapters translated (6.70%)
-- **Translated range:** ch 1, 2, 42, 71–153
-- **Missing in range:** ch 3–41, 43–70, 131–133
+- **Status:** 0 of 1,239 chapters translated (0%) — เคลียร์ของเก่าทิ้งรอบใหม่
 - **Pipeline:** v3 paragraphs (LLM plain text → Python assemble JSON)
-- **Scorer avg:** ~90/100 (83/83 passed)
-- **Last translated:** ch 153
-- **Next chapter:** ch 154
-- **Started:** 2026-06-13
+- **Scorer avg:** N/A — รอระบบใหม่
+- **Last translated:** 0
+- **Next chapter:** 1
+- **Started:** 2026-06-13 (reset 2026-06-24)
 
 ## Description
 
