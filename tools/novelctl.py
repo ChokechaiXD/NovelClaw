@@ -7,7 +7,6 @@ Usage:
 
 from __future__ import annotations
 
-import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -219,6 +218,27 @@ def process_chapter(slug, num, mode, force, job) -> ChapterPipelineResult:
 # ── Command handlers ─────────────────────────────────────────────────
 
 
+def parse_range(range_str: str) -> list[int]:
+    """Parse '139' → [139], '140-150' → [140..150], '140,142,145' → [140,142,145]."""
+    if not range_str:
+        return []
+    nums: set[int] = set()
+    for part in range_str.split(","):
+        part = part.strip()
+        if "-" in part:
+            try:
+                start, end = part.split("-", 1)
+                nums.update(range(int(start.strip()), int(end.strip()) + 1))
+            except ValueError:
+                continue
+        else:
+            try:
+                nums.add(int(part))
+            except ValueError:
+                continue
+    return sorted(nums)
+
+
 def handle_translate(slug: str, nums: list[int], mode: str, force: bool, workers: int = 1) -> str:
     """Full translate pipeline with job state + checkpoint."""
     job = jobs.create(slug, nums, mode=mode, force=force)
@@ -290,13 +310,14 @@ def handle_translate(slug: str, nums: list[int], mode: str, force: bool, workers
     locks.release_all(slug)
 
 
-def handle(slug: str, command: str, *args, **kwargs):
+def handle(slug: str, command: str, **kwargs):
     """Main command dispatcher."""
     if command == "translate":
         nums = kwargs.get("nums", [])
         mode = kwargs.get("mode", "safe")
         force = kwargs.get("force", False)
-        out = handle_translate(slug, nums, mode, force, workers=args.workers)
+        workers = kwargs.get("workers", 1)
+        out = handle_translate(slug, nums, mode, force, workers=workers)
         return out
 
     elif command == "validate":
@@ -477,15 +498,16 @@ def main():
     kwargs = {}
 
     if hasattr(args, "range") and args.range:
-        m = re.match(r"^(\d+)(?:-(\d+))?$", args.range)
-        if not m:
-            print("❌ Invalid range. Use: 42 or 131-135")
+        kwargs["nums"] = parse_range(args.range)
+        if not kwargs["nums"]:
+            print("❌ Invalid range. Use: 42, 131-135, 140,142,145")
             sys.exit(1)
-        start = int(m.group(1))
-        end = int(m.group(2)) if m.group(2) else start
-        kwargs["nums"] = list(range(start, end + 1))
 
-    result = handle(slug, args.command, mode=mode, force=force, **kwargs)
+    kwargs["workers"] = args.workers
+    kwargs["mode"] = args.mode
+    kwargs["force"] = args.force
+
+    result = handle(slug, args.command, **kwargs)
     for line in result:
         print(line)
 
