@@ -1,0 +1,106 @@
+# Term Action Registry — Thai translation
+# ========================================
+# Every token falls into exactly ONE action.
+# Precedence: replace > preserve > review > fail
+#
+# Actions:
+#   replace  — แทนที่ด้วย Thai value ก่อน gate (recommended)
+#   preserve — คงไว้ (notation, acronym, proper noun)
+#   review   — แจ้งเตือนให้ตรวจสอบ (not auto-block)
+#   fail     — block translation (production only)
+
+target_lang: th
+
+default:
+  unknown_foreign_script: fail  # Han/Hiragana/Katakana/Hangul/Latin/Cyrillic/Arabic
+
+terms:
+  # ── Game stats (preserve) ──
+  HP:
+    action: preserve
+    category: game_stat
+  MP:
+    action: preserve
+    category: game_stat
+  EXP:
+    action: preserve
+    category: game_stat
+
+  # ── Rank / tier (preserve) ──
+  SSR:
+    action: preserve
+    category: rank
+  UR:
+    action: preserve
+    category: rank
+  VIP:
+    action: preserve
+    category: rank
+  SSS:
+    action: preserve
+    category: rank
+  S:
+    action: preserve
+    category: rank
+
+  # ── Game mechanics (replace) ──
+  Elite:
+    action: replace
+    value: อีลิท
+    category: monster_rank
+  elite:
+    action: replace
+    value: อีลิท
+    category: monster_rank
+  totem:
+    action: replace
+    value: โทเทม
+    category: game_object
+  BUFF:
+    action: replace
+    value: บัฟ
+    category: game_mechanic
+  DEBUFF:
+    action: replace
+    value: ดีบัฟ
+    category: game_mechanic
+
+  # ── System / UI terms (replace) ──
+  Open Beta:
+    action: replace
+    value: โอเพนเบตา
+    category: system_term
+  "open beta":
+    action: replace
+    value: โอเพนเบตา
+    category: system_term
+  First Kill:
+    action: replace
+    value: คิลแรก
+    category: system_term
+
+  # ── Proper nouns (preserve) ──
+  BloodyLand:
+    action: preserve
+    category: proper_noun
+  Ice:
+    action: preserve
+    category: proper_noun
+
+  # ── English words that must be translated (replace) ──
+  abandon:
+    action: replace
+    value: ละทิ้ง
+    category: english_word
+  Source:
+    action: replace
+    value: แหล่ง
+    category: english_word
+  efficiency:
+    action: replace
+    value: ประสิทธิภาพ
+    category: english_word
+  nowhere:
+    action: replace
+    value: ไม่มีที่ไหน
+    category: english_word
