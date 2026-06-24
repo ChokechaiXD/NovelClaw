@@ -28,7 +28,7 @@ class OpenRouterBackend(TranslatorBackend):
         if _LLM_CONFIG_PATH.exists():
             try:
                 cfg = json.loads(_LLM_CONFIG_PATH.read_text(encoding="utf-8"))
-                self._api_key = os.environ.get("OPENROUTER_API_KEY") or cfg.get("api_key", "")
+                self._api_key = os.environ.get("OPENROUTER_API_KEY") or cfg.get("openrouter_api_key", "")
             except Exception:
                 pass
         # Also check direct env var
