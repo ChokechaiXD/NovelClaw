@@ -78,6 +78,24 @@ class Chapter(BaseModel):
     output_lang: Language | None = Field(default=None)
     profile_lang: Language | None = Field(default=None)
 
+    @model_validator(mode='before')
+    @classmethod
+    def normalize_reader_canonical(cls, data: dict) -> dict:
+        if not isinstance(data, dict):
+            return data
+        if 'chapterNo' in data and 'num' not in data:
+            data['num'] = data['chapterNo']
+        if 'title' in data and isinstance(data['title'], dict):
+            t_dict = data['title']
+            data['title'] = t_dict.get('translated') or t_dict.get('source') or ''
+        if 'sourceLang' in data and 'lang' not in data:
+            data['lang'] = data['sourceLang']
+        if 'targetLang' in data and 'output_lang' not in data:
+            data['output_lang'] = data['targetLang']
+        if 'source' not in data and 'num' in data:
+            data['source'] = f"ch {data['num']}"
+        return data
+
     @model_validator(mode='after')
     def validate_paragraphs(self) -> 'Chapter':
         if not isinstance(self.paragraphs, list) or not self.paragraphs:
@@ -86,12 +104,14 @@ class Chapter(BaseModel):
             lang = self.lang.value if isinstance(self.lang, Language) else str(self.lang)
             end = BRACKETS.get(lang, {}).get('end_marker', '(จบบท)')
             self.paragraphs.append(end)
-        # Validate title matches num
-        m = re.match(r'^ตอนที่ (\d+)([:：\s]+(.+))?$', self.title.strip())
-        if not m:
-            raise ValueError(f'Title must start with "ตอนที่ {{N}}", got: {self.title!r}')
-        if int(m.group(1)) != self.num:
-            raise ValueError(f'Title says ch {m.group(1)} but num is {self.num}')
+        # Validate title matches num (always except for raw source chapters like CN/JP/KR)
+        is_source = self.output_lang in (Language.CN, Language.JP, Language.KR)
+        if not is_source:
+            m = re.match(r'^ตอนที่ (\d+)([:：\s]+(.+))?$', self.title.strip())
+            if not m:
+                raise ValueError(f'Title must start with "ตอนที่ {{N}}", got: {self.title!r}')
+            if int(m.group(1)) != self.num:
+                raise ValueError(f'Title says ch {m.group(1)} but num is {self.num}')
         return self
 
 

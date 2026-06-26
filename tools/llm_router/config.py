@@ -19,7 +19,7 @@ def _load_keys() -> dict:
     if llm_path.exists():
         try:
             import json
-            with open(llm_path) as f:
+            with open(llm_path, encoding="utf-8") as f:
                 cfg = json.load(f)
             if not keys["openrouter"]:
                 keys["openrouter"] = cfg.get("openrouter_api_key", "")
@@ -157,10 +157,42 @@ PROFILES: dict[str, list[dict]] = {
 }
 
 
+def _get_dynamic_default() -> dict | None:
+    llm_path = _PROJECT_ROOT / "llm.json"
+    if llm_path.exists():
+        try:
+            import json
+            with open(llm_path, encoding="utf-8") as f:
+                cfg = json.load(f)
+            model = cfg.get("default_model")
+            provider = cfg.get("default_provider", "openrouter")
+            if model:
+                return {"provider": provider, "model": model}
+        except Exception:
+            pass
+    return None
+
+
 def get_profile(name: str) -> list[dict]:
     if name not in PROFILES:
         raise KeyError(f"Unknown profile '{name}'. Available: {list(PROFILES.keys())}")
-    return PROFILES[name]
+    
+    chain = list(PROFILES[name])
+    
+    if name in ("translate_fast", "translate_quality"):
+        dynamic = _get_dynamic_default()
+        if dynamic:
+            chain = [item for item in chain if not (item["provider"] == dynamic["provider"] and item["model"] == dynamic["model"])]
+            new_item = {
+                "provider": dynamic["provider"],
+                "model": dynamic["model"],
+                "timeout_sec": 95,
+                "max_tokens": 4096,
+                "temperature": 0.28 if name == "translate_fast" else 0.25
+            }
+            chain.insert(0, new_item)
+            
+    return chain
 
 
 def list_profiles() -> list[str]:

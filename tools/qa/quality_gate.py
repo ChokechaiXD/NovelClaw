@@ -212,6 +212,14 @@ class QualityGate:
         }
         
         # Deduct for unknown foreign terms
+        # soft_allowed terms = info severity, 0 deduction
+        for token in term_result.soft_allowed:
+            result.issues.append({
+                "type": "script",
+                "severity": "info",
+                "message": f"Soft-allowed token: {token} (review later)",
+            })
+
         for token in term_result.unknown_foreign:
             severity = mode_config.get("unknown_latin", "warning")
             if severity == "fail":
@@ -229,6 +237,18 @@ class QualityGate:
                     "message": f"Unknown foreign token: {token}",
                 })
         
+        # Source artifact check
+        from qa.validators import SOURCE_ARTIFACT_RE
+        for idx, p in enumerate(result.paragraphs):
+            match = SOURCE_ARTIFACT_RE.search(p)
+            if match:
+                score -= 15
+                result.issues.append({
+                    "type": "artifact",
+                    "severity": "error",
+                    "message": f"Source artifact detected: '{match.group(1)}' in paragraph {idx + 1}",
+                })
+
         # 3. Script purity
         preserve_set = set(term_result.preserved) | tp.preserve_tokens
         from qa.script_policy import TARGET_SCRIPT_POLICY
@@ -237,7 +257,7 @@ class QualityGate:
         hard_fail_scripts = policy.get("hard_fail_scripts", set())
         
         script_leaks = detect_script_leaks(
-            "\n".join(result.paragraphs),
+            result.paragraphs,
             target_lang=self.target_lang,
             allowed_latin_tokens=preserve_set,
         )
@@ -248,21 +268,50 @@ class QualityGate:
         
         for leak in script_leaks.leaks:
             sev = mode_config.get(leak.script, "warning")
+            script_display = leak.script
+            if leak.script in ("Han", "Hiragana", "Katakana", "Hangul"):
+                script_display = f"CJK ({leak.script})"
+
             if sev == "fail":
                 score -= 20
                 result.issues.append({
                     "type": "script",
                     "severity": "error",
-                    "message": f"{leak.script} leak: '{leak.token}' at pos {leak.index}",
+                    "message": f"{script_display} leak: '{leak.token}' at pos {leak.index}",
                 })
             elif sev == "warning":
                 score -= 5
                 result.issues.append({
                     "type": "script",
                     "severity": "warning",
-                    "message": f"{leak.script} leak: '{leak.token}'",
+                    "message": f"{script_display} leak: '{leak.token}'",
                 })
         
+        # 3.5 CJK Punctuation check
+        from qa.validators import CJK_PUNCT_RE
+        for idx, p in enumerate(result.paragraphs):
+            # Skip end markers
+            if p in ("(จบบท)", "(End)", "（終）", "(끝)"):
+                continue
+            matches = CJK_PUNCT_RE.findall(p)
+            if matches:
+                unique_matches = sorted(list(set(matches)))
+                for m in unique_matches:
+                    if m in ("「", "」"):
+                        score -= 15
+                        result.issues.append({
+                            "type": "cjk_punctuation",
+                            "severity": "error",
+                            "message": f"CJK quotation mark '{m}' detected in paragraph {idx + 1}. Use standard double quotes '\"'.",
+                        })
+                    else:
+                        score -= 5
+                        result.issues.append({
+                            "type": "cjk_punctuation",
+                            "severity": "warning",
+                            "message": f"CJK punctuation/bracket '{m}' leaked in paragraph {idx + 1}. Clean or replace with standard punctuation.",
+                        })
+
         # 4. Thai style lint
         style_issues = _lint_thai_style(result.paragraphs)
         for si in style_issues:
@@ -285,6 +334,7 @@ class QualityGate:
         result.score = max(0.0, min(100.0, score))
         has_errors = any(i["severity"] == "error" for i in result.issues)
         has_warnings = any(i["severity"] == "warning" for i in result.issues)
+        has_infos = any(i["severity"] == "info" for i in result.issues)
         
         if has_errors:
             if self.mode == "production":
@@ -294,6 +344,9 @@ class QualityGate:
                 result.needs_review = True
         else:
             result.ok = True
+        
+        # Tag on info-only issues for reports
+        result.reports["info_only"] = has_infos and not has_errors and not has_warnings
         
         return result
 

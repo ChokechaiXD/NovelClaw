@@ -19,6 +19,14 @@ import sys
 import tempfile
 from pathlib import Path
 
+# Ensure UTF-8 encoding for stdout/stderr on Windows to avoid UnicodeEncodeError with emojis
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 # Ensure tools/ is on path
 _TOOLS_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_TOOLS_DIR.parent))

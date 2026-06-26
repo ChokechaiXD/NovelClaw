@@ -17,6 +17,14 @@ import re
 import sys
 from pathlib import Path
 
+# Ensure UTF-8 encoding for stdout/stderr on Windows to avoid UnicodeEncodeError with emojis
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 from jsonschema import Draft7Validator, FormatChecker, ValidationError
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -87,7 +95,7 @@ def validate_novel_dir(slug: str, novel_dir: Path) -> bool:
     novel_json = novel_dir / "novel.json"
     if novel_json.exists():
         try:
-            with open(novel_json) as f:
+            with open(novel_json, encoding="utf-8") as f:
                 data = json.load(f)
         except json.JSONDecodeError:
             print(f"  ❌ novel.json: Invalid JSON")

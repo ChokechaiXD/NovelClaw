@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "description": "Language Leakage Gate — Profile Schema",
+  "fields": {
+    "lang": { "type": "string", "description": "ISO 639-1 language code (th, zh, en, lo, km)", "required": true },
+    "name": { "type": "string", "description": "Human-readable name", "required": true },
+    "expected_scripts": { "type": "array", "items": "string", "description": "Target language native scripts. Always allowed", "required": true },
+    "allowed_scripts": { "type": "array", "items": "string", "description": "Universally allowed scripts. Default: Common, Inherited" },
+    "allowed_digit_sets": { "type": "array", "items": "string", "description": "Digit sets: ASCII, Thai, Arabic, etc." },
+    "allow_emoji": { "type": "boolean", "description": "Allow emoji as Common script" },
+    "allowed_span_patterns": { "type": "array", "items": "object", "description": "Regex patterns exempt from leak detection. {name, regex, severity?}" },
+    "protected_glossary_categories": { "type": "array", "items": "string", "description": "Glossary categories treated as warn not fail" },
+    "leak_rules": { "type": "object", "description": "Thresholds for PASS/WARN/FAIL verdict", "required": true }
+  },
+  "leak_rules_schema": {
+    "fail_if_source_script_ratio_over": { "type": "number", "description": "Source chars / total chars above this → FAIL" },
+    "fail_if_foreign_span_length_over": { "type": "integer", "description": "Single foreign span exceeds this → FAIL" },
+    "warn_if_foreign_span_count_over": { "type": "integer", "description": "More foreign spans than this → WARN" },
+    "warn_if_unknown_script_chars": { "type": "integer", "description": "Unrecognized chars above this → WARN" }
+  }
+}

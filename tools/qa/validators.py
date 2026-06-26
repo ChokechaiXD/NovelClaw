@@ -34,6 +34,9 @@ CJK_LEAK_RE = re.compile(
     r"\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]"
 )
 
+# CJK punctuation detection — covers full-width Chinese quotation marks and punctuation
+CJK_PUNCT_RE = re.compile(r"[「」《》，。！？」：；、]")
+
 # Chinese-only detection (for source language validation)
 CN_RE = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf]")
 CN_WIDE_RE = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]")
@@ -65,25 +68,34 @@ EN_RETENTION_RE = re.compile(
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# LATIN TOKEN ALLOW/REPLACE LISTS [DEPRECATED]
+# LATIN TOKEN ALLOW/REPLACE LISTS [DEPRECATED — RETAINED FOR BACKWARD COMPAT]
 # ═══════════════════════════════════════════════════════════════════════
 #
 # These lists are DEPRECATED. Term decisions should be made via
 # tools/config/term_policy.{lang}.yaml + tools/qa/term_policy.py
 #
-# ALLOWED_LATIN_TOKENS is still used by script_policy.py for fallback.
-# Keep minimal set here for backward compat — ELITE removed.
+# All new code should import from term_policy:
+#   from qa.term_policy import get_term_policy
+#   tp = get_term_policy("th")
+#   allowed = tp.preserve_tokens
+#
+# Keep minimal set here for backward compat with scorer.py / scripts
+# that haven't migrated yet. ELITE removed.
 # ═══════════════════════════════════════════════════════════════════════
 
-ALLOWED_LATIN_TOKENS: set[str] = {
-    # Game stats (preserve — notation, not English)
-    "HP", "MP", "EXP",
-    # Ranks (preserve)
-    "SSR", "UR", "VIP",
-    ## Removed: ELITE → moved to term_policy.th.yaml (replace: อีลิท)
-    ## Removed: BloodyLand, Bloodyland → moved to term_policy.th.yaml (preserve: proper_noun)
-    ## Removed: C → false positive (single char)
-}
+# Dynamically synced from term_policy on module import
+try:
+    from qa.term_policy import get_term_policy
+    _tp = get_term_policy("th")
+    ALLOWED_LATIN_TOKENS: set[str] = _tp.preserve_tokens | {k.upper() for k in _tp.terms.keys()}
+except Exception:
+    # Fallback minimal set if term_policy unavailable
+    ALLOWED_LATIN_TOKENS: set[str] = {
+        "HP", "MP", "EXP", "SP", "ATK", "DEF", "STR", "INT", "AGI", "DPS",
+        "DMG", "CD", "TPS", "PvP", "PvE", "AOE",
+        "SSR", "SS", "SR", "UR", "LR", "VIP", "SSS",
+        "NPC",
+    }
 
 EN_BLACKLIST: set[str] = {
     "recruiting", "level", "disrespect", "mean", "queen",

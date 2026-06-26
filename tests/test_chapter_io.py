@@ -29,13 +29,12 @@ def test_save_and_load_chapter(tmp_path):
     save_chapter(SAMPLE_CHAPTER, path)
 
     assert path.exists()
-    raw = json.loads(path.read_text(encoding="utf-8"))
-    assert raw["num"] == 1
-    assert "paragraphs" in raw
-    assert raw["paragraphs"] == ["This is a test chapter.", "(จบบท)"]
+    ch = load_chapter(path)
+    assert ch.num == 1
+    assert ch.paragraphs == ["This is a test chapter.", "(จบบท)"]
 
 
 def test_loaded_chapter_valid():
-    ch = load_chapter(Path(__file__).parent.parent / "novels" / "global-descent" / "chapters" / "0001.json")
+    ch = load_chapter(Path(__file__).parent.parent / "novels" / "global-descent" / "chapters" / "0001.th.json")
     assert isinstance(ch, Chapter)
     assert ch.num == 1

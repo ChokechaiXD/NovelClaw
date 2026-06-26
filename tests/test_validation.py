@@ -29,4 +29,4 @@ def test_shared_quality_gate_rejects_wrong_output_lang_end_marker():
     )
 
     ok, messages = validation_tool.validate_translation_quality(ch, "source text", "zh", "th")
-    assert ok
+    assert not ok

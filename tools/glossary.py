@@ -11,7 +11,16 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
-import json
+import sys
+
+# Reconfigure stdout/stderr/stdin to UTF-8 on Windows to prevent UnicodeEncodeError
+if sys.platform == "win32":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+    if hasattr(sys.stdin, "reconfigure"):
+        sys.stdin.reconfigure(encoding="utf-8")
 
 from schema import PROJECT_ROOT, NOVELS_DIR, get_novel_root
 
@@ -38,6 +47,10 @@ def load_terms(slug: str = "global-descent") -> list[dict]:
                 t["priority"] = int(t.get("priority", 3))
             except (ValueError, TypeError):
                 t["priority"] = 3
+            if "verified" not in t:
+                t["verified"] = True
+            else:
+                t["verified"] = bool(t["verified"])
         return terms
     except Exception as e:
         print(f"  Failed to load glossary JSON for {slug}: {e}")
@@ -70,6 +83,7 @@ def save_terms(terms: list[dict], slug: str = "global-descent") -> None:
             "category": t.get("category", "").strip(),
             "priority": int(t.get("priority", 3)),
             "lock": t.get("lock", "auto").strip(),
+            "verified": bool(t.get("verified", True)),
             "explanation": t.get("explanation", "").strip(),
             "notes": t.get("notes", "").strip(),
         }

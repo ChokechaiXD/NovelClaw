@@ -8,6 +8,11 @@
 #   preserve — คงไว้ (notation, acronym, proper noun)
 #   review   — แจ้งเตือนให้ตรวจสอบ (not auto-block)
 #   fail     — block translation (production only)
+#   soft_allow — คงไว้ชั่วคราว (อาจต้องเปลี่ยนทีหลัง, หัก 0 คะแนน)
+#
+# Patterns:
+#   preserve_patterns — regex สำหรับรูปแบบที่มีตัวเลข (LV10, lv5)
+#     auto-preserve โดยไม่ต้อง enumerate ทีละคำ
 
 target_lang: th
 
@@ -22,15 +27,79 @@ terms:
   MP:
     action: preserve
     category: game_stat
+  SP:
+    action: preserve
+    category: game_stat
   EXP:
     action: preserve
     category: game_stat
+  ATK:
+    action: preserve
+    category: game_stat
+  DEF:
+    action: preserve
+    category: game_stat
+  STR:
+    action: preserve
+    category: game_stat
+  INT:
+    action: preserve
+    category: game_stat
+  AGI:
+    action: preserve
+    category: game_stat
+  DPS:
+    action: preserve
+    category: game_stat
+  DMG:
+    action: preserve
+    category: game_stat
+  CD:
+    action: preserve
+    category: game_stat
+  TPS:
+    action: preserve
+    category: game_stat
+
+  # ── Game terms (preserve) ──
+  PvP:
+    action: preserve
+    category: game_term
+  PvE:
+    action: preserve
+    category: game_term
+  AOE:
+    action: preserve
+    category: game_term
+  BUFF:
+    action: replace
+    value: บัฟ
+    category: game_mechanic
+  DEBUFF:
+    action: replace
+    value: ดีบัฟ
+    category: game_mechanic
+  ELITE:
+    action: preserve
+    category: game_term
 
   # ── Rank / tier (preserve) ──
   SSR:
     action: preserve
     category: rank
+  SS:
+    action: preserve
+    category: rank
+  SR:
+    action: preserve
+    category: rank
+  R:
+    action: preserve
+    category: rank
   UR:
+    action: preserve
+    category: rank
+  LR:
     action: preserve
     category: rank
   VIP:
@@ -43,7 +112,7 @@ terms:
     action: preserve
     category: rank
 
-  # ── Game mechanics (replace) ──
+  # ── Terms from previous config ──
   Elite:
     action: replace
     value: อีลิท
@@ -56,14 +125,6 @@ terms:
     action: replace
     value: โทเทม
     category: game_object
-  BUFF:
-    action: replace
-    value: บัฟ
-    category: game_mechanic
-  DEBUFF:
-    action: replace
-    value: ดีบัฟ
-    category: game_mechanic
 
   # ── System / UI terms (replace) ──
   Open Beta:
@@ -79,6 +140,11 @@ terms:
     value: คิลแรก
     category: system_term
 
+  # ── Entities (preserve) ──
+  NPC:
+    action: preserve
+    category: entity
+
   # ── Proper nouns (preserve) ──
   BloodyLand:
     action: preserve
@@ -86,6 +152,12 @@ terms:
   Ice:
     action: preserve
     category: proper_noun
+  First:
+    action: preserve
+    category: english_word
+  Kill:
+    action: preserve
+    category: game_mechanic
 
   # ── English words that must be translated (replace) ──
   abandon:
@@ -104,3 +176,38 @@ terms:
     action: replace
     value: ไม่มีที่ไหน
     category: english_word
+
+  # ── Game notation (preserve) ──
+  X:
+    action: preserve
+    category: game_notation
+
+  # ── Game reference names (preserve) ──
+  Plants:
+    action: preserve
+    category: game_reference
+  Zombies:
+    action: preserve
+    category: game_reference
+  vs:
+    action: preserve
+    category: game_reference
+  G1:
+    action: preserve
+    category: game_reference
+
+  # ── Soft allow (temporary — not permanent) ──
+  LOL:
+    action: soft_allow
+    category: slang_temp
+
+# ── Pattern-based preservation ──
+# Regex patterns: auto-preserve tokens matching these without adding each variant
+preserve_patterns:
+  level_notation:
+    - '\bLV\.?\s*\d+\b'
+    - '\bLVL\.?\s*\d+\b'
+    - '\bLv\.?\s*\d+\b'
+    - '\blv\.?\s*\d+\b'
+  item_notation:
+    - '\b[A-Z][a-z]+-\d+\b'
