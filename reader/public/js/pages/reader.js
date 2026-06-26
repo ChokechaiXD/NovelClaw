@@ -43,16 +43,7 @@ const ReaderPage = {
           </button>
           <span class="c-toolbar__divider"></span>
           
-          <select id="reader-model-select" style="font-size:11px;height:36px;padding:0 var(--space-xs);border:1px solid var(--c-border);background:var(--c-bg-secondary);color:var(--c-text-primary);border-radius:var(--radius-sm);cursor:pointer;max-width:140px;outline:none;" title="เลือกโมเดลแปล AI">
-            <option value="google/gemma-4-26b-a4b-it:free">Gemma 4 26B (Free)</option>
-            <option value="google/gemma-2-9b-it:free">Gemma 2 9B (Free)</option>
-            <option value="google/gemma-2-27b-it:free">Gemma 2 27B (Free)</option>
-            <option value="meta-llama/llama-3.1-70b-instruct">Llama 3.1 70B</option>
-            <option value="meta-llama/llama-3.1-405b-instruct">Llama 3.1 405B</option>
-            <option value="deepseek/deepseek-chat">DeepSeek Chat (OpenRouter)</option>
-            <option value="deepseek-chat">DeepSeek Chat (Local)</option>
-            <option value="gpt-4o-mini">GPT-4o Mini (Local)</option>
-          </select>
+          <select id="reader-model-select" style="font-size:11px;height:36px;padding:0 var(--space-xs);border:1px solid var(--c-border);background:var(--c-bg-secondary);color:var(--c-text-primary);border-radius:var(--radius-sm);cursor:pointer;max-width:180px;outline:none;" title="เลือกโมเดลแปล AI"></select>
           <span class="c-toolbar__divider"></span>
           
           <button class="c-btn c-btn--icon" id="reader-theme-toggle" title="เปลี่ยนธีม"></button>
@@ -129,20 +120,15 @@ const ReaderPage = {
       const modelSelect = document.getElementById('reader-model-select');
       try {
         Api.getLlmConfig().then(cfg => {
-          if (modelSelect && cfg.default_model) {
-            let optionExists = false;
-            for (let i = 0; i < modelSelect.options.length; i++) {
-              if (modelSelect.options[i].value === cfg.default_model) {
-                optionExists = true;
-                break;
-              }
-            }
-            if (!optionExists) {
-              const newOpt = document.createElement('option');
-              newOpt.value = cfg.default_model;
-              newOpt.textContent = cfg.default_model;
-              modelSelect.appendChild(newOpt);
-            }
+          if (modelSelect) {
+            const providers = Array.isArray(cfg.providers) ? cfg.providers : [];
+            const optionHtml = providers.map(provider => {
+              const models = Array.isArray(provider.models) ? provider.models : [];
+              return `<optgroup label="${Ui.esc(provider.label || provider.id)}">` +
+                models.map(model => `<option value="${Ui.esc(model.id)}" data-provider="${Ui.esc(provider.id)}">${Ui.esc(model.label || model.id)}</option>`).join('') +
+                '</optgroup>';
+            }).join('');
+            modelSelect.innerHTML = optionHtml || `<option value="${Ui.esc(cfg.default_model || '')}" data-provider="${Ui.esc(cfg.default_provider || '')}">${Ui.esc(cfg.default_model || 'เลือกโมเดล')}</option>`;
             modelSelect.value = cfg.default_model;
           }
         });
@@ -153,7 +139,7 @@ const ReaderPage = {
       if (modelSelect) {
         modelSelect.addEventListener('change', async function() {
           const val = this.value;
-          const provider = val.includes('/') ? 'openrouter' : 'openmodel';
+          const provider = this.selectedOptions[0]?.dataset?.provider || 'openrouter';
           try {
             await Api.saveLlmConfig({ default_model: val, default_provider: provider });
             console.log(`Saved default model to llm.json: ${val} (${provider})`);

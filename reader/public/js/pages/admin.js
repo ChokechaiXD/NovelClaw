@@ -949,6 +949,10 @@ const AdminTranslatePage = {
       const novelOptions = novels.map(n => 
         `<option value="${Ui.esc(n.slug)}">${Ui.esc(Ui.displayTitle(n) || n.slug)}</option>`
       ).join('');
+      const providers = Array.isArray(cfg.providers) ? cfg.providers : [];
+      const providerOptions = providers.map(p =>
+        `<option value="${Ui.esc(p.id)}" ${cfg.default_provider === p.id ? 'selected' : ''}>${Ui.esc(p.label || p.id)}</option>`
+      ).join('');
 
       let html = `
       <div class="c-container">
@@ -964,8 +968,7 @@ const AdminTranslatePage = {
                 <div class="c-form__group">
                   <label class="c-form__label">ผู้ให้บริการ (Provider)</label>
                   <select class="c-form__select c-form__select--compact" id="translate-cfg-provider">
-                    <option value="openrouter" ${cfg.default_provider === 'openrouter' ? 'selected' : ''}>OpenRouter (Gemma/GPT-OSS)</option>
-                    <option value="openmodel" ${cfg.default_provider === 'openmodel' ? 'selected' : ''}>OpenModel (DeepSeek Flash)</option>
+                    ${providerOptions || `<option value="${Ui.esc(cfg.default_provider || 'openrouter')}" selected>${Ui.esc(cfg.default_provider || 'openrouter')}</option>`}
                   </select>
                 </div>
                 <div class="c-form__group">
@@ -973,13 +976,12 @@ const AdminTranslatePage = {
                     <span>รุ่นของ AI Model</span>
                     <button id="fetch-models-btn" class="c-btn c-btn--xs c-btn--secondary" style="padding:2px 8px; font-size:10px; min-height:auto; display:none;">🔍 ดึงโมเดลล่าสุด</button>
                   </label>
-                  <input type="text" class="c-form__input c-form__input--compact" id="translate-cfg-model" list="model-datalist" placeholder="เช่น google/gemma-4-31b-it:free" value="${Ui.esc(cfg.default_model || '')}" />
-                  <datalist id="model-datalist"></datalist>
+                  <select class="c-form__select c-form__select--compact" id="translate-cfg-model"></select>
                 </div>
               </div>
               <div class="c-form__group">
-                <label class="c-form__label">OpenRouter API Key (เว้นว่างไว้เพื่อไม่ให้เปลี่ยนแปลง)</label>
-                <input type="password" class="c-form__input c-form__input--compact" id="translate-cfg-key" placeholder="${cfg.hasOpenRouterKey ? '●●●●●●●●●●●● (ตั้งค่าไว้เรียบร้อยแล้ว)' : 'กรอก API Key ใหม่ที่นี่...'}" />
+                <label class="c-form__label" id="translate-cfg-key-label">API Key (เว้นว่างไว้เพื่อไม่ให้เปลี่ยนแปลง)</label>
+                <input type="password" class="c-form__input c-form__input--compact" id="translate-cfg-key" placeholder="กรอก API Key ใหม่ที่นี่..." />
               </div>
               <div style="display:flex; justify-content:flex-end;">
                 <button class="c-btn c-btn--primary" id="translate-cfg-save-btn" style="min-height:36px; font-size:var(--text-sm);">💾 บันทึกการตั้งค่า</button>
@@ -1038,42 +1040,41 @@ const AdminTranslatePage = {
 
       page.innerHTML = html;
 
-      // ── Datalist Management
+      // ── Model Selector Management
       const providerSelect = document.getElementById('translate-cfg-provider');
-      const updateDatalist = (provider) => {
-        const dl = document.getElementById('model-datalist');
+      const modelSelect = document.getElementById('translate-cfg-model');
+      const keyLabel = document.getElementById('translate-cfg-key-label');
+      const keyInput = document.getElementById('translate-cfg-key');
+      const updateModelSelector = (provider) => {
+        const providerInfo = providers.find(p => p.id === provider) || providers[0] || {};
         const fetchBtn = document.getElementById('fetch-models-btn');
-        if (!dl) return;
+        if (!modelSelect) return;
         
-        let options = [];
-        if (provider === 'openrouter') {
-          if (fetchBtn) fetchBtn.style.display = 'inline-block';
-          options = [
-            'google/gemma-4-26b-a4b-it:free',
-            'google/gemma-2-9b-it:free',
-            'google/gemma-2-27b-it:free',
-            'meta-llama/llama-3.1-70b-instruct',
-            'meta-llama/llama-3.1-405b-instruct',
-            'deepseek/deepseek-chat'
-          ];
-        } else {
-          if (fetchBtn) fetchBtn.style.display = 'none';
-          options = [
-            'deepseek-chat',
-            'deepseek-coder',
-            'gpt-4o-mini',
-            'gpt-4o',
-            'claude-3-5-sonnet'
-          ];
+        if (fetchBtn) fetchBtn.style.display = provider === 'openrouter' ? 'inline-block' : 'none';
+        if (keyLabel) keyLabel.textContent = `${providerInfo.label || provider} API Key (เว้นว่างไว้เพื่อไม่ให้เปลี่ยนแปลง)`;
+        if (keyInput) {
+          keyInput.placeholder = providerInfo.hasKey
+            ? '●●●●●●●●●●●● (ตั้งค่าไว้เรียบร้อยแล้ว)'
+            : 'กรอก API Key ใหม่ที่นี่...';
         }
-        dl.innerHTML = options.map(opt => `<option value="${opt}"></option>`).join('');
+
+        const models = Array.isArray(providerInfo.models) ? providerInfo.models : [];
+        modelSelect.innerHTML = models.map(model =>
+          `<option value="${Ui.esc(model.id)}">${Ui.esc(model.label || model.id)}</option>`
+        ).join('');
+        if (provider === cfg.default_provider && cfg.default_model) {
+          if (![...modelSelect.options].some(opt => opt.value === cfg.default_model)) {
+            modelSelect.insertAdjacentHTML('afterbegin', `<option value="${Ui.esc(cfg.default_model)}">${Ui.esc(cfg.default_model)}</option>`);
+          }
+          modelSelect.value = cfg.default_model;
+        }
       };
 
       if (providerSelect) {
         providerSelect.addEventListener('change', (e) => {
-          updateDatalist(e.target.value);
+          updateModelSelector(e.target.value);
         });
-        updateDatalist(providerSelect.value);
+        updateModelSelector(providerSelect.value);
       }
 
       // ── Fetch Models Click Event
@@ -1090,13 +1091,12 @@ const AdminTranslatePage = {
             const data = await response.json();
             
             if (data && Array.isArray(data.data)) {
-              const dl = document.getElementById('model-datalist');
-              if (dl) {
+              if (modelSelect) {
                 const opts = data.data.map(model => 
-                  `<option value="${model.id}">${Ui.esc(model.name || model.id)}</option>`
+                  `<option value="${Ui.esc(model.id)}">${Ui.esc(model.name || model.id)}</option>`
                 ).join('');
-                dl.innerHTML = opts;
-                alert('ดึงโมเดล OpenRouter สำเร็จเรียบร้อยแล้วค่ะ! เลือกรุ่นในช่องกรอกได้เลย');
+                modelSelect.innerHTML = opts;
+                alert('ดึงโมเดล OpenRouter สำเร็จเรียบร้อยแล้วค่ะ! เลือกรุ่นจากรายการได้เลย');
               }
             }
           } catch (err) {
@@ -1121,7 +1121,9 @@ const AdminTranslatePage = {
             default_provider: providerVal
           };
           if (keyVal.trim()) {
-            payload.openrouter_api_key = keyVal.trim();
+            if (providerVal === 'openrouter') payload.openrouter_api_key = keyVal.trim();
+            else if (providerVal === 'openmodel') payload.openmodel_api_key = keyVal.trim();
+            else payload.api_key = keyVal.trim();
           }
 
           try {

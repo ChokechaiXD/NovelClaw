@@ -35,6 +35,8 @@ class OpenModelBackend(TranslatorBackend):
         env_key = os.environ.get("LLM_API_KEY")
         if env_key:
             cfg["api_key"] = env_key
+        elif cfg.get("openmodel_api_key"):
+            cfg["api_key"] = cfg["openmodel_api_key"]
 
         self._model = model_override or cfg.get("model", "deepseek-v4-flash")
         self._base_url = cfg["base_url"].rstrip("/")

@@ -1040,26 +1040,67 @@ app.post('/api/local/state', asyncHandler(async (req, res) => {
 // ── LOCAL LLM CONFIG & TRANSLATION APIS ─────────────────────────────
 const LLM_JSON_PATH = path.join(__dirname, '..', 'llm.json');
 
+function buildLlmConfigResponse(data = {}) {
+  const defaultProvider = data.default_provider || 'openrouter';
+  const defaultModel = data.default_model || 'google/gemma-4-26b-a4b-it:free';
+  const providers = [
+    {
+      id: 'openrouter',
+      label: 'OpenRouter',
+      description: 'OpenRouter-compatible hosted models',
+      keyField: 'openrouter_api_key',
+      hasKey: !!(data.openrouter_api_key || process.env.OPENROUTER_API_KEY),
+      models: [
+        { id: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B (Free)' },
+        { id: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B (Free)' },
+        { id: 'google/gemma-2-9b-it:free', label: 'Gemma 2 9B (Free)' },
+        { id: 'google/gemma-2-27b-it:free', label: 'Gemma 2 27B (Free)' },
+        { id: 'openai/gpt-oss-120b:free', label: 'GPT OSS 120B (Free)' },
+        { id: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron 3 Ultra (Free)' },
+        { id: 'openrouter/free', label: 'OpenRouter Auto Free' },
+        { id: 'deepseek/deepseek-chat', label: 'DeepSeek Chat' },
+        { id: 'meta-llama/llama-3.1-70b-instruct', label: 'Llama 3.1 70B' },
+        { id: 'meta-llama/llama-3.1-405b-instruct', label: 'Llama 3.1 405B' },
+      ],
+    },
+    {
+      id: 'openmodel',
+      label: 'OpenModel',
+      description: 'OpenModel API using the project translator backend',
+      keyField: 'api_key',
+      hasKey: !!(data.openmodel_api_key || process.env.LLM_API_KEY || (data.default_provider === 'openmodel' && data.api_key)),
+      models: [
+        { id: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash' },
+      ],
+    },
+  ];
+
+  const activeProvider = providers.find(p => p.id === defaultProvider) || providers[0];
+  if (!activeProvider.models.some(m => m.id === defaultModel)) {
+    activeProvider.models.unshift({ id: defaultModel, label: defaultModel });
+  }
+
+  return {
+    default_model: defaultModel,
+    default_provider: defaultProvider,
+    hasOpenRouterKey: providers.find(p => p.id === 'openrouter')?.hasKey || false,
+    hasOpenModelKey: providers.find(p => p.id === 'openmodel')?.hasKey || false,
+    providers,
+  };
+}
+
 app.get('/api/local/llm-config', asyncHandler(async (req, res) => {
   try {
     const raw = await fs.readFile(LLM_JSON_PATH, 'utf8');
     const data = JSON.parse(raw);
-    res.json({
-      default_model: data.default_model || "google/gemma-4-26b-a4b-it:free",
-      default_provider: data.default_provider || "openrouter",
-      hasOpenRouterKey: !!(data.openrouter_api_key || data.api_key)
-    });
+    res.json(buildLlmConfigResponse(data));
   } catch (err) {
-    res.json({
-      default_model: "google/gemma-4-26b-a4b-it:free",
-      default_provider: "openrouter",
-      hasOpenRouterKey: false
-    });
+    res.json(buildLlmConfigResponse());
   }
 }));
 
 app.post('/api/local/llm-config', asyncHandler(async (req, res) => {
-  const { default_model, default_provider, openrouter_api_key } = req.body;
+  const { default_model, default_provider, openrouter_api_key, openmodel_api_key, api_key } = req.body;
   let data = {};
   try {
     const raw = await fs.readFile(LLM_JSON_PATH, 'utf8');
@@ -1070,11 +1111,14 @@ app.post('/api/local/llm-config', asyncHandler(async (req, res) => {
   if (default_provider) data.default_provider = default_provider.trim();
   if (openrouter_api_key) {
     data.openrouter_api_key = openrouter_api_key.trim();
-    data.api_key = openrouter_api_key.trim();
+  }
+  if (openmodel_api_key || api_key) {
+    data.openmodel_api_key = (openmodel_api_key || api_key).trim();
+    data.api_key = data.openmodel_api_key;
   }
 
   await fs.writeFile(LLM_JSON_PATH, JSON.stringify(data, null, 2), 'utf8');
-  ok(res, { saved: true });
+  ok(res, { saved: true, config: buildLlmConfigResponse(data) });
 }));
 
 app.post('/api/novel/:slug/translate/single', asyncHandler(async (req, res) => {
