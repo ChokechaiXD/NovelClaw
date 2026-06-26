@@ -145,7 +145,19 @@ def call_profile(
 
         elapsed = time.time() - attempt_start
 
-        # 3. Validate output (translate profile only for now)
+        # 3. Validate output: always reject empty; translate/polish get full validation
+        if not text.strip():
+            health.record_failure(provider, model)
+            result.attempts.append({
+                "step": step_idx,
+                "provider": provider,
+                "model": model,
+                "status": "validation_fail",
+                "error": "empty_output",
+                "details": "Output is empty or whitespace-only",
+                "elapsed_sec": round(elapsed, 2),
+            })
+            continue
         if profile in ("translate", "polish"):
             vr = validate_translate_response(text)
             if not vr.ok:

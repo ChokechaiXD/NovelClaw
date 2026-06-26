@@ -275,14 +275,35 @@ def validate_single(slug: str, num: int) -> dict:
         result["error"] = f"Invalid JSON: {e}"
         return result
 
-    src_path = _PROJECT_ROOT / "novels" / slug / "chapters" / "source" / f"{num:04d}.md"
+    src_path = _PROJECT_ROOT / "novels" / slug / "chapters" / f"{num:04d}.cn.json"
+    
+    # If source is JSON, extract paragraph text for proper comparison
+    if src_path.exists():
+        try:
+            src_data = json.loads(src_path.read_text(encoding="utf-8"))
+            src_paras = src_data.get("paragraphs", [])
+            if src_paras:
+                # Write extracted text to a temp file for scorer to use
+                import tempfile
+                tmp = tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".txt", encoding="utf-8", delete=False
+                )
+                tmp.write("\n".join(src_paras))
+                tmp.close()
+                src_text_path = tmp.name
+            else:
+                src_text_path = src_path
+        except (json.JSONDecodeError, Exception):
+            src_text_path = src_path
+    else:
+        src_text_path = src_path
 
     cmd = [
         _python(), str(_TOOLS_DIR / "scorer.py"),
         str(th_path),
     ]
     if src_path.exists():
-        cmd += ["--source", str(src_path)]
+        cmd += ["--source", str(src_text_path)]
 
     cr = run_cmd(cmd, timeout=30, cwd=str(_PROJECT_ROOT))
     if not cr.ok and not cr.stdout:

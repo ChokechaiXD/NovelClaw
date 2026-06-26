@@ -43,6 +43,7 @@ class ApplyResult:
     text: str
     replaced: dict[str, str] = field(default_factory=dict)
     preserved: set[str] = field(default_factory=set)
+    soft_allowed: set[str] = field(default_factory=set)
     reviewed: list[str] = field(default_factory=list)
     unknown_foreign: list[str] = field(default_factory=list)
 
@@ -53,6 +54,7 @@ class TermPolicy:
     target_lang: str
     default_action: str = "fail"
     terms: dict[str, TermAction] = field(default_factory=dict)
+    preserve_patterns: dict[str, list[re.Pattern]] = field(default_factory=dict)
     _phrase_pattern: re.Pattern | None = None
 
     @property
@@ -90,9 +92,24 @@ class TermPolicy:
                 return matched
             result.text = self._phrase_pattern.sub(_replace_phrase, result.text)
 
-        # Phase 2: Per-word token resolution
+        # Phase 2: Pattern-based preservation (before per-word check)
+        if self.preserve_patterns:
+            tokens_found = list(set(re.findall(r"\b([A-Za-z][A-Za-z0-9.]*)\b", result.text)))
+            for token in tokens_found:
+                for pattern_name, patterns in self.preserve_patterns.items():
+                    for pat in patterns:
+                        if pat.search(token):
+                            result.preserved.add(token)
+                            # script_policy does .upper() check, add uppercase variant
+                            result.preserved.add(token.upper())
+                            break
+
+        # Phase 3: Per-word token resolution
         tokens_found = set(re.findall(r"\b([A-Za-z][A-Za-z0-9.]*)\b", result.text))
         for token in tokens_found:
+            # Skip if already preserved by pattern
+            if token in result.preserved:
+                continue
             key = token.lower()
             term = self.terms.get(key)
             if term:
@@ -104,11 +121,12 @@ class TermPolicy:
                         result.replaced[token] = term.value
                 elif term.action == "preserve":
                     result.preserved.add(token)
+                elif term.action == "soft_allow":
+                    result.soft_allowed.add(token)
                 elif term.action == "review":
                     result.reviewed.append(token)
             else:
                 # Unknown foreign token
-                # TODO: could auto-suggest action here
                 result.unknown_foreign.append(token)
 
         return result
@@ -179,6 +197,30 @@ def _load_yaml(path: Path, target_lang: str) -> TermPolicy:
     # Save last
     if current_token and current_action:
         _register_term(policy, current_token, current_action)
+    
+    # Load preserve patterns
+    m = _re.search(r"preserve_patterns:\n", text)
+    if m:
+        current_group = None
+        for line in text.split("\n"):
+            stripped = line.strip()
+            
+            # Group header (e.g. "  level_notation:")
+            m_group = _re.match(r"^\s{2}(\w+):\s*$", line)
+            if m_group:
+                current_group = m_group.group(1)
+                if current_group not in policy.preserve_patterns:
+                    policy.preserve_patterns[current_group] = []
+                continue
+            
+            # Pattern line (e.g. "    - '\bLV\.?\s*\d+\b'")
+            m_pat = _re.match(r"^\s{4}-\s+'(.+)'$", line)
+            if m_pat and current_group:
+                try:
+                    compiled = _re.compile(m_pat.group(1), _re.IGNORECASE)
+                    policy.preserve_patterns[current_group].append(compiled)
+                except _re.error:
+                    pass
     
     # Build phrase pattern for multi-word tokens
     multi_word = [t for k, t in policy.terms.items() if " " in t.display_token]

@@ -1,0 +1,19 @@
+{
+  "lang": "en",
+  "name": "English",
+  "expected_scripts": ["Latin"],
+  "allowed_scripts": ["Common", "Inherited"],
+  "allowed_digit_sets": ["ASCII"],
+  "allow_emoji": true,
+  "allowed_span_patterns": [
+    {"name": "url", "regex": "https?://[\\w./\\-:?#@!$&'()*+,;=]+", "severity": "pass"},
+    {"name": "version", "regex": "v?\\d+\\.\\d+\\.\\d+", "severity": "pass"}
+  ],
+  "protected_glossary_categories": [],
+  "leak_rules": {
+    "fail_if_source_script_ratio_over": 0.01,
+    "fail_if_foreign_span_length_over": 15,
+    "warn_if_foreign_span_count_over": 3,
+    "warn_if_unknown_script_chars": 0
+  }
+}

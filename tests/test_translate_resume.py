@@ -86,7 +86,7 @@ def test_no_resume_full_batch(temp_novel, monkeypatch):
     monkeypatch.setattr(translate_mod, "NOVEL_ROOT", tmp_path / "novels" / slug)
     
     # Pre-write ch2 output (simulating already translated)
-    (ch_dir / "0002.json").write_text(
+    (ch_dir / "0002.th.json").write_text(
         json.dumps({
             "num": 2, "title": "ตอนที่ 2 [MOCK]",
             "paragraphs": ["ch2", "(จบบท)"],
@@ -117,11 +117,11 @@ def test_successful_translation(temp_novel, monkeypatch):
     assert result is True, f"translate_one should succeed, got {result}"
     
     # Verify output was written
-    output_path = ch_dir / "0001.json"
+    output_path = ch_dir / "0001.th.json"
     assert output_path.exists(), "Output file should exist"
     data = json.loads(output_path.read_text(encoding="utf-8"))
-    assert data["num"] == 1
-    assert "[CN:" in data["title"] or "mock" in data["title"].lower()
+    assert data["chapterNo"] == 1
+    assert "[CN:" in data["title"]["translated"] or "mock" in data["title"]["translated"].lower()
 
 
 def test_missing_source(temp_novel, monkeypatch):

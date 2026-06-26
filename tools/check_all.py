@@ -21,6 +21,14 @@ import sys
 import time
 from pathlib import Path
 
+# Ensure UTF-8 encoding for stdout/stderr on Windows to avoid UnicodeEncodeError with emojis
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 ROOT = Path(__file__).resolve().parent.parent
 TOOLS = ROOT / "tools"
 READER = ROOT / "reader"
@@ -33,11 +41,11 @@ errors = []
 start = time.time()
 
 
-def check(name, cmd, cwd=None, skip_on_fail=False):
+def check(name, cmd, cwd=None, skip_on_fail=False, timeout=120):
     """Run a check and return True if passed."""
     print(f"  {name}...", end=" ", flush=True)
     try:
-        r = subprocess.run(cmd, cwd=cwd or ROOT, capture_output=True, text=True, timeout=120)
+        r = subprocess.run(cmd, cwd=cwd or ROOT, capture_output=True, encoding="utf-8", timeout=timeout)
         if r.returncode == 0:
             print(f"{PASS}")
             results.append((name, True, r.stdout[:120]))
@@ -139,7 +147,7 @@ def main():
 
     # ── 6. Schema validation ────────────────────────────────────────
     print("\n📦 Schema Validation")
-    check("validate_data", [sys.executable, "tools/validate_data.py", "--all"])
+    check("validate_data", [sys.executable, "tools/validate_data.py", "--all"], timeout=300)
 
     # ── Summary ──────────────────────────────────────────────────────
     elapsed = time.time() - start

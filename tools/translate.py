@@ -271,11 +271,11 @@ def get_previous_chapter_context(ch_num: int, n: int = 3) -> str:
 
     parts = []
     for i in range(max(1, ch_num - n), ch_num):
-        ch_path = CHAPTERS_DIR / f"{i:04d}.json"
+        ch_path = chapter_path(NOVEL_ROOT, i)
         if not ch_path.exists():
             continue
         try:
-            ch = _load_ch(ch_path)
+            ch = load_chapter(ch_path)
             parts.append(f"Ch {i}: {ch.title}")
             # Handle both paragraphs and blocks format
             if ch.paragraphs:
@@ -299,8 +299,6 @@ def get_previous_chapter_context(ch_num: int, n: int = 3) -> str:
     if not parts:
         return ""
     return "Previous chapters:" + chr(10) + chr(10).join(parts)
-
-
 
 
 def get_unknown_terms_for_ch(ch_num: int, source: str | None = None) -> list[str]:
@@ -328,52 +326,65 @@ def build_prompt(
     profile_lang: str | None = None,
     source_cleaned: str | None = None,
 ) -> str:
-    """Build the LLM prompt for translating one chapter.
+    """Build the LLM prompt for translating one chapter with prefix caching layout.
 
-    New v3 format: LLM outputs plain Thai paragraphs, no JSON.
-    Markers in text: "..." for dialogue, 【...】 for system, 『...』 for thought.
+    Static rules & examples are placed first, followed by semi-static glossary,
+    and dynamic context at the end.
     """
     glossary_lib = get_glossary_context_from_lib(ch_num, source=source_cleaned)
-
-    # Use chapter-filtered glossary only
     glossary = glossary_lib if glossary_lib else "(no glossary loaded)"
-    # Load continuity context from previous chapters
     continuity = get_previous_chapter_context(ch_num, n=3)
 
-    src_cfg = LANG_CONFIG.get(get_lang_config_key(source_lang, "zh"), LANG_CONFIG["zh"])
-    bracket_profile = get_bracket_profile(source_lang, target_lang, profile_lang)
-    end_marker = bracket_profile["end_marker"]
-
-    # Extract title
-    title_match = re.search(src_cfg["title_regex"], source_text)
-    cn_title = title_match.group(2).strip() if title_match else f"ch {ch_num}"
-
+    # Prefix-caching optimized layout
     prompt = f"""<task>
 You are a Chinese→Thai novel translator specializing in web novels.
 Output only the Thai translation, one paragraph per line.
 </task>
 
-<glossary>
-{glossary}
-</glossary>
-
-<style>
-{get_style_summary()}
-</style>
-
 <rules>
 - Translate faithfully, do NOT skip or edit paragraphs
 - Zero CJK characters (Chinese characters) in output
-- Use straight "..." for spoken dialogue
+- Use straight "..." for spoken dialogue (not 「」 or other brackets)
 - Use 【...】 for system/game notifications
 - Use 『...』 for inner thoughts
 - Keep character names consistent with glossary
-- Output length similar to source length
+- **CRITICAL: Match source paragraph count exactly.** Each source paragraph = one output paragraph.
+- **CRITICAL: Output length must be ≥70% of source.** Do NOT condense or summarize.
 - Translate ALL monster/skill/item names to Thai — no English
 - REMOVE Chinese web novel footer (donations, thanks, author notes)
 - **No English words** — translate everything including "Open Beta", "Level", "Quest" etc
 - **Minimize "ก็"** — Thai reads more natural without excessive "ก็" connectors
 </rules>
+
+<style>
+{get_style_summary()}
+</style>
+
+<examples>
+Example Input:
+林凡深深吸了一口气，心中暗自思索。
+「看来这个末世并不简单。」
+【叮！系统正在加载中...】
+
+Example Output:
+หลินฟานสูดหายใจเข้าลึกๆ ในใจลอบครุ่นคิด
+『ดูเหมือนว่าวันสิ้นโลกนี้จะไม่ธรรมดาเสียแล้ว』
+【ติ๊ง! ระบบกำลังโหลด...】
+
+Example Input 2:
+他转过头，看着眼前的庞然大物。
+"我们快走！" 萧晨大喊一声。
+他们身后的石壁上，刻着《天玄决》三个古老的大字。
+
+Example Output 2:
+เขาหันศีรษะกลับไป มองดูสิ่งมีชีวิตขนาดยักษ์ตรงหน้า
+"พวกเรา รีบไปกันเถอะ!" เซียวเฉินตะโกนขึ้นเสียงดัง
+บนผนังหินด้านหลังของพวกเขา สลักอักษรโบราณสามตัวใหญ่ว่า 《เคล็ดเทียนเสวียน》
+</examples>
+
+<glossary>
+{glossary}
+</glossary>
 
 <continuity_context>
 {continuity}
@@ -385,7 +396,6 @@ Output only the Thai translation, one paragraph per line.
 
 <now_translate>
 """
-
     return prompt
 
 
@@ -428,7 +438,8 @@ Output only the Thai translation, one paragraph per line.
 - Use 【...】 for system/game notifications
 - Use 『...』 for inner thoughts
 - Keep character names consistent with glossary
-- Output length similar to source length
+- **CRITICAL: Match source paragraph count exactly.** Each source paragraph = one output paragraph.
+|- **CRITICAL: Output length must be ≥70% of source.** Do NOT condense or summarize.
 - Translate ALL monster/skill/item names to Thai — no English
 - REMOVE Chinese web novel footer (donations, thanks, author notes)
 - **No English words** — translate everything including "Open Beta", "Level", "Quest" etc
@@ -534,7 +545,7 @@ def get_chapter_context(
 # ── LLM call ──
 
 
-def _call_llm(prompt: str, max_retries: int = 3, system: str | None = None, timeout: int = 120,
+def _call_llm(prompt: str, max_retries: int = 3, system: str | None = None, timeout: int = 180,
               model_override: str | None = None) -> str:
     """Call the LLM via NovelClaw Fallback Router (preferred) or legacy api.py.
 
@@ -675,7 +686,9 @@ def parse_translation_output(output: str, ch_num: int) -> dict:
     output = re.sub(r"\n?```\s*$", "", output)
     # Strip control characters
     output = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", output, flags=re.DOTALL)
-
+    # Normalize Windows line endings to Unix
+    # Normalize Windows line endings to Unix
+    output = output.replace('\r\n', '\n')
     # Split by double newlines → paragraphs
     paragraphs = re.split(r"\n\n+", output.strip())
     paragraphs = [p.strip() for p in paragraphs if p.strip()]
@@ -685,7 +698,7 @@ def parse_translation_output(output: str, ch_num: int) -> dict:
     for p in paragraphs:
         # If paragraph is long and has line breaks, split by single \n too
         has_inline_newlines = "\n" in p
-        is_long_single = len(paragraphs) <= 5 and len(p) > 2000
+        is_long_single = len(paragraphs) <= 5 and len(p) > 500
         if has_inline_newlines and is_long_single:
             # Gemma-style: single newline = paragraph separator
             parts = [s.strip() for s in p.split("\n") if s.strip()]
@@ -797,12 +810,6 @@ def chapter_path(novel_root, num: int) -> Path:
     return Path(novel_root) / 'chapters' / f'{num:04d}.th.json'
 
 
-def _load_ch(path) -> Chapter:
-    """Load a ch from a .json file. Returns validated Chapter."""
-    p = Path(path)
-    data = json.loads(p.read_text(encoding='utf-8'))
-    return Chapter(**data)
-
 
 def translate_one(
     ch_num: int,
@@ -827,7 +834,12 @@ def translate_one(
     normalized_source_lang = normalize_language_key(source_lang, "cn")
     normalized_target_lang = normalize_language_key(target_lang, "th")
 
+    # Prefer cn.json (cleaned) over raw .md
+    src_path_json = CHAPTERS_DIR / f"{ch_num:04d}.cn.json"
     src_path = _get_source_dir() / f"{ch_num:04d}.md"
+    if src_path_json.exists():
+        src_path = src_path_json
+
     out_path = CHAPTERS_DIR / f"{ch_num:04d}.th.json"
 
     if not src_path.exists():
@@ -860,7 +872,12 @@ def translate_one(
     if progress_state is not None:
         mark_running(ch_num, progress_slug, progress_state)
 
-    raw_src = src_path.read_text(encoding="utf-8")
+    # Read source: .md = raw text, .cn.json = JSON paragraphs
+    if src_path.suffix == '.json':
+        _src_data = json.loads(src_path.read_text(encoding='utf-8'))
+        raw_src = '\n'.join(_src_data.get('paragraphs', []))
+    else:
+        raw_src = src_path.read_text(encoding='utf-8')
     source = clean_source(raw_src)
     if not source:
         if json_mode:
@@ -990,12 +1007,12 @@ def translate_one(
                 from llm_router.router import call_profile
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exec:
                     fut = exec.submit(call_profile, "translate_quality", fb_user, fb_system)
-                    fb_result = fut.result(timeout=120)
+                    fb_result = fut.result(timeout=180)
             except ImportError:
                 from providers import call_llm as legacy_call
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as exec:
                     fut = exec.submit(legacy_call, fb_user, 3, fb_system, "fallback:1")
-                    fb_raw = fut.result(timeout=120)
+                    fb_raw = fut.result(timeout=180)
                 fb_result = type('obj', (object,), {'ok': True, 'text': fb_raw})()
 
             if fb_result and fb_result.ok:

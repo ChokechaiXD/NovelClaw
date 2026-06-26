@@ -5,7 +5,7 @@ import urllib.request
 import urllib.error
 import pytest
 
-SERVER_URL = "http://localhost:4173"
+SERVER_URL = "http://127.0.0.1:4173"
 
 
 class TestFrontend:
