@@ -389,10 +389,33 @@ ul, ol { list-style: none; }
   pointer-events: none;
 }
 
-/* Reader full-width: hide both sidebars when on reader page */
+/* Explicit desktop grid column placement to prevent width collapse when sidebars are display: none */
+@media (min-width: 1024px) {
+  .c-app__sidebar {
+    grid-column: 1;
+  }
+  .c-app__main {
+    grid-column: 2;
+  }
+  .c-app__rightbar {
+    grid-column: 3;
+  }
+}
+
+/* Reader full-width: hide both sidebars instantly when on reader page */
 .c-app--reader-page {
   --sidebar-col: 0px;
   --rightbar-col: 0px;
+  --content-bg: var(--c-bg, #f5f0e8);
+}
+.c-app.c-app--reader-page {
+  transition: none;  /* prevent 0.22s grid animation from showing a sliding black panel */
+}
+.c-app--reader-page .c-app__main {
+  background: var(--content-bg);
+}
+.c-app--reader-page .c-content {
+  max-width: none;
 }
 .c-app--reader-page .c-app__sidebar,
 .c-app--reader-page .c-app__rightbar {
@@ -406,7 +429,6 @@ ul, ol { list-style: none; }
 }
 .c-app--book-mode .c-app__sidebar,
 .c-app--book-mode .c-app__rightbar,
-.c-app--book-mode .c-toolbar,
 .c-app--book-mode .c-reader__nav,
 .c-app--book-mode .reader-bottom-toolbar,
 .c-app--book-mode .c-reader-bottom-toolbar,
@@ -416,9 +438,6 @@ ul, ol { list-style: none; }
 .c-app--book-mode .reader-shell {
   max-width: 100%;
   padding: 0 10%;
-}
-.c-app--book-mode .reader-exit-btn {
-  display: flex !important;
 }
 
 /* ── App shell children ────────────────────────────────────────────── */
@@ -502,14 +521,6 @@ ul, ol { list-style: none; }
 .c-content {
   flex: 1;
   max-width: 900px;
-  /* Performance: only render visible content */
-  content-visibility: auto;
-  contain-intrinsic-size: 800px;
-}
-
-.c-content p {
-  content-visibility: auto;
-  contain-intrinsic-size: 1.5em;
 }
 .c-rightbar {
   width: var(--rightbar-w);
@@ -588,8 +599,6 @@ ul, ol { list-style: none; }
   padding-bottom: max(var(--space-sm), env(safe-area-inset-bottom, 8px));
   background: var(--c-surface);
   border-top: 1px solid var(--c-border);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   transform: translateY(100%);
   transition: transform 0.22s ease;
 }
@@ -597,9 +606,10 @@ ul, ol { list-style: none; }
   transform: translateY(0);
 }
 /* Reserve space for floating toolbar so nav buttons aren't covered */
-.c-app--reader .reader-body,
-.c-app--reader .reader-shell {
+.c-app--reader-page .reader-body,
+.c-app--reader-page .reader-shell {
   padding-bottom: 80px;
+  background: var(--reader-bg);
 }
 .c-reader-bottom-toolbar .c-btn {
   min-width: var(--touch-min);
@@ -632,8 +642,6 @@ ul, ol { list-style: none; }
   z-index: 20;
   background: var(--c-surface);
   border-top: 1px solid var(--c-border);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   padding: 4px 0;
   padding-bottom: max(4px, env(safe-area-inset-bottom, 4px));
   justify-content: space-around;
@@ -667,9 +675,15 @@ ul, ol { list-style: none; }
   .c-mobile-nav {
     display: flex;
   }
+  .c-app--reader-page .c-mobile-nav {
+    display: none !important;
+  }
   /* Push main content up so bottom nav doesn't overlap */
   .c-app__main {
     padding-bottom: 60px;
+  }
+  .c-app--reader-page .c-app__main {
+    padding-bottom: 0px !important;
   }
 }
 
@@ -949,15 +963,98 @@ button.c-form__input,
   font-size: var(--text-sm);
   font-weight: var(--font-weight-medium);
   transition: all 0.15s;
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid var(--c-border);
+  background: var(--c-bg-secondary);
+  color: var(--c-text);
+  text-decoration: none;
 }
-.c-btn--primary { background: var(--c-accent); color: #fff; }
-.c-btn--primary:hover { opacity: 0.9; }
-.c-btn--ghost { border: 1px solid var(--c-border); color: var(--c-text-secondary); }
-.c-btn--ghost:hover { border-color: var(--c-accent); color: var(--c-accent); }
+.c-btn:hover {
+  background: var(--c-surface-hover);
+  border-color: var(--c-border-strong);
+}
+.c-btn--primary {
+  background: var(--c-accent) !important;
+  color: #fff !important;
+  border: 1px solid var(--c-accent) !important;
+}
+.c-btn--primary:hover {
+  opacity: 0.9 !important;
+}
+.c-btn--secondary {
+  background: var(--c-bg-tertiary) !important;
+  border: 1px solid var(--c-border) !important;
+  color: var(--c-text) !important;
+}
+.c-btn--secondary:hover {
+  background: var(--c-surface-hover) !important;
+  border-color: var(--c-border-strong) !important;
+}
+.c-btn--danger {
+  background: var(--c-error) !important;
+  color: #fff !important;
+  border: 1px solid var(--c-error) !important;
+}
+.c-btn--danger:hover {
+  opacity: 0.9 !important;
+}
+.c-btn--ghost {
+  border: 1px solid var(--c-border) !important;
+  background: transparent !important;
+  color: var(--c-text-secondary) !important;
+}
+.c-btn--ghost:hover {
+  border-color: var(--c-accent) !important;
+  color: var(--c-accent) !important;
+}
 .c-btn--sm { padding: 4px 10px; font-size: var(--text-xs); }
 .c-btn--icon { padding: var(--space-xs); border-radius: var(--radius-sm); color: var(--c-text-secondary); }
 .c-btn--icon:hover { background: var(--c-surface); color: var(--c-text-primary); }
 .c-btn--full { width: 100%; }
+
+/* Global pre, code & form overrides to prevent invisible text in dark mode */
+code {
+  font-family: var(--font-mono);
+  background: var(--c-bg-tertiary);
+  color: var(--c-accent);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+}
+pre {
+  background: var(--c-bg-primary);
+  border: 1px solid var(--c-border);
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+}
+pre code {
+  background: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+}
+
+[data-theme="night"] pre,
+[data-theme="night"] code,
+[data-theme="amoled"] pre,
+[data-theme="amoled"] code {
+  border-color: var(--c-border-strong) !important;
+}
+
+[data-theme="night"] select.c-form__select option,
+[data-theme="night"] select.c-form__select--compact option,
+[data-theme="amoled"] select.c-form__select option,
+[data-theme="amoled"] select.c-form__select--compact option {
+  background: var(--c-bg-secondary) !important;
+  color: var(--c-text) !important;
+}
+
+::placeholder {
+  color: var(--c-text-muted) !important;
+  opacity: 0.65 !important;
+}
 
 /* ── Detail (Novel Page) ────────────────────────────────────────────── */
 .c-detail { display: flex; gap: var(--space-lg); margin-bottom: var(--space-lg); }
@@ -989,6 +1086,14 @@ button.c-form__input,
 }
 .c-detail__ch-btn:hover { border-color: var(--c-accent); color: var(--c-accent); }
 .c-detail__ch-btn--read { background: var(--c-accent-soft); border-color: var(--c-accent); color: var(--c-accent); }
+.c-detail__ch-btn--source-only {
+  border-style: dashed;
+  opacity: 0.65;
+  color: var(--c-text-muted);
+}
+.c-detail__ch-btn--source-only:hover {
+  opacity: 1;
+}
 
 
 /* ── Reader Page ────────────────────────────────────────────────────── */
@@ -1060,24 +1165,19 @@ button.c-form__input,
   border-radius: var(--radius-full);
   background: var(--c-surface);
   border: 1px solid var(--c-border);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   color: var(--c-text-muted);
   cursor: pointer;
   transition: all 0.15s;
   box-shadow: var(--shadow-sm);
-  opacity: 0;
-  pointer-events: none;
 }
 .reader-exit-btn:hover {
   background: var(--c-surface-hover);
   color: var(--c-text-primary);
 }
-.c-app--book-mode .reader-exit-btn {
-  opacity: 1;
-  pointer-events: auto;
-}
+
 
 /* ── Reader content (backward compat, kept for content) ──────────── */
 .reader-content {
@@ -1677,3 +1777,73 @@ a.c-rc__item:hover { color: var(--c-accent); }
 .game-title { color: var(--c-warning); font-weight: var(--font-weight-bold); }
 .thought { font-style: italic; color: var(--c-marker-thought, #7C3AED); }
 .end-marker { text-align: center; color: var(--c-text-muted); font-size: var(--text-sm); margin: 3rem 0 1.5rem; letter-spacing: 0.15em; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ANIMATIONS & WEB TRANSLATION STYLES
+   ═══════════════════════════════════════════════════════════════════════ */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.c-loader {
+  display: inline-block;
+  border-radius: 50%;
+  border: 3px solid var(--c-border);
+  border-top-color: var(--c-accent);
+  animation: spin 1s linear infinite;
+}
+
+/* Quick Translate button styling */
+.ch-quick-translate-btn {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.ch-quick-translate-btn:hover {
+  background: var(--c-accent) !important;
+  color: #fff !important;
+  transform: translateY(-50%) scale(1.15) !important;
+}
+
+/* Glassmorphism modal styling (Modified to solid Obsidian Premium) */
+.c-modal__card {
+  background: var(--c-bg-card) !important;
+  box-shadow: var(--shadow-lg), 0 0 0 1px var(--c-border-strong);
+}
+
+/* Hide duplicate header on reader page */
+.c-app--reader-page .c-header {
+  display: none !important;
+}
+
+/* Compact Dropdown & Form Select Input (Obsidian style) */
+.c-form__select--compact,
+.c-form__input--compact,
+select.c-form__select--compact {
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  border-radius: var(--radius-sm) !important;
+  width: auto !important;
+  display: inline-block !important;
+}
+
+/* Style for datalist / searchable wrapper */
+.c-searchable-select {
+  position: relative;
+  display: inline-block;
+}
+.c-searchable-select input {
+  padding-right: 20px;
+}
+.c-searchable-select::after {
+  content: "▾";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 10px;
+  color: var(--c-text-muted);
+}

@@ -24,14 +24,18 @@ const Router = {
     const page = parts[0];
     const params = {};
 
+    const safeDecode = (val) => {
+      try { return decodeURIComponent(val || ''); } catch (e) { return val || ''; }
+    };
+
     // Parse params: #novel/slug, #novel/slug/num, #admin/page etc
     if (page === 'novel' && parts.length >= 2) {
-      params.slug = parts[1];
-      if (parts.length >= 3) params.num = parts[2];
+      params.slug = safeDecode(parts[1]);
+      if (parts.length >= 3) params.num = safeDecode(parts[2]);
     } else if (page === 'admin' && parts.length >= 2) {
-      params.page = parts[1];
-      if (parts.length >= 3) params.slug = parts[2];
-      if (parts.length >= 4) params.num = parts[3];
+      params.page = safeDecode(parts[1]);
+      if (parts.length >= 3) params.slug = safeDecode(parts[2]);
+      if (parts.length >= 4) params.num = safeDecode(parts[3]);
     }
 
     const handler = this._routes[page];
@@ -197,10 +201,14 @@ function disableReaderMode() {
   }
 }
 
-// ── Bottom reader toolbar (called when reader page loads) ───────────
+// ── Bottom reader toolbar (initialized once) ──────────────────────
 function initReaderBottomToolbar() {
   const toolbar = document.getElementById('reader-bottom-toolbar');
-  if (toolbar) toolbar.classList.add('c-reader-bottom-toolbar--show');
+  if (!toolbar) return;
+  if (toolbar.dataset.initialized) return; // already wired
+  toolbar.dataset.initialized = 'true';
+
+  toolbar.classList.add('c-reader-bottom-toolbar--show');
 
   // Wire bottom toolbar buttons
   document.getElementById('reader-bottom-back')?.addEventListener('click', () => {
@@ -257,6 +265,7 @@ function initTheme() {
 
   // Subscribe to theme changes
   Store.on('setting:theme', (t) => {
+    document.body.dataset.theme = t;
     if (themeToggle) themeToggle.classList.toggle('c-toggle--active', t === 'night' || t === 'amoled');
   });
 }
@@ -337,7 +346,9 @@ function init() {
       'chapters': AdminChaptersPage,
       'glossary': AdminGlossaryPage,
       'novel-edit': AdminNovelEditPage,
+      'import': AdminImportPage,
       'logs': AdminLogsPage,
+      'translate': AdminTranslatePage,
     };
     const handler = adminRoutes[sub] || AdminDashboardPage;
     handler.render(p);
@@ -348,6 +359,11 @@ function init() {
   initDrawer();
   initMobileNav();
   initTheme();
+
+  // Update activity feed when state is synced from server (LAN sync)
+  Store.on('state-synced', () => {
+    updateActivityFeed();
+  });
   // Wire reader mode toggle
   Router.onPageChange = (page, params) => {
     if (page === 'novel' && params.num) {

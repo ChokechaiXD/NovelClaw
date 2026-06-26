@@ -27,9 +27,8 @@ const LibraryPage = {
       });
       let html = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-library"/></svg>หอสมุด</h3><div class="u-flex u-gap-sm" style="align-items:center;"><span style="font-size:11px;color:var(--c-text-muted);">' + novels.length + ' เรื่อง</span><select id="library-sort" style="font-size:11px;background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);padding:4px 6px;color:var(--c-text-secondary);cursor:pointer;"><option value="title"' + (sortBy === 'title' ? ' selected' : '') + '>ชื่อ</option><option value="progress"' + (sortBy === 'progress' ? ' selected' : '') + '>ความคืบหน้า</option><option value="chapters"' + (sortBy === 'chapters' ? ' selected' : '') + '>ตอน</option></select></div></div><div class="c-card-grid">';
       for (const n of sorted) {
-        const h = Ui.slugToHue(n.slug);
         const lr = Store.getLastPosition(n.slug);
-        html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover" style="background:linear-gradient(135deg,hsl(' + h + ',70%,40%),hsl(' + ((h + 40) % 360) + ',60%,30%));color:#000;">' + Ui.esc(Ui.displayTitle(n).charAt(0)) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span>' + (lr ? '<span style="font-size:10px;color:var(--c-accent);font-weight:600;">อ่านล่าสุด: ตอนที่ ' + lr + '</span>' : '') + '</div></a>';
+        html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover">' + Ui.coverSVG(n.slug, Ui.displayTitle(n)) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span>' + (lr ? '<span style="font-size:10px;color:var(--c-accent);font-weight:600;">อ่านล่าสุด: ตอนที่ ' + lr + '</span>' : '') + '</div></a>';
       }
       html += '</div></section></div>';
       page.innerHTML = html;
@@ -51,33 +50,50 @@ const SearchPage = {
   async render(params) {
     const page = Ui.$('page-search');
     if (!page) return;
+    
     page.innerHTML = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-search"/></svg>ค้นหานิยาย</h3></div><div class="c-search"><input type="text" id="search-input-field" placeholder="พิมพ์ชื่อ ภาษาไทย จีน อังกฤษ หรือ slug..." class="c-search__input" autofocus /><div id="search-results"></div></div></section></div>';
-    Ui.$('search-input-field')?.addEventListener('input', async (e) => {
-      const q = e.target.value.trim().toLowerCase();
-      const results = Ui.$('search-results');
-      if (!results) return;
-      if (q.length < 2) { results.innerHTML = ''; return; }
-      try {
-        const novels = await Api.getNovels();
-        const filtered = novels.filter(n =>
+    
+    const results = Ui.$('search-results');
+    const input = Ui.$('search-input-field');
+    if (!results) return;
+
+    // Helper function to render a list of novels
+    const renderNovelsList = (filteredList) => {
+      if (filteredList.length === 0) {
+        results.innerHTML = '<div class="c-empty" style="padding:32px 0;"><div class="c-empty__title">ไม่พบนิยาย</div><div class="c-empty__desc">ลองค้นด้วยชื่อเรื่อง ภาษาไทย จีน หรือ slug เช่น global-descent</div></div>';
+        return;
+      }
+      let html = '<div class="c-card-grid" style="margin-top:16px;">';
+      for (const n of filteredList) {
+        html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover">' + Ui.coverSVG(n.slug, Ui.displayTitle(n)) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span></div></a>';
+      }
+      html += '</div>';
+      results.innerHTML = html;
+    };
+
+    // Load initial list (all novels)
+    try {
+      const allNovels = await Api.getNovels();
+      renderNovelsList(allNovels);
+
+      // Handle search input events
+      input?.addEventListener('input', async (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        if (q.length < 2) {
+          renderNovelsList(allNovels);
+          return;
+        }
+        const filtered = allNovels.filter(n =>
           (n.title || '').toLowerCase().includes(q) ||
           (n.translatedTitle || '').toLowerCase().includes(q) ||
           (n.slug || '').toLowerCase().includes(q) ||
           (n.author || '').toLowerCase().includes(q)
         );
-        if (filtered.length === 0) {
-          results.innerHTML = '<div class="c-empty" style="padding:32px 0;"><div class="c-empty__title">ไม่พบนิยาย</div><div class="c-empty__desc">ลองค้นด้วยชื่อเรื่อง ภาษาไทย จีน หรือ slug เช่น global-descent</div></div>';
-          return;
-        }
-        let html = '<div class="c-card-grid" style="margin-top:16px;">';
-        for (const n of filtered) {
-          const h = Ui.slugToHue(n.slug);
-          html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover" style="background:linear-gradient(135deg,hsl(' + h + ',70%,40%),hsl(' + ((h + 40) % 360) + ',60%,30%));color:#000;">' + Ui.esc(Ui.displayTitle(n).charAt(0)) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span></div></a>';
-        }
-        html += '</div>';
-        results.innerHTML = html;
-      } catch(_) { results.innerHTML = '<p class="u-text-center c-error__title">เกิดข้อผิดพลาด</p>'; }
-    });
+        renderNovelsList(filtered);
+      });
+    } catch (_) {
+      results.innerHTML = '<p class="u-text-center c-error__title">เกิดข้อผิดพลาด</p>';
+    }
   }
 };
 
@@ -121,9 +137,8 @@ const RankingPage = {
       let html = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title"><svg style="width:16px;height:16px;margin-right:6px;"><use xlink:href="#icon-ranking"/></svg>อันดับนิยาย</h3><span style="font-size:11px;color:var(--c-text-muted);">เรียงตามจำนวนตอนที่แปล</span></div><div class="c-popular">';
       for (let i = 0; i < Math.min(10, sorted.length); i++) {
         const n = sorted[i];
-        const h = Ui.slugToHue(n.slug);
         const rankClass = 'c-popular__rank--' + (i + 1);
-        html += '<a href="#novel/' + n.slug + '" class="c-popular__item" data-nav><span class="c-popular__rank ' + rankClass + '">' + (i + 1) + '</span><div class="c-popular__cover" style="background:linear-gradient(135deg,hsl(' + h + ',70%,40%),hsl(' + ((h + 40) % 360) + ',60%,30%));">' + Ui.esc(Ui.displayTitle(n).charAt(0)) + '</div><div class="c-popular__info"><span class="c-popular__title">' + Ui.displayTitle(n) + '</span><span class="c-popular__meta">' + (n.author || '') + '</span><span class="c-popular__views">' + (n.translatedChapters || 0) + '/' + (n.totalChapters || n.chapterCount || 0) + ' ตอนที่แปลแล้ว</span></div></a>';
+        html += '<a href="#novel/' + n.slug + '" class="c-popular__item" data-nav><span class="c-popular__rank ' + rankClass + '">' + (i + 1) + '</span><div class="c-popular__cover">' + Ui.coverSVG(n.slug, Ui.displayTitle(n)) + '</div><div class="c-popular__info"><span class="c-popular__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-popular__meta">' + (n.author || '') + '</span><span class="c-popular__views">' + (n.translatedChapters || 0) + '/' + (n.totalChapters || n.chapterCount || 0) + ' ตอนที่แปลแล้ว</span></div></a>';
       }
       html += '</div></section></div>';
       page.innerHTML = html;
@@ -144,6 +159,8 @@ const SettingsPage = {
       '<div class="c-settings-card"><div class="c-settings-card__title"><svg style="width:18px;height:18px;"><use xlink:href="#icon-book"/></svg> การอ่าน</div>' +
       '<div class="c-form__group"><label for="settings-reader-lang">ภาษาใน Reader</label><select class="c-form__select" id="settings-reader-lang"><option value="th"' + (settings.readerLang === 'th' ? ' selected' : '') + '>ไทย (แปลแล้ว)</option><option value="cn"' + (settings.readerLang === 'cn' ? ' selected' : '') + '>จีนต้นฉบับ</option></select></div>' +
       '<div class="c-form__group"><label>ขนาดตัวอักษร</label><div style="display:flex;align-items:center;gap:var(--space-sm);"><button class="c-btn c-btn--ghost" id="settings-font-sm" style="min-height:44px;min-width:44px;font-size:var(--text-lg);">A−</button><span id="settings-font-label" style="font-size:var(--reader-font-size,18px);color:var(--c-text);min-width:44px;text-align:center;">18px</span><button class="c-btn c-btn--ghost" id="settings-font-lg" style="min-height:44px;min-width:44px;font-size:var(--text-lg);">A+</button></div></div></div>' +
+      '<div class="c-settings-card"><div class="c-settings-card__title"><svg style="width:18px;height:18px;"><use xlink:href="#icon-settings"/></svg> การพัฒนาและแก้ไข (Local)</div>' +
+      '<div class="c-form__group"><label for="settings-editor-type">โปรแกรมแก้ไขไฟล์บทแปล</label><select class="c-form__select" id="settings-editor-type"><option value="notepad"' + (settings.editorType === 'notepad' ? ' selected' : '') + '>Notepad (รวดเร็ว, มีทุกเครื่อง)</option><option value="vscode"' + (settings.editorType === 'vscode' ? ' selected' : '') + '>VS Code (หากติดตั้งไว้ในเครื่อง)</option><option value="system_default"' + (settings.editorType === 'system_default' ? ' selected' : '') + '>โปรแกรมเริ่มต้นของระบบ (System Default)</option></select></div></div>' +
       '<div class="c-settings-card"><div class="c-settings-card__title"><svg style="width:18px;height:18px;"><use xlink:href="#icon-info"/></svg> เกี่ยวกับ</div>' +
       '<div style="font-size:var(--text-sm);color:var(--c-text-muted);line-height:1.8;">NovelClaw v1.0<br>ระบบอ่านและแปลนิยายจีน<br>Foundation Release (stable-novelctl-foundation-v1)</div></div>' +
       '</div>';
@@ -162,6 +179,12 @@ const SettingsPage = {
     if (langSel) {
       langSel.addEventListener('change', () => { Store.setSetting('readerLang', langSel.value); });
       Store.on('setting:readerLang', (l) => { langSel.value = l; });
+    }
+
+    const editorSel = document.getElementById('settings-editor-type');
+    if (editorSel) {
+      editorSel.addEventListener('change', () => { Store.setSetting('editorType', editorSel.value); });
+      Store.on('setting:editorType', (e) => { editorSel.value = e; });
     }
 
     // Font size controls

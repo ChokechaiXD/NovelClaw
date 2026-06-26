@@ -10,15 +10,36 @@ const Store = {
   // ── Reading State (novelclaw-state) ────────────────────────────────
   _STATE_KEY: 'novelclaw-state',
 
-  loadState() {
+  async loadState() {
     try {
       this._state = JSON.parse(localStorage.getItem(this._STATE_KEY)) || {};
     } catch(e) { this._state = {}; }
+    
+    try {
+      const res = await fetch('/api/local/state');
+      if (res.ok) {
+        const serverState = await res.json();
+        this._state = { ...this._state, ...serverState };
+        localStorage.setItem(this._STATE_KEY, JSON.stringify(this._state));
+        this._notify('state-synced', this._state);
+      }
+    } catch (err) {
+      console.warn('Failed to sync reading state from server:', err);
+    }
     return this._state;
   },
 
-  saveState() {
+  async saveState() {
     try { localStorage.setItem(this._STATE_KEY, JSON.stringify(this._state)); } catch(e) {}
+    try {
+      await fetch('/api/local/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(this._state)
+      });
+    } catch (err) {
+      console.warn('Failed to save reading state to server:', err);
+    }
   },
 
   get(key) { return this._state[key]; },

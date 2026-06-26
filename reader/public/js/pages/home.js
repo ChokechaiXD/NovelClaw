@@ -73,8 +73,8 @@ const HomePage = {
       }
 
       html += `
-          <a href="#admin/novels" class="c-card c-card--add" data-nav>
-            <span style="font-size:24px;color:var(--c-text-muted);">+</span>
+          <a href="#admin/import" class="c-card c-card--add" data-nav>
+            <span style="font-size:24px;color:var(--c-text-muted); font-weight:600;">+</span>
             <span style="font-size:var(--text-xs);color:var(--c-text-muted);">เพิ่มนิยาย</span>
           </a>
         </div>
