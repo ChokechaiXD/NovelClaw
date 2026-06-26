@@ -1,0 +1,13 @@
+{
+  "slug": "global-descent",
+  "num": 193,
+  "records": [
+    {
+      "action": "translate",
+      "timestamp": "2026-06-25T07:41:43.575877+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "error": "translate.py timeout (300s)"
+    }
+  ]
+}

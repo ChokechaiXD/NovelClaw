@@ -1,0 +1,72 @@
+{
+  "slug": "global-descent",
+  "num": 189,
+  "records": [
+    {
+      "action": "translate",
+      "timestamp": "2026-06-25T07:34:05.674467+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-25T07:34:16.312847+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 97
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-25T09:32:45.303606+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "error": "translate.py exit 1: Traceback (most recent call last):\n  File \"C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\tools\\translate.py\", line 22, in <module>\n    from schema import CHAPTERS_DIR, NOVEL_ROOT  # noqa: E402\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\tools\\schema.py\", line 14, in <module>\n    from pydantic import BaseModel, Field, model_validator\n  File \"C:\\Users\\BlankScreen\\AppData\\Local\\hermes\\hermes-agent\\venv\\Lib\\site-packages\\pydantic\\__in (backup restored from .bak)"
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-25T09:46:30.200274+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-25T09:46:31.186613+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 90
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-25T09:52:46.786393+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "error": "translate.py claimed success but no .th.json at C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\novels\\global-descent\\chapters\\0189.th.json\\nstdout:   ✅ Router: openrouter:google/gemma-4-26b-a4b-it:free (88.7s, 977 chars)\n  ⚠ Quality gate failed — retrying with translate_quality profile (router)\n  ✅ Router (translate_quality): openrouter:google/gemma-4-31b-it:free\n  ⚠ translate_quality also failed quality gate — reporting original failure\n{\"stat (backup restored from .bak)"
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-25T09:56:02.340092+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-25T09:56:03.184313+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 89
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-25T10:08:16.950980+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-25T10:08:18.100416+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 93
+    }
+  ]
+}
