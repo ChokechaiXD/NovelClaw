@@ -13,7 +13,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="apple-touch-icon" href="/favicon.svg" />
   <meta name="apple-mobile-web-app-title" content="NovelClaw" />
-  <link rel="stylesheet" href="/design-system.css?_v=20260623k" />
+  <link rel="stylesheet" href="/design-system.css?_v=20260626c" />
 </head>
 <body data-theme="sepia">
   <!-- SVG Symbols -->
@@ -191,6 +191,8 @@
         <div class="page" id="page-admin-jobs"></div>
         <div class="page" id="page-admin-logs"></div>
         <div class="page" id="page-admin-glossary"></div>
+        <div class="page" id="page-admin-translate"></div>
+        <div class="page" id="page-admin-import"></div>
       </div>
     </main>
 
@@ -293,18 +295,27 @@
     </button>
   </nav>
 
+  <!-- Global Translation Loading Modal -->
+  <div class="c-modal" id="reader-translation-loader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:3000; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(6px);">
+    <div class="c-modal__card" style="background:var(--c-bg-secondary); border:1px solid var(--c-border); padding:var(--space-lg); border-radius:var(--radius); width:100%; max-width:400px; box-shadow:var(--shadow-lg); text-align:center; box-sizing:border-box;">
+      <div class="c-loader" style="width:40px; height:40px; border:3px solid var(--c-border); border-top-color:var(--c-accent); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto var(--space-md) auto;"></div>
+      <h3 style="margin-top:0; margin-bottom:var(--space-xs); font-size:var(--text-md); font-weight:600; color:var(--c-text-primary);">กำลังแปลบทนิยายด้วย AI...</h3>
+      <p style="margin:0; font-size:var(--text-xs); color:var(--c-text-muted);">กรุณารอสักครู่ (ใช้เวลาประมาณ 10-25 วินาที)<br>ระบบกำลังส่งเนื้อหาและเรียกตัวช่วยแปล Python QA</p>
+    </div>
+  </div>
+
   <div id="toast-container" class="c-toast-container"></div>
 
   <!-- ═══ SCRIPTS (order matters) ═══ -->
-  <script src="/js/state.js?_v=20260623m"></script>
-  <script src="/js/api.js?_v=20260623m"></script>
-  <script src="/js/components.js?_v=20260623m"></script>
-  <script src="/js/pages/home.js?_v=20260623m"></script>
-  <script src="/js/pages/novel.js?_v=20260623m"></script>
-  <script src="/js/reader-renderer.js?_v=20260623m"></script>
-  <script src="/js/pages/reader.js?_v=20260623m"></script>
-  <script src="/js/pages/pages.js?_v=20260623m"></script>
-  <script src="/js/pages/admin.js?_v=20260623m"></script>
-  <script src="/js/app.js?_v=20260623m"></script>
+  <script src="/js/state.js?_v=20260626d"></script>
+  <script src="/js/api.js?_v=20260626d"></script>
+  <script src="/js/components.js?_v=20260626d"></script>
+  <script src="/js/pages/home.js?_v=20260626d"></script>
+  <script src="/js/pages/novel.js?_v=20260626d"></script>
+  <script src="/js/reader-renderer.js?_v=20260626d"></script>
+  <script src="/js/pages/reader.js?_v=20260626d"></script>
+  <script src="/js/pages/pages.js?_v=20260626d"></script>
+  <script src="/js/pages/admin.js?_v=20260626d"></script>
+  <script src="/js/app.js?_v=20260626d"></script>
 </body>
 </html>

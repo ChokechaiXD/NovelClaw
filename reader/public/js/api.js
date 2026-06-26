@@ -76,5 +76,85 @@ const Api = {
     const res = await fetch(`/api/novel/${slug}/chapters/search?q=${encodeURIComponent(q)}&mode=${mode || 'title'}`);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     return res.json();
+  },
+
+  async getLlmConfig() {
+    const res = await fetch('/api/local/llm-config');
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return res.json();
+  },
+
+  async saveLlmConfig(config) {
+    const res = await fetch('/api/local/llm-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return res.json();
+  },
+
+  async translateSingle(slug, num, score) {
+    const res = await fetch(`/api/novel/${slug}/translate/single`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ num, score })
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error?.message || `${res.status} ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async translateBatch(slug, range, score, concurrent) {
+    const res = await fetch(`/api/novel/${slug}/translate/batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ range, score, concurrent })
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error?.message || `${res.status} ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async getUnknownTerms(slug, num) {
+    const res = await fetch(`/api/novel/${slug}/chapter/${num}/unknown-terms`);
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return res.json();
+  },
+
+  async translateTerm(term, context) {
+    const res = await fetch('/api/local/translate-term', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ term, context })
+    });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return res.json();
+  },
+
+  async verifyGlossaryTerm(slug, index, verified) {
+    const res = await fetch(`/api/novel/${slug}/glossary/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ index, verified })
+    });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return res.json();
+  },
+
+  async deleteNovel(slug) {
+    const res = await fetch(`/api/novel/${slug}/delete`, {
+      method: 'POST'
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error?.message || `${res.status} ${res.statusText}`);
+    }
+    this.invalidateNovels();
+    return res.json();
   }
 };

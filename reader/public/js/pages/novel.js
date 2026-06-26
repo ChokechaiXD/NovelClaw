@@ -36,8 +36,8 @@ const NovelPage = {
       // ── Header Card ──────────────────────────────────────────────────
       html += `
       <div class="c-detail">
-        <div class="c-detail__cover" style="background:linear-gradient(135deg,hsl(${enriched.hue},70%,40%),hsl(${(enriched.hue+40)%360},60%,30%));color:#000;">
-          ${Ui.esc((Ui.displayTitle(novel)).charAt(0))}
+        <div class="c-detail__cover">
+          ${Ui.coverSVG(novel.slug, Ui.displayTitle(novel))}
         </div>
         <div class="c-detail__info">
           <h2 class="c-detail__title">${Ui.esc(Ui.displayTitle(novel))}</h2>
@@ -71,6 +71,41 @@ const NovelPage = {
       const end = Math.min(start + pageSize, chapters.length);
       const pageChapters = chapters.slice(start, end);
 
+      // ฟังก์ชันสำหรับผูก Event สั่งแปลตอนแบบเจาะจง
+      const bindTranslateEvents = (container) => {
+        const translateBtns = container.querySelectorAll('.ch-quick-translate-btn');
+        for (const btn of translateBtns) {
+          btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const chSlug = btn.dataset.slug;
+            const chNum = parseInt(btn.dataset.num, 10);
+            if (!chSlug || isNaN(chNum)) return;
+            
+            const loader = document.getElementById('reader-translation-loader');
+            if (loader) loader.style.display = 'flex';
+            
+            try {
+              const res = await Api.translateSingle(chSlug, chNum, true);
+              if (res.ok) {
+                Api.invalidateChapterContent(chSlug, chNum);
+                Api.invalidateChapters(chSlug);
+                alert(`แปลตอนที่ ${chNum} สำเร็จเรียบร้อยแล้วค่ะ!`);
+                // โหลดหน้านี้ใหม่เพื่ออัปเดตสถานะปุ่ม
+                await NovelPage.render(params);
+              } else {
+                alert('การแปลขัดข้อง: ' + (res.error?.message || 'ข้อผิดพลาดระบบ'));
+              }
+            } catch (err) {
+              alert('เกิดข้อผิดพลาดในการแปล: ' + err.message);
+            } finally {
+              if (loader) loader.style.display = 'none';
+            }
+          });
+        }
+      };
+
       html += `
       <div class="c-section">
         ${rangesHtml}
@@ -78,17 +113,27 @@ const NovelPage = {
 
       for (const ch of pageChapters) {
         const read = Store.isRead(slug, ch.num);
+        const sourceOnly = ch.status === 'source_only';
+        const chClass = `c-detail__ch-btn ${read ? 'c-detail__ch-btn--read' : ''} ${sourceOnly ? 'c-detail__ch-btn--source-only' : ''}`;
         html += `
-          <a href="#novel/${slug}/${ch.num}" class="c-detail__ch-btn ${read ? 'c-detail__ch-btn--read' : ''}" data-nav>
-            ${Ui.esc(ch.title || 'ตอนที่ ' + ch.num)}
-            ${read ? '<br><span style="font-size:9px;color:var(--c-success);">✔ อ่านแล้ว</span>' : ''}
-          </a>`;
+          <div class="c-detail__ch-wrapper" style="position:relative;">
+            <a href="#novel/${slug}/${ch.num}" class="${chClass.trim()}" data-nav style="display:block; padding-right:${sourceOnly ? '32px' : 'var(--space-sm)'};">
+              ${Ui.esc(ch.title || 'ตอนที่ ' + ch.num)}
+              ${read ? '<br><span style="font-size:9px;color:var(--c-success);">✔ อ่านแล้ว</span>' : ''}
+            </a>
+            ${sourceOnly ? `
+              <button class="ch-quick-translate-btn" data-slug="${slug}" data-num="${ch.num}" title="แปลไทยด้วย AI ทันที" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); width:24px; height:24px; display:flex; align-items:center; justify-content:center; background:var(--c-accent-soft); border:1px solid var(--c-accent); border-radius:4px; color:var(--c-accent); font-size:10px; cursor:pointer; transition:all 0.15s; z-index:10;">
+                ⚡
+              </button>
+            ` : ''}
+          </div>`;
       }
 
       html += `</div></div>`;
       html += '</div>';
 
       page.innerHTML = html;
+      bindTranslateEvents(page);
 
       // ── Wire pagination ──────────────────────────────────────────────
       const buttons = page.querySelectorAll('.page-range-btn');
@@ -104,11 +149,29 @@ const NovelPage = {
           grid.innerHTML = '';
           for (const ch of pChs) {
             const read = Store.isRead(slug, ch.num);
-            grid.appendChild(Ui.el('a',
-              { href: `#novel/${slug}/${ch.num}`, class: `c-detail__ch-btn ${read ? 'c-detail__ch-btn--read' : ''}`, 'data-nav': '' },
-              `${Ui.esc(ch.title || 'ตอนที่ ' + ch.num)}${read ? ' ✔' : ''}`
-            ));
+            const sourceOnly = ch.status === 'source_only';
+            const chClass = `c-detail__ch-btn ${read ? 'c-detail__ch-btn--read' : ''} ${sourceOnly ? 'c-detail__ch-btn--source-only' : ''}`;
+            
+            const wrapper = Ui.el('div', { class: 'c-detail__ch-wrapper', style: 'position:relative;' });
+            const link = Ui.el('a',
+              { href: `#novel/${slug}/${ch.num}`, class: chClass.trim(), 'data-nav': '', style: `display:block; padding-right:${sourceOnly ? '32px' : 'var(--space-sm)'};` },
+              `${ch.title || 'ตอนที่ ' + ch.num}${read ? ' ✔' : ''}`
+            );
+            wrapper.appendChild(link);
+            
+            if (sourceOnly) {
+              const translateBtn = Ui.el('button', {
+                class: 'ch-quick-translate-btn',
+                'data-slug': slug,
+                'data-num': ch.num,
+                title: 'แปลไทยด้วย AI ทันที',
+                style: 'position:absolute; right:4px; top:50%; transform:translateY(-50%); width:24px; height:24px; display:flex; align-items:center; justify-content:center; background:var(--c-accent-soft); border:1px solid var(--c-accent); border-radius:4px; color:var(--c-accent); font-size:10px; cursor:pointer; transition:all 0.15s; z-index:10;'
+              }, '⚡');
+              wrapper.appendChild(translateBtn);
+            }
+            grid.appendChild(wrapper);
           }
+          bindTranslateEvents(grid);
           // Swap classes: remove primary from all, add ghost; add primary to clicked, remove ghost
           const allBtns = page.querySelectorAll('.page-range-btn');
           for (let i = 0; i < allBtns.length; i++) {
