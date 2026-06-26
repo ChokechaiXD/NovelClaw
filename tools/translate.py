@@ -353,7 +353,13 @@ Output only the Thai translation, one paragraph per line.
 - Translate ALL monster/skill/item names to Thai — no English
 - REMOVE Chinese web novel footer (donations, thanks, author notes)
 - **No English words** — translate everything including "Open Beta", "Level", "Quest" etc
-- **Minimize "ก็"** — Thai reads more natural without excessive "ก็" connectors
+|- **CRITICAL — "ก็" overuse is the #1 MT artifact in CN→TH translation.**
+  Chinese uses 就/也 as universal sentence connectors (~10-15% of clauses), but Thai ก็ should be used sparingly in written narrative.
+  **Do NOT translate every 就/也 as ก็.** Instead:
+  • Simply DROP ก็ from most character-action sentences: "เฉาซิงก็ยกไม้เท้าขึ้น" → "เฉาซิงยกไม้เท้าขึ้น"
+  • Use แล้ว, จึง, เลย sparingly where a connector is truly needed
+  • Let the sentence flow without a connector when possible
+  |Rule of thumb: ก็ should appear in ≤20% of paragraphs in natural Thai narrative.
 </rules>
 
 <style>
@@ -443,7 +449,13 @@ Output only the Thai translation, one paragraph per line.
 - Translate ALL monster/skill/item names to Thai — no English
 - REMOVE Chinese web novel footer (donations, thanks, author notes)
 - **No English words** — translate everything including "Open Beta", "Level", "Quest" etc
-- **Minimize "ก็"** — Thai reads more natural without excessive "ก็" connectors
+|- **CRITICAL — "ก็" overuse is the #1 MT artifact in CN→TH translation.**
+  Chinese uses 就/也 as universal sentence connectors (~10-15% of clauses), but Thai ก็ should be used sparingly in written narrative.
+  **Do NOT translate every 就/也 as ก็.** Instead:
+  • Simply DROP ก็ from most character-action sentences: "เฉาซิงก็ยกไม้เท้าขึ้น" → "เฉาซิงยกไม้เท้าขึ้น"
+  • Use แล้ว, จึง, เลย sparingly where a connector is truly needed
+  • Let the sentence flow without a connector when possible
+  |Rule of thumb: ก็ should appear in ≤20% of paragraphs in natural Thai narrative.
 </rules>
 
 <glossary>

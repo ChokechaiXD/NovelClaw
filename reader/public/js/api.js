@@ -84,6 +84,10 @@ const Api = {
     return res.json();
   },
 
+  async getLlmOptions() {
+    return this.getLlmConfig();
+  },
+
   async saveLlmConfig(config) {
     const res = await fetch('/api/local/llm-config', {
       method: 'POST',
