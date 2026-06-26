@@ -14,6 +14,33 @@
       "model": "unknown",
       "provider": "unknown",
       "score": 63
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-25T03:26:41.946913+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "error": "translate.py claimed success but no .th.json at C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\novels\\global-descent\\chapters\\0007.th.json\\nstdout:   ✅ Router: openrouter:google/gemma-4-26b-a4b-it:free (72.2s, 8088 chars)\n  ⚠️  Quality gate failed — 8 issues\n  [error] Latin leak: 'H' at pos 0\n  [error] Latin leak: 'P' at pos 0\n  [error] Latin leak: 'H' at pos 0\n  [error] Latin leak: 'P' at pos 0\n  [error] Latin leak: 'H' at pos 0\n  [error] Lati (backup restored from .bak)"
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-25T03:29:20.742581+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "error": "translate.py claimed success but no .th.json at C:\\Users\\BlankScreen\\Workspace\\Projects\\NovelClaw\\novels\\global-descent\\chapters\\0007.th.json\\nstdout:   ✅ Router: openrouter:google/gemma-4-26b-a4b-it:free (73.7s, 8136 chars)\n  ⚠️  Quality gate failed — 6 issues\n  [error] Latin leak: 'H' at pos 0\n  [error] Latin leak: 'P' at pos 0\n  [error] Latin leak: 'H' at pos 0\n  [error] Latin leak: 'P' at pos 0\n  [error] Latin leak: 'H' at pos 0\n  [error] Lati (backup restored from .bak)"
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-25T03:32:13.108573+00:00",
+      "model": "unknown",
+      "provider": "unknown"
+    },
+    {
+      "action": "validate",
+      "timestamp": "2026-06-25T03:32:13.809829+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "score": 102
     }
   ]
 }

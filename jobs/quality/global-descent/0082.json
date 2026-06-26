@@ -40,6 +40,13 @@
       "timestamp": "2026-06-24T09:32:15.097688+00:00",
       "model": "unknown",
       "provider": "unknown"
+    },
+    {
+      "action": "translate",
+      "timestamp": "2026-06-24T17:20:06.125168+00:00",
+      "model": "unknown",
+      "provider": "unknown",
+      "error": "translate.py timeout (300s)"
     }
   ]
 }
