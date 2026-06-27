@@ -6,6 +6,7 @@
 const Api = {
   _novelsCache: null,
   _novelsCacheTime: 0,
+  _novelsInFlight: null,           // dedup concurrent getNovels() requests
   _chaptersCache: {},
   _chaptersCacheTime: {},
   _chapterContentCache: {},       // key: slug:num:lang → { data, time }
@@ -15,14 +16,27 @@ const Api = {
   async getNovels() {
     const now = Date.now();
     if (this._novelsCache && (now - this._novelsCacheTime) < this._CACHE_TTL) return this._novelsCache;
-    const res = await fetch('/api/novels');
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    this._novelsCache = await res.json();
-    this._novelsCacheTime = now;
-    return this._novelsCache;
+    // Coalesce concurrent callers onto a single in-flight request
+    if (this._novelsInFlight) return this._novelsInFlight;
+    this._novelsInFlight = (async () => {
+      try {
+        const res = await fetch('/api/novels');
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        this._novelsCache = await res.json();
+        this._novelsCacheTime = Date.now();
+        return this._novelsCache;
+      } finally {
+        this._novelsInFlight = null;
+      }
+    })();
+    return this._novelsInFlight;
   },
 
-  invalidateNovels() { this._novelsCache = null; this._novelsCacheTime = 0; },
+  invalidateNovels() {
+    this._novelsCache = null;
+    this._novelsCacheTime = 0;
+    this._novelsInFlight = null;
+  },
 
   async getChapters(slug) {
     const now = Date.now();
