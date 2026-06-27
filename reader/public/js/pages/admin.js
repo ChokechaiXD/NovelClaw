@@ -66,7 +66,7 @@ const AdminDashboardPage = {
         '<span class="c-badge c-badge--teal">✅ ระบบปกติ</span>' +
         '<span class="c-badge' + (translatedChapters > 0 ? ' c-badge--teal' : ' c-badge--gray') + '">📖 แปลแล้ว ' + translatedChapters + ' ตอน</span>' +
         '<span class="c-badge' + (untranslated > 0 ? ' c-badge--amber' : ' c-badge--gray') + '">📄 รอแปล ' + untranslated + ' ตอน</span>' +
-        '<a href="#admin/jobs" class="c-badge c-badge--gray c-admin-dashboard__badge-link" data-nav>📋 ดูคิวงาน →</a>' +
+        '' +
         '</div>' +
         '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">จัดการระบบ</h3></div>' +
         '<div class="c-admin-dashboard__grid">' +
@@ -809,7 +809,7 @@ const AdminLogsPage = {
         '<div class="c-section__header c-admin-logs__header"><h3 class="c-section__title">📂 Audit Log: ' + Ui.esc(slug) + ' / ตอน ' + Ui.esc(num) + '</h3>' +
         '<div class="c-admin-logs__actions">' +
         '<a href="#admin/logs" class="c-btn c-btn--sm c-btn--secondary c-admin-logs__link" data-nav>ค้นหาใหม่</a>' +
-        '<a href="#admin/jobs" class="c-btn c-btn--sm c-btn--ghost c-admin-logs__link" data-nav>กลับคิวงาน</a>' +
+        '' +
         '</div></div>';
 
       const files = data.ok && data.data ? data.data.files : [];

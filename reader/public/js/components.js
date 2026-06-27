@@ -119,11 +119,9 @@ const Ui = {
     const links = [
       { name: 'dashboard', label: 'ภาพรวม', page: 'admin' },
       { name: 'translate', label: 'สั่งแปล & AI', page: 'admin/translate' },
-      { name: 'jobs', label: 'งานแปล', page: 'admin/jobs' },
       { name: 'novels', label: 'นิยาย', page: 'admin/novels' },
       { name: 'chapters', label: 'ตอน', page: 'admin/chapters' },
       { name: 'glossary', label: 'คำศัพท์', page: 'admin/glossary' },
-      { name: 'import', label: 'นำเข้า', page: 'admin/import' },
       { name: 'logs', label: 'ล็อก', page: 'admin/logs' },
     ];
     return '<div class="c-admin-nav">' + links.map(l =>
