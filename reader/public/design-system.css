@@ -700,7 +700,10 @@ ul, ol { list-style: none; }
   .c-mobile-nav {
     display: flex;
   }
-  .c-app--reader-page .c-mobile-nav {
+  /* .c-mobile-nav + .c-reader-bottom-toolbar are body-level siblings of
+     .c-app, so .c-app--reader-page X selector doesn't reach them. Toggle
+     a body flag from JS instead. */
+  body.c-body--reader-mode .c-mobile-nav {
     display: none !important;
   }
   /* Push main content up so bottom nav doesn't overlap */

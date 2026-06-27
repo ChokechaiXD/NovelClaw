@@ -190,11 +190,16 @@ function enableReaderMode() {
   const appShell = document.querySelector('.c-app');
   appShell?.classList.remove('c-app--book-mode');
   appShell?.classList.add('c-app--reader-page');
+  // Body-level flag so CSS can hide body-level siblings (.c-mobile-nav,
+  // .c-reader-bottom-toolbar) which sit OUTSIDE .c-app in the DOM and
+  // therefore can't be targeted by '.c-app--reader-page X' selectors.
+  document.body.classList.add('c-body--reader-mode');
 }
 function disableReaderMode() {
   const appShell = document.querySelector('.c-app');
   appShell?.classList.remove('c-app--reader-page');
   appShell?.classList.remove('c-app--book-mode');
+  document.body.classList.remove('c-body--reader-mode');
   // Restore sidebar collapsed state
   if (Store.getSettings().sidebarCollapsed && window.innerWidth >= 1024) {
     appShell?.classList.add('c-app--sidebar-collapsed');
