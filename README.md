@@ -87,6 +87,8 @@ novelclaw/
 
 ### Installation
 
+> **Note on Python env:** The repo ships its own venv at `.venv312/`. If it is missing or broken, run `scripts/setup-venv.sh` (POSIX) or `scripts\setup-venv.bat` (Windows). The setup uses `uv venv` when available because the Hermes Agent venv on this machine poisons PYTHONPATH for `python -m venv`. Once the venv exists, run tests directly: `.venv312/Scripts/python.exe -m pytest tests/`.
+
 **Python toolkit**
 
 ```bash
@@ -120,7 +122,12 @@ cd reader && node server.js
 ### Run Tests
 
 ```bash
-python -m pytest tests/
+# Direct venv exe (no source activate needed; PYTHONPATH stays clean):
+.venv312/Scripts/python.exe -m pytest tests/
+
+# Or, after `source .venv312/Scripts/activate`:
+pytest tests/
+
 cd reader && npm test
 ```
 
