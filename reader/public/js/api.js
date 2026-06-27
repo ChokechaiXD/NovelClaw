@@ -98,11 +98,11 @@ const Api = {
     return res.json();
   },
 
-  async translateSingle(slug, num, score) {
+  async translateSingle(slug, num, score, options = {}) {
     const res = await fetch(`/api/novel/${slug}/translate/single`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ num, score })
+      body: JSON.stringify({ num, score, ...options })
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
@@ -111,11 +111,11 @@ const Api = {
     return res.json();
   },
 
-  async translateBatch(slug, range, score, concurrent) {
+  async translateBatch(slug, range, score, concurrent, options = {}) {
     const res = await fetch(`/api/novel/${slug}/translate/batch`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ range, score, concurrent })
+      body: JSON.stringify({ range, score, concurrent, ...options })
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));

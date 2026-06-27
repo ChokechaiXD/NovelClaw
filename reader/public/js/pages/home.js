@@ -23,7 +23,7 @@ const HomePage = {
         html += `
         <div class="c-hero">
           <div class="c-hero__content">
-            <span class="c-hero__badge"><svg style="width:14px;height:14px;margin-right:4px;vertical-align:-2px;"><use xlink:href="#icon-ranking"/></svg>ยอดนิยม</span>
+            <span class="c-hero__badge"><svg class="c-icon c-icon--xs c-title-icon"><use xlink:href="#icon-ranking"/></svg>ยอดนิยม</span>
             <h2 class="c-hero__title">${Ui.esc(Ui.displayTitle(featured))}</h2>
             <p class="c-hero__subtitle">${Ui.esc(featured.slug)} • ${Ui.esc(featured.source_lang||'cn')} → ${Ui.esc(featured.target_lang||'th')}</p>
             <div class="c-hero__meta">
@@ -35,7 +35,7 @@ const HomePage = {
                 <span>${featured.translatedCount} / ${featured.totalCount} ตอน</span>
                 <span>${featured.translationPct}%</span>
               </div>
-              <div class="c-progress__bar"><div class="c-progress__fill" style="width:${featured.translationPct}%"></div></div>
+              <div class="c-progress__bar"><div class="c-progress__fill js-progress-fill" data-progress="${featured.translationPct}"></div></div>
             </div>
             <div class="c-hero__actions">
               <a href="#novel/${Ui.esc(featured.slug)}" class="c-hero__cta" data-nav>อ่านต่อ →</a>
@@ -52,7 +52,7 @@ const HomePage = {
       html += `
       <section class="c-section">
         <div class="c-section__header">
-          <h3 class="c-section__title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-book"/></svg>อ่านต่อ</h3>
+          <h3 class="c-section__title"><svg class="c-icon c-icon--sm c-title-icon"><use xlink:href="#icon-book"/></svg>อ่านต่อ</h3>
           <a href="#library" class="c-section__link" data-nav>ดูทั้งหมด ❯</a>
         </div>
         <div class="c-card-grid">`;
@@ -65,7 +65,7 @@ const HomePage = {
               <span class="c-card__title">${Ui.esc(Ui.displayTitle(n))}</span>
               <span class="c-card__meta">${n.lastRead ? 'ตอนที่ ' + n.lastRead + ' / ' + n.totalCount : '0 / ' + n.totalCount}</span>
               <div class="c-card__progress">
-                <div class="c-card__progress-bar"><div class="c-card__progress-fill" style="width:${n.translationPct}%"></div></div>
+                <div class="c-card__progress-bar"><div class="c-card__progress-fill js-progress-fill" data-progress="${n.translationPct}"></div></div>
                 <span class="c-card__progress-pct">${n.translationPct}%</span>
               </div>
             </div>
@@ -74,8 +74,8 @@ const HomePage = {
 
       html += `
           <a href="#admin/import" class="c-card c-card--add" data-nav>
-            <span style="font-size:24px;color:var(--c-text-muted); font-weight:600;">+</span>
-            <span style="font-size:var(--text-xs);color:var(--c-text-muted);">เพิ่มนิยาย</span>
+            <span class="c-card-add__icon">+</span>
+            <span class="c-card-add__text">เพิ่มนิยาย</span>
           </a>
         </div>
       </section>`;
@@ -103,7 +103,7 @@ const HomePage = {
       html += `
       <section class="c-section">
         <div class="c-section__header">
-          <h3 class="c-section__title"><svg style="width:16px;height:16px;margin-right:6px;vertical-align:-2px;"><use xlink:href="#icon-ranking"/></svg>ยอดนิยมประจำสัปดาห์</h3>
+          <h3 class="c-section__title"><svg class="c-icon c-icon--sm c-title-icon"><use xlink:href="#icon-ranking"/></svg>ยอดนิยมประจำสัปดาห์</h3>
         </div>
         <div class="c-popular">`;
 
@@ -116,7 +116,7 @@ const HomePage = {
             <div class="c-popular__info">
               <span class="c-popular__title">${Ui.esc(Ui.displayTitle(n))}</span>
               <span class="c-popular__meta">${n.source_lang||'cn'} → ${n.target_lang||'th'} • โดย ${n.author||'ไม่ระบุ'}</span>
-              <span class="c-popular__views"><svg style="width:12px;height:12px;margin-right:4px;vertical-align:-2px;"><use xlink:href="#icon-book"/></svg>${n.chapterCount||0}+ ตอน</span>
+              <span class="c-popular__views"><svg class="c-icon c-icon--2xs c-title-icon"><use xlink:href="#icon-book"/></svg>${n.chapterCount||0}+ ตอน</span>
             </div>
           </a>`;
       });
@@ -125,6 +125,10 @@ const HomePage = {
       html += '</div>';
 
       page.innerHTML = html;
+      page.querySelectorAll('.js-progress-fill').forEach(fill => {
+        const pct = Math.min(100, Math.max(0, Number(fill.dataset.progress || 0)));
+        fill.style.width = pct + '%';
+      });
     } catch (err) {
       Ui.showError(page, 'โหลดไม่สำเร็จ', err.message);
     }

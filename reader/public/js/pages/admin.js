@@ -4,6 +4,40 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 
+const AdminUi = {
+  consoleBadges: {
+    running: ['กำลังทำงาน', 'c-badge c-badge--amber'],
+    success: ['สำเร็จ', 'c-badge c-badge--teal'],
+    error: ['ขัดข้อง', 'c-badge c-badge--red'],
+    idle: ['พร้อมใช้งาน', 'c-badge c-badge--gray'],
+  },
+
+  setConsole(prefix, state, title, message) {
+    const consoleCard = document.getElementById(`${prefix}-console-card`);
+    const consoleTitle = document.getElementById(`${prefix}-console-title`);
+    const consoleBadge = document.getElementById(`${prefix}-console-badge`);
+    const consoleOutput = document.getElementById(`${prefix}-console-output`);
+    const badge = this.consoleBadges[state] || this.consoleBadges.idle;
+
+    if (consoleCard) consoleCard.hidden = false;
+    if (consoleTitle) consoleTitle.textContent = title || '';
+    if (consoleBadge) {
+      consoleBadge.textContent = badge[0];
+      consoleBadge.className = badge[1];
+    }
+    if (consoleOutput) {
+      consoleOutput.textContent = message || '';
+    }
+  },
+
+  setStatus(id, baseClass, message, type = 'success') {
+    const statusEl = document.getElementById(id);
+    if (!statusEl) return;
+    statusEl.textContent = message || '';
+    statusEl.className = `${baseClass} ${baseClass}--${type}`;
+  },
+};
+
 // ── ADMIN DASHBOARD
 const AdminDashboardPage = {
   async render(params) {
@@ -19,36 +53,36 @@ const AdminDashboardPage = {
       for (const n of novels) { statusCounts[n.status] = (statusCounts[n.status] || 0) + 1; }
 
       page.innerHTML = '<div class="c-container">' + Ui.adminNav('dashboard') +
-        '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">ระบบหลังบ้าน</h3></div>' +
+        '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">ระบบหลังบ้าน</h3></div>' +
         // ── Stats ──
         '<div class="c-stats">' +
         '<div class="c-stat"><span class="c-stat__num">' + novels.length + '</span><span class="c-stat__label">นิยาย</span></div>' +
         '<div class="c-stat"><span class="c-stat__num">' + totalChapters + '</span><span class="c-stat__label">ตอนทั้งหมด</span></div>' +
-        '<div class="c-stat"><span class="c-stat__num" style="color:var(--c-success);">' + translatedChapters + '</span><span class="c-stat__label">แปลแล้ว</span></div>' +
-        '<div class="c-stat"><span class="c-stat__num" style="color:var(--c-warning);">' + untranslated + '</span><span class="c-stat__label">รอแปล</span></div>' +
+        '<div class="c-stat"><span class="c-stat__num c-stat__num--success">' + translatedChapters + '</span><span class="c-stat__label">แปลแล้ว</span></div>' +
+        '<div class="c-stat"><span class="c-stat__num c-stat__num--warning">' + untranslated + '</span><span class="c-stat__label">รอแปล</span></div>' +
         '</div>' +
         // ── Health Summary ──
         '<div class="c-health-row">' +
         '<span class="c-badge c-badge--teal">✅ ระบบปกติ</span>' +
         '<span class="c-badge' + (translatedChapters > 0 ? ' c-badge--teal' : ' c-badge--gray') + '">📖 แปลแล้ว ' + translatedChapters + ' ตอน</span>' +
         '<span class="c-badge' + (untranslated > 0 ? ' c-badge--amber' : ' c-badge--gray') + '">📄 รอแปล ' + untranslated + ' ตอน</span>' +
-        '<a href="#admin/jobs" class="c-badge c-badge--gray" data-nav style="text-decoration:none;cursor:pointer;">📋 ดูคิวงาน →</a>' +
+        '<a href="#admin/jobs" class="c-badge c-badge--gray c-admin-dashboard__badge-link" data-nav>📋 ดูคิวงาน →</a>' +
         '</div>' +
-        '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">จัดการระบบ</h3></div>' +
-        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:var(--space-sm);">' +
-        '<a href="#admin/novels" class="c-card" style="display:flex;align-items:center;gap:12px;padding:16px;text-decoration:none;" data-nav>' +
-        '  <svg style="width:28px;height:28px;flex-shrink:0;color:var(--c-accent);"><use xlink:href="#icon-library"/></svg><div><div style="font-weight:600;color:var(--c-text-primary);">จัดการนิยาย</div><div style="font-size:12px;color:var(--c-text-muted);">' + Object.values(statusCounts).reduce((a,b)=>a+b,0) + ' เรื่อง</div></div></a>' +
-        '<a href="#admin/chapters" class="c-card" style="display:flex;align-items:center;gap:12px;padding:16px;text-decoration:none;" data-nav>' +
-        '  <svg style="width:28px;height:28px;flex-shrink:0;color:var(--c-accent);"><use xlink:href="#icon-book"/></svg><div><div style="font-weight:600;color:var(--c-text-primary);">จัดการตอน</div><div style="font-size:12px;color:var(--c-text-muted);">' + untranslated + ' ตอนที่ยังไม่แปล</div></div></a>' +
-        '<a href="#admin/glossary" class="c-card" style="display:flex;align-items:center;gap:12px;padding:16px;text-decoration:none;" data-nav>' +
-        '  <svg style="width:28px;height:28px;flex-shrink:0;color:var(--c-accent-2);"><use xlink:href="#icon-bookmarks"/></svg><div><div style="font-weight:600;color:var(--c-text-primary);">จัดการคำศัพท์</div><div style="font-size:12px;color:var(--c-text-muted);">Glossary / NPC names</div></div></a>' +
+        '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">จัดการระบบ</h3></div>' +
+        '<div class="c-admin-dashboard__grid">' +
+        '<a href="#admin/novels" class="c-card c-admin-dashboard__tile" data-nav>' +
+        '  <svg class="c-admin-dashboard__tile-icon"><use xlink:href="#icon-library"/></svg><div><div class="c-admin-dashboard__tile-title">จัดการนิยาย</div><div class="c-admin-dashboard__tile-meta">' + Object.values(statusCounts).reduce((a,b)=>a+b,0) + ' เรื่อง</div></div></a>' +
+        '<a href="#admin/chapters" class="c-card c-admin-dashboard__tile" data-nav>' +
+        '  <svg class="c-admin-dashboard__tile-icon"><use xlink:href="#icon-book"/></svg><div><div class="c-admin-dashboard__tile-title">จัดการตอน</div><div class="c-admin-dashboard__tile-meta">' + untranslated + ' ตอนที่ยังไม่แปล</div></div></a>' +
+        '<a href="#admin/glossary" class="c-card c-admin-dashboard__tile" data-nav>' +
+        '  <svg class="c-admin-dashboard__tile-icon c-admin-dashboard__tile-icon--accent-2"><use xlink:href="#icon-bookmarks"/></svg><div><div class="c-admin-dashboard__tile-title">จัดการคำศัพท์</div><div class="c-admin-dashboard__tile-meta">Glossary / NPC names</div></div></a>' +
         '</div>' +
-        '<div class="c-section__header" style="margin-top:var(--space-lg);"><h3 class="c-section__title">เครื่องมือ</h3></div>' +
-        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:var(--space-sm);">' +
-        '<a href="#admin/import" class="c-card" style="display:flex;align-items:center;gap:12px;padding:16px;text-decoration:none;" data-nav>' +
-        '  <svg style="width:28px;height:28px;flex-shrink:0;color:var(--c-accent);"><use xlink:href="#icon-arrow-right"/></svg><div><div style="font-weight:600;color:var(--c-text-primary);">นำเข้านิยาย</div><div style="font-size:12px;color:var(--c-text-muted);">เพิ่มเรื่องใหม่ / นำเข้าตอน</div></div></a>' +
-        '<a href="#admin/jobs" class="c-card" style="display:flex;align-items:center;gap:12px;padding:16px;text-decoration:none;" data-nav>' +
-        '  <svg style="width:28px;height:28px;flex-shrink:0;color:var(--c-accent);"><use xlink:href="#icon-shield"/></svg><div><div style="font-weight:600;color:var(--c-text-primary);">คิวแปล AI</div><div style="font-size:12px;color:var(--c-text-muted);">จัดการ queue การแปล</div></div></a>' +
+        '<div class="c-section__header c-admin-page__header c-admin-page__header--loose"><h3 class="c-section__title">เครื่องมือ</h3></div>' +
+        '<div class="c-admin-dashboard__grid">' +
+        '<a href="#admin/import" class="c-card c-admin-dashboard__tile" data-nav>' +
+        '  <svg class="c-admin-dashboard__tile-icon"><use xlink:href="#icon-arrow-right"/></svg><div><div class="c-admin-dashboard__tile-title">นำเข้านิยาย</div><div class="c-admin-dashboard__tile-meta">เพิ่มเรื่องใหม่ / นำเข้าตอน</div></div></a>' +
+        '<a href="#admin/jobs" class="c-card c-admin-dashboard__tile" data-nav>' +
+        '  <svg class="c-admin-dashboard__tile-icon"><use xlink:href="#icon-shield"/></svg><div><div class="c-admin-dashboard__tile-title">คิวแปล AI</div><div class="c-admin-dashboard__tile-meta">จัดการ queue การแปล</div></div></a>' +
         '</div></div>';
     } catch (err) { Ui.showError(page, 'โหลดไม่สำเร็จ', err.message); }
   }
@@ -63,13 +97,13 @@ const AdminNovelsPage = {
     try {
       const novels = await Api.getNovels();
       let html = '<div class="c-container">' + Ui.adminNav('novels') +
-        '<div style="display:flex; justify-content:space-between; align-items:center; margin-top:var(--space-md);"><h3 style="margin:0; font-size:var(--text-md); font-weight:600; color:var(--c-text-primary);">📚 รายการนิยายทั้งหมด</h3><a href="#admin/import" class="c-btn c-btn--primary c-btn--sm" data-nav style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; min-height:32px; font-size:12px; padding:4px 12px;">📥 นำเข้านิยายใหม่</a></div>' +
-        '<div class="c-table-wrap" style="margin-top:var(--space-sm);"><table class="c-table"><thead><tr><th>Slug</th><th>ชื่อเรื่อง</th><th>ภาษา</th><th>ตอน</th><th>แปลแล้ว</th><th>สถานะ</th><th style="width: 80px; text-align: center;">การจัดการ</th></tr></thead><tbody>';
+        '<div class="c-admin-page__toolbar"><h3 class="c-admin-page__title">📚 รายการนิยายทั้งหมด</h3><a href="#admin/import" class="c-btn c-btn--primary c-btn--sm c-admin-page__action" data-nav>📥 นำเข้านิยายใหม่</a></div>' +
+        '<div class="c-table-wrap c-admin-table-wrap"><table class="c-table"><thead><tr><th>Slug</th><th>ชื่อเรื่อง</th><th>ภาษา</th><th>ตอน</th><th>แปลแล้ว</th><th>สถานะ</th><th class="c-admin-novels__actions-col">การจัดการ</th></tr></thead><tbody>';
       for (const n of novels) {
         const translated = n.translatedChapters || 0;
         const total = n.totalChapters || n.chapterCount || 0;
         const statusClass = n.status === 'complete' ? 'c-badge--purple' : n.status === 'ongoing' ? 'c-badge--teal' : 'c-badge--gray';
-        html += '<tr><td style="font-weight:600;font-family:var(--font-mono);">' + Ui.esc(n.slug) + '</td><td>' + Ui.esc(n.title||'') + '</td><td>' + (n.source_lang||'cn').toUpperCase() + ' → ' + (n.target_lang||'th').toUpperCase() + '</td><td style="font-family:var(--font-mono);">' + total + '</td><td style="font-family:var(--font-mono);color:var(--c-accent);">' + translated + ' (' + Math.round(translated/total*100) + '%)</td><td><span class="c-badge ' + statusClass + '">' + Ui.esc(Ui.statusMap[n.status]||'ไม่ระบุ') + '</span></td><td style="text-align: center;"><button class="c-btn c-btn--danger c-btn--xs delete-novel-btn" data-slug="' + Ui.esc(n.slug) + '" style="padding: 2px 8px; font-size: 11px; min-height: 24px;">ลบ</button></td></tr>';
+        html += '<tr><td class="c-admin-table__mono-strong">' + Ui.esc(n.slug) + '</td><td>' + Ui.esc(n.title||'') + '</td><td>' + (n.source_lang||'cn').toUpperCase() + ' → ' + (n.target_lang||'th').toUpperCase() + '</td><td class="c-admin-table__mono">' + total + '</td><td class="c-admin-table__mono-accent">' + translated + ' (' + Math.round(translated/total*100) + '%)</td><td><span class="c-badge ' + statusClass + '">' + Ui.esc(Ui.statusMap[n.status]||'ไม่ระบุ') + '</span></td><td class="c-admin-table__actions-cell"><button class="c-btn c-btn--danger c-btn--xs c-admin-novels__delete-btn delete-novel-btn" data-slug="' + Ui.esc(n.slug) + '">ลบ</button></td></tr>';
       }
       html += '</tbody></table></div></div>';
       page.innerHTML = html;
@@ -144,24 +178,24 @@ const AdminChaptersPage = {
         const pageList = list.slice(start, start + pageSize);
 
         let html = '<div class="c-container">' + Ui.adminNav('chapters') +
-          '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">📖 ตอนทั้งหมด: ' + Ui.esc(slug) + '</h3><span style="font-size:var(--text-sm);color:var(--c-text-muted);">' + totalFiltered + ' / ' + chapters.length + ' ตอน</span></div>' +
+          '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">📖 ตอนทั้งหมด: ' + Ui.esc(slug) + '</h3><span class="c-admin-page__meta">' + totalFiltered + ' / ' + chapters.length + ' ตอน</span></div>' +
 
           // ── Search + Filter Controls ──
-          '<div class="c-form__row" style="display:flex;gap:var(--space-sm);margin-bottom:var(--space-md);flex-wrap:wrap;">' +
-          '<input id="ch-filter-search" type="text" placeholder="ค้นหาเลขตอน หรือชื่อ..." class="c-form__input" style="flex:1;min-width:160px;" value="' + Ui.esc(searchQuery) + '" />' +
-          '<select id="ch-filter-status" class="c-form__select" style="min-width:140px;">' +
+          '<div class="c-admin-chapters__filters">' +
+          '<input id="ch-filter-search" type="text" placeholder="ค้นหาเลขตอน หรือชื่อ..." class="c-form__input c-admin-chapters__search" value="' + Ui.esc(searchQuery) + '" />' +
+          '<select id="ch-filter-status" class="c-form__select c-admin-chapters__status-filter">' +
           '<option value="all"' + (filterStatus === 'all' ? ' selected' : '') + '>ทั้งหมด</option>' +
           '<option value="translated"' + (filterStatus === 'translated' ? ' selected' : '') + '>✅ แปลแล้ว</option>' +
           '<option value="source_only"' + (filterStatus === 'source_only' ? ' selected' : '') + '>📄 ต้นฉบับ</option>' +
           '<option value="read"' + (filterStatus === 'read' ? ' selected' : '') + '>📖 อ่านแล้ว</option>' +
           '<option value="unread"' + (filterStatus === 'unread' ? ' selected' : '') + '>📕 ยังไม่อ่าน</option>' +
           '</select>' +
-          '<input id="ch-jump-num" type="number" min="1" max="' + chapters.length + '" placeholder="ไปตอน..." class="c-form__input" style="width:100px;" />' +
+          '<input id="ch-jump-num" type="number" min="1" max="' + chapters.length + '" placeholder="ไปตอน..." class="c-form__input c-admin-chapters__jump-input" />' +
           '<button id="ch-jump-btn" class="c-btn c-btn--sm">ไป</button>' +
           '</div>' +
 
           // ── Pagination ──
-          '<div style="display:flex;align-items:center;gap:var(--space-sm);margin-bottom:var(--space-sm);font-size:var(--text-sm);color:var(--c-text-muted);">' +
+          '<div class="c-admin-chapters__pagination">' +
           '<button class="c-btn c-btn--xs" id="ch-page-prev"' + (currentPage <= 0 ? ' disabled' : '') + '>◀ ก่อนหน้า</button>' +
           '<span>หน้า ' + (currentPage + 1) + ' / ' + (maxPage + 1) + '</span>' +
           '<button class="c-btn c-btn--xs" id="ch-page-next"' + (currentPage >= maxPage ? ' disabled' : '') + '>ถัดไป ▶</button>' +
@@ -171,10 +205,9 @@ const AdminChaptersPage = {
           '<div class="c-table-wrap"><table class="c-table"><thead><tr><th>#</th><th>ชื่อตอน</th><th>สถานะ</th></tr></thead><tbody>';
 
         for (const ch of pageList) {
-          const read = Store.isRead(slug, ch.num);
           const statusLabel = ch.status === 'translated' ? '✅ แปลแล้ว' : (ch.status === 'source_only' ? '📄 ต้นฉบับ' : '⬜');
           const statusClass = ch.status === 'translated' ? 'c-badge--teal' : (ch.status === 'source_only' ? 'c-badge--amber' : 'c-badge--gray');
-          html += '<tr><td style="font-family:var(--font-mono);font-weight:600;">' + ch.num + '</td>' +
+          html += '<tr><td class="c-admin-table__mono-strong">' + ch.num + '</td>' +
             '<td><a href="#novel/' + slug + '/' + ch.num + '" class="c-link" data-nav>' + Ui.esc(ch.title || '') + '</a></td>' +
             '<td><span class="c-badge ' + statusClass + '">' + statusLabel + '</span></td></tr>';
         }
@@ -214,6 +247,20 @@ const AdminGlossaryPage = {
   _terms: [],
   _slug: '',
   _editingIndex: -1,
+
+  _setStatus(message, type = 'success') {
+    AdminUi.setStatus('glossary-status', 'c-glossary-admin__status', message, type);
+  },
+
+  async _saveTerms() {
+    const res = await fetch('/api/novel/' + this._slug + '/glossary/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ terms: this._terms })
+    });
+    if (!res.ok) throw new Error('ไม่สามารถเซฟข้อมูลลง Server ได้');
+    return res.json();
+  },
 
   async render(params) {
     const page = Ui.$('page-admin-glossary');
@@ -256,21 +303,21 @@ const AdminGlossaryPage = {
     ).join('');
 
     let html = '<div class="c-container">' + Ui.adminNav('glossary') +
-      '<div class="c-form__group" style="margin-top:var(--space-md); margin-bottom:var(--space-md); max-width:320px;">' +
+      '<div class="c-form__group c-glossary-admin__novel-select">' +
         '<label class="c-form__label">เลือกนิยายเพื่อจัดการ Glossary</label>' +
-        '<select class="c-form__select" id="glossary-novel-select" style="height:44px;padding:0 var(--space-sm);">' +
+        '<select class="c-form__select" id="glossary-novel-select">' +
           novelOptions +
         '</select>' +
       '</div>' +
       '<div class="c-section__header"><h3 class="c-section__title">จัดการคลังคำศัพท์ (' + Ui.esc(this._slug) + ')</h3></div>' +
       
       // Two-column responsive layout for Forms
-      '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:var(--space-md); margin-bottom:var(--space-lg);">' +
+      '<div class="c-glossary-admin__grid">' +
         // Card 1: Add/Edit Term
-        '<div class="c-settings-form" style="background:var(--c-bg-secondary);padding:var(--space-md);border-radius:var(--radius);">' +
-          '<h4 id="glossary-form-title" class="u-mb-sm" style="font-weight:600;">เพิ่มคำศัพท์ใหม่</h4>' +
-          '<div class="c-form" style="display:flex; flex-direction:column; gap:var(--space-sm);">' +
-            '<div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-sm);">' +
+        '<div class="c-settings-form c-glossary-admin__panel">' +
+          '<h4 id="glossary-form-title" class="c-glossary-admin__title">เพิ่มคำศัพท์ใหม่</h4>' +
+          '<div class="c-form c-glossary-admin__form">' +
+            '<div class="c-glossary-admin__fields">' +
               '<div class="c-form__group">' +
                 '<label class="c-form__label">คำศัพท์เดิม (จีน)</label>' +
                 '<input class="c-form__input" id="glossary-source" placeholder="เช่น 曹星" />' +
@@ -280,10 +327,10 @@ const AdminGlossaryPage = {
                 '<input class="c-form__input" id="glossary-thai" placeholder="เช่น เฉาซิง" />' +
               '</div>' +
             '</div>' +
-            '<div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-sm);">' +
+            '<div class="c-glossary-admin__fields">' +
               '<div class="c-form__group">' +
                 '<label class="c-form__label">ประเภท</label>' +
-                '<select class="c-form__select" id="glossary-category" style="height:44px;padding:0 var(--space-sm);">' +
+                '<select class="c-form__select" id="glossary-category">' +
                   '<option value="คำศัพท์">คำศัพท์ทั่วไป</option>' +
                   '<option value="ตัวละคร">ตัวละคร</option>' +
                   '<option value="สถานที่">สถานที่</option>' +
@@ -293,42 +340,42 @@ const AdminGlossaryPage = {
               '</div>' +
               '<div class="c-form__group">' +
                 '<label class="c-form__label">การล็อก</label>' +
-                '<select class="c-form__select" id="glossary-lock" style="height:44px;padding:0 var(--space-sm);">' +
+                '<select class="c-form__select" id="glossary-lock">' +
                   '<option value="auto">Auto (ลื่นไหล)</option>' +
                   '<option value="locked">Locked (ห้ามเปลี่ยน)</option>' +
                   '<option value="reference">Reference (อ้างอิง)</option>' +
                 '</select>' +
               '</div>' +
             '</div>' +
-            '<div class="c-form__group" style="display:flex;gap:var(--space-xs); justify-content:flex-end; margin-top:var(--space-xs);">' +
-              '<button class="c-btn c-btn--primary" id="glossary-save-btn" style="min-height:44px;">บันทึก</button>' +
-              '<button class="c-btn c-btn--secondary" id="glossary-cancel-btn" style="min-height:44px;display:none;">ยกเลิก</button>' +
+            '<div class="c-glossary-admin__actions">' +
+              '<button class="c-btn c-btn--primary" id="glossary-save-btn">บันทึก</button>' +
+              '<button class="c-btn c-btn--secondary" id="glossary-cancel-btn" hidden>ยกเลิก</button>' +
             '</div>' +
           '</div>' +
-          '<div id="glossary-status" style="margin-top:var(--space-xs);font-size:var(--text-xs);color:var(--c-success);"></div>' +
+          '<div id="glossary-status" class="c-glossary-admin__status" aria-live="polite"></div>' +
         '</div>' +
 
         // Card 2: AI Glossary Suggestion
-        '<div class="c-settings-form" style="background:var(--c-bg-secondary);padding:var(--space-md);border-radius:var(--radius); display:flex; flex-direction:column;">' +
-          '<h4 class="u-mb-sm" style="font-weight:600; display:flex; align-items:center; gap:8px;">💡 แนะนำคำศัพท์ใหม่ด้วย AI</h4>' +
-          '<div style="display:flex; gap:var(--space-sm); align-items:end; margin-bottom:var(--space-md);">' +
-            '<div class="c-form__group" style="flex:1; max-width:180px;">' +
+        '<div class="c-settings-form c-glossary-admin__panel c-glossary-admin__panel--ai">' +
+          '<h4 class="c-glossary-admin__title">แนะนำคำศัพท์ใหม่ด้วย AI</h4>' +
+          '<div class="c-glossary-admin__scan-row">' +
+            '<div class="c-form__group c-glossary-admin__scan-input">' +
               '<label class="c-form__label">ตอนที่ต้องการสแกน</label>' +
               '<input type="number" min="1" class="c-form__input" id="ai-glossary-ch" placeholder="เช่น 1" />' +
             '</div>' +
-            '<button class="c-btn c-btn--secondary" id="ai-glossary-scan-btn" style="min-height:44px;">🔍 สแกน</button>' +
+            '<button class="c-btn c-btn--secondary" id="ai-glossary-scan-btn">สแกน</button>' +
           '</div>' +
-          '<div id="ai-glossary-loading" style="display:none; color:var(--c-text-secondary); margin-bottom:var(--space-sm); font-size:var(--text-sm);">' +
-            '⌛ กำลังสแกนหาศัพท์จีนที่ยังไม่ได้แปล...' +
+          '<div id="ai-glossary-loading" class="c-glossary-admin__loading" hidden>' +
+            'กำลังสแกนหาศัพท์จีนที่ยังไม่ได้แปล...' +
           '</div>' +
-          '<div id="ai-glossary-results-box" style="flex:1; max-height:220px; overflow-y:auto; border:1px solid var(--c-border); padding:var(--space-sm); border-radius:var(--radius-sm); background:var(--c-bg-tertiary); display:none;">' +
-            '<div id="ai-glossary-results-list" style="display:flex; flex-direction:column; gap:var(--space-xs);"></div>' +
+          '<div id="ai-glossary-results-box" class="c-glossary-admin__results" hidden>' +
+            '<div id="ai-glossary-results-list" class="c-glossary-admin__results-list"></div>' +
           '</div>' +
         '</div>' +
       '</div>';
 
     // Glossary Table
-    html += '<div class="c-table-wrap"><table class="c-table"><thead><tr><th>จีน</th><th>ไทย</th><th>ประเภท</th><th>ระดับ</th><th>การตรวจสอบ</th><th style="width:140px;text-align:center;">การจัดการ</th></tr></thead><tbody>';
+    html += '<div class="c-table-wrap"><table class="c-table"><thead><tr><th>จีน</th><th>ไทย</th><th>ประเภท</th><th>ระดับ</th><th>การตรวจสอบ</th><th class="c-glossary-admin__actions-col">การจัดการ</th></tr></thead><tbody>';
     
     if (this._terms.length === 0) {
       html += '<tr><td colspan="6" class="u-text-center u-text-muted">ไม่มีคำศัพท์ในคลัง</td></tr>';
@@ -345,14 +392,14 @@ const AdminGlossaryPage = {
           '<td>' + Ui.esc(t.category || 'คำศัพท์') + '</td>' +
           '<td><span class="c-badge ' + lockClass + '">' + Ui.esc(t.lock || 'auto') + '</span></td>' +
           '<td>' +
-            '<span class="c-badge ' + verifyBadgeClass + ' glossary-verify-toggle" data-index="' + index + '" style="cursor:pointer; user-select:none;" title="คลิกเพื่อสลับสถานะการตรวจสอบ">' +
+            '<span class="c-badge ' + verifyBadgeClass + ' glossary-verify-toggle c-glossary-admin__verify" data-index="' + index + '" title="คลิกเพื่อสลับสถานะการตรวจสอบ">' +
               verifyLabel +
             '</span>' +
           '</td>' +
-          '<td style="text-align:center;display:flex;gap:var(--space-xs);justify-content:center;">' +
+          '<td><div class="c-glossary-admin__table-actions">' +
             '<button class="c-btn c-btn--xs c-btn--secondary glossary-edit-btn" data-index="' + index + '">แก้ไข</button>' +
-            '<button class="c-btn c-btn--xs c-btn--danger glossary-del-btn" data-index="' + index + '" style="background:var(--c-error);color:white;border:none;">ลบ</button>' +
-          '</td>' +
+            '<button class="c-btn c-btn--xs c-btn--danger glossary-del-btn" data-index="' + index + '">ลบ</button>' +
+          '</div></td>' +
         '</tr>';
       });
     }
@@ -379,7 +426,7 @@ const AdminGlossaryPage = {
           this._editingIndex = -1;
           this._renderUI(page);
         } catch (err) {
-          alert('ไม่สามารถโหลด Glossary สำหรับนิยายเรื่องนี้ได้: ' + err.message);
+          Ui.showToast('โหลด Glossary ไม่สำเร็จ: ' + err.message, 'error');
         }
       };
     }
@@ -390,7 +437,6 @@ const AdminGlossaryPage = {
     const lockSelect = document.getElementById('glossary-lock');
     const saveBtn = document.getElementById('glossary-save-btn');
     const cancelBtn = document.getElementById('glossary-cancel-btn');
-    const statusEl = document.getElementById('glossary-status');
     const formTitle = document.getElementById('glossary-form-title');
 
     // Save click handler
@@ -401,7 +447,8 @@ const AdminGlossaryPage = {
       const lock = lockSelect.value;
 
       if (!source || !thai) {
-        alert('กรุณากรอกทั้งคำศัพท์เดิม (จีน) และคำแปล (ไทย)');
+        this._setStatus('กรุณากรอกทั้งคำศัพท์เดิม (จีน) และคำแปล (ไทย)', 'error');
+        Ui.showToast('กรุณากรอกข้อมูลคำศัพท์ให้ครบ', 'error');
         return;
       }
 
@@ -409,11 +456,12 @@ const AdminGlossaryPage = {
         // Add Mode: Check duplicate
         const exists = this._terms.some(t => t.source === source);
         if (exists) {
-          alert('คำศัพท์ "' + source + '" มีอยู่แล้วในคลังศัพท์');
+          this._setStatus('คำศัพท์ "' + source + '" มีอยู่แล้วในคลังศัพท์', 'error');
+          Ui.showToast('คำศัพท์นี้มีอยู่แล้ว', 'error');
           return;
         }
         this._terms.push({ source, thai, category, priority: 3, lock, explanation: '', notes: '', verified: true });
-        statusEl.textContent = 'เพิ่มคำศัพท์สำเร็จแล้ว';
+        this._setStatus('เพิ่มคำศัพท์สำเร็จแล้ว');
       } else {
         // Edit Mode
         this._terms[this._editingIndex] = {
@@ -424,24 +472,23 @@ const AdminGlossaryPage = {
           lock,
           verified: true
         };
-        statusEl.textContent = 'แก้ไขคำศัพท์สำเร็จแล้ว';
+        this._setStatus('แก้ไขคำศัพท์สำเร็จแล้ว');
         this._editingIndex = -1;
       }
 
       // Save to server
       try {
-        const res = await fetch('/api/novel/' + this._slug + '/glossary/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ terms: this._terms })
-        });
-        if (res.ok) {
-          this._renderUI(page);
-        } else {
-          alert('ไม่สามารถเซฟข้อมูลลง Server ได้');
-        }
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'กำลังบันทึก...';
+        await this._saveTerms();
+        Ui.showToast('บันทึกคำศัพท์แล้ว');
+        this._renderUI(page);
       } catch (err) {
-        alert('เกิดข้อผิดพลาด: ' + err.message);
+        this._setStatus('บันทึกไม่สำเร็จ: ' + err.message, 'error');
+        Ui.showToast('บันทึกคำศัพท์ไม่สำเร็จ', 'error');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'บันทึก';
       }
     };
 
@@ -465,7 +512,7 @@ const AdminGlossaryPage = {
         categorySelect.value = t.category || 'คำศัพท์';
         lockSelect.value = t.lock || 'auto';
 
-        cancelBtn.style.display = 'inline-block';
+        cancelBtn.hidden = false;
         sourceInput.focus();
       };
     });
@@ -480,18 +527,11 @@ const AdminGlossaryPage = {
         if (confirm('คุณแน่ใจว่าต้องการลบคำศัพท์ "' + t.source + '" ใช่หรือไม่?')) {
           this._terms.splice(index, 1);
           try {
-            const res = await fetch('/api/novel/' + this._slug + '/glossary/save', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ terms: this._terms })
-            });
-            if (res.ok) {
-              this._renderUI(page);
-            } else {
-              alert('ไม่สามารถเซฟข้อมูลลง Server ได้');
-            }
+            await this._saveTerms();
+            Ui.showToast('ลบคำศัพท์แล้ว');
+            this._renderUI(page);
           } catch (err) {
-            alert('เกิดข้อผิดพลาด: ' + err.message);
+            Ui.showToast('ลบไม่สำเร็จ: ' + err.message, 'error');
           }
         }
       };
@@ -505,13 +545,14 @@ const AdminGlossaryPage = {
         const newVerified = !currentVerified;
         
         try {
-          badge.style.opacity = '0.5';
+          badge.classList.add('is-busy');
           const res = await Api.verifyGlossaryTerm(this._slug, index, newVerified);
           this._terms[index].verified = res.data.verified;
+          Ui.showToast(newVerified ? 'ยืนยันคำศัพท์แล้ว' : 'ตั้งเป็นรอตรวจแล้ว');
           this._renderUI(page);
         } catch (err) {
-          alert('ไม่สามารถสลับสถานะการตรวจสอบได้ค่ะ: ' + err.message);
-          badge.style.opacity = '1';
+          Ui.showToast('สลับสถานะไม่สำเร็จ: ' + err.message, 'error');
+          badge.classList.remove('is-busy');
         }
       };
     });
@@ -527,34 +568,36 @@ const AdminGlossaryPage = {
       aiScanBtn.onclick = async () => {
         const chNum = parseInt(aiChInput.value, 10);
         if (isNaN(chNum) || chNum < 1) {
-          alert('กรุณากรอกเลขตอนที่ถูกต้องค่ะ');
+          this._setStatus('กรุณากรอกเลขตอนที่ถูกต้อง', 'error');
+          Ui.showToast('กรุณากรอกเลขตอนที่ถูกต้อง', 'error');
           return;
         }
 
         try {
           aiScanBtn.disabled = true;
-          aiLoading.style.display = 'block';
-          aiResultsBox.style.display = 'none';
+          aiScanBtn.textContent = 'กำลังสแกน...';
+          aiLoading.hidden = false;
+          aiResultsBox.hidden = true;
           aiResultsList.innerHTML = '';
 
           const res = await Api.getUnknownTerms(this._slug, chNum);
           const terms = res.terms || [];
 
-          aiLoading.style.display = 'none';
-          aiResultsBox.style.display = 'block';
+          aiLoading.hidden = true;
+          aiResultsBox.hidden = false;
 
           if (terms.length === 0) {
-            aiResultsList.innerHTML = '<div style="font-size:var(--text-sm);color:var(--c-text-muted);padding:var(--space-xs);text-align:center;">ไม่พบคำศัพท์ภาษาจีนใหม่ในตอนนี้นะคะ</div>';
+            aiResultsList.innerHTML = '<div class="c-glossary-admin__empty">ไม่พบคำศัพท์ภาษาจีนใหม่ในตอนนี้นะคะ</div>';
           } else {
             terms.forEach(term => {
               const item = document.createElement('div');
-              item.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:var(--space-xs) 0; border-bottom:1px solid var(--c-border-subtle); gap:var(--space-sm); flex-wrap:wrap;';
+              item.className = 'c-glossary-admin__result-item';
               item.innerHTML = `
-                <span style="font-weight:600; font-size:14px; color:var(--c-text-primary); font-family:var(--font-ui);">${Ui.esc(term)}</span>
-                <div style="display:flex; gap:var(--space-xs); align-items:center;">
-                  <span id="ai-suggest-res-${term}" style="font-size:12px; color:var(--c-text-muted); margin-right:4px;"></span>
-                  <button class="c-btn c-btn--xs c-btn--secondary ai-suggest-btn" data-term="${Ui.esc(term)}" style="padding: 2px 8px; font-size: 11px;">💡 ขอไอเดียแปล</button>
-                  <button class="c-btn c-btn--xs c-btn--primary ai-add-btn" data-term="${Ui.esc(term)}" style="display:none; padding: 2px 8px; font-size: 11px;">➕ ย้ายเข้าฟอร์ม</button>
+                <span class="c-glossary-admin__term">${Ui.esc(term)}</span>
+                <div class="c-glossary-admin__result-actions">
+                  <span id="ai-suggest-res-${term}" class="c-glossary-admin__suggestion"></span>
+                  <button class="c-btn c-btn--xs c-btn--secondary ai-suggest-btn c-glossary-admin__mini-btn" data-term="${Ui.esc(term)}">ขอไอเดียแปล</button>
+                  <button class="c-btn c-btn--xs c-btn--primary ai-add-btn c-glossary-admin__mini-btn" data-term="${Ui.esc(term)}" hidden>ย้ายเข้าฟอร์ม</button>
                 </div>
               `;
               aiResultsList.appendChild(item);
@@ -569,7 +612,7 @@ const AdminGlossaryPage = {
 
                 try {
                   btn.disabled = true;
-                  btn.textContent = '⌛...';
+                  btn.textContent = 'กำลังแปล...';
                   resSpan.textContent = 'กำลังแปล...';
 
                   // Fetch context from source chapter
@@ -594,17 +637,17 @@ const AdminGlossaryPage = {
                   const thai = suggestRes.data.thai || '';
                   const cat = suggestRes.data.category || 'คำศัพท์';
                   
-                  resSpan.innerHTML = `<span class="c-badge c-badge--gray" style="font-size:10px;padding:2px 4px;margin-right:2px;">${Ui.esc(cat)}</span> <strong>${Ui.esc(thai)}</strong>`;
-                  btn.style.display = 'none';
+                  resSpan.innerHTML = `<span class="c-badge c-badge--gray c-glossary-admin__mini-badge">${Ui.esc(cat)}</span> <strong>${Ui.esc(thai)}</strong>`;
+                  btn.hidden = true;
                   
-                  addBtn.style.display = 'inline-block';
+                  addBtn.hidden = false;
                   addBtn.dataset.thai = thai;
                   addBtn.dataset.category = cat;
                 } catch (errSuggest) {
                   resSpan.textContent = 'ขัดข้อง';
                   btn.disabled = false;
-                  btn.textContent = '💡 ขอไอเดียแปล';
-                  alert('ไม่สามารถแนะนำคำศัพท์ได้: ' + errSuggest.message);
+                  btn.textContent = 'ขอไอเดียแปล';
+                  Ui.showToast('แนะนำคำศัพท์ไม่สำเร็จ: ' + errSuggest.message, 'error');
                 }
               };
             });
@@ -621,7 +664,8 @@ const AdminGlossaryPage = {
                 categorySelect.value = cat;
                 lockSelect.value = 'auto';
 
-                statusEl.textContent = 'โหลดแนะนำจาก AI เข้าฟอร์มแล้ว กรุณากดบันทึกค่ะ';
+                this._setStatus('โหลดแนะนำจาก AI เข้าฟอร์มแล้ว กรุณากดบันทึกค่ะ');
+                Ui.showToast('ย้ายคำแนะนำเข้าฟอร์มแล้ว');
                 thaiInput.focus();
                 
                 // Smooth scroll to form
@@ -630,10 +674,11 @@ const AdminGlossaryPage = {
             });
           }
         } catch (errScan) {
-          alert('เกิดข้อผิดพลาดในการสแกนคำศัพท์: ' + errScan.message);
+          Ui.showToast('สแกนคำศัพท์ไม่สำเร็จ: ' + errScan.message, 'error');
         } finally {
           aiScanBtn.disabled = false;
-          aiLoading.style.display = 'none';
+          aiScanBtn.textContent = 'สแกน';
+          aiLoading.hidden = true;
         }
       };
     }
@@ -649,19 +694,18 @@ const AdminNovelEditPage = {
     try {
       const novels = await Api.getNovels();
       const novel = novels.find(n => n.slug === slug);
-      page.innerHTML = '<div class="c-container"><div class="c-section__header"><h3 class="c-section__title">แก้ไขนิยาย: ' + Ui.esc(slug||'') + '</h3></div><div class="c-settings-form"><div class="c-form"><div class="c-form__group"><label class="c-form__label">ชื่อไทย</label><input class="c-form__input" id="edit-translated-title" value="' + Ui.esc(novel?.translatedTitle||'') + '" /></div><div class="c-form__group"><label class="c-form__label">ชื่อต้นฉบับ</label><input class="c-form__input" id="edit-title" value="' + Ui.esc(novel?.title||'') + '" /></div><div class="c-form__group"><label class="c-form__label">ผู้แต่ง</label><input class="c-form__input" id="edit-author" value="' + Ui.esc(novel?.author||'') + '" /></div><div class="c-form__group" style="margin-top:var(--space-md);"><button class="c-btn c-btn--primary" id="edit-save">บันทึก</button><span id="edit-status" style="margin-left:var(--space-sm);"></span></div></div></div></div>';
+      page.innerHTML = '<div class="c-container"><div class="c-section__header c-admin-page__header"><h3 class="c-section__title">แก้ไขนิยาย: ' + Ui.esc(slug||'') + '</h3></div><div class="c-settings-form"><div class="c-form"><div class="c-form__group"><label class="c-form__label">ชื่อไทย</label><input class="c-form__input" id="edit-translated-title" value="' + Ui.esc(novel?.translatedTitle||'') + '" /></div><div class="c-form__group"><label class="c-form__label">ชื่อต้นฉบับ</label><input class="c-form__input" id="edit-title" value="' + Ui.esc(novel?.title||'') + '" /></div><div class="c-form__group"><label class="c-form__label">ผู้แต่ง</label><input class="c-form__input" id="edit-author" value="' + Ui.esc(novel?.author||'') + '" /></div><div class="c-form__group c-admin-edit__actions"><button class="c-btn c-btn--primary" id="edit-save">บันทึก</button><span id="edit-status" class="c-admin-edit__status"></span></div></div></div></div>';
     } catch(_) { Ui.showError(page, 'เกิดข้อผิดพลาด'); }
 
     // ── Save handler ────────────────────────────────────────────────
     const saveBtn = document.getElementById('edit-save');
     const statusEl = document.getElementById('edit-status');
-    if (saveBtn) {
+    if (saveBtn && statusEl) {
       saveBtn.onclick = async () => {
         const title = document.getElementById('edit-title')?.value?.trim() || '';
         const translatedTitle = document.getElementById('edit-translated-title')?.value?.trim() || '';
         const author = document.getElementById('edit-author')?.value?.trim() || '';
-        statusEl.textContent = 'กำลังบันทึก...';
-        statusEl.style.color = 'var(--c-text-muted)';
+        AdminUi.setStatus('edit-status', 'c-admin-edit__status', 'กำลังบันทึก...', 'muted');
         try {
           const res = await fetch('/api/novel/update', {
             method: 'POST',
@@ -670,15 +714,12 @@ const AdminNovelEditPage = {
           });
           const data = await res.json();
           if (res.ok) {
-            statusEl.textContent = '✅ บันทึกสำเร็จ';
-            statusEl.style.color = 'var(--c-success)';
+            AdminUi.setStatus('edit-status', 'c-admin-edit__status', '✅ บันทึกสำเร็จ', 'success');
           } else {
-            statusEl.textContent = '❌ ' + (data.error || 'เกิดข้อผิดพลาด');
-            statusEl.style.color = 'var(--c-error)';
+            AdminUi.setStatus('edit-status', 'c-admin-edit__status', '❌ ' + (data.error || 'เกิดข้อผิดพลาด'), 'error');
           }
         } catch (e) {
-          statusEl.textContent = '❌ ' + e.message;
-          statusEl.style.color = 'var(--c-error)';
+          AdminUi.setStatus('edit-status', 'c-admin-edit__status', '❌ ' + e.message, 'error');
         }
       };
     }
@@ -785,12 +826,12 @@ const AdminJobsPage = {
         };
 
         let html = '<div class="c-container">' + Ui.adminNav('jobs') +
-          '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">📋 คิวงานแปล</h3></div>' +
+          '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">📋 คิวงานแปล</h3></div>' +
 
           // ── Filter tabs ──
-          '<div style="display:flex;gap:var(--space-xs);margin-bottom:var(--space-md);flex-wrap:wrap;font-size:var(--text-sm);">' +
+          '<div class="c-admin-jobs__filters">' +
           ['all','active','needs_review','failed','done'].map(t =>
-            `<button class="c-btn c-btn--xs c-job-filter" data-filter="${t}" style="${filter === t ? 'background:var(--c-accent);color:#fff;' : ''}">${t === 'all' ? 'ทั้งหมด' : t === 'needs_review' ? 'รอตรวจ' : t === 'active' ? 'กำลังรัน' : t} (${counts[t]})</button>`
+            `<button class="c-btn c-btn--xs c-job-filter${filter === t ? ' c-job-filter--active' : ''}" data-filter="${t}">${t === 'all' ? 'ทั้งหมด' : t === 'needs_review' ? 'รอตรวจ' : t === 'active' ? 'กำลังรัน' : t} (${counts[t]})</button>`
           ).join('') +
           '</div>' +
 
@@ -818,17 +859,17 @@ const AdminJobsPage = {
             else if (item._type === 'done') { typeLabel = 'เสร็จแล้ว'; badgeClass = 'c-badge--teal'; }
 
             html += '<tr>' +
-              '<td style="font-family:var(--font-mono);font-weight:600;white-space:nowrap;">' + Ui.esc(fmtChapters(ch)) + '</td>' +
-              '<td><span class="c-badge c-badge--gray" style="font-size:10px;">' + Ui.esc(mode || typeLabel) + '</span></td>' +
+              '<td class="c-admin-table__mono-strong c-admin-jobs__chapter-cell">' + Ui.esc(fmtChapters(ch)) + '</td>' +
+              '<td><span class="c-badge c-badge--gray c-admin-jobs__mode-badge">' + Ui.esc(mode || typeLabel) + '</span></td>' +
               '<td><span class="c-badge ' + badgeClass + '">' + typeLabel + '</span>' +
-                (reason ? '<div style="font-size:10px;color:var(--c-text-muted);margin-top:2px;" title="' + Ui.esc(reason) + '">' + Ui.esc(fmtError(reason)) + '</div>' : '') +
-                (createdAt ? '<div style="font-size:10px;color:var(--c-text-soft);margin-top:1px;">' + createdAt + '</div>' : '') +
+                (reason ? '<div class="c-admin-jobs__reason" title="' + Ui.esc(reason) + '">' + Ui.esc(fmtError(reason)) + '</div>' : '') +
+                (createdAt ? '<div class="c-admin-jobs__created-at">' + createdAt + '</div>' : '') +
               '</td>' +
               '<td>' +
-                (suggestion ? '<code id="' + fileId + '" style="font-size:10px;white-space:pre-wrap;">' + Ui.esc(suggestion) + '</code>' : '') +
+                (suggestion ? '<code id="' + fileId + '" class="c-admin-jobs__command">' + Ui.esc(suggestion) + '</code>' : '') +
               '</td>' +
-              '<td style="white-space:nowrap;">' +
-                (suggestion ? '<button class="c-btn c-btn--xs" onclick="navigator.clipboard.writeText(document.getElementById(\'' + fileId + '\').textContent)" title="คัดลอกคำสั่ง">📋</button>' : '') +
+              '<td class="c-admin-jobs__actions">' +
+                (suggestion ? '<button class="c-btn c-btn--xs c-job-copy" data-copy-target="' + fileId + '" title="คัดลอกคำสั่ง">📋</button>' : '') +
                 (slug && ch ? ' <a href="#admin/logs/' + Ui.esc(slug) + '/' + ch + '" class="c-btn c-btn--xs" data-nav title="ดู audit log">📂</a>' : '') +
               '</td>' +
             '</tr>';
@@ -843,6 +884,35 @@ const AdminJobsPage = {
           btn.addEventListener('click', () => {
             filter = btn.dataset.filter;
             renderJobs();
+          });
+        });
+        document.querySelectorAll('.c-job-copy').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const target = Ui.$(btn.dataset.copyTarget);
+            if (!target) return;
+            const command = target.textContent || '';
+            const fallbackCopy = () => {
+              const textarea = document.createElement('textarea');
+              textarea.value = command;
+              textarea.setAttribute('readonly', '');
+              textarea.className = 'u-sr-only';
+              document.body.appendChild(textarea);
+              textarea.select();
+              const copied = document.execCommand('copy');
+              textarea.remove();
+              if (!copied) throw new Error('copy failed');
+            };
+            if (navigator.clipboard?.writeText) {
+              navigator.clipboard.writeText(command)
+                .then(() => Ui.showToast('คัดลอกคำสั่งแล้ว', 'success'))
+                .catch(() => {
+                  try { fallbackCopy(); Ui.showToast('คัดลอกคำสั่งแล้ว', 'success'); }
+                  catch { Ui.showToast('คัดลอกคำสั่งไม่สำเร็จ', 'error'); }
+                });
+              return;
+            }
+            try { fallbackCopy(); Ui.showToast('คัดลอกคำสั่งแล้ว', 'success'); }
+            catch { Ui.showToast('คัดลอกคำสั่งไม่สำเร็จ', 'error'); }
           });
         });
       };
@@ -871,22 +941,23 @@ const AdminLogsPage = {
         ).join('');
         
         let selectHtml = '<div class="c-container">' + Ui.adminNav('logs') +
-          '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">📂 ตรวจสอบ Audit Log รายตอน</h3></div>' +
-          '<div class="c-settings-card" style="background:var(--c-surface); border:1px solid var(--c-border); border-radius:var(--radius); padding:var(--space-md);">' +
+          '<div class="c-section__header c-admin-logs__header"><h3 class="c-section__title">📂 ตรวจสอบ Audit Log รายตอน</h3></div>' +
+          '<div class="c-settings-card c-admin-logs__panel">' +
           '<div class="c-form">' +
-          '<div class="c-form__row" style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-md);">' +
+          '<div class="c-admin-logs__form-grid">' +
           '<div class="c-form__group">' +
           '<label class="c-form__label">เลือกนิยาย</label>' +
-          '<select class="c-form__select c-form__select--compact" id="logs-novel-select" style="width:100% !important;">' +
+          '<select class="c-form__select c-form__select--compact" id="logs-novel-select">' +
           novelOptions +
           '</select>' +
           '</div>' +
           '<div class="c-form__group">' +
           '<label class="c-form__label">ตอนที่ต้องการตรวจ (Chapter Number)</label>' +
-          '<input type="number" class="c-form__input c-form__input--compact" id="logs-chapter-num" value="1" min="1" style="width:100% !important;" />' +
+          '<input type="number" class="c-form__input c-form__input--compact" id="logs-chapter-num" value="1" min="1" />' +
           '</div>' +
           '</div>' +
-          '<button class="c-btn c-btn--primary" id="logs-query-btn" style="margin-top:var(--space-md); min-height:38px;">📂 ตรวจสอบ Audit Log</button>' +
+          '<div id="logs-query-status" class="c-admin-logs__status" aria-live="polite"></div>' +
+          '<button class="c-btn c-btn--primary c-admin-logs__submit" id="logs-query-btn">ตรวจสอบ Audit Log</button>' +
           '</div>' +
           '</div>' +
           '</div>';
@@ -897,7 +968,9 @@ const AdminLogsPage = {
           const selectedSlug = document.getElementById('logs-novel-select').value;
           const selectedNum = document.getElementById('logs-chapter-num').value.trim();
           if (!selectedSlug || !selectedNum) {
-            alert('กรุณาเลือกนิยายและระบุเลขตอนด้วยค่ะ');
+            const statusEl = document.getElementById('logs-query-status');
+            if (statusEl) statusEl.textContent = 'กรุณาเลือกนิยายและระบุเลขตอน';
+            Ui.showToast('กรุณาเลือกนิยายและระบุเลขตอน', 'error');
             return;
           }
           window.location.hash = `#admin/logs/${selectedSlug}/${selectedNum}`;
@@ -909,22 +982,22 @@ const AdminLogsPage = {
       const data = await res.json();
       let html = '<div class="c-container">' +
         Ui.adminNav('logs') +
-        '<div class="c-section__header" style="margin-top:var(--space-md);"><h3 class="c-section__title">📂 Audit Log: ' + Ui.esc(slug) + ' / ตอน ' + Ui.esc(num) + '</h3>' +
-        '<div style="display:flex; gap:var(--space-xs);">' +
-        '<a href="#admin/logs" class="c-btn c-btn--sm c-btn--secondary" data-nav style="text-decoration:none; display:inline-flex; align-items:center; min-height:32px;">🔍 ค้นหาใหม่</a>' +
-        '<a href="#admin/jobs" class="c-btn c-btn--sm c-btn--ghost" data-nav style="text-decoration:none; display:inline-flex; align-items:center; min-height:32px;">← กลับคิวงาน</a>' +
+        '<div class="c-section__header c-admin-logs__header"><h3 class="c-section__title">📂 Audit Log: ' + Ui.esc(slug) + ' / ตอน ' + Ui.esc(num) + '</h3>' +
+        '<div class="c-admin-logs__actions">' +
+        '<a href="#admin/logs" class="c-btn c-btn--sm c-btn--secondary c-admin-logs__link" data-nav>ค้นหาใหม่</a>' +
+        '<a href="#admin/jobs" class="c-btn c-btn--sm c-btn--ghost c-admin-logs__link" data-nav>กลับคิวงาน</a>' +
         '</div></div>';
 
       const files = data.ok && data.data ? data.data.files : [];
 
       if (!data.ok || !files || files.length === 0) {
         const errorMsg = data.error?.message || data.data?.warning || 'ไม่มี log สำหรับตอนนี้';
-        html += '<div class="c-settings-card" style="padding:var(--space-md); background:var(--c-surface); border:1px solid var(--c-border);"><p class="u-text-muted" style="margin:0;">' + Ui.esc(errorMsg) + '</p></div>';
+        html += '<div class="c-settings-card c-admin-logs__panel"><p class="u-text-muted c-admin-logs__empty">' + Ui.esc(errorMsg) + '</p></div>';
       } else {
         for (const file of files) {
-          html += '<div class="c-section" style="margin-top:var(--space-md);">' +
-            '<div class="c-section__header"><h3 class="c-section__title" style="font-size:var(--text-sm); font-weight:600; color:var(--c-text-primary);">' + Ui.esc(file.name) + '</h3></div>' +
-            '<pre style="background:var(--c-surface);border:1px solid var(--c-border);padding:var(--space-md);border-radius:var(--radius-sm);font-size:12px;overflow-x:auto;max-height:400px;color:var(--c-text);line-height:1.6;"><code>' + Ui.esc(file.content) + '</code></pre>' +
+          html += '<div class="c-section c-admin-logs__file">' +
+            '<div class="c-section__header"><h3 class="c-section__title c-admin-logs__file-title">' + Ui.esc(file.name) + '</h3></div>' +
+            '<pre class="c-admin-logs__pre"><code>' + Ui.esc(file.content) + '</code></pre>' +
             '</div>';
         }
       }
@@ -937,6 +1010,10 @@ const AdminLogsPage = {
 
 // ── ADMIN TRANSLATE & CONFIG PAGE ────────────────────────────────────────
 const AdminTranslatePage = {
+  setConsole(state, title, message) {
+    AdminUi.setConsole('translate', state, title, message);
+  },
+
   async render(params) {
     const page = Ui.$('page-admin-translate');
     if (!page) return;
@@ -958,13 +1035,13 @@ const AdminTranslatePage = {
       <div class="c-container">
         ${Ui.adminNav('translate')}
         
-        <div style="display:grid; grid-template-columns:1fr; gap:var(--space-md); margin-top:var(--space-md);">
+        <div class="c-admin-translate">
           
           <!-- LLM CONFIG FORM -->
-          <div class="c-card" style="padding:var(--space-md);">
-            <h3 style="margin-top:0; margin-bottom:var(--space-sm); font-size:var(--text-md); font-weight:600; color:var(--c-text-primary);">⚙️ ตั้งค่าความเชื่อมต่อ AI และโมเดล</h3>
-            <div class="c-form" style="display:flex; flex-direction:column; gap:var(--space-sm);">
-              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:var(--space-sm);">
+          <div class="c-card c-admin-translate__panel">
+            <h3 class="c-admin-translate__title">ตั้งค่าความเชื่อมต่อ AI และโมเดล</h3>
+            <div class="c-form c-admin-translate__form">
+              <div class="c-admin-translate__grid c-admin-translate__grid--wide">
                 <div class="c-form__group">
                   <label class="c-form__label">ผู้ให้บริการ (Provider)</label>
                   <select class="c-form__select c-form__select--compact" id="translate-cfg-provider">
@@ -972,9 +1049,9 @@ const AdminTranslatePage = {
                   </select>
                 </div>
                 <div class="c-form__group">
-                  <label class="c-form__label" style="display:flex; justify-content:space-between; align-items:center;">
+                  <label class="c-form__label c-admin-translate__split-label">
                     <span>รุ่นของ AI Model</span>
-                    <button id="fetch-models-btn" class="c-btn c-btn--xs c-btn--secondary" style="padding:2px 8px; font-size:10px; min-height:auto; display:none;">🔍 ดึงโมเดลล่าสุด</button>
+                    <button id="fetch-models-btn" class="c-btn c-btn--xs c-btn--secondary c-admin-translate__mini-btn" hidden>ดึงโมเดลล่าสุด</button>
                   </label>
                   <select class="c-form__select c-form__select--compact" id="translate-cfg-model"></select>
                 </div>
@@ -983,17 +1060,17 @@ const AdminTranslatePage = {
                 <label class="c-form__label" id="translate-cfg-key-label">API Key (เว้นว่างไว้เพื่อไม่ให้เปลี่ยนแปลง)</label>
                 <input type="password" class="c-form__input c-form__input--compact" id="translate-cfg-key" placeholder="กรอก API Key ใหม่ที่นี่..." />
               </div>
-              <div style="display:flex; justify-content:flex-end;">
-                <button class="c-btn c-btn--primary" id="translate-cfg-save-btn" style="min-height:36px; font-size:var(--text-sm);">💾 บันทึกการตั้งค่า</button>
+              <div class="c-admin-translate__actions">
+                <button class="c-btn c-btn--primary" id="translate-cfg-save-btn">บันทึกการตั้งค่า</button>
               </div>
             </div>
           </div>
  
           <!-- BATCH TRANSLATION PANEL -->
-          <div class="c-card" style="padding:var(--space-md);">
-            <h3 style="margin-top:0; margin-bottom:var(--space-sm); font-size:var(--text-md); font-weight:600; color:var(--c-text-primary);">🚀 สั่งการแปลนิยายเป็นกลุ่ม (Batch Translation)</h3>
-            <div class="c-form" style="display:flex; flex-direction:column; gap:var(--space-sm);">
-              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:var(--space-sm); align-items:end;">
+          <div class="c-card c-admin-translate__panel">
+            <h3 class="c-admin-translate__title">สั่งการแปลนิยายเป็นกลุ่ม</h3>
+            <div class="c-form c-admin-translate__form">
+              <div class="c-admin-translate__grid">
                 <div class="c-form__group">
                   <label class="c-form__label">เลือกนิยายที่ต้องการแปล</label>
                   <select class="c-form__select c-form__select--compact" id="translate-batch-novel">
@@ -1012,7 +1089,16 @@ const AdminTranslatePage = {
                   </select>
                 </div>
                 <div class="c-form__group">
-                  <label class="c-form__label">แปลขนาน (Concurrent)</label>
+                  <label class="c-form__label">โหมดการทำงาน</label>
+                  <select class="c-form__select c-form__select--compact" id="translate-batch-mode">
+                    <option value="autopilot" selected>Autopilot: แปลต่อเนื่องและซ่อมอัตโนมัติ</option>
+                    <option value="safe">Safe: หยุดเมื่อพบปัญหา</option>
+                    <option value="strict">Strict: เข้มงวดและส่งเข้า needs_review</option>
+                    <option value="draft">Draft: สร้างร่าง ไม่แตะไฟล์หลัก</option>
+                  </select>
+                </div>
+                <div class="c-form__group">
+                  <label class="c-form__label">แปลขนาน</label>
                   <select class="c-form__select c-form__select--compact" id="translate-batch-concurrent">
                     <option value="1">1 ตอนพร้อมกัน</option>
                     <option value="2">2 ตอนพร้อมกัน</option>
@@ -1020,19 +1106,19 @@ const AdminTranslatePage = {
                   </select>
                 </div>
               </div>
-              <div style="display:flex; justify-content:flex-end; gap:var(--space-xs); margin-top:var(--space-xs);">
-                <button class="c-btn c-btn--primary" id="translate-batch-run-btn" style="min-height:38px; font-weight:600;">⚡ สั่งแปลตามช่วงที่เลือก</button>
+              <div class="c-admin-translate__actions">
+                <button class="c-btn c-btn--primary" id="translate-batch-run-btn">สั่งแปลตามช่วงที่เลือก</button>
               </div>
             </div>
           </div>
 
           <!-- TRANSLATION CONSOLE/PROGRESS -->
-          <div class="c-card" id="translate-console-card" style="padding:var(--space-md); display:none;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--space-sm);">
-              <h4 style="margin:0; font-weight:600; color:var(--c-text-primary);" id="translate-console-title">กำลังรันคำสั่งแปลภาษา...</h4>
+          <div class="c-card c-admin-translate__panel" id="translate-console-card" hidden>
+            <div class="c-admin-translate__console-head">
+              <h4 class="c-admin-translate__console-title" id="translate-console-title">พร้อมรันคำสั่งแปลภาษา</h4>
               <span id="translate-console-badge" class="c-badge c-badge--teal">กำลังประมวลผล</span>
             </div>
-            <pre id="translate-console-output" style="background:var(--c-surface); color:var(--c-text-secondary); padding:var(--space-sm); border-radius:var(--radius-sm); font-size:var(--text-xs); overflow-x:auto; max-height:300px; font-family:var(--font-mono); margin:0;"><code>ระบบกำลังเริ่มต้น...</code></pre>
+            <pre id="translate-console-output" class="c-admin-translate__console" aria-live="polite">ระบบพร้อมทำงาน</pre>
           </div>
 
         </div>
@@ -1050,7 +1136,7 @@ const AdminTranslatePage = {
         const fetchBtn = document.getElementById('fetch-models-btn');
         if (!modelSelect) return;
         
-        if (fetchBtn) fetchBtn.style.display = provider === 'openrouter' ? 'inline-block' : 'none';
+        if (fetchBtn) fetchBtn.hidden = provider !== 'openrouter';
         if (keyLabel) keyLabel.textContent = `${providerInfo.label || provider} API Key (เว้นว่างไว้เพื่อไม่ให้เปลี่ยนแปลง)`;
         if (keyInput) {
           keyInput.placeholder = providerInfo.hasKey
@@ -1084,7 +1170,7 @@ const AdminTranslatePage = {
           e.preventDefault();
           try {
             fetchBtn.disabled = true;
-            fetchBtn.textContent = '⌛ กำลังดึง...';
+            fetchBtn.textContent = 'กำลังดึง...';
             
             const response = await fetch('https://openrouter.ai/api/v1/models');
             if (!response.ok) throw new Error('Network response was not ok');
@@ -1096,14 +1182,14 @@ const AdminTranslatePage = {
                   `<option value="${Ui.esc(model.id)}">${Ui.esc(model.name || model.id)}</option>`
                 ).join('');
                 modelSelect.innerHTML = opts;
-                alert('ดึงโมเดล OpenRouter สำเร็จเรียบร้อยแล้วค่ะ! เลือกรุ่นจากรายการได้เลย');
+                Ui.showToast('ดึงโมเดล OpenRouter สำเร็จแล้ว');
               }
             }
           } catch (err) {
-            alert('ไม่สามารถดึงข้อมูลโมเดลล่าสุดได้ค่ะ: ' + err.message);
+            Ui.showToast('ดึงโมเดลไม่สำเร็จ: ' + err.message, 'error');
           } finally {
             fetchBtn.disabled = false;
-            fetchBtn.textContent = '🔍 ดึงโมเดลล่าสุด';
+            fetchBtn.textContent = 'ดึงโมเดลล่าสุด';
           }
         });
       }
@@ -1128,16 +1214,16 @@ const AdminTranslatePage = {
 
           try {
             saveBtn.disabled = true;
-            saveBtn.textContent = '⌛ กำลังบันทึก...';
+            saveBtn.textContent = 'กำลังบันทึก...';
             await Api.saveLlmConfig(payload);
-            alert('บันทึกการตั้งค่าลง llm.json สำเร็จเรียบร้อยแล้วค่ะ!');
+            Ui.showToast('บันทึกการตั้งค่า AI แล้ว');
             document.getElementById('translate-cfg-key').value = '';
             AdminTranslatePage.render(params);
           } catch (err) {
-            alert('เกิดข้อผิดพลาดในการบันทึก: ' + err.message);
+            Ui.showToast('บันทึกไม่สำเร็จ: ' + err.message, 'error');
           } finally {
             saveBtn.disabled = false;
-            saveBtn.textContent = '💾 บันทึกการตั้งค่า';
+            saveBtn.textContent = 'บันทึกการตั้งค่า';
           }
         });
       }
@@ -1150,56 +1236,44 @@ const AdminTranslatePage = {
           const rangeVal = document.getElementById('translate-batch-range').value;
           const scoreVal = document.getElementById('translate-batch-score').value === 'true';
           const concurrentVal = parseInt(document.getElementById('translate-batch-concurrent').value, 10);
+          const modeVal = document.getElementById('translate-batch-mode').value;
 
           if (!rangeVal.trim()) {
-            alert('กรุณากรอกช่วงตอนที่ต้องการสั่งแปล เช่น "5-10" หรือ "5"');
+            AdminTranslatePage.setConsole('error', 'ยังไม่ได้ระบุช่วงตอน', 'กรุณากรอกช่วงตอนที่ต้องการสั่งแปล เช่น 5-10 หรือ 5');
+            Ui.showToast('กรุณากรอกช่วงตอนที่ต้องการสั่งแปล', 'error');
             return;
           }
 
-          const consoleCard = document.getElementById('translate-console-card');
-          const consoleTitle = document.getElementById('translate-console-title');
-          const consoleBadge = document.getElementById('translate-console-badge');
-          const consoleOutput = document.getElementById('translate-console-output');
-
-          if (consoleCard) consoleCard.style.display = 'block';
-          if (consoleTitle) consoleTitle.textContent = `รันการแปลช่วงตอน: ${rangeVal}`;
-          if (consoleBadge) {
-            consoleBadge.textContent = 'กำลังแปล...';
-            consoleBadge.className = 'c-badge c-badge--amber';
-          }
-          if (consoleOutput) consoleOutput.innerHTML = `<code>กำลังส่ง Request และเรียกใช้ python tools/translate.py...</code>`;
+          AdminTranslatePage.setConsole(
+            'running',
+            `รันการแปลช่วงตอน: ${rangeVal}`,
+            `กำลังส่งคำสั่งไปยัง tools/novelctl.py\nนิยาย: ${slugVal}\nโหมด: ${modeVal}\nWorkers: ${concurrentVal}`
+          );
 
           try {
             runBtn.disabled = true;
-            runBtn.textContent = '⌛ กำลังดำเนินการแปล...';
+            runBtn.textContent = 'กำลังดำเนินการแปล...';
             
-            const res = await Api.translateBatch(slugVal, rangeVal, scoreVal, concurrentVal);
+            const res = await Api.translateBatch(slugVal, rangeVal, scoreVal, concurrentVal, { mode: modeVal });
+            const result = res.data || res;
             
-            if (res.success) {
-              if (consoleBadge) {
-                consoleBadge.textContent = 'แปลเสร็จสิ้น';
-                consoleBadge.className = 'c-badge c-badge--teal';
-              }
-              if (consoleOutput) {
-                consoleOutput.innerHTML = `<code>[SUCCESS] แปลภาษาสำเร็จเรียบร้อยแล้วค่ะ!\n\nผลลัพธ์:\n${Ui.esc(res.stdout || 'ไม่มีการส่งข้อมูลผลลัพธ์ออก')}\n\nล้างแคชบทเรียนและซิงค์เรียบร้อยแล้ว</code>`;
-              }
+            if (res.ok && result.success) {
+              AdminTranslatePage.setConsole(
+                'success',
+                `แปลเสร็จสิ้น: ${rangeVal}`,
+                `[SUCCESS] แปลภาษาสำเร็จเรียบร้อยแล้ว\n\nผลลัพธ์:\n${result.stdout || 'ไม่มีการส่งข้อมูลผลลัพธ์ออก'}\n\nล้างแคชบทเรียนและซิงค์เรียบร้อยแล้ว`
+              );
               Api.invalidateAll(slugVal);
-              alert('แปลกลุ่มช่วงตอนสำเร็จแล้วค่ะ!');
+              Ui.showToast('แปลกลุ่มช่วงตอนสำเร็จแล้ว');
             } else {
               throw new Error(res.error?.message || 'แปลไม่สำเร็จ');
             }
           } catch (err) {
-            if (consoleBadge) {
-              consoleBadge.textContent = 'ขัดข้อง';
-              consoleBadge.className = 'c-badge c-badge--red';
-            }
-            if (consoleOutput) {
-              consoleOutput.innerHTML = `<code>[ERROR] การแปลเกิดข้อผิดพลาด:\n\n${Ui.esc(err.message)}</code>`;
-            }
-            alert('การแปลเกิดข้อผิดพลาด: ' + err.message);
+            AdminTranslatePage.setConsole('error', `แปลไม่สำเร็จ: ${rangeVal}`, `[ERROR] การแปลเกิดข้อผิดพลาด:\n\n${err.message}`);
+            Ui.showToast('การแปลเกิดข้อผิดพลาด: ' + err.message, 'error');
           } finally {
             runBtn.disabled = false;
-            runBtn.textContent = '⚡ สั่งแปลตามช่วงที่เลือก';
+            runBtn.textContent = 'สั่งแปลตามช่วงที่เลือก';
           }
         });
       }
@@ -1212,31 +1286,35 @@ const AdminTranslatePage = {
 
 // ── ADMIN IMPORT NOVEL ───────────────────────────────────────────────────
 const AdminImportPage = {
+  setConsole(state, title, message) {
+    AdminUi.setConsole('import', state, title || 'ผลลัพธ์คำสั่งระบบ', message);
+  },
+
   async render(params) {
     const page = Ui.$('page-admin-import');
     if (!page) return;
     
     let html = '<div class="c-container">' + Ui.adminNav('import') +
-      `<div class="c-section__header" style="margin-top:var(--space-md);">
+      `<div class="c-section__header c-admin-import__header">
         <h3 class="c-section__title">📥 นำเข้านิยาย (Import Novel)</h3>
-        <span style="font-size:var(--text-sm);color:var(--c-text-muted);">สร้างและนำเข้านิยายเข้าสู่ฐานข้อมูลระบบ</span>
+        <span class="c-admin-import__subtitle">สร้างและนำเข้านิยายเข้าสู่ฐานข้อมูลระบบ</span>
       </div>
       
       <!-- Tab Switches -->
-      <div class="c-admin-tabs" style="display:flex;gap:var(--space-sm);margin-bottom:var(--space-md);border-bottom:2px solid var(--c-border);padding-bottom:var(--space-xs);">
-        <button class="c-btn c-btn--primary tab-btn" data-tab="file" style="min-width:140px;">นำเข้าจากไฟล์ (.txt)</button>
-        <button class="c-btn c-btn--ghost tab-btn" data-tab="web" style="min-width:140px;">ดึงข้อมูลจากเว็บ (URL Scraper)</button>
+      <div class="c-admin-import__tabs">
+        <button class="c-btn c-btn--primary tab-btn c-admin-import__tab" data-tab="file">นำเข้าจากไฟล์ (.txt)</button>
+        <button class="c-btn c-btn--ghost tab-btn c-admin-import__tab" data-tab="web">ดึงข้อมูลจากเว็บ (URL Scraper)</button>
       </div>
 
       <!-- TAB 1: File Import -->
       <div id="import-tab-file" class="import-tab-content">
-        <div class="c-settings-card" style="background:var(--c-surface); border:1px solid var(--c-border); border-radius:var(--radius); padding:var(--space-md);">
-          <div class="c-settings-card__title" style="margin-bottom:var(--space-md); font-weight:var(--font-weight-semibold); font-size:var(--text-md); display:flex; align-items:center; gap:8px;">
+        <div class="c-settings-card c-admin-import__panel">
+          <div class="c-settings-card__title c-admin-import__title">
             📁 นำเข้าจากไฟล์ข้อความ (.txt)
           </div>
           
           <div class="c-form">
-            <div class="c-form__row" style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-md);">
+            <div class="c-admin-import__grid c-admin-import__grid--two">
               <div class="c-form__group">
                 <label class="c-form__label">ชื่อภาษาไทย/แปล (Title Thai)</label>
                 <input type="text" id="import-file-title" class="c-form__input" placeholder="เช่น ท่องยุทธภพด้วยระบบฟาร์ม" required />
@@ -1247,7 +1325,7 @@ const AdminImportPage = {
               </div>
             </div>
 
-            <div class="c-form__row" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--space-md); margin-top:var(--space-sm);">
+            <div class="c-admin-import__grid c-admin-import__grid--three">
               <div class="c-form__group">
                 <label class="c-form__label">ผู้แต่ง (Author)</label>
                 <input type="text" id="import-file-author" class="c-form__input" placeholder="เช่น ปาเต้าหู้" />
@@ -1265,20 +1343,20 @@ const AdminImportPage = {
               </div>
             </div>
 
-            <div class="c-form__group" style="margin-top:var(--space-md);">
+            <div class="c-form__group c-admin-import__content-field">
               <label class="c-form__label">เนื้อความไฟล์ดิบ (.txt)</label>
-              <textarea id="import-file-content" class="c-form__input" style="min-height:220px; font-family:var(--font-mono); font-size:13px; line-height:1.6;" placeholder="คัดลอกเนื้อความนิยายภาษาจีน/อังกฤษ ที่มีคำระบุตอน เช่น ตอนที่ 1 ... หรือ 第1章 ... แล้วนำมาวางที่นี่..."></textarea>
+              <textarea id="import-file-content" class="c-form__input c-admin-import__textarea" placeholder="คัดลอกเนื้อความนิยายภาษาจีน/อังกฤษ ที่มีคำระบุตอน เช่น ตอนที่ 1 ... หรือ 第1章 ... แล้วนำมาวางที่นี่..."></textarea>
             </div>
 
-            <button class="c-btn c-btn--primary c-btn--full" id="import-file-submit-btn" style="margin-top:var(--space-md); min-height:44px;">🚀 นำเข้าไฟล์ข้อความและสร้างนิยาย</button>
+            <button class="c-btn c-btn--primary c-btn--full c-admin-import__submit" id="import-file-submit-btn">นำเข้าไฟล์ข้อความและสร้างนิยาย</button>
           </div>
         </div>
       </div>
 
       <!-- TAB 2: Web Scraping -->
-      <div id="import-tab-web" class="import-tab-content" style="display:none;">
-        <div class="c-settings-card" style="background:var(--c-surface); border:1px solid var(--c-border); border-radius:var(--radius); padding:var(--space-md);">
-          <div class="c-settings-card__title" style="margin-bottom:var(--space-md); font-weight:var(--font-weight-semibold); font-size:var(--text-md); display:flex; align-items:center; gap:8px;">
+      <div id="import-tab-web" class="import-tab-content" hidden>
+        <div class="c-settings-card c-admin-import__panel">
+          <div class="c-settings-card__title c-admin-import__title">
             🌐 ดึงข้อมูลนิยายจากเว็บภายนอก (Web URL Scraper)
           </div>
           
@@ -1288,7 +1366,7 @@ const AdminImportPage = {
               <input type="url" id="import-web-url" class="c-form__input" placeholder="เช่น https://www.uukanshu.com/b/12345/ หรือเว็บนิยายอื่นๆ..." required />
             </div>
 
-            <div class="c-form__row" style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-md); margin-top:var(--space-sm);">
+            <div class="c-admin-import__grid c-admin-import__grid--two">
               <div class="c-form__group">
                 <label class="c-form__label">ชื่อภาษาไทย/แปล (Title Thai)</label>
                 <input type="text" id="import-web-title" class="c-form__input" placeholder="เช่น ท่องยุทธภพด้วยระบบฟาร์ม" required />
@@ -1299,7 +1377,7 @@ const AdminImportPage = {
               </div>
             </div>
 
-            <div class="c-form__row" style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:var(--space-sm); margin-top:var(--space-sm);">
+            <div class="c-admin-import__grid c-admin-import__grid--four">
               <div class="c-form__group">
                 <label class="c-form__label">ผู้แต่ง (Author)</label>
                 <input type="text" id="import-web-author" class="c-form__input" placeholder="ระบุเองหรือดึงออโต้" />
@@ -1322,22 +1400,22 @@ const AdminImportPage = {
             </div>
 
             <!-- Alert Warning -->
-            <div class="c-settings-card" style="background:#2d1a10; border:1px solid #78350f; color:#fef3c7; border-radius:var(--radius-sm); margin-top:var(--space-md); padding:10px var(--space-md); font-size:12px; line-height:1.6;">
+            <div class="c-settings-card c-admin-import__warning">
               ⚠️ <strong>ข้อควรระวัง:</strong> การดึงนิยายจาก URL เว็บภายนอกอาจติดปัญหาระบบป้องกันความปลอดภัย (เช่น Cloudflare WAF, Captcha, DDOS Protection) หรือโครงสร้างหน้าเว็บเปลี่ยนไป หากเกิดข้อผิดพลาด แนะนำให้ใช้ตัวเลือก <strong>Direct Scraper API</strong> หรือดาวน์โหลดมาเป็นไฟล์ <strong>.txt</strong> แล้วนำเข้ามาทางแท็บแรกแทนค่ะ
             </div>
 
-            <button class="c-btn c-btn--primary c-btn--full" id="import-web-submit-btn" style="margin-top:var(--space-md); min-height:44px;">🌐 เริ่มรันคำสั่ง Scrape และสร้างนิยาย</button>
+            <button class="c-btn c-btn--primary c-btn--full c-admin-import__submit" id="import-web-submit-btn">เริ่มรันคำสั่ง Scrape และสร้างนิยาย</button>
           </div>
         </div>
       </div>
       
       <!-- Console Output Area -->
-      <div id="import-console-card" class="c-settings-card" style="display:none; background:#05070a; border:1px solid #1e293b; border-radius:var(--radius); padding:var(--space-md); margin-top:var(--space-lg);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-sm);">
-          <div id="import-console-title" style="font-weight:600; color:#94a3b8; font-size:var(--text-sm);">ผลลัพธ์คำสั่งระบบ</div>
+      <div id="import-console-card" class="c-settings-card c-admin-import__console-card" hidden>
+        <div class="c-admin-import__console-head">
+          <div id="import-console-title" class="c-admin-import__console-title">ผลลัพธ์คำสั่งระบบ</div>
           <span id="import-console-badge" class="c-badge c-badge--amber">กำลังนำเข้า...</span>
         </div>
-        <pre id="import-console-output" style="background:#090d16; border:1px solid #0f172a; padding:12px; border-radius:var(--radius-sm); overflow-x:auto; margin:0; font-family:var(--font-mono); font-size:12px; color:#38bdf8; line-height:1.5; white-space:pre-wrap; max-height:250px; overflow-y:auto;"><code>...</code></pre>
+        <pre id="import-console-output" class="c-admin-import__console" aria-live="polite">...</pre>
       </div>
     </div>`;
     
@@ -1348,13 +1426,14 @@ const AdminImportPage = {
     tabBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const tab = btn.dataset.tab;
-        page.querySelectorAll('.import-tab-content').forEach(c => c.style.display = 'none');
+        page.querySelectorAll('.import-tab-content').forEach(c => { c.hidden = true; });
         page.querySelectorAll('.tab-btn').forEach(b => {
-          b.className = 'c-btn c-btn--ghost tab-btn';
+          b.className = 'c-btn c-btn--ghost tab-btn c-admin-import__tab';
         });
         
-        btn.className = 'c-btn c-btn--primary tab-btn';
-        document.getElementById('import-tab-' + tab).style.display = 'block';
+        btn.className = 'c-btn c-btn--primary tab-btn c-admin-import__tab';
+        const activeTab = document.getElementById('import-tab-' + tab);
+        if (activeTab) activeTab.hidden = false;
       });
     });
 
@@ -1370,30 +1449,25 @@ const AdminImportPage = {
         const content = document.getElementById('import-file-content').value.trim();
 
         if (!title || !slug) {
-          alert('กรุณากรอกชื่อเรื่องและ Slug สำหรับนิยายด้วยค่ะ');
+          AdminImportPage.setConsole('error', 'ข้อมูลยังไม่ครบ', 'กรุณากรอกชื่อเรื่องและ Slug สำหรับนิยาย');
+          Ui.showToast('กรุณากรอกชื่อเรื่องและ Slug', 'error');
           return;
         }
         if (!content) {
-          alert('กรุณาป้อนเนื้อความนิยายดิบที่จะใช้นำเข้าด้วยค่ะ');
+          AdminImportPage.setConsole('error', 'ยังไม่มีเนื้อหานิยาย', 'กรุณาป้อนเนื้อความนิยายดิบที่จะใช้นำเข้า');
+          Ui.showToast('กรุณาป้อนเนื้อหานิยาย', 'error');
           return;
         }
 
-        const consoleCard = document.getElementById('import-console-card');
-        const consoleTitle = document.getElementById('import-console-title');
-        const consoleBadge = document.getElementById('import-console-badge');
-        const consoleOutput = document.getElementById('import-console-output');
-
-        if (consoleCard) consoleCard.style.display = 'block';
-        if (consoleTitle) consoleTitle.textContent = `รันการนำเข้าไฟล์นิยาย: ${title}`;
-        if (consoleBadge) {
-          consoleBadge.textContent = 'กำลังดำเนินการ...';
-          consoleBadge.className = 'c-badge c-badge--amber';
-        }
-        if (consoleOutput) consoleOutput.innerHTML = `<code>กำลังประมวลผลการวิเคราะห์และแยกบทเรียน...</code>`;
+        AdminImportPage.setConsole(
+          'running',
+          `รันการนำเข้าไฟล์นิยาย: ${title}`,
+          'กำลังประมวลผลการวิเคราะห์และแยกบทเรียน...'
+        );
 
         try {
           fileSubmit.disabled = true;
-          fileSubmit.textContent = '⌛ กำลังรันระบบนำเข้า...';
+          fileSubmit.textContent = 'กำลังรันระบบนำเข้า...';
 
           const res = await fetch('/api/novel/import-file', {
             method: 'POST',
@@ -1403,30 +1477,22 @@ const AdminImportPage = {
           const data = await res.json();
 
           if (res.ok && data.success) {
-            if (consoleBadge) {
-              consoleBadge.textContent = 'นำเข้าสำเร็จ';
-              consoleBadge.className = 'c-badge c-badge--teal';
-            }
-            if (consoleOutput) {
-              consoleOutput.innerHTML = `<code>[SUCCESS] นำเข้านิยายสำเร็จเรียบร้อยแล้วค่ะ!\n\nข้อมูลนิยาย:\n- เรื่อง: ${Ui.esc(data.title)} (${Ui.esc(data.slug)})\n- จำนวนตอนที่นำเข้าได้: ${data.chaptersCount} ตอน\n- ภาษาต้นฉบับ: ${data.sourceLang.toUpperCase()}\n\nคุณสามารถเปิดหน้า Admin แปลนิยาย หรือเข้าไปดูหน้าหอสมุดได้ทันทีค่ะ</code>`;
-            }
+            AdminImportPage.setConsole(
+              'success',
+              `นำเข้าสำเร็จ: ${title}`,
+              `[SUCCESS] นำเข้านิยายสำเร็จเรียบร้อยแล้ว\n\nข้อมูลนิยาย:\n- เรื่อง: ${data.title} (${data.slug})\n- จำนวนตอนที่นำเข้าได้: ${data.chaptersCount} ตอน\n- ภาษาต้นฉบับ: ${data.sourceLang.toUpperCase()}\n\nคุณสามารถเปิดหน้า Admin แปลนิยาย หรือเข้าไปดูหน้าหอสมุดได้ทันที`
+            );
             Api.invalidateNovels();
-            alert(`นำเข้านิยาย "${title}" สำเร็จแล้วค่ะ! (ทั้งหมด ${data.chaptersCount} ตอน)`);
+            Ui.showToast(`นำเข้านิยาย "${title}" สำเร็จแล้ว`);
           } else {
             throw new Error(data.error?.message || 'นำเข้าไม่สำเร็จ');
           }
         } catch (err) {
-          if (consoleBadge) {
-            consoleBadge.textContent = 'ขัดข้อง';
-            consoleBadge.className = 'c-badge c-badge--red';
-          }
-          if (consoleOutput) {
-            consoleOutput.innerHTML = `<code>[ERROR] การนำเข้าล้มเหลว:\n\n${Ui.esc(err.message)}</code>`;
-          }
-          alert('นำเข้าล้มเหลว: ' + err.message);
+          AdminImportPage.setConsole('error', 'นำเข้าล้มเหลว', `[ERROR] การนำเข้าล้มเหลว:\n\n${err.message}`);
+          Ui.showToast('นำเข้าล้มเหลว: ' + err.message, 'error');
         } finally {
           fileSubmit.disabled = false;
-          fileSubmit.textContent = '🚀 นำเข้าไฟล์ข้อความและสร้างนิยาย';
+          fileSubmit.textContent = 'นำเข้าไฟล์ข้อความและสร้างนิยาย';
         }
       });
     }
@@ -1444,26 +1510,20 @@ const AdminImportPage = {
         const engine = document.getElementById('import-web-engine').value;
 
         if (!url || !title || !slug) {
-          alert('กรุณากรอกข้อมูล URL, ชื่อเรื่อง และ Slug ให้ครบด้วยค่ะ');
+          AdminImportPage.setConsole('error', 'ข้อมูลยังไม่ครบ', 'กรุณากรอกข้อมูล URL, ชื่อเรื่อง และ Slug ให้ครบ');
+          Ui.showToast('กรุณากรอก URL, ชื่อเรื่อง และ Slug', 'error');
           return;
         }
 
-        const consoleCard = document.getElementById('import-console-card');
-        const consoleTitle = document.getElementById('import-console-title');
-        const consoleBadge = document.getElementById('import-console-badge');
-        const consoleOutput = document.getElementById('import-console-output');
-
-        if (consoleCard) consoleCard.style.display = 'block';
-        if (consoleTitle) consoleTitle.textContent = `รัน Scraper ดึงข้อมูล: ${title}`;
-        if (consoleBadge) {
-          consoleBadge.textContent = 'กำลัง Scrape...';
-          consoleBadge.className = 'c-badge c-badge--amber';
-        }
-        if (consoleOutput) consoleOutput.innerHTML = `<code>กำลังรัน Scraper Engine (${engine}) เพื่อเชื่อมต่อไปยัง ${Ui.esc(url)}...</code>`;
+        AdminImportPage.setConsole(
+          'running',
+          `รัน Scraper ดึงข้อมูล: ${title}`,
+          `กำลังรัน Scraper Engine (${engine}) เพื่อเชื่อมต่อไปยัง ${url}...`
+        );
 
         try {
           webSubmit.disabled = true;
-          webSubmit.textContent = '⌛ กำลังดึงข้อมูล...';
+          webSubmit.textContent = 'กำลังดึงข้อมูล...';
 
           const res = await fetch('/api/novel/import-web', {
             method: 'POST',
@@ -1473,30 +1533,22 @@ const AdminImportPage = {
           const data = await res.json();
 
           if (res.ok && data.success) {
-            if (consoleBadge) {
-              consoleBadge.textContent = 'ดึงสำเร็จ';
-              consoleBadge.className = 'c-badge c-badge--teal';
-            }
-            if (consoleOutput) {
-              consoleOutput.innerHTML = `<code>[SUCCESS] Scraped ดึงข้อมูลนิยายสำเร็จเรียบร้อยแล้วค่ะ!\n\nสถานะ:\n- เรื่อง: ${Ui.esc(data.title)} (${Ui.esc(data.slug)})\n- ช่วงตอนที่ดึง: ${data.start} ถึง ${data.end}\n- ดึงสำเร็จจริง: ${data.chaptersCount} ตอน\n- รายละเอียด: ${Ui.esc(data.message)}\n\nนิยายพร้อมสำหรับสั่งแปลด้วย AI หรือเข้าอ่านแล้วค่ะ!</code>`;
-            }
+            AdminImportPage.setConsole(
+              'success',
+              `ดึงข้อมูลสำเร็จ: ${title}`,
+              `[SUCCESS] Scraped ดึงข้อมูลนิยายสำเร็จเรียบร้อยแล้ว\n\nสถานะ:\n- เรื่อง: ${data.title} (${data.slug})\n- ช่วงตอนที่ดึง: ${data.start} ถึง ${data.end}\n- ดึงสำเร็จจริง: ${data.chaptersCount} ตอน\n- รายละเอียด: ${data.message}\n\nนิยายพร้อมสำหรับสั่งแปลด้วย AI หรือเข้าอ่านแล้ว`
+            );
             Api.invalidateNovels();
-            alert(`ดึงข้อมูลและนำเข้านิยายสำเร็จแล้วค่ะ! (ดึงมาได้ทั้งหมด ${data.chaptersCount} ตอน)`);
+            Ui.showToast(`ดึงข้อมูลและนำเข้า "${title}" สำเร็จแล้ว`);
           } else {
             throw new Error(data.error?.message || 'ดึงข้อมูลไม่สำเร็จ');
           }
         } catch (err) {
-          if (consoleBadge) {
-            consoleBadge.textContent = 'ขัดข้อง';
-            consoleBadge.className = 'c-badge c-badge--red';
-          }
-          if (consoleOutput) {
-            consoleOutput.innerHTML = `<code>[ERROR] Scraper เกิดข้อผิดพลาด:\n\n${Ui.esc(err.message)}</code>`;
-          }
-          alert('Scraper เกิดข้อผิดพลาด: ' + err.message);
+          AdminImportPage.setConsole('error', 'Scraper เกิดข้อผิดพลาด', `[ERROR] Scraper เกิดข้อผิดพลาด:\n\n${err.message}`);
+          Ui.showToast('Scraper เกิดข้อผิดพลาด: ' + err.message, 'error');
         } finally {
           webSubmit.disabled = false;
-          webSubmit.textContent = '🌐 เริ่มรันคำสั่ง Scrape และสร้างนิยาย';
+          webSubmit.textContent = 'เริ่มรันคำสั่ง Scrape และสร้างนิยาย';
         }
       });
     }

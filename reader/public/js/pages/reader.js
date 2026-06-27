@@ -31,24 +31,24 @@ const ReaderPage = {
 
         <div class="c-toolbar reader-toolbar">
           <a href="#novel/${slug}" class="c-toolbar__back" data-nav>
-            <svg style="width:16px;height:16px;"><use xlink:href="#icon-arrow-left"/></svg>
+            <svg class="c-icon c-icon--sm"><use xlink:href="#icon-arrow-left"/></svg>
             <span>กลับ</span>
           </a>
           <span class="c-toolbar__title">${novel ? Ui.esc(Ui.displayTitle(novel)) : slug}</span>
           <span class="c-toolbar__divider"></span>
           
-          <button class="c-btn" id="reader-open-editor" style="font-size:var(--text-xs);display:flex;align-items:center;gap:4px;color:var(--c-text-secondary);min-height:36px;padding:0 var(--space-xs);border:1px solid var(--c-border);border-radius:var(--radius-sm);" title="แก้ไข">
-            <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;"><use xlink:href="#icon-settings"/></svg>
+          <button class="c-btn c-reader-toolbar__editor" id="reader-open-editor" title="แก้ไข">
+            <svg class="c-icon c-icon--xs c-icon--stroke"><use xlink:href="#icon-settings"/></svg>
             <span>แก้ไข</span>
           </button>
           <span class="c-toolbar__divider"></span>
           
-          <select id="reader-model-select" style="font-size:11px;height:36px;padding:0 var(--space-xs);border:1px solid var(--c-border);background:var(--c-bg-secondary);color:var(--c-text-primary);border-radius:var(--radius-sm);cursor:pointer;max-width:180px;outline:none;" title="เลือกโมเดลแปล AI"></select>
+          <select id="reader-model-select" class="c-reader-toolbar__model-select" title="เลือกโมเดลแปล AI"></select>
           <span class="c-toolbar__divider"></span>
           
           <button class="c-btn c-btn--icon" id="reader-theme-toggle" title="เปลี่ยนธีม"></button>
           <button class="c-btn c-btn--icon" id="reader-distraction-toggle" title="โหมดอ่านหนังสือ">
-            <svg style="width:16px;height:16px;"><use xlink:href="#icon-fullscreen"/></svg>
+            <svg class="c-icon c-icon--sm"><use xlink:href="#icon-fullscreen"/></svg>
           </button>
         </div>
 
@@ -60,14 +60,14 @@ const ReaderPage = {
           </div>
           <div class="reader-body">
             <h1 class="reader-title" id="reader-title"></h1>
-            <div id="reader-translator-info" style="font-size:var(--text-xs);color:var(--c-text-muted);margin-top:-8px;margin-bottom:var(--space-sm);text-align:center;font-family:var(--font-sans);"></div>
+            <div id="reader-translator-info" class="c-reader__translator-info"></div>
             <div class="c-reader__meta">
               <button class="c-btn c-btn--icon" id="reader-font-sm" title="ลดขนาดอักษร">A−</button>
-              <span style="font-size:var(--text-sm);color:var(--c-text-muted);" id="reader-font-label">18px</span>
+              <span class="c-reader__meta-value" id="reader-font-label">18px</span>
               <button class="c-btn c-btn--icon" id="reader-font-lg" title="เพิ่มขนาดอักษร">A+</button>
               <span class="c-toolbar__divider"></span>
               <button class="c-btn c-btn--icon" id="reader-leading-sm" title="ลดช่องว่าง">↑↓</button>
-              <span style="font-size:var(--text-sm);color:var(--c-text-muted);" id="reader-leading-label">1.8</span>
+              <span class="c-reader__meta-value" id="reader-leading-label">1.8</span>
               <button class="c-btn c-btn--icon" id="reader-leading-lg" title="เพิ่มช่องว่าง">↑↑</button>
             </div>
             <div id="reader-content"></div>
@@ -80,14 +80,14 @@ const ReaderPage = {
         </div>
 
         <!-- Custom Glossary Dialog Modal -->
-        <div class="c-modal" id="reader-glossary-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:2000; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(4px);">
-          <div class="c-modal__card" style="background:var(--c-bg-secondary); border:1px solid var(--c-border); padding:var(--space-md); border-radius:var(--radius); width:100%; max-width:400px; box-shadow:var(--shadow-lg); box-sizing:border-box;">
-            <h3 style="margin-top:0; margin-bottom:var(--space-sm); font-size:var(--text-md); font-weight:600; color:var(--c-text-primary);">เพิ่มคำศัพท์ลง Glossary</h3>
+        <div class="c-modal c-reader-glossary-modal" id="reader-glossary-modal">
+          <div class="c-modal__card c-reader-glossary-modal__card">
+            <h3 class="c-reader-glossary-modal__title">เพิ่มคำศัพท์ลง Glossary</h3>
             
-            <div class="c-form" style="display:flex; flex-direction:column; gap:var(--space-sm);">
+            <div class="c-form c-reader-glossary-modal__form">
               <div class="c-form__group">
                 <label class="c-form__label">คำศัพท์ภาษาจีน</label>
-                <input type="text" class="c-form__input" id="modal-glossary-source" readonly style="opacity:0.8; font-weight:600;" />
+                <input type="text" class="c-form__input c-reader-glossary-modal__source" id="modal-glossary-source" readonly />
               </div>
               <div class="c-form__group">
                 <label class="c-form__label">คำแปลภาษาไทย</label>
@@ -95,7 +95,7 @@ const ReaderPage = {
               </div>
               <div class="c-form__group">
                 <label class="c-form__label">ประเภท</label>
-                <select class="c-form__select" id="modal-glossary-category" style="height:44px; padding:0 var(--space-sm);">
+                <select class="c-form__select c-reader-glossary-modal__category" id="modal-glossary-category">
                   <option value="คำศัพท์">คำศัพท์ทั่วไป</option>
                   <option value="ตัวละคร">ตัวละคร</option>
                   <option value="สถานที่">สถานที่</option>
@@ -104,9 +104,9 @@ const ReaderPage = {
                 </select>
               </div>
               
-              <div style="display:flex; justify-content:flex-end; gap:var(--space-xs); margin-top:var(--space-sm);">
-                <button type="button" class="c-btn c-btn--secondary" id="modal-glossary-cancel" style="min-height:36px; font-size:var(--text-sm);">ยกเลิก</button>
-                <button type="button" class="c-btn c-btn--primary" id="modal-glossary-save" style="min-height:36px; font-size:var(--text-sm);">บันทึก</button>
+              <div class="c-reader-glossary-modal__actions">
+                <button type="button" class="c-btn c-btn--secondary c-reader-glossary-modal__button" id="modal-glossary-cancel">ยกเลิก</button>
+                <button type="button" class="c-btn c-btn--primary c-reader-glossary-modal__button" id="modal-glossary-save">บันทึก</button>
               </div>
             </div>
           </div>
@@ -144,13 +144,13 @@ const ReaderPage = {
             await Api.saveLlmConfig({ default_model: val, default_provider: provider });
             console.log(`Saved default model to llm.json: ${val} (${provider})`);
           } catch (err) {
-            alert('ไม่สามารถบันทึกการตั้งค่าโมเดลได้: ' + err.message);
+            Ui.showToast('ไม่สามารถบันทึกการตั้งค่าโมเดลได้: ' + err.message, 'error');
           }
         });
       }
 
       // Show loading state while chapter loads
-      Ui.$('reader-content').innerHTML = '<div class="c-skel c-skel--block" style="height:200px;"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line" style="width:75%;"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line" style="width:60%;"></div>';
+      Ui.$('reader-content').innerHTML = '<div class="c-skel c-reader-skel__block"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line c-reader-skel__line--medium"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line c-reader-skel__line--short"></div>';
 
       // ── Load chapter ─────────────────────────────────────────────────
       const loadChapter = async (chIdx) => {
@@ -182,9 +182,9 @@ const ReaderPage = {
           let contentHtml = '';
           if (!data.isTranslated) {
             contentHtml += `
-            <div id="inline-translate-banner" style="background:var(--c-accent-soft); border:1px solid var(--c-accent); padding:var(--space-md); border-radius:var(--radius-sm); margin-bottom:var(--space-md); text-align:center; font-family:var(--font-sans);">
-              <p style="margin:0 0 var(--space-xs) 0; font-size:var(--text-sm); font-weight:600; color:var(--c-text-primary);">📖 ตอนศึกษานี้ยังไม่ได้แปลเป็นภาษาไทย</p>
-              <button id="inline-translate-btn" class="c-btn c-btn--primary" style="font-size:var(--text-xs); min-height:36px; padding:0 var(--space-sm); cursor:pointer; font-weight:600;">⚡ แปลไทยด้วย AI ทันที</button>
+            <div id="inline-translate-banner" class="c-inline-translate">
+              <p class="c-inline-translate__text">📖 ตอนศึกษานี้ยังไม่ได้แปลเป็นภาษาไทย</p>
+              <button id="inline-translate-btn" class="c-btn c-btn--primary c-inline-translate__button">⚡ แปลไทยด้วย AI ทันที</button>
             </div>`;
           }
 
@@ -202,11 +202,12 @@ const ReaderPage = {
                 if (res.ok) {
                   Api.invalidateChapterContent(slug, ch.num);
                   await loadChapter(chIdx);
+                  Ui.showToast('แปลตอนนี้สำเร็จแล้ว', 'success');
                 } else {
-                  alert('การแปลขัดข้อง: ' + (res.error?.message || 'ข้อผิดพลาดระบบ'));
+                  Ui.showToast('การแปลขัดข้อง: ' + (res.error?.message || 'ข้อผิดพลาดระบบ'), 'error');
                 }
               } catch (err) {
-                alert('เกิดข้อผิดพลาดในการแปล: ' + err.message);
+                Ui.showToast('เกิดข้อผิดพลาดในการแปล: ' + err.message, 'error');
               } finally {
                 if (loader) loader.style.display = 'none';
               }
@@ -236,7 +237,7 @@ const ReaderPage = {
           }
         } catch (err) {
           Ui.$('reader-title').textContent = 'เกิดข้อผิดพลาด';
-          Ui.$('reader-content').innerHTML = `<p style="text-align:center;padding:2em;color:var(--c-error);">โหลดไม่สำเร็จ: ${err.message}</p>`;
+          Ui.$('reader-content').innerHTML = `<p class="c-reader__error-message">โหลดไม่สำเร็จ: ${err.message}</p>`;
         }
       };
 
@@ -290,10 +291,10 @@ const ReaderPage = {
           });
           const resData = await res.json();
           if (!resData.ok && !res.ok) {
-            alert(resData.error?.message || 'ไม่สามารถเปิดไฟล์แก้ไขได้');
+            Ui.showToast(resData.error?.message || 'ไม่สามารถเปิดไฟล์แก้ไขได้', 'error');
           }
         } catch (err) {
-          alert('เกิดข้อผิดพลาด: ' + err.message);
+          Ui.showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
         }
       };
 
@@ -339,7 +340,7 @@ const ReaderPage = {
       };
       const updateIcon = (t) => {
         const btn = Ui.$('reader-theme-toggle');
-        if (btn) btn.innerHTML = `<svg style="width:16px;height:16px;"><use xlink:href="${THEME_ICONS[t] || '#icon-moon'}"/></svg>`;
+        if (btn) btn.innerHTML = `<svg class="c-icon c-icon--sm"><use xlink:href="${THEME_ICONS[t] || '#icon-moon'}"/></svg>`;
       };
       applyTheme(currentTheme);
       Ui.$('reader-theme-toggle').onclick = () => {
@@ -451,30 +452,22 @@ const ReaderPage = {
         if (!menu) {
           menu = document.createElement('div');
           menu.id = 'glossary-ctx-menu';
-          menu.style.position = 'absolute';
-          menu.style.background = 'var(--c-bg-secondary)';
-          menu.style.border = '1px solid var(--c-border)';
-          menu.style.borderRadius = 'var(--radius-sm)';
-          menu.style.boxShadow = 'var(--shadow-md)';
-          menu.style.zIndex = '1000';
-          menu.style.padding = '4px 0';
-          menu.style.minWidth = '140px';
+          menu.className = 'c-glossary-context-menu';
           document.body.appendChild(menu);
         }
 
-        menu.innerHTML = `<button class="c-btn" style="width:100%;text-align:left;padding:8px 12px;font-size:var(--text-sm);display:flex;align-items:center;gap:6px;" id="glossary-ctx-add">
-          <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;"><use xlink:href="#icon-book"/></svg>
+        menu.innerHTML = `<button class="c-btn c-glossary-context-menu__button" id="glossary-ctx-add">
+          <svg class="c-icon c-icon--xs c-icon--stroke"><use xlink:href="#icon-book"/></svg>
           <span>เพิ่มลง Glossary</span>
         </button>`;
 
-        menu.style.left = `${e.pageX}px`;
-        menu.style.top = `${e.pageY}px`;
-        menu.style.display = 'block';
+        menu.setAttribute('style', `--ctx-x:${e.pageX}px;--ctx-y:${e.pageY}px;`);
+        menu.classList.add('is-open');
 
         const addBtn = document.getElementById('glossary-ctx-add');
         if (addBtn) {
           addBtn.onclick = () => {
-            menu.style.display = 'none';
+            menu.classList.remove('is-open');
             
             const modal = document.getElementById('reader-glossary-modal');
             const sourceInput = document.getElementById('modal-glossary-source');
@@ -489,11 +482,11 @@ const ReaderPage = {
             thaiInput.value = '';
             categorySelect.value = 'คำศัพท์';
             
-            modal.style.display = 'flex';
+            modal.classList.add('is-open');
             thaiInput.focus();
             
             cancelBtn.onclick = () => {
-              modal.style.display = 'none';
+              modal.classList.remove('is-open');
             };
             
             saveBtn.onclick = async () => {
@@ -501,7 +494,7 @@ const ReaderPage = {
               const categoryVal = categorySelect.value;
               
               if (!thaiVal) {
-                alert('กรุณากรอกคำแปลภาษาไทย');
+                Ui.showToast('กรุณากรอกคำแปลภาษาไทย', 'warning');
                 thaiInput.focus();
                 return;
               }
@@ -523,16 +516,16 @@ const ReaderPage = {
                 const resData = await res.json();
                 if (resData.ok || res.ok) {
                   Ui.showToast(`เพิ่ม "${selected} → ${thaiVal}" สำเร็จ`);
-                  modal.style.display = 'none';
+                  modal.classList.remove('is-open');
                   
                   // Invalidate API caches & reload page
                   Api.invalidateAll(currentReaderSlug);
                   window.location.reload();
                 } else {
-                  alert(resData.error?.message || 'ไม่สามารถเพิ่มศัพท์ลง Glossary ได้');
+                  Ui.showToast(resData.error?.message || 'ไม่สามารถเพิ่มศัพท์ลง Glossary ได้', 'error');
                 }
               } catch (err) {
-                alert('เกิดข้อผิดพลาด: ' + err.message);
+                Ui.showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
               } finally {
                 saveBtn.disabled = false;
                 saveBtn.textContent = 'บันทึก';
@@ -543,7 +536,7 @@ const ReaderPage = {
 
         // Hide menu on click elsewhere
         const hideMenu = () => {
-          menu.style.display = 'none';
+          menu.classList.remove('is-open');
           document.removeEventListener('click', hideMenu);
         };
         setTimeout(() => document.addEventListener('click', hideMenu), 10);
