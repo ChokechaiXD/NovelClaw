@@ -99,43 +99,43 @@
           <div class="c-sidebar__title">NovelClaw</div>
           <div class="c-sidebar__subtitle">โลกของนักอ่าน ไม่สิ้นสุด</div>
         </div>
-        <button class="c-btn c-btn--icon c-sidebar__close" id="sidebar-close">
+        <button class="c-btn c-btn--icon c-sidebar__close" id="sidebar-close" aria-label="ปิดเมนู" type="button">
           <svg style="width:14px;height:14px;"><use xlink:href="#icon-close"/></svg>
         </button>
       </div>
 
       <div class="c-sidebar__nav">
         <div class="c-nav-divider"></div>
-        <div class="c-nav-item c-nav-item--active" data-page="home">
-          <svg class="c-nav-item__icon"><use xlink:href="#icon-home"/></svg> หน้าหลัก
-        </div>
-        <div class="c-nav-item" data-page="library">
-          <svg class="c-nav-item__icon"><use xlink:href="#icon-library"/></svg> หอสมุด
-        </div>
-        <div class="c-nav-item" data-page="search">
-          <svg class="c-nav-item__icon"><use xlink:href="#icon-search"/></svg> ค้นหา
-        </div>
-        <div class="c-nav-item" data-page="ranking">
-          <svg class="c-nav-item__icon"><use xlink:href="#icon-ranking"/></svg> อันดับ
-        </div>
+        <button class="c-nav-item c-nav-item--active" data-page="home" type="button" aria-current="page" aria-label="หน้าหลัก">
+          <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-home"/></svg> หน้าหลัก
+        </button>
+        <button class="c-nav-item" data-page="library" type="button" aria-label="หอสมุด">
+          <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-library"/></svg> หอสมุด
+        </button>
+        <button class="c-nav-item" data-page="search" type="button" aria-label="ค้นหา">
+          <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-search"/></svg> ค้นหา
+        </button>
+        <button class="c-nav-item" data-page="ranking" type="button" aria-label="อันดับ">
+          <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-ranking"/></svg> อันดับ
+        </button>
         <hr class="c-nav-hr">
-        <div class="c-nav-item" data-page="profile">
-          <svg class="c-nav-item__icon"><use xlink:href="#icon-profile"/></svg> โปรไฟล์
-        </div>
-        <div class="c-nav-item" data-page="history">
-          <svg class="c-nav-item__icon"><use xlink:href="#icon-history"/></svg> ประวัติ
-        </div>
-        <div class="c-nav-item" data-page="bookmarks">
-          <svg class="c-nav-item__icon"><use xlink:href="#icon-bookmarks"/></svg> บุ๊กมาร์ก
-        </div>
+        <button class="c-nav-item" data-page="profile" type="button" aria-label="โปรไฟล์">
+          <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-profile"/></svg> โปรไฟล์
+        </button>
+        <button class="c-nav-item" data-page="history" type="button" aria-label="ประวัติการอ่าน">
+          <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-history"/></svg> ประวัติ
+        </button>
+        <button class="c-nav-item" data-page="bookmarks" type="button" aria-label="บุ๊กมาร์ก">
+          <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-bookmarks"/></svg> บุ๊กมาร์ก
+        </button>
         <hr class="c-nav-hr">
-        <div class="c-nav-item" data-page="settings">
-          <svg class="c-nav-item__icon"><use xlink:href="#icon-settings"/></svg> ตั้งค่า
-        </div>
+        <button class="c-nav-item" data-page="settings" type="button" aria-label="ตั้งค่า">
+          <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-settings"/></svg> ตั้งค่า
+        </button>
         <hr class="c-nav-hr">
-        <div class="c-nav-item" data-page="admin">
-          <svg class="c-nav-item__icon"><use xlink:href="#icon-shield"/></svg> จัดการ
-        </div>
+        <button class="c-nav-item" data-page="admin" type="button" aria-label="จัดการระบบ">
+          <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-shield"/></svg> จัดการ
+        </button>
       </div>
 
       <div class="c-sidebar__toggles">
@@ -158,7 +158,7 @@
     <main class="c-app__main">
       <div class="c-header">
         <div class="c-header__left">
-          <button class="c-btn c-btn--icon" id="sidebar-toggle">
+          <button class="c-btn c-btn--icon" id="sidebar-toggle" aria-label="สลับแถบเมนู" type="button">
             <svg style="width:18px;height:18px;"><use xlink:href="#icon-hamburger"/></svg>
           </button>
           <span class="c-header__title" id="page-title">หน้าหลัก</span>
@@ -167,7 +167,7 @@
           <div class="c-header__status">
             <span class="c-status-dot c-status-dot--online"></span>
           </div>
-          <button class="c-btn c-btn--icon" id="notif-btn">
+          <button class="c-btn c-btn--icon" id="notif-btn" aria-label="การแจ้งเตือน" type="button">
             <svg style="width:18px;height:18px;"><use xlink:href="#icon-bell"/></svg>
           </button>
           <div class="c-avatar" id="profile-avatar"></div>
@@ -229,70 +229,70 @@
         <div class="c-sidebar__title">NovelClaw</div>
         <div class="c-sidebar__subtitle">โลกของนักอ่าน ไม่สิ้นสุด</div>
       </div>
-      <button class="c-btn c-btn--icon" id="drawer-close">
+      <button class="c-btn c-btn--icon" id="drawer-close" aria-label="ปิดเมนู" type="button">
         <svg style="width:14px;height:14px;"><use xlink:href="#icon-close"/></svg>
       </button>
     </div>
     <div class="c-sidebar__nav" id="drawer-nav">
       <div class="c-nav-divider"></div>
-      <div class="c-nav-item c-nav-item--active" data-page="home">
-        <svg class="c-nav-item__icon"><use xlink:href="#icon-home"/></svg> หน้าหลัก
-      </div>
-      <div class="c-nav-item" data-page="library">
-        <svg class="c-nav-item__icon"><use xlink:href="#icon-library"/></svg> หอสมุด
-      </div>
-      <div class="c-nav-item" data-page="search">
-        <svg class="c-nav-item__icon"><use xlink:href="#icon-search"/></svg> ค้นหา
-      </div>
-      <div class="c-nav-item" data-page="ranking">
-        <svg class="c-nav-item__icon"><use xlink:href="#icon-ranking"/></svg> อันดับ
-      </div>
+      <button class="c-nav-item c-nav-item--active" data-page="home" type="button" aria-current="page" aria-label="หน้าหลัก">
+        <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-home"/></svg> หน้าหลัก
+      </button>
+      <button class="c-nav-item" data-page="library" type="button" aria-label="หอสมุด">
+        <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-library"/></svg> หอสมุด
+      </button>
+      <button class="c-nav-item" data-page="search" type="button" aria-label="ค้นหา">
+        <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-search"/></svg> ค้นหา
+      </button>
+      <button class="c-nav-item" data-page="ranking" type="button" aria-label="อันดับ">
+        <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-ranking"/></svg> อันดับ
+      </button>
       <hr class="c-nav-hr">
-      <div class="c-nav-item" data-page="profile">
-        <svg class="c-nav-item__icon"><use xlink:href="#icon-profile"/></svg> โปรไฟล์
-      </div>
-      <div class="c-nav-item" data-page="history">
-        <svg class="c-nav-item__icon"><use xlink:href="#icon-history"/></svg> ประวัติ
-      </div>
-      <div class="c-nav-item" data-page="bookmarks">
-        <svg class="c-nav-item__icon"><use xlink:href="#icon-bookmarks"/></svg> บุ๊กมาร์ก
-      </div>
+      <button class="c-nav-item" data-page="profile" type="button" aria-label="โปรไฟล์">
+        <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-profile"/></svg> โปรไฟล์
+      </button>
+      <button class="c-nav-item" data-page="history" type="button" aria-label="ประวัติการอ่าน">
+        <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-history"/></svg> ประวัติ
+      </button>
+      <button class="c-nav-item" data-page="bookmarks" type="button" aria-label="บุ๊กมาร์ก">
+        <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-bookmarks"/></svg> บุ๊กมาร์ก
+      </button>
       <hr class="c-nav-hr">
-      <div class="c-nav-item" data-page="settings">
-        <svg class="c-nav-item__icon"><use xlink:href="#icon-settings"/></svg> ตั้งค่า
-      </div>
+      <button class="c-nav-item" data-page="settings" type="button" aria-label="ตั้งค่า">
+        <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-settings"/></svg> ตั้งค่า
+      </button>
       <hr class="c-nav-hr">
-      <div class="c-nav-item" data-page="admin">
-        <svg class="c-nav-item__icon"><use xlink:href="#icon-shield"/></svg> จัดการ
-      </div>
+      <button class="c-nav-item" data-page="admin" type="button" aria-label="จัดการระบบ">
+        <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-shield"/></svg> จัดการ
+      </button>
     </div>
   </div>
 
   <!-- Bottom reader toolbar (shown on reader page) -->
   <div class="c-reader-bottom-toolbar" id="reader-bottom-toolbar">
-    <button class="c-btn" id="reader-bottom-back"><svg style="width:20px;height:20px;"><use xlink:href="#icon-arrow-left"/></svg>กลับ</button>
-    <button class="c-btn" id="reader-bottom-sm">A−</button>
-    <button class="c-btn" id="reader-bottom-lg">A+</button>
-    <button class="c-btn" id="reader-bottom-book"><svg style="width:20px;height:20px;"><use xlink:href="#icon-fullscreen"/></svg>โหมด</button>
-    <button class="c-btn" id="reader-bottom-theme"><svg style="width:20px;height:20px;"><use xlink:href="#icon-moon"/></svg>ธีม</button>
+    <button class="c-btn" id="reader-bottom-back" type="button" aria-label="กลับ"><svg style="width:20px;height:20px;" aria-hidden="true"><use xlink:href="#icon-arrow-left"/></svg>กลับ</button>
+    <button class="c-btn" id="reader-bottom-sm" type="button" aria-label="ลดขนาดตัวอักษร">A−</button>
+    <button class="c-btn" id="reader-bottom-lg" type="button" aria-label="เพิ่มขนาดตัวอักษร">A+</button>
+    <button class="c-btn" id="reader-bottom-book" type="button" aria-label="โหมดอ่านหนังสือ"><svg style="width:20px;height:20px;" aria-hidden="true"><use xlink:href="#icon-fullscreen"/></svg>โหมด</button>
+    <button class="c-btn" id="reader-bottom-theme" type="button" aria-label="สลับธีม"><svg style="width:20px;height:20px;" aria-hidden="true"><use xlink:href="#icon-moon"/></svg>ธีม</button>
   </div>
 
   <!-- Mobile bottom nav -->
   <nav class="c-mobile-nav" id="mobile-nav">
-    <button class="c-mobile-nav__item c-mobile-nav__item--active" data-page="home">
-      <svg><use xlink:href="#icon-home"/></svg>หน้าแรก
+    <button class="c-mobile-nav__item c-mobile-nav__item--active" data-page="home" type="button" aria-current="page" aria-label="หน้าหลัก">
+      <svg aria-hidden="true"><use xlink:href="#icon-home"/></svg>หน้าแรก
     </button>
-    <button class="c-mobile-nav__item" data-page="library">
-      <svg><use xlink:href="#icon-library"/></svg>หอสมุด
+    <button class="c-mobile-nav__item" data-page="library" type="button" aria-label="หอสมุด">
+      <svg aria-hidden="true"><use xlink:href="#icon-library"/></svg>หอสมุด
     </button>
-    <button class="c-mobile-nav__item" data-page="search">
-      <svg><use xlink:href="#icon-search"/></svg>ค้นหา
+    <button class="c-mobile-nav__item" data-page="search" type="button" aria-label="ค้นหา">
+      <svg aria-hidden="true"><use xlink:href="#icon-search"/></svg>ค้นหา
     </button>
-    <button class="c-mobile-nav__item" data-page="profile">
-      <svg><use xlink:href="#icon-profile"/></svg>โปรไฟล์
+    <button class="c-mobile-nav__item" data-page="profile" type="button" aria-label="โปรไฟล์">
+      <svg aria-hidden="true"><use xlink:href="#icon-profile"/></svg>โปรไฟล์
     </button>
-    <button class="c-mobile-nav__item" data-page="admin">
-      <svg><use xlink:href="#icon-shield"/></svg>จัดการ
+    <button class="c-mobile-nav__item" data-page="admin" type="button" aria-label="จัดการ">
+      <svg aria-hidden="true"><use xlink:href="#icon-shield"/></svg>จัดการ
     </button>
   </nav>
 
