@@ -2,7 +2,7 @@
  * tests/test-api.js — NovelClaw API smoke tests
  *
  * Run: node tests/test-api.js
- * Env:  PORT (default 4173)
+ * Env:  PORT (default 4173), ADMIN_TOKEN (optional)
  *
  * Tests:
  *   ✓ /api/novels returns novels with translatedTitle
@@ -10,6 +10,7 @@
  *   ✓ /api/novel/:slug/chapter/:num?lang=th returns Thai
  *   ✓ /api/novel/:slug/chapter/:num?lang=cn returns Chinese
  *   ✓ /api/novel/:slug/glossary/data returns terms (no 500)
+ *   ✓ /api/local/llm-config returns provider catalog
  *   ✓ /api/novel/:slug/chapters/search?mode=content finds Chinese terms
  *   ✓ admin save/create temp chapter
  *   ✓ chapters list includes temp chapter after save
@@ -22,6 +23,7 @@ const PORT = parseInt(process.env.PORT, 10) || 4173;
 const BASE = `http://localhost:${PORT}`;
 const TEST_SLUG = 'global-descent';
 const TEST_NUM = 9999; // unlikely to exist
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 
 let passed = 0;
 let failed = 0;
@@ -37,6 +39,9 @@ function request(method, urlPath, body) {
       headers: {},
       timeout: 10_000,
     };
+    if (ADMIN_TOKEN) {
+      opts.headers.Authorization = `Bearer ${ADMIN_TOKEN}`;
+    }
     if (body) {
       opts.headers['Content-Type'] = 'application/json';
     }
@@ -121,14 +126,31 @@ async function main() {
     return Array.isArray(res.body?.terms) && res.body.terms.length > 0;
   });
 
-  // ── Test 6: Content search (Chinese term) ─────────────────────────
+  // ── Test 6: Local LLM config catalog ──────────────────────────────
+  await test('/api/local/llm-config returns providers', async () => {
+    const res = await get('/api/local/llm-config');
+    if (res.status !== 200) return false;
+    const providers = res.body?.providers;
+    if (!Array.isArray(providers)) return false;
+    const openrouter = providers.find(p => p.id === 'openrouter');
+    const openmodel = providers.find(p => p.id === 'openmodel');
+    return openrouter
+      && openmodel
+      && Array.isArray(openrouter.models)
+      && openrouter.models.length > 0
+      && Array.isArray(openmodel.models)
+      && openmodel.models.some(m => m.id === 'deepseek-v4-flash')
+      && res.body.default_provider;
+  });
+
+  // ── Test 7: Content search (Chinese term) ─────────────────────────
   await test('/api/novel/.../search?q=曹星&mode=content', async () => {
     const res = await get(`/api/novel/${TEST_SLUG}/chapters/search?q=%E6%9B%B9%E6%98%9F&mode=content&limit=2`);
     if (res.status !== 200) return false;
     return Array.isArray(res.body) && res.body.length > 0;
   });
 
-  // ── Test 7: Admin save temp chapter ───────────────────────────────
+  // ── Test 8: Admin save temp chapter ───────────────────────────────
   let tempSaved = false;
   await test('POST save temp chapter 9999', async () => {
     const payload = {
@@ -145,7 +167,7 @@ async function main() {
     return res.status === 200;
   });
 
-  // ── Test 8: Chapters includes temp after save ─────────────────────
+  // ── Test 9: Chapters includes temp after save ─────────────────────
   await test('chapters list includes 9999 after save', async () => {
     if (!tempSaved) return false; // skip if save failed
     const res = await get(`/api/novel/${TEST_SLUG}/chapters`);
@@ -153,7 +175,7 @@ async function main() {
     return res.body.chapters.some(c => c.num === TEST_NUM);
   });
 
-  // ── Test 9: Admin delete temp chapter ─────────────────────────────
+  // ── Test 10: Admin delete temp chapter ────────────────────────────
   let tempDeleted = false;
   await test('POST delete temp chapter 9999', async () => {
     if (!tempSaved) return false;
@@ -162,7 +184,7 @@ async function main() {
     return res.status === 200;
   });
 
-  // ── Test 10: Chapters excludes temp after delete ──────────────────
+  // ── Test 11: Chapters excludes temp after delete ──────────────────
   await test('chapters list excludes 9999 after delete', async () => {
     if (!tempDeleted) return false;
     const res = await get(`/api/novel/${TEST_SLUG}/chapters`);
