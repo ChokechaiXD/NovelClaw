@@ -5,7 +5,8 @@
 //   PORT             — listening port (default 4173)
 //   HOST             — bind address (default 127.0.0.1, set 0.0.0.0 for LAN)
 //   NOVELCLAW_ROOT   — path to novels/ directory (default ../novels)
-//   ADMIN_TOKEN      — bearer token for write endpoints (optional, default no auth)
+//   ADMIN_TOKEN      — bearer token for write endpoints
+//   TRUSTED_LAN      — set 'true' to allow write APIs on LAN without ADMIN_TOKEN
 //   AUTO_KILL_PORT   — set 'true' to auto-kill old process (default off)
 
 const express = require('express');
@@ -29,9 +30,10 @@ module.exports = { parseMarkdownToBlocks, chapterRepo, novelRepo, searchService 
 
 // ── Config ─────────────────────────────────────────────────────────
 const PORT = Number(process.env.PORT) || 4173;
-const BIND_HOST = process.env.HOST || '0.0.0.0';
+const BIND_HOST = process.env.HOST || '127.0.0.1';
 const PUBLIC_DIR = path.resolve(__dirname, 'public');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
+const TRUSTED_LAN = process.env.TRUSTED_LAN === 'true';
 
 // ── API response helpers ──────────────────────────────────────────
 function ok(res, data = {}) {
@@ -76,8 +78,16 @@ const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
 // Admin auth middleware
+function isLocalBind(host) {
+  return host === '127.0.0.1' || host === 'localhost' || host === '::1' || host === '0:0:0:0:0:0:0:1';
+}
+
+function allowsUnauthenticatedAdmin() {
+  return !ADMIN_TOKEN && (isLocalBind(BIND_HOST) || TRUSTED_LAN);
+}
+
 function requireAdmin(req, res, next) {
-  if (!ADMIN_TOKEN) return next(); // no auth configured
+  if (allowsUnauthenticatedAdmin()) return next();
   const provided = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!provided) {
     return fail(res, 401, 'AUTH_REQUIRED', 'Unauthorized — provide Authorization: Bearer <token>');
@@ -685,6 +695,12 @@ app.get('/api/admin/logs/:slug/:num', requireAdmin, asyncHandler(async (req, res
 
 const START_TIME = Date.now();
 
+if (!isLocalBind(BIND_HOST) && !ADMIN_TOKEN && !TRUSTED_LAN) {
+  console.error('Refusing to bind write-capable Reader on LAN without protection.');
+  console.error('Set ADMIN_TOKEN for bearer auth, or set TRUSTED_LAN=true for a private trusted network.');
+  process.exit(1);
+}
+
 const server = app.listen(PORT, BIND_HOST, () => {
   const os = require('node:os');
   const ifaces = os.networkInterfaces();
@@ -763,7 +779,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // ── LOCAL ONLY DEV APIS ─────────────────────────────────────────────
 
-app.post('/api/local/open-editor', asyncHandler(async (req, res) => {
+app.post('/api/local/open-editor', requireAdmin, asyncHandler(async (req, res) => {
   const { slug, num, lang, editor } = req.body;
   assertValidSlug(slug);
   const chapterNum = parseInt(num, 10);
@@ -810,7 +826,7 @@ app.post('/api/local/open-editor', asyncHandler(async (req, res) => {
   }
 }));
 
-app.post('/api/novel/:slug/glossary/add', asyncHandler(async (req, res) => {
+app.post('/api/novel/:slug/glossary/add', requireAdmin, asyncHandler(async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
   const { source, thai, category, notes } = req.body;
@@ -926,7 +942,7 @@ app.get('/api/novel/:slug/chapter/:num/unknown-terms', asyncHandler(async (req, 
   res.json({ terms: unknown });
 }));
 
-app.post('/api/local/translate-term', asyncHandler(async (req, res) => {
+app.post('/api/local/translate-term', requireAdmin, asyncHandler(async (req, res) => {
   const { term, context } = req.body;
   if (!term) return fail(res, 400, 'MISSING_TERM', 'Term is required');
   
@@ -1031,7 +1047,7 @@ app.get('/api/local/state', asyncHandler(async (req, res) => {
   }
 }));
 
-app.post('/api/local/state', asyncHandler(async (req, res) => {
+app.post('/api/local/state', requireAdmin, asyncHandler(async (req, res) => {
   const filepath = path.join(__dirname, 'local_state.json');
   await fs.writeFile(filepath, JSON.stringify(req.body, null, 2), 'utf8');
   ok(res, { saved: true });
@@ -1099,7 +1115,7 @@ app.get('/api/local/llm-config', asyncHandler(async (req, res) => {
   }
 }));
 
-app.post('/api/local/llm-config', asyncHandler(async (req, res) => {
+app.post('/api/local/llm-config', requireAdmin, asyncHandler(async (req, res) => {
   const { default_model, default_provider, openrouter_api_key, openmodel_api_key, api_key } = req.body;
   let data = {};
   try {
@@ -1121,22 +1137,45 @@ app.post('/api/local/llm-config', asyncHandler(async (req, res) => {
   ok(res, { saved: true, config: buildLlmConfigResponse(data) });
 }));
 
-app.post('/api/novel/:slug/translate/single', asyncHandler(async (req, res) => {
+function getPythonCommand() {
+  return process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+}
+
+function normalizeTranslateMode(mode, fallback) {
+  return ['safe', 'strict', 'autopilot', 'draft'].includes(mode) ? mode : fallback;
+}
+
+function buildNovelctlTranslateArgs(slug, range, options = {}) {
+  const mode = normalizeTranslateMode(options.mode, 'safe');
+  const workers = Math.min(Math.max(parseInt(options.workers, 10) || 1, 1), 5);
+  const args = [
+    path.join(__dirname, '..', 'tools', 'novelctl.py'),
+    '--slug', slug,
+    '--mode', mode,
+  ];
+
+  if (options.force) args.push('--force');
+  if (options.noScore) args.push('--no-score');
+  if (workers > 1) args.push('--workers', String(workers));
+  args.push('translate', String(range));
+  return args;
+}
+
+app.post('/api/novel/:slug/translate/single', requireAdmin, asyncHandler(async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
-  const { num, score } = req.body;
+  const { num, score, mode, force } = req.body;
   const chapterNum = parseInt(num, 10);
   if (Number.isNaN(chapterNum)) return fail(res, 400, 'INVALID_NUM', 'Invalid chapter number');
 
-  const translateScript = path.join(__dirname, '..', 'tools', 'translate.py');
-  const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
-  
-  const args = [translateScript, String(chapterNum), '--json'];
-  if (score !== false) {
-    args.push('--score');
-  }
+  const runMode = normalizeTranslateMode(mode, 'safe');
+  const args = buildNovelctlTranslateArgs(slug, chapterNum, {
+    mode: runMode,
+    force: !!force,
+    noScore: score === false,
+  });
 
-  const child = spawn(py, args, {
+  const child = spawn(getPythonCommand(), args, {
     cwd: path.join(__dirname, '..'),
     windowsHide: true,
     timeout: 300_000,
@@ -1148,57 +1187,40 @@ app.post('/api/novel/:slug/translate/single', asyncHandler(async (req, res) => {
   child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
 
   child.on('error', (err) => {
-    console.error('Failed to start translate.py:', err);
+    console.error('Failed to start novelctl.py:', err);
     if (!res.headersSent) {
-      fail(res, 500, 'TRANSLATE_SPAWN_FAILED', `Failed to start translate.py: ${err.message}`);
+      fail(res, 500, 'TRANSLATE_SPAWN_FAILED', `Failed to start novelctl.py: ${err.message}`);
     }
   });
 
   child.on('close', (code) => {
     if (code !== 0) {
       if (!res.headersSent) {
-        return fail(res, 500, 'TRANSLATE_FAILED', `translate.py exited with code ${code}: ${stderr}`);
+        return fail(res, 500, 'TRANSLATE_FAILED', `novelctl.py exited with code ${code}: ${stderr || stdout}`);
       }
       return;
     }
     
     chapterRepo.invalidateAll(slug);
-    
-    try {
-      const lines = stdout.split('\n');
-      let jsonResult = null;
-      for (const line of lines) {
-        if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
-          try {
-            jsonResult = JSON.parse(line.trim());
-          } catch {}
-        }
-      }
-      ok(res, { success: true, result: jsonResult || { ch: chapterNum, status: 'done' }, stdout });
-    } catch (err) {
-      ok(res, { success: true, stdout });
-    }
+    ok(res, { success: true, result: { ch: chapterNum, status: 'done', mode: runMode }, stdout });
   });
 }));
 
-app.post('/api/novel/:slug/translate/batch', asyncHandler(async (req, res) => {
+app.post('/api/novel/:slug/translate/batch', requireAdmin, asyncHandler(async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
-  const { range, score, concurrent } = req.body;
+  const { range, score, concurrent, mode, force } = req.body;
   if (!range) return fail(res, 400, 'MISSING_RANGE', 'Chapter range (e.g. 5-10) is required.');
 
-  const translateScript = path.join(__dirname, '..', 'tools', 'translate.py');
-  const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
-  
-  const args = [translateScript, String(range), '--json'];
-  if (score !== false) {
-    args.push('--score');
-  }
-  if (concurrent && Number(concurrent) > 1) {
-    args.push('--concurrent', String(Math.min(Number(concurrent), 5)));
-  }
+  const runMode = normalizeTranslateMode(mode, 'autopilot');
+  const args = buildNovelctlTranslateArgs(slug, range, {
+    mode: runMode,
+    force: !!force,
+    noScore: score === false,
+    workers: concurrent,
+  });
 
-  const child = spawn(py, args, {
+  const child = spawn(getPythonCommand(), args, {
     cwd: path.join(__dirname, '..'),
     windowsHide: true,
     timeout: 600_000,
@@ -1210,22 +1232,22 @@ app.post('/api/novel/:slug/translate/batch', asyncHandler(async (req, res) => {
   child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
 
   child.on('error', (err) => {
-    console.error('Failed to start translate.py batch:', err);
+    console.error('Failed to start novelctl.py batch:', err);
     if (!res.headersSent) {
-      fail(res, 500, 'TRANSLATE_SPAWN_FAILED', `Failed to start translate.py: ${err.message}`);
+      fail(res, 500, 'TRANSLATE_SPAWN_FAILED', `Failed to start novelctl.py: ${err.message}`);
     }
   });
 
   child.on('close', (code) => {
     if (code !== 0) {
       if (!res.headersSent) {
-        return fail(res, 500, 'TRANSLATE_FAILED', `translate.py exited with code ${code}: ${stderr}`);
+        return fail(res, 500, 'TRANSLATE_FAILED', `novelctl.py exited with code ${code}: ${stderr || stdout}`);
       }
       return;
     }
     
     chapterRepo.invalidateAll(slug);
-    ok(res, { success: true, stdout });
+    ok(res, { success: true, result: { range: String(range), status: 'done', mode: runMode }, stdout });
   });
 }));
 
