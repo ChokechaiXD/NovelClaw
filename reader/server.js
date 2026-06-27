@@ -77,6 +77,13 @@ app.param('slug', (req, res, next, slug) => {
 const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
+// Admin write helper: requireAdmin guard + asyncHandler wrapper.
+// Saves repeating 'requireAdmin, asyncHandler' on every write route —
+// was repeated on 11 routes before.
+function adminPost(ath, handler) {
+  app.post(path, requireAdmin, asyncHandler(handler));
+}
+
 // Admin auth middleware
 function isLocalBind(host) {
   return host === '127.0.0.1' || host === 'localhost' || host === '::1' || host === '0:0:0:0:0:0:0:1';
@@ -290,7 +297,7 @@ app.get('/api/novel/:slug/glossary/data', asyncHandler(async (req, res) => {
   }
 }));
 
-app.post('/api/novel/:slug/glossary/save', requireAdmin, asyncHandler(async (req, res) => {
+adminPost('/api/novel/:slug/glossary/save', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
   const glossaryScript = path.join(__dirname, '..', 'tools', 'glossary.py');
@@ -317,7 +324,7 @@ app.post('/api/novel/:slug/glossary/save', requireAdmin, asyncHandler(async (req
   });
   child.stdin.write(JSON.stringify(req.body));
   child.stdin.end();
-}));
+});
 
 // ── Characters ─────────────────────────────────────────────────────
 
@@ -330,7 +337,7 @@ app.get('/api/novel/:slug/characters', asyncHandler(async (req, res) => {
 
 // ── Admin novel update ─────────────────────────────────────────────
 
-app.post('/api/novel/update', requireAdmin, asyncHandler(async (req, res) => {
+adminPost('/api/novel/update', async (req, res) => {
   const { slug, title, author, source_lang, target_lang, status, total_chapters, translatedTitle } = req.body;
   if (!slug || !SLUG_RE.test(slug)) {
     return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');
@@ -338,18 +345,18 @@ app.post('/api/novel/update', requireAdmin, asyncHandler(async (req, res) => {
   await novelRepo.saveNovelMeta(slug, { title, author, source_lang, target_lang, status, total_chapters, translatedTitle });
   invalidateCache('/api/novels');
   ok(res, { slug });
-}));
+});
 
 // ── Admin delete novel ─────────────────────────────────────────────
 
-app.post('/api/novel/:slug/delete', requireAdmin, asyncHandler(async (req, res) => {
+adminPost('/api/novel/:slug/delete', async (req, res) => {
   await novelRepo.deleteNovel(req.params.slug);
   ok(res, { deleted: true });
-}));
+});
 
 // ── Admin import novel from text file ──────────────────────────────
 
-app.post('/api/novel/import-file', requireAdmin, asyncHandler(async (req, res) => {
+adminPost('/api/novel/import-file', async (req, res) => {
   const { title, slug, author, sourceLang, splitRule, content } = req.body;
   if (!slug || !SLUG_RE.test(slug)) {
     return res.status(400).json({ ok: false, error: { code: 'INVALID_SLUG', message: 'Invalid slug format' } });
@@ -453,11 +460,11 @@ app.post('/api/novel/import-file', requireAdmin, asyncHandler(async (req, res) =
     chaptersCount: chapters.length,
     sourceLang
   });
-}));
+});
 
 // ── Admin import novel from URL (Scraper) ──────────────────────────
 
-app.post('/api/novel/import-web', requireAdmin, asyncHandler(async (req, res) => {
+adminPost('/api/novel/import-web', async (req, res) => {
   const { url, title, slug, author, start, end, engine } = req.body;
   if (!slug || !SLUG_RE.test(slug)) {
     return res.status(400).json({ ok: false, error: { code: 'INVALID_SLUG', message: 'Invalid slug format' } });
@@ -530,11 +537,11 @@ app.post('/api/novel/import-web', requireAdmin, asyncHandler(async (req, res) =>
     chaptersCount,
     message: `ดึงข้อมูลตอนทั้งหมดสำเร็จแล้ว (Engine: ${engine})`
   });
-}));
+});
 
 // ── Admin save chapter ─────────────────────────────────────────────
 
-app.post('/api/novel/:slug/chapter/:num/save', requireAdmin, asyncHandler(async (req, res) => {
+adminPost('/api/novel/:slug/chapter/:num/save', async (req, res) => {
   const slug = req.params.slug;
   const num = parseInt(req.params.num, 10);
   if (Number.isNaN(num)) return fail(res, 400, 'INVALID_NUM', 'Invalid chapter number');
@@ -587,11 +594,11 @@ app.post('/api/novel/:slug/chapter/:num/save', requireAdmin, asyncHandler(async 
   invalidateCache('/api/novel/' + slug);
   invalidateCache('/api/novels');
   ok(res, { slug, num });
-}));
+});
 
 // ── Admin delete chapter ───────────────────────────────────────────
 
-app.post('/api/novel/:slug/chapter/:num/delete', requireAdmin, asyncHandler(async (req, res) => {
+adminPost('/api/novel/:slug/chapter/:num/delete', async (req, res) => {
   const slug = req.params.slug;
   const num = parseInt(req.params.num, 10);
   if (Number.isNaN(num)) return fail(res, 400, 'INVALID_NUM', 'Invalid chapter number');
@@ -601,7 +608,7 @@ app.post('/api/novel/:slug/chapter/:num/delete', requireAdmin, asyncHandler(asyn
   invalidateCache('/api/novel/' + slug);
   invalidateCache('/api/novels');
   ok(res, { slug, num });
-}));
+});
 
 // ── Manual cache invalidation ──────────────────────────────────────
 
@@ -779,7 +786,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // ── LOCAL ONLY DEV APIS ─────────────────────────────────────────────
 
-app.post('/api/local/open-editor', requireAdmin, asyncHandler(async (req, res) => {
+adminPost('/api/local/open-editor', async (req, res) => {
   const { slug, num, lang, editor } = req.body;
   assertValidSlug(slug);
   const chapterNum = parseInt(num, 10);
@@ -824,9 +831,9 @@ app.post('/api/local/open-editor', requireAdmin, asyncHandler(async (req, res) =
     child.unref();
     return ok(res, { opened: true, editor: 'notepad' });
   }
-}));
+});
 
-app.post('/api/novel/:slug/glossary/add', requireAdmin, asyncHandler(async (req, res) => {
+adminPost('/api/novel/:slug/glossary/add', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
   const { source, thai, category, notes } = req.body;
@@ -885,7 +892,7 @@ app.post('/api/novel/:slug/glossary/add', requireAdmin, asyncHandler(async (req,
 
   child.stdin.write(JSON.stringify({ terms }));
   child.stdin.end();
-}));
+});
 
 app.get('/api/novel/:slug/chapter/:num/unknown-terms', asyncHandler(async (req, res) => {
   assertValidSlug(req.params.slug);
@@ -942,7 +949,7 @@ app.get('/api/novel/:slug/chapter/:num/unknown-terms', asyncHandler(async (req, 
   res.json({ terms: unknown });
 }));
 
-app.post('/api/local/translate-term', requireAdmin, asyncHandler(async (req, res) => {
+adminPost('/api/local/translate-term', async (req, res) => {
   const { term, context } = req.body;
   if (!term) return fail(res, 400, 'MISSING_TERM', 'Term is required');
   
@@ -978,9 +985,9 @@ app.post('/api/local/translate-term', requireAdmin, asyncHandler(async (req, res
   
   child.stdin.write(JSON.stringify({ term, context }));
   child.stdin.end();
-}));
+});
 
-app.post('/api/novel/:slug/glossary/verify', requireAdmin, asyncHandler(async (req, res) => {
+adminPost('/api/novel/:slug/glossary/verify', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
   const { index, verified } = req.body;
@@ -1035,7 +1042,7 @@ app.post('/api/novel/:slug/glossary/verify', requireAdmin, asyncHandler(async (r
   
   child.stdin.write(JSON.stringify({ terms }));
   child.stdin.end();
-}));
+});
 
 app.get('/api/local/state', asyncHandler(async (req, res) => {
   const filepath = path.join(__dirname, 'local_state.json');
@@ -1047,11 +1054,11 @@ app.get('/api/local/state', asyncHandler(async (req, res) => {
   }
 }));
 
-app.post('/api/local/state', requireAdmin, asyncHandler(async (req, res) => {
+adminPost('/api/local/state', async (req, res) => {
   const filepath = path.join(__dirname, 'local_state.json');
   await fs.writeFile(filepath, JSON.stringify(req.body, null, 2), 'utf8');
   ok(res, { saved: true });
-}));
+});
 
 // ── LOCAL LLM CONFIG & TRANSLATION APIS ─────────────────────────────
 const LLM_JSON_PATH = path.join(__dirname, '..', 'llm.json');
@@ -1115,7 +1122,7 @@ app.get('/api/local/llm-config', asyncHandler(async (req, res) => {
   }
 }));
 
-app.post('/api/local/llm-config', requireAdmin, asyncHandler(async (req, res) => {
+adminPost('/api/local/llm-config', async (req, res) => {
   const { default_model, default_provider, openrouter_api_key, openmodel_api_key, api_key } = req.body;
   let data = {};
   try {
@@ -1135,7 +1142,7 @@ app.post('/api/local/llm-config', requireAdmin, asyncHandler(async (req, res) =>
 
   await fs.writeFile(LLM_JSON_PATH, JSON.stringify(data, null, 2), 'utf8');
   ok(res, { saved: true, config: buildLlmConfigResponse(data) });
-}));
+});
 
 function getPythonCommand() {
   return process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
@@ -1161,7 +1168,7 @@ function buildNovelctlTranslateArgs(slug, range, options = {}) {
   return args;
 }
 
-app.post('/api/novel/:slug/translate/single', requireAdmin, asyncHandler(async (req, res) => {
+adminPost('/api/novel/:slug/translate/single', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
   const { num, score, mode, force } = req.body;
@@ -1204,9 +1211,9 @@ app.post('/api/novel/:slug/translate/single', requireAdmin, asyncHandler(async (
     chapterRepo.invalidateAll(slug);
     ok(res, { success: true, result: { ch: chapterNum, status: 'done', mode: runMode }, stdout });
   });
-}));
+});
 
-app.post('/api/novel/:slug/translate/batch', requireAdmin, asyncHandler(async (req, res) => {
+adminPost('/api/novel/:slug/translate/batch', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
   const { range, score, concurrent, mode, force } = req.body;
@@ -1249,7 +1256,7 @@ app.post('/api/novel/:slug/translate/batch', requireAdmin, asyncHandler(async (r
     chapterRepo.invalidateAll(slug);
     ok(res, { success: true, result: { range: String(range), status: 'done', mode: runMode }, stdout });
   });
-}));
+});
 
 // ── SPA fallback — serve index.html for all non-API routes ─────────
 
