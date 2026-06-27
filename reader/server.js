@@ -506,83 +506,6 @@ adminPost('/api/novel/import-file', async (req, res) => {
   });
 });
 
-// ── Admin import novel from URL (Scraper) ──────────────────────────
-
-adminPost('/api/novel/import-web', async (req, res) => {
-  const { url, title, slug, author, start, end, engine } = req.body;
-  if (!slug || !SLUG_RE.test(slug)) {
-    return res.status(400).json({ ok: false, error: { code: 'INVALID_SLUG', message: 'Invalid slug format' } });
-  }
-
-  // 1. Save novel metadata
-  await novelRepo.saveNovelMeta(slug, {
-    title,
-    author: author || 'ดึงข้อมูลออโต้',
-    source_lang: 'cn',
-    target_lang: 'th',
-    status: 'ongoing',
-    description: `นิยายนำเข้าจากเว็บภายนอก URL: ${url} เมื่อ ${new Date().toLocaleDateString('th-TH')}`
-  });
-
-  const chaptersDirPath = path.join(NOVELS_DIR, slug, 'chapters');
-  await fs.mkdir(chaptersDirPath, { recursive: true });
-
-  // 2. Scrape simulation or Playwright setup (Fallback to mock data for reliability)
-  let chaptersCount = 0;
-  let currentCh = start;
-  
-  while (currentCh <= end) {
-    // Generate high quality mock text representing crawled text
-    let mockContent = `第${currentCh}章 這是網絡爬蟲獲取的內容\n\n`;
-    mockContent += `曹星抬頭看了一眼天空，滿天都是鵝毛大雪，極寒的氣流吹拂在臉上刺骨冰涼。\n`;
-    mockContent += `他知道，留給藍星人類生存的時間已經不多了。\n`;
-    mockContent += `“大嫂，快點跟我走！”曹星拉起旁邊一臉不知所措的柳慕雪，快步衝進小木屋中。`;
-
-    const paragraphs = mockContent.split('\n').map(p => p.trim()).filter(p => p.length > 0);
-    const chData = {
-      novelId: slug,
-      chapterNo: currentCh,
-      sourceLang: 'cn',
-      targetLang: 'cn',
-      title: {
-        source: `第${currentCh}章 網絡採集章節`
-      },
-      status: "source",
-      paragraphs: paragraphs,
-      updatedAt: new Date().toISOString()
-    };
-    await fs.writeFile(chapterPath(slug, currentCh, 'cn'), JSON.stringify(chData, null, 2), 'utf8');
-    chaptersCount++;
-    currentCh++;
-  }
-
-  // 3. Rebuild chapters index
-  await chapterRepo.rebuildChaptersIndex(slug);
-
-  // Update total chapters in novel.json
-  await novelRepo.saveNovelMeta(slug, {
-    title,
-    author: author || 'ดึงข้อมูลออโต้',
-    source_lang: 'cn',
-    target_lang: 'th',
-    status: 'ongoing',
-    total_chapters: chaptersCount,
-    description: `นิยายนำเข้าจากเว็บภายนอก URL: ${url} เมื่อ ${new Date().toLocaleDateString('th-TH')}`
-  });
-
-  invalidateCache('/api/novels');
-
-  res.json({
-    success: true,
-    title,
-    slug,
-    start,
-    end,
-    chaptersCount,
-    message: `ดึงข้อมูลตอนทั้งหมดสำเร็จแล้ว (Engine: ${engine})`
-  });
-});
-
 // ── Admin save chapter ─────────────────────────────────────────────
 
 adminPost('/api/novel/:slug/chapter/:num/save', async (req, res) => {
@@ -661,56 +584,10 @@ app.post('/api/invalidate-cache', adminWriteLimiter, requireAdmin, (req, res) =>
   ok(res, { invalidated: true });
 });
 
-// ── Admin Jobs Dashboard API ───────────────────────────────────────
-// Reads jobs/active, jobs/done, jobs/failed, jobs/needs_review from disk.
-
-const JOBS_DIR = path.resolve(__dirname, '..', 'jobs');
-const LOGS_DIR = path.resolve(__dirname, '..', 'logs', 'translate');
-
-async function readJsonDir(dirPath) {
-  const warnings = [];
-  try {
-    const entries = await fs.readdir(dirPath, { withFileTypes: true });
-    const results = [];
-    for (const e of entries) {
-      if (e.isFile() && e.name.endsWith('.json')) {
-        try {
-          const data = JSON.parse(await fs.readFile(path.join(dirPath, e.name), 'utf8'));
-          results.push({ file: e.name, data });
-        } catch (parseErr) {
-          warnings.push({ file: e.name, error: parseErr.message });
-        }
-      }
-    }
-    return { items: results, warnings };
-  } catch { return { items: [], warnings: [{ file: dirPath, error: 'Directory not found' }] }; }
-}
-
-app.get('/api/admin/jobs', requireAdmin, asyncHandler(async (req, res) => {
-  const [active, done, failed, needsReview] = await Promise.all([
-    readJsonDir(path.join(JOBS_DIR, 'active')),
-    readJsonDir(path.join(JOBS_DIR, 'done')),
-    readJsonDir(path.join(JOBS_DIR, 'failed')),
-    readJsonDir(path.join(JOBS_DIR, 'needs_review')),
-  ]);
-  const allWarnings = [
-    ...active.warnings,
-    ...done.warnings,
-    ...failed.warnings,
-    ...needsReview.warnings,
-  ];
-  res.json({
-    active: active.items,
-    done: done.items,
-    failed: failed.items,
-    needsReview: needsReview.items,
-    warnings: allWarnings.length > 0 ? allWarnings : undefined,
-  });
-}));
-
 // ── Admin audit log viewer ─────────────────────────────────────────
 const SLUG_RE_LOOSE = /^[a-z0-9-]+$/i;
 const NUM_RE = /^\d{1,5}$/;
+const LOGS_DIR = path.resolve(__dirname, '..', 'logs', 'translate');
 
 app.get('/api/admin/logs/:slug/:num', requireAdmin, asyncHandler(async (req, res) => {
   const { slug, num } = req.params;
