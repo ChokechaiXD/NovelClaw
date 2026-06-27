@@ -1554,3 +1554,24 @@ const AdminImportPage = {
     }
   }
 };
+
+// ── Lazy-load registration ─────────────────────────────────────────
+// admin.js is loaded on demand by app.js Router (see ensureAdminLoaded()).
+// Register the real 'admin' route handler at module load so the router
+// can resolve #admin/* URLs without re-loading a second copy of admin.js.
+Router.register('admin', (p) => {
+  const sub = p && p.page ? p.page : 'dash';
+  const adminRoutes = {
+    'dash': AdminDashboardPage,
+    'jobs': AdminJobsPage,
+    'novels': AdminNovelsPage,
+    'chapters': AdminChaptersPage,
+    'glossary': AdminGlossaryPage,
+    'novel-edit': AdminNovelEditPage,
+    'import': AdminImportPage,
+    'logs': AdminLogsPage,
+    'translate': AdminTranslatePage,
+  };
+  const handler = adminRoutes[sub] || AdminDashboardPage;
+  handler.render(p);
+});

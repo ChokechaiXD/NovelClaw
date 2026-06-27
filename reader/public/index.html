@@ -308,15 +308,16 @@
   <div id="toast-container" class="c-toast-container"></div>
 
   <!-- ═══ SCRIPTS (order matters) ═══ -->
-  <script src="/js/state.js?_v=20260626d"></script>
-  <script src="/js/api.js?_v=20260626d"></script>
-  <script src="/js/components.js?_v=20260626d"></script>
-  <script src="/js/pages/home.js?_v=20260626d"></script>
-  <script src="/js/pages/novel.js?_v=20260626d"></script>
-  <script src="/js/reader-renderer.js?_v=20260626d"></script>
-  <script src="/js/pages/reader.js?_v=20260626d"></script>
-  <script src="/js/pages/pages.js?_v=20260626d"></script>
-  <script src="/js/pages/admin.js?_v=20260626d"></script>
-  <script src="/js/app.js?_v=20260626d"></script>
+  <!-- Defer non-critical scripts so home renders fast. admin.js (87KB) is
+       loaded on demand by app.js on first navigation to '#admin*'. -->
+  <script src="/js/state.js?_v=20260626d" defer></script>
+  <script src="/js/api.js?_v=20260626d" defer></script>
+  <script src="/js/components.js?_v=20260626d" defer></script>
+  <script src="/js/pages/home.js?_v=20260626d" defer></script>
+  <script src="/js/pages/novel.js?_v=20260626d" defer></script>
+  <script src="/js/reader-renderer.js?_v=20260626d" defer></script>
+  <script src="/js/pages/reader.js?_v=20260626d" defer></script>
+  <script src="/js/pages/pages.js?_v=20260626d" defer></script>
+  <script src="/js/app.js?_v=20260626d" defer></script>
 </body>
 </html>
