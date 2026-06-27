@@ -939,12 +939,11 @@ button.c-form__input,
 .c-card {
   background: var(--c-bg-card);
   border: 1px solid var(--c-border);
-  border-radius: var(--radius);
+  border-radius: 8px;
   overflow: hidden;
-  transition: all 0.15s;
   cursor: pointer;
 }
-.c-card:hover { border-color: var(--c-accent); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.c-card:hover { border-color: var(--c-accent); }
 .c-card__cover {
   height: 120px;
   display: flex;
