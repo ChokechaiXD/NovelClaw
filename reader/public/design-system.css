@@ -653,6 +653,7 @@ ul, ol { list-style: none; }
 @media (max-width: 767px) {
   .c-mobile-nav {
     display: flex;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   /* .c-mobile-nav + .c-reader-bottom-toolbar are body-level siblings of
      .c-app, so .c-app--reader-page X selector doesn't reach them. Toggle
@@ -666,6 +667,15 @@ ul, ol { list-style: none; }
   }
   .c-app--reader-page .c-app__main {
     padding-bottom: 0px !important;
+  }
+  /* Reader toolbar: safe bottom area on notched phones */
+  .c-reader-bottom-toolbar {
+    margin-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  }
+  /* Slightly smaller reader font on tiny screens */
+  .reader-body {
+    padding: 1.5rem 1rem;
+    font-size: 16px;
   }
 }
 
