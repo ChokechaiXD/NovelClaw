@@ -231,7 +231,6 @@ function initMobileNav() {
 // ── Reader full-width mode (called when reader page loads) ───────────
 function enableReaderMode() {
   const appShell = document.querySelector('.c-app');
-  appShell?.classList.remove('c-app--book-mode');
   appShell?.classList.add('c-app--reader-page');
   // Body-level flag so CSS can hide body-level siblings (.c-mobile-nav,
   // .c-reader-bottom-toolbar) which sit OUTSIDE .c-app in the DOM and
@@ -241,7 +240,6 @@ function enableReaderMode() {
 function disableReaderMode() {
   const appShell = document.querySelector('.c-app');
   appShell?.classList.remove('c-app--reader-page');
-  appShell?.classList.remove('c-app--book-mode');
   document.body.classList.remove('c-body--reader-mode');
   // Restore sidebar collapsed state
   if (Store.getSettings().sidebarCollapsed && window.innerWidth >= 1024) {
@@ -270,11 +268,6 @@ function initReaderBottomToolbar() {
 
   document.getElementById('reader-bottom-lg')?.addEventListener('click', () => {
     const btn = document.getElementById('reader-font-lg');
-    if (btn) btn.click();
-  });
-
-  document.getElementById('reader-bottom-book')?.addEventListener('click', () => {
-    const btn = document.getElementById('reader-distraction-toggle');
     if (btn) btn.click();
   });
 
@@ -341,33 +334,6 @@ async function updateActivityFeed() {
       return `<${tag}${attrs}>${Ui.esc(title)} <span class="c-rc__item-time">ตอนที่ ${e.num}</span><br><span class="c-rc__item-date">${dateStr}</span></${tag}>`;
     }).join('');
   } catch(e) { feed.innerHTML = '<div class="c-rc__item">ไม่สามารถโหลดกิจกรรม</div>'; }
-
-  // Stats section
-  const stats = document.getElementById('rightbar-stats');
-  if (stats) {
-    const novels = await Api.getNovels();
-    const totalRead = Store.getHistory().length;
-    const translated = novels.reduce((a, n) => a + (n.translatedChapters || 0), 0);
-    const total = novels.reduce((a, n) => a + (n.totalChapters || n.chapterCount || 0), 0);
-    stats.innerHTML = '<div class="c-mini-stat-grid">' +
-      '<div class="c-mini-stat"><div class="c-mini-stat__num">' + novels.length + '</div><div class="c-mini-stat__label">นิยาย</div></div>' +
-      '<div class="c-mini-stat"><div class="c-mini-stat__num">' + totalRead + '</div><div class="c-mini-stat__label">อ่านแล้ว</div></div>' +
-      '<div class="c-mini-stat"><div class="c-mini-stat__num">' + translated + '</div><div class="c-mini-stat__label">แปลแล้ว</div></div>' +
-      '<div class="c-mini-stat"><div class="c-mini-stat__num ' + (total - translated > 0 ? 'c-mini-stat__num--warn' : 'c-mini-stat__num--success') + '">' + (total - translated) + '</div><div class="c-mini-stat__label">รอแปล</div></div></div>';
-  }
-}
-
-// ── Activity polling control (start/stop per page) ──────────────────
-let _activityTimer = null;
-function startActivityPolling() {
-  if (_activityTimer) return;
-  _activityTimer = setInterval(updateActivityFeed, 30000);
-}
-function stopActivityPolling() {
-  if (_activityTimer) {
-    clearInterval(_activityTimer);
-    _activityTimer = null;
-  }
 }
 
 // ── Init ────────────────────────────────────────────────────────────────
@@ -411,24 +377,14 @@ function init() {
       disableReaderMode();
       hideReaderBottomToolbar();
     }
-    // Activity polling: only when rightbar might be visible (home)
-    if (page === 'home') {
-      startActivityPolling();
-    } else {
-      stopActivityPolling();
-    }
   };
   Ui.updateAvatar();
 
   // Start router
   Router.init();
 
-  // Initial activity — only start polling if on home page
+  // Initial activity feed load
   updateActivityFeed();
-  const currentPage = (window.location.hash.replace(/^#/, '') || 'home').split('/')[0];
-  if (currentPage === 'home') {
-    startActivityPolling();
-  }
 }
 
 // Auto-boot

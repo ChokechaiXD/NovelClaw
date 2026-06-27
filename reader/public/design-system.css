@@ -49,8 +49,6 @@
 
   --sidebar-w: 280px;
   --sidebar-w-collapsed: 0px;
-  --rightbar-w: 300px;
-  --rightbar-w-collapsed: 0px;
   --topbar-h: 64px;
   --reader-font-size: 18px;
   --reader-line-height: 1.9;
@@ -384,15 +382,10 @@ ul, ol { list-style: none; }
 /* ── App Shell (CSS Grid 3-column) ────────────────────────────────── */
 .c-app {
   display: grid;
-  grid-template-columns: var(--sidebar-col, var(--sidebar-w)) minmax(0, 1fr) var(--rightbar-col, 0px);
+  grid-template-columns: var(--sidebar-col, var(--sidebar-w)) minmax(0, 1fr);
   height: 100dvh;
   overflow: hidden;
   transition: grid-template-columns 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Show rightbar */
-.c-app--rightbar-show {
-  --rightbar-col: var(--rightbar-w);
 }
 
 /* Sidebar collapsed: shrink to 0 */
@@ -413,15 +406,11 @@ ul, ol { list-style: none; }
   .c-app__main {
     grid-column: 2;
   }
-  .c-app__rightbar {
-    grid-column: 3;
-  }
 }
 
-/* Reader full-width: hide both sidebars instantly when on reader page */
+/* Reader full-width: hide sidebar instantly when on reader page */
 .c-app--reader-page {
   --sidebar-col: 0px;
-  --rightbar-col: 0px;
   --content-bg: var(--c-bg, #f5f0e8);
 }
 .c-app.c-app--reader-page {
@@ -433,28 +422,11 @@ ul, ol { list-style: none; }
 .c-app--reader-page .c-content {
   max-width: none;
 }
-.c-app--reader-page .c-app__sidebar,
-.c-app--reader-page .c-app__rightbar {
+.c-app--reader-page .c-app__sidebar {
   display: none;
 }
 
 /* Book mode: distraction-free reading — hides everything except content */
-.c-app--book-mode {
-  --sidebar-col: 0px;
-  --rightbar-col: 0px;
-}
-.c-app--book-mode .c-app__sidebar,
-.c-app--book-mode .c-app__rightbar,
-.c-app--book-mode .c-reader__nav,
-.c-app--book-mode .reader-bottom-toolbar,
-.c-app--book-mode .c-reader-bottom-toolbar,
-.c-app--book-mode .c-app__header {
-  display: none !important;
-}
-.c-app--book-mode .reader-shell {
-  max-width: 100%;
-  padding: 0 10%;
-}
 
 /* ── App shell children ────────────────────────────────────────────── */
 .c-app__sidebar {
@@ -473,18 +445,6 @@ ul, ol { list-style: none; }
   overflow: hidden;
   min-width: 0;
   background: var(--c-bg);
-}
-.c-app__rightbar {
-  height: 100dvh;
-  overflow-y: auto;
-  border-left: 1px solid var(--c-border);
-  background: var(--c-bg-secondary);
-  transition: opacity 0.22s ease;
-  min-width: 0;
-  display: none;  /* hidden by default */
-}
-.c-app--rightbar-show .c-app__rightbar {
-  display: block;
 }
 
 /* ── Sidebar (deprecated — use .c-app__sidebar) ──────────────────── */
@@ -541,16 +501,6 @@ ul, ol { list-style: none; }
   min-width: 0;
   width: 100%;
   overflow: auto;
-}
-.c-rightbar {
-  width: var(--rightbar-w);
-  border-left: 1px solid var(--c-border-subtle);
-  background: var(--c-bg-deep);
-  padding: var(--space-md);
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -883,9 +833,6 @@ button.c-form__input,
    ═══════════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 1279px) {
-  .c-app__rightbar {
-    display: none !important;
-  }
 }
 
 @media (max-width: 767px) {
@@ -1318,31 +1265,6 @@ pre code {
   width: 0%;
   transition: width 0.15s ease;
 }
-
-/* ── Floating exit button (book mode) ────────────────────────────── */
-.reader-exit-btn {
-  position: fixed;
-  top: var(--space-md);
-  left: var(--space-md);
-  z-index: 40;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-full);
-  background: var(--c-surface);
-  border: 1px solid var(--c-border);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  color: var(--c-text-muted);
-  cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: var(--shadow-sm);
-}
-.reader-exit-btn:hover {
-  background: var(--c-surface-hover);
-  color: var(--c-text-primary);
-}
-
 
 /* ── Reader content (backward compat, kept for content) ──────────── */
 .reader-content {
@@ -2512,34 +2434,6 @@ a.c-rc__item:hover { color: var(--c-accent); }
 /* ── Toggle wrapper ─────────────────────────────────────────────────── */
 .c-toggle-wrap { display: flex; align-items: center; gap: var(--space-sm); }
 
-
-/* ── Mini-stat cards (rightbar stats) ─────────────────────────────── */
-.c-mini-stat-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-.c-mini-stat {
-  background: var(--c-surface);
-  border-radius: var(--radius-sm);
-  padding: 10px;
-  text-align: center;
-}
-.c-mini-stat__num {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--c-accent);
-}
-.c-mini-stat__num--warn {
-  color: var(--c-warning);
-}
-.c-mini-stat__num--success {
-  color: var(--c-success);
-}
-.c-mini-stat__label {
-  font-size: 10px;
-  color: var(--c-text-muted);
-}
 
 /* ── Activity feed items ─────────────────────────────────────────── */
 .c-rc__item-time {
