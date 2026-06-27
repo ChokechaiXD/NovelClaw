@@ -44,9 +44,9 @@ const Ui = {
     } else if (type === 'list') {
       el.innerHTML = '<div class="c-skel c-skel--line"></div>'.repeat(6);
     } else if (type === 'detail') {
-      el.innerHTML = '<div class="c-skel c-skel--block"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line" style="width:45%;"></div>';
+      el.innerHTML = '<div class="c-skel c-skel--block"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line c-skel--w-45"></div>';
     } else {
-      el.innerHTML = '<div class="c-skel c-skel--block"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line" style="width:55%;"></div>';
+      el.innerHTML = '<div class="c-skel c-skel--block"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line c-skel--w-55"></div>';
     }
   },
 
@@ -59,7 +59,7 @@ const Ui = {
   showError(container, title, desc) {
     const el = typeof container === 'string' ? Ui.$(container) : container;
     if (!el) return;
-    el.innerHTML = `<div class="c-error"><svg class="c-error__mascot"><use xlink:href="#mascot-crab-excited"/></svg><div class="c-error__title">${Ui.esc(title || 'เกิดข้อผิดพลาด')}</div><div class="c-empty__desc">${Ui.esc(desc || '')}</div><button class="c-error__retry" onclick="location.reload()">ลองอีกครั้ง</button></div>`;
+    el.innerHTML = `<div class="c-error"><svg class="c-error__mascot"><use xlink:href="#mascot-crab-excited"/></svg><div class="c-error__title">${Ui.esc(title || 'เกิดข้อผิดพลาด')}</div><div class="c-empty__desc">${Ui.esc(desc || '')}</div><button class="c-error__retry" data-ui-reload>ลองอีกครั้ง</button></div>`;
   },
 
   // ── Display Title (fallback: translatedTitle → title → slug) ──────────
@@ -71,12 +71,13 @@ const Ui = {
   // ── Cover SVG generator (NovelClaw brand fallback) ───────────────
   coverSVG(slug, title) {
     const initial = (title || slug || '?').charAt(0).toUpperCase();
+    const coverLabel = (slug || title || '').slice(0, 18);
     const hue = Ui.slugToHue(slug || '');
     // NovelClaw palette: teal gradient base + purple accent
     const c1 = `hsl(${hue % 360}, 60%, 35%)`;
     const c2 = `hsl(${(hue + 40) % 360}, 50%, 25%)`;
     const id = `c${slug || 'x'}`;
-    return `<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;border-radius:var(--radius);display:block;">
+    return `<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg" class="c-cover-svg">
       <defs>
         <linearGradient id="g-${id}" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stop-color="${c1}"/>
@@ -95,7 +96,7 @@ const Ui = {
         <rect x="14.5" y="8" width="9.5" height="16" rx="1" fill="#fffdf5"/>
       </g>
       <text x="100" y="220" text-anchor="middle" fill="rgba(255,255,255,0.15)" font-size="60" font-weight="700" font-family="system-ui,sans-serif">${Ui.esc(initial)}</text>
-      <text x="100" y="248" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="14" font-weight="600" font-family="system-ui,sans-serif">${Ui.esc(title || slug || '')}</text>
+      <text x="100" y="248" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="14" font-weight="600" font-family="system-ui,sans-serif">${Ui.esc(coverLabel)}</text>
     </svg>`;
   },
 
@@ -108,8 +109,7 @@ const Ui = {
     const t = Ui.el('div', { class: `c-toast c-toast--${type}` }, message);
     container.appendChild(t);
     setTimeout(() => {
-      t.style.opacity = '0';
-      t.style.transform = 'translateY(20px)';
+      t.classList.add('c-toast--leaving');
       setTimeout(() => t.remove(), 300);
     }, 3000);
   },
@@ -205,7 +205,7 @@ const Ui = {
     const hrefAttr = opts.href ? ` href="${opts.href}"` : '';
     const navAttr = opts.href ? ' data-nav' : '';
     const iconHtml = opts.icon
-      ? `<svg style="width:16px;height:16px;"><use xlink:href="${opts.icon}"/></svg> `
+      ? `<svg class="c-icon c-icon--sm"><use xlink:href="${opts.icon}"/></svg> `
       : '';
     return `<${tag} class="c-card"${hrefAttr}${navAttr}>`
       + (opts.title ? `<div class="c-card__title">${iconHtml}${this.esc(opts.title)}</div>` : '')
@@ -218,7 +218,44 @@ const Ui = {
    * @param {string} text — text to copy
    */
   copyButton(text) {
-    const encoded = this.esc(text);
-    return `<button class="c-btn c-btn--sm c-btn--ghost" onclick="navigator.clipboard.writeText('${encoded.replace(/'/g, "\\'")}')">📋</button>`;
+    const encoded = this.esc(encodeURIComponent(text || ''));
+    return `<button class="c-btn c-btn--sm c-btn--ghost c-copy-btn" data-copy-text="${encoded}" title="คัดลอก">📋</button>`;
   },
 };
+
+document.addEventListener('click', (event) => {
+  const reloadBtn = event.target.closest('[data-ui-reload]');
+  if (reloadBtn) {
+    location.reload();
+    return;
+  }
+
+  const copyBtn = event.target.closest('[data-copy-text]');
+  if (!copyBtn) return;
+
+  const text = decodeURIComponent(copyBtn.dataset.copyText || '');
+  const fallbackCopy = () => {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.className = 'u-sr-only';
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand('copy');
+    textarea.remove();
+    if (!copied) throw new Error('copy failed');
+  };
+
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(() => Ui.showToast('คัดลอกแล้ว', 'success'))
+      .catch(() => {
+        try { fallbackCopy(); Ui.showToast('คัดลอกแล้ว', 'success'); }
+        catch { Ui.showToast('คัดลอกไม่สำเร็จ', 'error'); }
+      });
+    return;
+  }
+
+  try { fallbackCopy(); Ui.showToast('คัดลอกแล้ว', 'success'); }
+  catch { Ui.showToast('คัดลอกไม่สำเร็จ', 'error'); }
+});

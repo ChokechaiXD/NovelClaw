@@ -91,14 +91,14 @@ const NovelPage = {
               if (res.ok) {
                 Api.invalidateChapterContent(chSlug, chNum);
                 Api.invalidateChapters(chSlug);
-                alert(`แปลตอนที่ ${chNum} สำเร็จเรียบร้อยแล้วค่ะ!`);
+                Ui.showToast(`แปลตอนที่ ${chNum} สำเร็จเรียบร้อยแล้วค่ะ`, 'success');
                 // โหลดหน้านี้ใหม่เพื่ออัปเดตสถานะปุ่ม
                 await NovelPage.render(params);
               } else {
-                alert('การแปลขัดข้อง: ' + (res.error?.message || 'ข้อผิดพลาดระบบ'));
+                Ui.showToast('การแปลขัดข้อง: ' + (res.error?.message || 'ข้อผิดพลาดระบบ'), 'error');
               }
             } catch (err) {
-              alert('เกิดข้อผิดพลาดในการแปล: ' + err.message);
+              Ui.showToast('เกิดข้อผิดพลาดในการแปล: ' + err.message, 'error');
             } finally {
               if (loader) loader.style.display = 'none';
             }
@@ -114,15 +114,15 @@ const NovelPage = {
       for (const ch of pageChapters) {
         const read = Store.isRead(slug, ch.num);
         const sourceOnly = ch.status === 'source_only';
-        const chClass = `c-detail__ch-btn ${read ? 'c-detail__ch-btn--read' : ''} ${sourceOnly ? 'c-detail__ch-btn--source-only' : ''}`;
+        const chClass = `c-detail__ch-btn ${read ? 'c-detail__ch-btn--read' : ''} ${sourceOnly ? 'c-detail__ch-btn--source-only c-detail__ch-btn--with-action' : ''}`;
         html += `
-          <div class="c-detail__ch-wrapper" style="position:relative;">
-            <a href="#novel/${slug}/${ch.num}" class="${chClass.trim()}" data-nav style="display:block; padding-right:${sourceOnly ? '32px' : 'var(--space-sm)'};">
+          <div class="c-detail__ch-wrapper">
+            <a href="#novel/${slug}/${ch.num}" class="${chClass.trim()}" data-nav>
               ${Ui.esc(ch.title || 'ตอนที่ ' + ch.num)}
-              ${read ? '<br><span style="font-size:9px;color:var(--c-success);">✔ อ่านแล้ว</span>' : ''}
+              ${read ? '<br><span class="c-detail__read-mark">✔ อ่านแล้ว</span>' : ''}
             </a>
             ${sourceOnly ? `
-              <button class="ch-quick-translate-btn" data-slug="${slug}" data-num="${ch.num}" title="แปลไทยด้วย AI ทันที" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); width:24px; height:24px; display:flex; align-items:center; justify-content:center; background:var(--c-accent-soft); border:1px solid var(--c-accent); border-radius:4px; color:var(--c-accent); font-size:10px; cursor:pointer; transition:all 0.15s; z-index:10;">
+              <button class="ch-quick-translate-btn" data-slug="${slug}" data-num="${ch.num}" title="แปลไทยด้วย AI ทันที">
                 ⚡
               </button>
             ` : ''}

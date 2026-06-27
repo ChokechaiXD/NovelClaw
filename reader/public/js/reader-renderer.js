@@ -21,7 +21,7 @@ const ReaderRenderer = {
     else if (data.blocks && data.blocks.length) {
       html = this._renderBlocks(data.blocks);
     } else {
-      html = '<p style="text-align:center;padding:2em;">ยังไม่มีเนื้อหา</p>';
+      html = '<p class="c-reader-empty-content">ยังไม่มีเนื้อหา</p>';
     }
     if (window.__NC_PERF) {
       performance.mark('render-end');
