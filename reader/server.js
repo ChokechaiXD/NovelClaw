@@ -10,8 +10,21 @@
 //   AUTO_KILL_PORT   — set 'true' to auto-kill old process (default off)
 
 const express = require('express');
+// Subprocess output sanitizer for error responses.
+// Strips characters likely to be from tracebacks / file paths / leaked
+// secrets (control chars, most punctuation, anything outside text ranges
+// we'd ever want to expose). Bounded at 2000 chars so a big Python
+// traceback can't blow up the response.
+function sanitizeOutput(s) {
+  if (!s) return '';
+  // Keep only chars in the union of: ASCII printable+whitespace, Thai, CJK
+  // punctuation, Hiragana, Katakana, CJK Unified. Anything else is dropped.
+  const cleaned = String(s).replace(/[^\x09\x0A\x0D\x20-\x7E\u0E00-\u0E7F\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g, '');
+  return cleaned.length > 2000 ? cleaned.slice(0, 2000) + '...[truncated]' : cleaned;
+}
+
 const helmet = require('helmet');
-const crypto = require('node:crypto');
+const rateLimit = require('express-rate-limit');
 const fs = require('node:fs/promises');
 const fsSync = require('node:fs');
 const path = require('node:path');
@@ -52,8 +65,39 @@ function invalidateCache(prefix) {
 
 // ── Middleware ─────────────────────────────────────────────────────
 const app = express();
-app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+// Helmet defaults turn on a strict Content-Security-Policy that breaks
+// any inline JS or external fonts. NovelClaw Reader uses no inline scripts
+// and only self-hosted assets. Explicit CSP:
+//   - only this origin (-self) for scripts/styles/images/connect
+//   - no eval(), no inline JS, no inline styles (toggle to 'unsafe-inline'
+//     if admin later needs inlined theme vars)
+//   - frames blocked (clickjacking), X-Content-Type-Options, Referrer-Policy
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      'default-src': ["'self'"],
+      'script-src': ["'self'"],
+      'style-src': ["'self'", "'unsafe-inline'"],  // admin uses inline style for some controls
+      'img-src': ["'self'", 'data:'],            // SVG cover fallback uses data URIs
+      'connect-src': ["'self'"],
+      'object-src': ["'none'"],
+      'base-uri': ["'self'"],
+      'frame-ancestors': ["'none'"],
+    },
+  },
+}));
 app.use(express.json({ limit: '5mb' }));
+
+// Rate-limit admin write APIs in case ADMIN_TOKEN is leaked. The reader is
+// intended for single-user localhost or small-LAN use, so 60 req/min/IP is
+// generous for real use and tight enough to deflect casual bots.
+const adminWriteLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+});
 
 // Static files with cache disabled for dev
 app.use(express.static(PUBLIC_DIR, {
@@ -80,8 +124,8 @@ const asyncHandler = (fn) => (req, res, next) =>
 // Admin write helper: requireAdmin guard + asyncHandler wrapper.
 // Saves repeating 'requireAdmin, asyncHandler' on every write route —
 // was repeated on 11 routes before.
-function adminPost(ath, handler) {
-  app.post(path, requireAdmin, asyncHandler(handler));
+function adminPost(path, handler) {
+  app.post(path, adminWriteLimiter, requireAdmin, asyncHandler(handler));
 }
 
 // Admin auth middleware
@@ -317,7 +361,7 @@ adminPost('/api/novel/:slug/glossary/save', async (req, res) => {
   });
   child.on('close', (code) => {
     if (code !== 0) {
-      return fail(res, 500, 'GLOSSARY_SAVE_FAILED', `glossary.py exited ${code}: ${stderr}`);
+      return fail(res, 500, 'GLOSSARY_SAVE_FAILED', `glossary.py exited ${code}: ${sanitizeOutput(stderr)}`);
     }
     chapterRepo.invalidateAll(slug);
     ok(res, { saved: true });
@@ -612,7 +656,7 @@ adminPost('/api/novel/:slug/chapter/:num/delete', async (req, res) => {
 
 // ── Manual cache invalidation ──────────────────────────────────────
 
-app.post('/api/invalidate-cache', requireAdmin, (req, res) => {
+app.post('/api/invalidate-cache', adminWriteLimiter, requireAdmin, (req, res) => {
   chapterRepo.invalidateAll();
   ok(res, { invalidated: true });
 });
@@ -884,7 +928,7 @@ adminPost('/api/novel/:slug/glossary/add', async (req, res) => {
 
   child.on('close', (code) => {
     if (code !== 0) {
-      return fail(res, 500, 'GLOSSARY_SAVE_FAILED', `glossary.py exited ${code}: ${stderr}`);
+      return fail(res, 500, 'GLOSSARY_SAVE_FAILED', `glossary.py exited ${code}: ${sanitizeOutput(stderr)}`);
     }
     chapterRepo.invalidateAll(slug);
     ok(res, { added: true, term: { source, thai } });
@@ -973,13 +1017,13 @@ adminPost('/api/local/translate-term', async (req, res) => {
   
   child.on('close', (code) => {
     if (code !== 0) {
-      return fail(res, 500, 'TRANSLATE_FAILED', `translate_term.py exited ${code}: ${stderr || stdout}`);
+      return fail(res, 500, 'TRANSLATE_FAILED', `translate_term.py exited ${code}: ${sanitizeOutput(stderr || stdout)}`);
     }
     try {
       const parsed = JSON.parse(stdout);
       ok(res, parsed);
     } catch (err) {
-      fail(res, 500, 'JSON_PARSE_ERROR', 'Failed to parse LLM suggestion JSON: ' + stdout);
+      fail(res, 500, 'JSON_PARSE_ERROR', 'Failed to parse LLM suggestion JSON: ' + sanitizeOutput(stdout));
     }
   });
   
@@ -1034,7 +1078,7 @@ adminPost('/api/novel/:slug/glossary/verify', async (req, res) => {
   
   child.on('close', (code) => {
     if (code !== 0) {
-      return fail(res, 500, 'GLOSSARY_SAVE_FAILED', `glossary.py exited ${code}: ${stderr}`);
+      return fail(res, 500, 'GLOSSARY_SAVE_FAILED', `glossary.py exited ${code}: ${sanitizeOutput(stderr)}`);
     }
     chapterRepo.invalidateAll(slug);
     ok(res, { verified: terms[idx].verified });
@@ -1203,7 +1247,7 @@ adminPost('/api/novel/:slug/translate/single', async (req, res) => {
   child.on('close', (code) => {
     if (code !== 0) {
       if (!res.headersSent) {
-        return fail(res, 500, 'TRANSLATE_FAILED', `novelctl.py exited with code ${code}: ${stderr || stdout}`);
+        return fail(res, 500, 'TRANSLATE_FAILED', `novelctl.py exited with code ${code}: ${sanitizeOutput(stderr || stdout)}`);
       }
       return;
     }
@@ -1248,7 +1292,7 @@ adminPost('/api/novel/:slug/translate/batch', async (req, res) => {
   child.on('close', (code) => {
     if (code !== 0) {
       if (!res.headersSent) {
-        return fail(res, 500, 'TRANSLATE_FAILED', `novelctl.py exited with code ${code}: ${stderr || stdout}`);
+        return fail(res, 500, 'TRANSLATE_FAILED', `novelctl.py exited with code ${code}: ${sanitizeOutput(stderr || stdout)}`);
       }
       return;
     }
