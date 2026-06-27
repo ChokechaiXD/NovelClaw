@@ -3,7 +3,31 @@
    NovelClaw Reader
    ═══════════════════════════════════════════════════════════════════════ */
 
+// Marker used by Router.register sentinel for routes whose handler will be
+// supplied by a lazy-loaded module. Stored as `null` in _routes below.
+const LAZY_ROUTE_SENTINEL = Symbol('lazy-route-sentinel');
+
 // ── Simple Hash Router ───────────────────────────────────────────────
+let adminModulePromise = null;  // resolves once admin.js is fetched
+function ensureAdminLoaded() {
+  if (!adminModulePromise) {
+    adminModulePromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = '/js/pages/admin.js?_v=20260626d';
+      s.async = false;  // preserve execution order with the rest
+      s.onload = () => {
+        // admin.js attaches Admin* globals to window via the existing wiring
+        // (Router.register('admin', ...) at the bottom of admin.js).
+        // Resolve on next tick so its top-level Router.register fires.
+        setTimeout(resolve, 0);
+      };
+      s.onerror = () => reject(new Error('Failed to load admin.js'));
+      document.head.appendChild(s);
+    });
+  }
+  return adminModulePromise;
+}
+
 const Router = {
   _routes: {},
   _current: null,
@@ -18,7 +42,7 @@ const Router = {
     this._resolve();
   },
 
-  _resolve() {
+  async _resolve() {
     const hash = window.location.hash.replace(/^#/, '') || 'home';
     const parts = hash.split('/');
     const page = parts[0];
@@ -39,11 +63,30 @@ const Router = {
     }
 
     const handler = this._routes[page];
-    if (handler && this._current !== hash) {
-      this._current = hash;
-      this._activatePage(page, params);
-      try { handler(params); } catch(e) { console.error('Router error', page, e); }
-      this.onPageChange?.(page, params);
+    const fire = (resolvedFn) => {
+      if (this._current !== hash) {
+        this._current = hash;
+        this._activatePage(page, params);
+        if (resolvedFn) {
+          try { resolvedFn(params); } catch(e) { console.error('Router error', page, e); }
+        }
+        this.onPageChange?.(page, params);
+      }
+    };
+    // Real handler registered already.
+    if (handler && typeof handler === 'function') {
+      fire(handler);
+    // Sentinel = lazy module not yet loaded; load admin.js, then fire
+    // the real handler it registers at the bottom of itself.
+    } else if (handler === LAZY_ROUTE_SENTINEL && page === 'admin') {
+      try {
+        await ensureAdminLoaded();
+      } catch (e) {
+        console.error('Admin module load failed:', e);
+        return;
+      }
+      // After admin.js runs, this._routes[admin] is now a real function.
+      fire(this._routes[page]);
     } else if (!handler && this._current !== hash) {
       this._current = hash;
       this._activatePage('home');
@@ -342,22 +385,11 @@ function init() {
   Router.register('history', (p) => HistoryPage.render(p));
   Router.register('bookmarks', (p) => BookmarksPage.render(p));
   Router.register('settings', (p) => SettingsPage.render(p));
-  Router.register('admin', (p) => {
-    const sub = p && p.page ? p.page : 'dash';
-    const adminRoutes = {
-      'dash': AdminDashboardPage,
-      'jobs': AdminJobsPage,
-      'novels': AdminNovelsPage,
-      'chapters': AdminChaptersPage,
-      'glossary': AdminGlossaryPage,
-      'novel-edit': AdminNovelEditPage,
-      'import': AdminImportPage,
-      'logs': AdminLogsPage,
-      'translate': AdminTranslatePage,
-    };
-    const handler = adminRoutes[sub] || AdminDashboardPage;
-    handler.render(p);
-  });
+  // Admin is registered by admin.js itself when it loads (lazy). We
+  // register a sentinel here so the router knows the page name; admin.js
+  // overwrites it with a real handler once loaded. _resolve() detects
+  // the sentinel and triggers ensureAdminLoaded() before running.
+  Router.register('admin', LAZY_ROUTE_SENTINEL);
 
   // Init UI
   initSidebar();
