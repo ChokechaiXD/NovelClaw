@@ -7,10 +7,11 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "check": "node --check server.js && node --check public/js/app.js && node --check public/js/pages/admin.js && node --check public/js/pages/reader.js && node --check public/js/pages/pages.js && node --check public/js/pages/home.js && node --check public/js/components.js && node --check public/js/pages/novel.js",
+    "check": "node tests/test-static-ui.js && node --check server.js && node --check public/js/api.js && node --check public/js/app.js && node --check public/js/components.js && node --check public/js/reader-renderer.js && node --check public/js/state.js && node --check public/js/pages/admin.js && node --check public/js/pages/home.js && node --check public/js/pages/novel.js && node --check public/js/pages/pages.js && node --check public/js/pages/reader.js",
     "syntax": "node -e \"const{execSync}=require('child_process');const{globSync}=require('fs');console.log(execSync('node --check server.js').toString());const files=require('child_process').execSync('dir /s /b public\\\\js\\\\*.js').toString().trim().split('\\n');files.forEach(f=>{try{require('child_process').execSync('node --check '+f.trim(),{stdio:'pipe'})}catch(e){console.error('FAIL:'+f.trim());process.exit(1)}});console.log('JS syntax: OK')\"",
     "test": "node --check server.js",
-    "test:api": "node tests/test-api.js"
+    "test:api": "node tests/test-api.js",
+    "test:static-ui": "node tests/test-static-ui.js"
   },
   "dependencies": {
     "express": "^4.21.2",
