@@ -122,9 +122,7 @@
   --c-accent-soft: rgba(15, 118, 110, 0.1);
   --c-accent-glow: rgba(15, 118, 110, 0.12);
   --c-accent-2: #7C3AED;
-  --c-accent-2-soft: rgba(124, 58, 237, 0.1);
-  --c-marker-system: var(--stat-text);
-  --c-marker-thought: #7C3AED;
+  --c-filter-bg: #fff0d6;
   --c-success: #059669;
   --c-success-glow: rgba(5, 150, 105, 0.3);
   --c-warning: #D97706;
@@ -177,9 +175,6 @@
   --c-accent-soft: rgba(94, 234, 212, 0.1);
   --c-accent-glow: rgba(94, 234, 212, 0.12);
   --c-accent-2: #A78BFA;
-  --c-accent-2-soft: rgba(167, 139, 250, 0.1);
-  --c-marker-system: var(--stat-text);
-  --c-marker-thought: #A78BFA;
   --c-success: #34D399;
   --c-success-glow: rgba(52, 211, 153, 0.3);
   --c-warning: #FBBF24;
@@ -235,9 +230,6 @@
   --c-accent-soft: rgba(15, 118, 110, 0.08);
   --c-accent-glow: rgba(15, 118, 110, 0.12);
   --c-accent-2: #7C3AED;
-  --c-accent-2-soft: rgba(124, 58, 237, 0.08);
-  --c-marker-system: var(--stat-text);
-  --c-marker-thought: #6D28D9;
   --c-success: #059669;
   --c-success-glow: rgba(5, 150, 105, 0.4);
   --c-warning: #D97706;
@@ -293,9 +285,6 @@
   --c-accent-soft: rgba(45, 212, 191, 0.1);
   --c-accent-glow: rgba(45, 212, 191, 0.12);
   --c-accent-2: #C084FC;
-  --c-accent-2-soft: rgba(192, 132, 252, 0.1);
-  --c-marker-system: var(--stat-text);
-  --c-marker-thought: #C084FC;
   --c-success: #34D399;
   --c-success-glow: rgba(52, 211, 153, 0.4);
   --c-warning: #FBBF24;
@@ -1390,9 +1379,6 @@ pre code {
   line-height: 1.8;
   font-size: 0.9em;
 }
-.reader-stat .c-marker--system {
-  color: #7A5A30;
-}
 
 /* ── Reader meta (font controls) ────────────────────────────────────── */
 .c-reader__meta {
@@ -1464,22 +1450,6 @@ pre code {
   padding: var(--space-sm) var(--space-md);
   text-align: left;
   font-size: var(--text-sm);
-}
-
-/* ── Reader markers (legacy inline — no colors) ────────────────────── */
-.c-marker--dialogue { }
-.c-marker--system {
-  font-size: 0.9em;
-  font-weight: 500;
-}
-.c-marker--thought { font-style: italic; }
-.c-marker--end {
-  display: block;
-  text-align: center;
-  font-size: var(--text-sm);
-  color: var(--c-text-muted);
-  margin: 3.5rem 0 1.5rem;
-  letter-spacing: 0.15em;
 }
 
 /* ── Thai Style paragraph types (NEW) ────────────────────────────── */
@@ -2641,10 +2611,6 @@ a.c-rc__item:hover { color: var(--c-accent); }
   border: none !important;
 }
 .profile-gradient-btn:hover { opacity: 0.9; }
-.dialogue { color: var(--c-accent); }
-.system-msg { color: var(--c-text-muted); font-style: italic; }
-.game-title { color: var(--c-warning); font-weight: var(--font-weight-bold); }
-.thought { font-style: italic; color: var(--c-marker-thought, #7C3AED); }
 .end-marker { text-align: center; color: var(--c-text-muted); font-size: var(--text-sm); margin: 3rem 0 1.5rem; letter-spacing: 0.15em; }
 
 /* ═══════════════════════════════════════════════════════════════════════
