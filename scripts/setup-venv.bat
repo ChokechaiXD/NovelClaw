@@ -4,7 +4,7 @@ REM Usage: scripts\setup-venv.bat
 REM Requires: Python 3.12 on PATH, OR uv installed (preferred).
 REM
 REM Old setup used `python -m venv` which produced a broken venv on
-REM machines where Hermes Agent venv was on PATH (it poisoned sys.path even
+REM machines where a global Python venv was on PATH (it poisoned sys.path even
 REM in isolated venvs via the inherited PYTHONPATH env var).
 REM This script uses `uv venv` instead — uv clears the inherited env and
 REM installs packages via `uv pip`, which respects venv isolation.
