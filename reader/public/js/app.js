@@ -232,9 +232,7 @@ function initMobileNav() {
 function enableReaderMode() {
   const appShell = document.querySelector('.c-app');
   appShell?.classList.add('c-app--reader-page');
-  // Body-level flag so CSS can hide body-level siblings (.c-mobile-nav,
-  // .c-reader-bottom-toolbar) which sit OUTSIDE .c-app in the DOM and
-  // therefore can't be targeted by '.c-app--reader-page X' selectors.
+  // Body-level flag so CSS can hide body-level siblings such as mobile nav.
   document.body.classList.add('c-body--reader-mode');
 }
 function disableReaderMode() {
@@ -245,40 +243,6 @@ function disableReaderMode() {
   if (Store.getSettings().sidebarCollapsed && window.innerWidth >= 1024) {
     appShell?.classList.add('c-app--sidebar-collapsed');
   }
-}
-
-// ── Bottom reader toolbar (initialized once) ──────────────────────
-function initReaderBottomToolbar() {
-  const toolbar = document.getElementById('reader-bottom-toolbar');
-  if (!toolbar) return;
-  if (toolbar.dataset.initialized) return; // already wired
-  toolbar.dataset.initialized = 'true';
-
-  toolbar.classList.add('c-reader-bottom-toolbar--show');
-
-  // Wire bottom toolbar buttons
-  document.getElementById('reader-bottom-back')?.addEventListener('click', () => {
-    window.history.back();
-  });
-
-  document.getElementById('reader-bottom-sm')?.addEventListener('click', () => {
-    const btn = document.getElementById('reader-font-sm');
-    if (btn) btn.click();
-  });
-
-  document.getElementById('reader-bottom-lg')?.addEventListener('click', () => {
-    const btn = document.getElementById('reader-font-lg');
-    if (btn) btn.click();
-  });
-
-  document.getElementById('reader-bottom-theme')?.addEventListener('click', () => {
-    const btn = document.getElementById('reader-theme-toggle');
-    if (btn) btn.click();
-  });
-}
-function hideReaderBottomToolbar() {
-  const toolbar = document.getElementById('reader-bottom-toolbar');
-  if (toolbar) toolbar.classList.remove('c-reader-bottom-toolbar--show');
 }
 
 // ── Theme Initialization ────────────────────────────────────────────
@@ -371,11 +335,9 @@ function init() {
   Router.onPageChange = (page, params) => {
     if (page === 'novel' && params.num) {
       enableReaderMode();
-      initReaderBottomToolbar();
     } else {
       ReaderPage._cleanupEvents?.();
       disableReaderMode();
-      hideReaderBottomToolbar();
     }
   };
   Ui.updateAvatar();
