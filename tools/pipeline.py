@@ -40,6 +40,7 @@ from classifier import classify_and_format, estimate_type_ratios  # noqa: E402
 from prompt_builder import build_prompt  # noqa: E402
 from scorer import score_chapter, report as score_report, PASS_THRESHOLD  # noqa: E402
 from glossary_pre import build_glossary_pre_chunk  # noqa: E402
+from glossary_discovery import discover_and_save  # noqa: E402
 
 # ── Station 1: Source Reader ─────────────────────────────────────────
 
@@ -132,7 +133,7 @@ def build_translate_prompt(
 
 def _get_active_config() -> dict[str, Any]:
     """Get active provider + model from config_providers."""
-    from llm_router.config_providers import get_provider_config
+    from llm_router.config_providers import get_provider_config, get_discovery_model
 
     cfg = get_provider_config()
     active = cfg.get("active", "openrouter")
@@ -141,6 +142,7 @@ def _get_active_config() -> dict[str, Any]:
     base_url = pcfg.get("base_url", "https://openrouter.ai/api/v1")
     api_key = pcfg.get("api_key", "")
     default_model = cfg.get("default_model", "google/gemma-4-26b-a4b-it:free")
+    discovery_model = get_discovery_model()
     timeout = pcfg.get("timeout_sec", 90)
     max_tokens = pcfg.get("max_tokens", 4096)
     temperature = pcfg.get("temperature", 0.28)
@@ -149,6 +151,7 @@ def _get_active_config() -> dict[str, Any]:
         "base_url": base_url,
         "api_key": api_key,
         "model": default_model,
+        "discovery_model": discovery_model,
         "timeout": timeout,
         "max_tokens": max_tokens,
         "temperature": temperature,
@@ -522,6 +525,18 @@ def translate_one(
             score_result = {"score": 100, "passed": True, "report": "(mock)", "dimensions": {}}
             judge_result = {"ok": True, "feedback": "(mock)"}
 
+        if not mock and source:
+            # ── Station 6.8: Auto Glossary Discovery ──
+            cfg = _get_active_config()
+            discovery_result = discover_and_save(
+                source_text=source,
+                slug=slug,
+                source_lang=source_lang,
+                discovery_model=model_override or cfg.get("discovery_model"),
+            )
+        else:
+            discovery_result = {"discovered": 0, "saved": 0, "terms": []}
+
         out_path = save_chapter(
             classified=classified,
             ch_num=ch_num,
@@ -545,6 +560,7 @@ def translate_one(
             "model": model_name,
             "score": score_result["score"],
             "judge": judge_result["feedback"][:200] if judge_result.get("ok") else "judge_error",
+            "discovery": f"{discovery_result['discovered']} found, {discovery_result['saved']} saved" if discovery_result['discovered'] > 0 else "none",
         }
 
     except Exception as e:
