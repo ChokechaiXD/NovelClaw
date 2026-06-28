@@ -275,31 +275,6 @@ function initTheme() {
   });
 }
 
-// ── Activity Feed ───────────────────────────────────────────────────
-async function updateActivityFeed() {
-  const feed = document.getElementById('activity-feed');
-  if (!feed) return;
-  try {
-    const novels = await Api.getNovels();
-    const recent = Store.getHistory().slice(0, 5);
-    if (recent.length === 0) {
-      feed.innerHTML = '<div class="c-rc__item c-rc__item--empty">ยังไม่มีกิจกรรม</div>';
-      return;
-    }
-    feed.innerHTML = recent.map(e => {
-      const n = novels.find(x => x.slug === e.slug);
-      const title = Ui.displayTitle(n) || e.slug;
-      const dateStr = (e.ts && !isNaN(new Date(e.ts)))
-        ? new Date(e.ts).toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })
-        : '';
-      const href = e.slug && e.num ? `#novel/${encodeURIComponent(e.slug)}/${e.num}` : '';
-      const tag = href ? 'a' : 'div';
-      const attrs = href ? ` href="${href}" class="c-rc__item" data-nav` : ' class="c-rc__item"';
-      return `<${tag}${attrs}>${Ui.esc(title)} <span class="c-rc__item-time">ตอนที่ ${e.num}</span><br><span class="c-rc__item-date">${dateStr}</span></${tag}>`;
-    }).join('');
-  } catch(e) { feed.innerHTML = '<div class="c-rc__item">ไม่สามารถโหลดกิจกรรม</div>'; }
-}
-
 // ── Init ────────────────────────────────────────────────────────────────
 function init() {
   // Register routes
@@ -327,10 +302,6 @@ function init() {
   initMobileNav();
   initTheme();
 
-  // Update activity feed when state is synced from server (LAN sync)
-  Store.on('state-synced', () => {
-    updateActivityFeed();
-  });
   // Wire reader mode toggle
   Router.onPageChange = (page, params) => {
     if (page === 'novel' && params.num) {
@@ -345,8 +316,6 @@ function init() {
   // Start router
   Router.init();
 
-  // Initial activity feed load
-  updateActivityFeed();
 }
 
 // Auto-boot

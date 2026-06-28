@@ -2034,108 +2034,6 @@ pre code {
   opacity: 0.5;
   pointer-events: none;
 }
-.c-admin-import__header {
-  margin-top: var(--space-md);
-}
-.c-admin-import__subtitle {
-  font-size: var(--text-sm);
-  color: var(--c-text-muted);
-}
-.c-admin-import__tabs {
-  display: flex;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-md);
-  padding-bottom: var(--space-xs);
-  border-bottom: 2px solid var(--c-border);
-}
-.c-admin-import__tab {
-  min-width: 140px;
-}
-.c-admin-import__panel {
-  padding: var(--space-md);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius);
-  background: var(--c-surface);
-}
-.c-admin-import__title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-md);
-  font-size: var(--text-md);
-  font-weight: var(--font-weight-semibold);
-}
-.c-admin-import__grid {
-  display: grid;
-  gap: var(--space-md);
-  margin-top: var(--space-sm);
-}
-.c-admin-import__grid--two {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-.c-admin-import__grid--three {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-}
-.c-admin-import__grid--four {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--space-sm);
-}
-.c-admin-import__content-field {
-  margin-top: var(--space-md);
-}
-.c-admin-import__textarea {
-  min-height: 220px;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  line-height: 1.6;
-}
-.c-admin-import__submit {
-  min-height: 44px;
-  margin-top: var(--space-md);
-}
-.c-admin-import__warning {
-  margin-top: var(--space-md);
-  padding: 10px var(--space-md);
-  border: 1px solid rgba(217, 119, 6, 0.45);
-  border-radius: var(--radius-sm);
-  background: rgba(217, 119, 6, 0.12);
-  color: var(--c-warning);
-  font-size: var(--text-xs);
-  line-height: 1.6;
-}
-.c-admin-import__console-card {
-  margin-top: var(--space-lg);
-  padding: var(--space-md);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius);
-  background: var(--c-surface);
-}
-.c-admin-import__console-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-sm);
-}
-.c-admin-import__console-title {
-  font-weight: var(--font-weight-semibold);
-  color: var(--c-text-primary);
-  font-size: var(--text-sm);
-}
-.c-admin-import__console {
-  margin: 0;
-  max-height: 250px;
-  overflow: auto;
-  padding: var(--space-sm);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius-sm);
-  background: var(--c-bg-secondary);
-  color: var(--c-text-secondary);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
 .c-admin-logs__header {
   margin-top: var(--space-md);
 }
@@ -2544,28 +2442,6 @@ a.c-rc__item:hover { color: var(--c-accent); }
   align-items: center;
   gap: var(--space-sm);
 }
-.c-header__status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: 5px 12px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--c-border);
-  border-radius: 20px;
-  font-size: 11px;
-  color: var(--c-text-secondary);
-}
-.c-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-.c-status-dot--online {
-  background: var(--c-success);
-  box-shadow: 0 0 6px var(--c-success-glow);
-}
-
 /* ── Avatar ─────────────────────────────────────────────────────────── */
 .c-avatar {
   width: 36px;
@@ -2673,12 +2549,6 @@ a.c-rc__item:hover { color: var(--c-accent); }
 /* ═══════════════════════════════════════════════════════════════════════
    MISC old compat styles
    ═══════════════════════════════════════════════════════════════════════ */
-.profile-gradient-btn {
-  background: linear-gradient(135deg, var(--c-hero-start), var(--c-hero-mid));
-  color: #fff !important;
-  border: none !important;
-}
-.profile-gradient-btn:hover { opacity: 0.9; }
 .end-marker { text-align: center; color: var(--c-text-muted); font-size: var(--text-sm); margin: 3rem 0 1.5rem; letter-spacing: 0.15em; }
 
 /* ═══════════════════════════════════════════════════════════════════════
