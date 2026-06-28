@@ -579,7 +579,7 @@ adminPost('/api/novel/:slug/chapter/:num/delete', async (req, res) => {
 
 // ── Manual cache invalidation ──────────────────────────────────────
 
-app.post('/api/invalidate-cache', adminWriteLimiter, requireAdmin, (req, res) => {
+adminPost('/api/invalidate-cache', (req, res) => {
   chapterRepo.invalidateAll();
   ok(res, { invalidated: true });
 });
