@@ -38,6 +38,7 @@ sys.path.insert(0, str(_TOOLS_DIR))
 
 from classifier import classify_and_format, estimate_type_ratios  # noqa: E402
 from prompt_builder import build_prompt  # noqa: E402
+from scorer import score_chapter, report as score_report, PASS_THRESHOLD  # noqa: E402
 
 # ── Station 1: Source Reader ─────────────────────────────────────────
 
@@ -237,7 +238,99 @@ def parse_output(output: str, ch_num: int) -> list[str]:
     return paragraphs
 
 
-# ── Station 6: Quality Gate (lightweight) ─────────────────────────────
+# ── Station 5.5: Glossary Post-Process ──────────────────────────────────
+
+def apply_glossary_post(
+    paragraphs: list[str], target_lang: str = "th"
+) -> list[str]:
+    """Apply term_policy to replace known term tokens.
+
+    LLM translates freely → Python ensures glossary compliance.
+    This covers skill/item/system terms. Character names are handled
+    via prompt injection (Station 3), not here.
+
+    Returns modified paragraph list.
+    """
+    try:
+        from qa.term_policy import get_term_policy
+
+        tp = get_term_policy(target_lang)
+        result = []
+        for para in paragraphs:
+            if para in ("(จบบท)", "(End)", "（終）", "(끝)"):
+                result.append(para)
+                continue
+            applied = tp.apply_to_text(para)
+            result.append(applied.text)
+        return result
+    except ImportError:
+        return paragraphs
+
+
+# ── Station 6.5: Scorer ─────────────────────────────────────────────────
+
+def _score_and_report(
+    classified: list[dict[str, str]],
+    source_text: str,
+    target_lang: str = "th",
+    threshold: float = PASS_THRESHOLD,
+) -> dict[str, Any]:
+    """Score translation quality. Returns result dict with pass/fail."""
+    result = score_chapter(classified, len(source_text), target_lang)
+    return {
+        "score": result.weighted_total,
+        "passed": result.passed,
+        "report": score_report(result),
+        "dimensions": {d.name: round(d.score * 100) for d in result.dimensions},
+        "errors": result.errors,
+    }
+
+
+# ── Station 6.75: LLM Judge ────────────────────────────────────────────
+
+_JUDGE_SYSTEM = """You are a translation quality judge. Review a Thai novel translation.
+Check for:
+1. Naturalness — does it read like natural Thai?
+2. Consistency — are character names/pronouns consistent?
+3. Clarity — is there any confusing or ambiguous phrasing?
+4. Flow — does the paragraph sequence flow naturally?
+
+Rate each 1-10. If any score < 8, provide 1-2 specific improvement suggestions.
+Keep response to 3-5 lines max."""
+
+
+def judge_translation(
+    paragraphs: list[dict[str, str]],
+    source_text: str,
+    model: str | None = None,
+) -> dict[str, Any]:
+    """LLM Judge — optional quality review after scoring passes."""
+    try:
+        text_preview = "\n".join(
+            f"[{p['type']}] {p['text'][:150]}"
+            for p in paragraphs[:5]
+            if p["type"] != "end"
+        )
+        prompt = f"""Review this Thai novel translation (first 5 paragraphs):
+
+{text_preview}
+
+Source (first 300 chars):
+{source_text[:300]}
+
+Rate each: Naturalness / Consistency / Clarity / Flow
+Provide 1-2 improvement suggestions if any score < 8."""
+
+        response, provider, model_name = call_llm(
+            prompt=prompt, system=_JUDGE_SYSTEM,
+            model=model, temperature=0.1, max_tokens=500,
+        )
+        return {"ok": True, "feedback": response.strip(), "model": model_name}
+    except Exception as e:
+        return {"ok": False, "feedback": str(e)[:200]}
+
+
+# ── Quick quality check (shared) ──────────────────────────────────────
 
 def _quick_script_check(paragraphs: list[dict[str, str]], target_lang: str = "th") -> list[str]:
     """Quick script purity check — catch obvious leaks."""
@@ -398,20 +491,28 @@ def translate_one(
         if mock:
             paragraph_strings = paragraphs
 
+        # ── Station 5.5: Glossary Post-Process (term replace) ──
+        paragraph_strings = apply_glossary_post(paragraph_strings, target_lang)
+
         # ── Station 6: Classify ──
         classified = classify_and_format(paragraph_strings)
 
         if not mock:
-            # Quick quality check (skip in mock mode)
-            leaks = _quick_script_check(classified, target_lang)
-            if leaks:
+            # ── Station 6.5: Scorer (6-dimension, no LLM) ──
+            score_result = _score_and_report(classified, source, target_lang)
+            if not score_result["passed"]:
                 return {
                     "status": "failed", "ch": ch_num,
-                    "reason": f"script_leak: {'; '.join(leaks[:3])}",
-                    "leaks": leaks,
+                    "reason": f"scorer: {score_result['score']}/100 < {PASS_THRESHOLD}",
+                    "score": score_result,
                 }
 
-        # ── Station 7: Save ──
+            # ── Station 6.75: LLM Judge (optional) ──
+            judge_result = judge_translation(classified, source, model_override)
+        else:
+            score_result = {"score": 100, "passed": True, "report": "(mock)", "dimensions": {}}
+            judge_result = {"ok": True, "feedback": "(mock)"}
+
         out_path = save_chapter(
             classified=classified,
             ch_num=ch_num,
@@ -429,10 +530,12 @@ def translate_one(
             "status": "ok",
             "ch": ch_num,
             "paragraphs": len(classified),
-            "types": type_ratios,
+            "types": estimate_type_ratios(classified),
             "path": str(out_path),
             "provider": provider_name,
             "model": model_name,
+            "score": score_result["score"],
+            "judge": judge_result["feedback"][:200] if judge_result.get("ok") else "judge_error",
         }
 
     except Exception as e:

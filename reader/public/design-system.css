@@ -1494,12 +1494,17 @@ pre code {
 .c-para--dialogue {
   padding-left: 1em;  /* slight indent for dialogue */
 }
+/* Dialogue-to-dialogue spacing (พี่โชค: B) */
+.c-para--dialogue + .c-para--dialogue {
+  margin-top: 0.5em;
+}
 .c-para--system {
   margin: 0.6em 0 0.6em 0;
   font-weight: 500;
 }
 .c-para--thought {
   font-style: italic;
+  color: #888;  /* gray — ตามพี่โชค提议 */
 }
 .c-para--action {
   margin-top: 0.2em;  /* subtle separation for action beats */
