@@ -242,6 +242,23 @@ def parse_output(output: str, ch_num: int) -> list[str]:
     paragraphs = re.split(r"\n\n+", output.strip())
     paragraphs = [p.strip() for p in paragraphs if p.strip()]
 
+    # Post-processing: split mixed paragraphs (narration + dialogue in same block)
+    # LLM often puts narration and dialogue in the same \\n\\n block separated by \\n
+    # e.g. "เฉาซิงลอบคิดในใจ\n\"ต้องใช้เวลา 45 นาที\""
+    mixed = []
+    for p in paragraphs:
+        has_quote = '"' in p or '\u201c' in p or '\u201d' in p
+        has_non_quote_text = bool(re.sub(r'[\s"\\u201c\\u201d\\u300c\\u300d]', '', p))
+        if has_quote and has_non_quote_text and '\n' in p:
+            # Split by single newline to separate narration from dialogue
+            lines = [l.strip() for l in p.split('\n') if l.strip()]
+            # Group consecutive lines of same type (quoted vs unquoted)
+            for line in lines:
+                mixed.append(line)
+        else:
+            mixed.append(p)
+    paragraphs = mixed
+
     # Fallback: if too few paragraphs but text is long, split by single newline
     if len(paragraphs) <= 2 and any(len(p) > 2000 for p in paragraphs):
         giant = paragraphs[0] if paragraphs else ""

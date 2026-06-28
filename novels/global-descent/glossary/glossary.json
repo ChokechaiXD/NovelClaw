@@ -3482,6 +3482,226 @@
       "lock": "auto",
       "explanation": "",
       "notes": ""
+    },
+    {
+      "source": "然后",
+      "thai": "แล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常用连词，表示“随后”。",
+      "notes": "auto_discovered (freq=5, confidence=high)"
+    },
+    {
+      "source": "分鐘",
+      "thai": "นาที",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "时间单位。",
+      "notes": "auto_discovered (freq=5, confidence=high)"
+    },
+    {
+      "source": "曹星暗忖道",
+      "thai": "เถาก้าวซาว่าคิดในใจ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "意为“曹星暗自思索”。采用意译。",
+      "notes": "auto_discovered (freq=3, confidence=medium)"
+    },
+    {
+      "source": "這時候",
+      "thai": "ตอนนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "表示“此时”。",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "建筑",
+      "thai": "อาคาร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常用词。",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "很顯然",
+      "thai": "ชัดเจน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "意为“显而易见”。",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "可為方圓",
+      "thai": "เพิ่มอุณหภูมิในรัศมี",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "直译为“可为方圆…增加温度”。",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "存者",
+      "thai": "ผู้รอดชีวิต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“幸存者”。",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "顯無疑",
+      "thai": "แสดงอย่างชัดเจน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "语义为“尽显无疑”。",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "冰療術",
+      "thai": "เวทมนตร์เย็นบำบัด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "游戏技能名，意译。",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "一種基礎的材料",
+      "thai": "วัสดุพื้นฐานชนิดหนึ่ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "直译。",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "營地篝火",
+      "thai": "แคมป์ไฟ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常用词。",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "技能書",
+      "thai": "หนังสือสกิล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "游戏中常用译法。",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "消耗",
+      "thai": "การใช้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“消耗”。",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "系統提示出現",
+      "thai": "ปรากฏข้อความระบบ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "意译。",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得獎勵",
+      "thai": "ได้รับรางวัล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常用表达。",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "地上",
+      "thai": "บนพื้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "直译。",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "好家伙",
+      "thai": "โอ้โห",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "口语感叹。",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "當啷",
+      "thai": "ตังตัง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "拟声词，常译为“ตังตัง”。",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "米的區域增加",
+      "thai": "เพิ่มในพื้นที่เมตร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "句子残缺，猜测为“在米范围内增加”。",
+      "notes": "auto_discovered (freq=2, confidence=low)"
+    },
+    {
+      "source": "的溫度",
+      "thai": "อุณหภูมิ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "直接对应。",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "篝火效果",
+      "thai": "ผลของแคมป์ไฟ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "直译。",
+      "notes": "auto_discovered (freq=2, confidence=high)"
     }
   ]
 }

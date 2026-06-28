@@ -186,6 +186,62 @@ def _score_dialogue_ratio(paragraphs: list[dict[str, str]]) -> DimensionScore:
     return DimensionScore("Dialogue Ratio", 0.15, 0.8, detail)
 
 
+# ── Dimension 6: Term Compliance ────────────────────────────────────
+
+def _score_term_compliance(
+    paragraphs: list[dict[str, str]], target_lang: str = "th"
+) -> DimensionScore:
+    """Check that glossary replacement was applied correctly.
+
+    Verifies that terms with action='replace' no longer appear in their
+    original Latin/English form — meaning the glossary post-process
+    successfully replaced them.
+    """
+    try:
+        from qa.term_policy import get_term_policy
+        tp = get_term_policy(target_lang)
+    except ImportError:
+        return DimensionScore("Term Compliance", 0.20, 1.0, "no term_policy loaded")
+
+    texts = [p["text"] for p in paragraphs
+             if p["text"] not in ("(จบบท)", "(End)", "（終）", "(끝)")]
+    if not texts:
+        return DimensionScore("Term Compliance", 0.20, 0.0, "no content")
+
+    full_text = "\n".join(texts)
+
+    # Check replace-action terms: they should NOT appear in original form
+    # (term_policy should have replaced them with Thai value)
+    replace_terms = {k for k, v in tp.terms.items()
+                     if v.action == "replace" and v.value}
+    leaked = []
+    for source_term in sorted(replace_terms):
+        # Case-insensitive check for the original source term
+        if source_term.lower() in full_text.lower():
+            leaked.append(source_term)
+
+    if not leaked:
+        return DimensionScore("Term Compliance", 0.20, 1.0, "✅ all terms clean")
+
+    # Penalize: fewer leaks = higher score
+    count = len(leaked)
+    if count <= 2:
+        score = 0.7
+    elif count <= 5:
+        score = 0.4
+    else:
+        score = 0.1
+
+    return DimensionScore(
+        "Term Compliance", 0.20, score,
+        f"{count} un-replaced term(s): {', '.join(leaked[:5])}",
+        passed=count == 0,
+    )
+
+
+# ── Master Score Function ───────────────────────────────────────────
+
+
 def score_chapter(
     paragraphs: list[dict[str, str]],
     source_char_count: int = 0,
@@ -198,6 +254,7 @@ def score_chapter(
         _score_end_marker(paragraphs),
         _score_type_diversity(paragraphs),
         _score_dialogue_ratio(paragraphs),
+        _score_term_compliance(paragraphs, target_lang),
     ]
 
     weighted = sum(d.score * d.weight for d in dims) * 100

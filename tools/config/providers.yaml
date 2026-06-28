@@ -9,7 +9,7 @@
 
 active: openrouter
 
-default_model: "google/gemma-4-31b-it:free"
+default_model: "google/gemma-4-26b-a4b-it:free"
 discovery_model: "openai/gpt-oss-120b:free"  # separate model for glossary discovery + judge
 
 providers:
