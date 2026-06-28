@@ -308,16 +308,11 @@ def cmd_config(args: list[str]) -> None:
         except ImportError:
             print("❌ ไม่พบ config_providers.py")
             return
-        save_provider_config(active=parsed.provider, default_model=parsed.model)
-        if parsed.discovery_model:
-            text = _PROJECT_ROOT.joinpath("tools/config/providers.yaml").read_text(encoding="utf-8")
-            import re
-            text = re.sub(
-                r"^discovery_model:.*",
-                f'discovery_model: "{parsed.discovery_model}"',
-                text, flags=re.MULTILINE,
-            )
-            _PROJECT_ROOT.joinpath("tools/config/providers.yaml").write_text(text, encoding="utf-8")
+        save_provider_config(
+            active=parsed.provider,
+            default_model=parsed.model,
+            discovery_model=parsed.discovery_model,
+        )
         print(f"✅ บันทึกแล้ว")
 
     from llm_router.config_providers import get_provider_config, get_providers_list
@@ -398,6 +393,10 @@ def cmd_scrape(args: list[str]) -> None:
 
 
 def main() -> None:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+
     if len(sys.argv) < 2:
         print(__doc__)
         return

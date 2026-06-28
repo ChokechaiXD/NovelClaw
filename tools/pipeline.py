@@ -90,7 +90,7 @@ def clean_source(raw: str) -> str:
             continue
         out.append(line)
     text = "\n".join(out)
-    text = re.sub(r"([！？。，；：…—])\s*(\d{1,3})(?=\s|$)", r"\1", text)
+    text = re.sub(r"([！？。，；：…—])([」』”\"]?)\s*\d{1,4}(?=\s|$)", r"\1\2", text)
     text = re.sub(r"^[^\n\u4e00-\u9fff\u0e00-\u0e7f]{1,40}$", "", text, flags=re.MULTILINE)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
@@ -363,31 +363,6 @@ Provide 1-2 improvement suggestions if any score < 8."""
         return {"ok": False, "feedback": str(e)[:200]}
 
 
-    try:
-        from qa.term_policy import get_term_policy
-
-        tp = get_term_policy(target_lang)
-        allowed = tp.preserve_tokens | {t.upper() for t in tp.terms.keys()}
-    except ImportError:
-        allowed = set()
-
-    # Run pattern-based preservation
-    full_text = "\n".join(texts)
-    if tp:
-        for patterns in tp.preserve_patterns.values():
-            for pat in patterns:
-                for m in pat.finditer(full_text):
-                    allowed.add(m.group(0))
-                    allowed.add(m.group(0).upper())
-
-    result = detect_script_leaks(texts, target_lang=target_lang, allowed_latin_tokens=allowed)
-    if result.ok:
-        return []
-    return [
-        f"{leak.script}: '{leak.token}'" for leak in result.leaks[:5]
-    ]
-
-
 def _get_title(source_text: str, ch_num: int) -> str:
     """Extract chapter title from source."""
     m = re.search(r"第\s*(\d+)\s*章\s*(.+)", source_text[:200])
@@ -559,8 +534,6 @@ def translate_one(
             model_name=model_name,
         )
 
-        type_ratios = estimate_type_ratios(classified)
-
         return {
             "status": "ok",
             "ch": ch_num,
@@ -578,6 +551,10 @@ def translate_one(
         return {"status": "failed", "ch": ch_num, "reason": str(e)[:300]}
 
 
+if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
 
     import argparse
 
