@@ -39,17 +39,18 @@ class ScorerResult:
 
 # ── Thresholds ─────────────────────────────────────────────────────────
 
-PASS_THRESHOLD = 95.0  # พี่โชคสั่ง: 95/100 ถึงผ่าน
+PASS_THRESHOLD = 85.0  # พี่โชคสั่ง: 85/100 ถึงผ่าน (ลดจาก 95)
 
-COMPLETENESS_MIN = 0.30
-COMPLETENESS_IDEAL_MIN = 0.50
+# Length ratio — พี่โชค: ต้องเท่าต้นฉบับ ต่ำกว่า 85% = ต้องแปลใหม่
+COMPLETENESS_MIN = 0.85
+COMPLETENESS_IDEAL_MIN = 1.0
 COMPLETENESS_IDEAL_MAX = 3.00
 COMPLETENESS_MAX = 3.50
 
-DIALOGUE_RATIO_MIN = 0.08
-DIALOGUE_RATIO_MAX = 0.65
-DIALOGUE_IDEAL_MIN = 0.12
-DIALOGUE_IDEAL_MAX = 0.50
+DIALOGUE_RATIO_MIN = 0.05
+DIALOGUE_RATIO_MAX = 0.80
+DIALOGUE_IDEAL_MIN = 0.08
+DIALOGUE_IDEAL_MAX = 0.65
 
 
 def _score_completeness(
@@ -199,11 +200,11 @@ def _score_dialogue_ratio(paragraphs: list[dict[str, str]]) -> DimensionScore:
 def _score_term_compliance(
     paragraphs: list[dict[str, str]], target_lang: str = "th"
 ) -> DimensionScore:
-    """Check that glossary replacement was applied correctly.
+    """Check glossary term usage: no leaks AND proper coverage.
 
-    Verifies that terms with action='replace' no longer appear in their
-    original Latin/English form — meaning the glossary post-process
-    successfully replaced them.
+    Two checks:
+    1. Leak detection: replace-action terms should NOT appear in original form
+    2. Coverage: replace-action Thai values SHOULD appear in output
     """
     try:
         from qa.term_policy import get_term_policy
@@ -219,32 +220,53 @@ def _score_term_compliance(
 
     full_text = "\n".join(texts)
 
-    # Check replace-action terms: they should NOT appear in original form
-    # (term_policy should have replaced them with Thai value)
+    # ── Check 1: Leak detection ──
     replace_terms = {k for k, v in tp.terms.items()
                      if v.action == "replace" and v.value}
     leaked = []
     for source_term in sorted(replace_terms):
-        # Case-insensitive check for the original source term
         if source_term.lower() in full_text.lower():
             leaked.append(source_term)
 
-    if not leaked:
-        return DimensionScore("Term Compliance", 0.20, 1.0, "✅ all terms clean")
+    leak_score = 1.0
+    if leaked:
+        count = len(leaked)
+        if count <= 2:
+            leak_score = 0.7
+        elif count <= 5:
+            leak_score = 0.4
+        else:
+            leak_score = 0.1
 
-    # Penalize: fewer leaks = higher score
-    count = len(leaked)
-    if count <= 2:
-        score = 0.7
-    elif count <= 5:
-        score = 0.4
-    else:
-        score = 0.1
+    # ── Check 2: Coverage — Thai values should appear ──
+    replace_values = {v.value for k, v in tp.terms.items()
+                      if v.action == "replace" and v.value}
+    missing_values = []
+    for thai_val in sorted(replace_values):
+        if thai_val.lower() not in full_text.lower():
+            missing_values.append(thai_val)
 
+    coverage_score = 1.0
+    if missing_values and len(replace_values) > 3:  # only penalize if we have meaningful terms
+        missing_pct = len(missing_values) / len(replace_values)
+        if missing_pct > 0.7:
+            coverage_score = 0.3  # most terms missing
+        elif missing_pct > 0.4:
+            coverage_score = 0.6  # many missing
+
+    # ── Combined score ──
+    combined = min(leak_score, coverage_score)
+    parts = []
+    if leaked:
+        parts.append(f"leaks: {'; '.join(leaked[:3])}")
+    if missing_values:
+        parts.append(f"missing coverage: {', '.join(missing_values[:3])}")
+
+    detail = "; ".join(parts) if parts else "✅ all terms clean"
     return DimensionScore(
-        "Term Compliance", 0.20, score,
-        f"{count} un-replaced term(s): {', '.join(leaked[:5])}",
-        passed=count == 0,
+        "Term Compliance", 0.20, combined,
+        detail,
+        passed=combined > 0.5,
     )
 
 

@@ -411,73 +411,105 @@ def translate_one(
         )
 
         if mock:
-            paragraphs = [
+            paragraph_strings = [
                 f"[MOCK] ch {ch_num} — แปลด้วย {source_lang}→{target_lang}",
                 "(จบบท)",
             ]
             provider_name = "mock"
             model_name = "mock"
-        else:
-            # ── Station 4: Call LLM ──
-            split_point = prompt.find("<continuity>")
-            if split_point < 0:
-                split_point = prompt.find("<glossary>")
-            if split_point > 0 and split_point < len(prompt):
-                system_text = prompt[:split_point].strip()
-                user_text = prompt[split_point:].strip()
-            else:
-                system_text = None
-                user_text = prompt
-
-            response, provider_name, model_name = call_llm(
-                prompt=user_text,
-                system=system_text,
-                model=model_override,
-                provider=provider_override,
-            )
-
-            # ── Station 5: Parse ──
-            paragraph_strings = parse_output(response, ch_num)
-            # Append end marker
-            if paragraph_strings[-1] != "(จบบท)":
-                paragraph_strings.append("(จบบท)")
-
-        if mock:
-            paragraph_strings = paragraphs
-
-        # ── Station 5.5: Glossary Post-Process (term replace) ──
-        paragraph_strings = apply_glossary_post(paragraph_strings, target_lang)
-
-        # ── Station 6: Classify ──
-        classified = classify_and_format(paragraph_strings)
-
-        if not mock:
-            # ── Station 6.5: Scorer (6-dimension, no LLM) ──
-            score_result = _score_and_report(classified, source, target_lang)
-            if not score_result["passed"]:
-                return {
-                    "status": "failed", "ch": ch_num,
-                    "reason": f"scorer: {score_result['score']}/100 < {PASS_THRESHOLD}",
-                    "score": score_result,
-                }
-
-            # ── Station 6.75: LLM Judge (optional) ──
-            judge_result = judge_translation(classified, source, model_override)
-        else:
+            classified = classify_and_format(paragraph_strings)
             score_result = {"score": 100, "passed": True, "report": "(mock)", "dimensions": {}}
             judge_result = {"ok": True, "feedback": "(mock)"}
-
-        if not mock and source:
-            # ── Station 6.8: Auto Glossary Discovery ──
-            cfg = _get_active_config()
-            discovery_result = discover_and_save(
-                source_text=source,
-                slug=slug,
-                source_lang=source_lang,
-                discovery_model=model_override or cfg.get("discovery_model"),
-            )
-        else:
             discovery_result = {"discovered": 0, "saved": 0, "terms": []}
+        else:
+            # ── Retry logic: up to MAX_RETRIES attempts, then fallback model ──
+            MAX_RETRIES = 3
+            FALLBACK_MODEL = "google/gemma-4-31b-it:free"
+
+            all_models = []
+            if model_override:
+                all_models = [(model_override, provider_override)] * (MAX_RETRIES + 1)
+            else:
+                cfg = _get_active_config()
+                primary_model = model_override or cfg.get("default_model", "google/gemma-4-26b-a4b-it:free")
+                primary_provider = provider_override or cfg.get("active", "openrouter")
+                all_models = [(primary_model, primary_provider)] * MAX_RETRIES
+                all_models.append((FALLBACK_MODEL, primary_provider))
+
+            last_error = None
+            for attempt, (retry_model, retry_provider) in enumerate(all_models):
+                try:
+                    # ── Station 4: Call LLM ──
+                    split_point = prompt.find("<continuity>")
+                    if split_point < 0:
+                        split_point = prompt.find("<glossary>")
+                    if split_point > 0 and split_point < len(prompt):
+                        system_text = prompt[:split_point].strip()
+                        user_text = prompt[split_point:].strip()
+                    else:
+                        system_text = None
+                        user_text = prompt
+
+                    response, provider_name, model_name = call_llm(
+                        prompt=user_text,
+                        system=system_text,
+                        model=retry_model,
+                        provider=retry_provider,
+                    )
+
+                    if not response or len(response.strip()) < 10:
+                        last_error = "Empty LLM output"
+                        continue
+
+                    # ── Station 5: Parse ──
+                    paragraph_strings = parse_output(response, ch_num)
+                    if paragraph_strings[-1] != "(จบบท)":
+                        paragraph_strings.append("(จบบท)")
+
+                    # ── Station 5.5: Glossary Post-Process ──
+                    paragraph_strings = apply_glossary_post(paragraph_strings, target_lang)
+
+                    # ── Station 6: Classify ──
+                    classified = classify_and_format(paragraph_strings)
+
+                    # ── Station 6.5: Scorer ──
+                    score_result = _score_and_report(classified, source, target_lang)
+
+                    if score_result["passed"]:
+                        break  # success!
+
+                    last_error = f"scorer: {score_result['score']}/100 < {PASS_THRESHOLD}"
+
+                    if attempt < len(all_models) - 1:
+                        continue  # retry with next model/attempt
+
+                    # Ran out of retries
+                    return {
+                        "status": "failed", "ch": ch_num,
+                        "reason": last_error,
+                        "score": score_result,
+                    }
+
+                except Exception as e:
+                    last_error = str(e)[:100]
+                    if attempt < len(all_models) - 1:
+                        continue
+                    return {"status": "failed", "ch": ch_num, "reason": str(e)[:300]}
+
+            # ── Station 6.75: LLM Judge ──
+            judge_result = judge_translation(classified, source, model_override)
+
+            # ── Station 6.8: Auto Glossary Discovery ──
+            if source:
+                cfg = _get_active_config()
+                discovery_result = discover_and_save(
+                    source_text=source,
+                    slug=slug,
+                    source_lang=source_lang,
+                    discovery_model=model_override or cfg.get("discovery_model"),
+                )
+            else:
+                discovery_result = {"discovered": 0, "saved": 0, "terms": []}
 
         out_path = save_chapter(
             classified=classified,

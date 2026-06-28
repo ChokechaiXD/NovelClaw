@@ -1,17 +1,17 @@
 {
   "novelId": "global-descent",
-  "chapterNo": 77,
+  "chapterNo": 1,
   "sourceLang": "cn",
   "targetLang": "th",
   "title": {
     "source": "",
-    "translated": "ตอนที่ 77"
+    "translated": "ตอนที่ 1"
   },
   "status": "translated",
   "paragraphs": [
     {
       "type": "narration",
-      "text": "[MOCK] ch 77 — แปลด้วย cn→th"
+      "text": "[MOCK] ch 1 — แปลด้วย cn→th"
     },
     {
       "type": "narration",
@@ -22,5 +22,5 @@
     "provider": "mock",
     "model": "mock"
   },
-  "updatedAt": "2026-06-28T17:36:11.100134+00:00"
+  "updatedAt": "2026-06-28T17:31:25.294339+00:00"
 }
