@@ -369,7 +369,7 @@ scene order, sentence rhythm, and intentional flatness.
     format_section = f"""<format_rules>
 {_format_rules(source_lang, target_lang)}
 
-{_latin_policy(target_lang)}
+{_latin_policy(target_lang, glossary_text)}
 
 - **Preserve numbers exactly.**
 - **Match source paragraph count — CRITICAL.**
@@ -441,23 +441,63 @@ Before finishing, silently check:
 
 # ── Latin policy generator ────────────────────────────────────────────
 
-def _latin_policy(target_lang: str) -> str:
-    """Generate Latin token policy for target language."""
+def _latin_policy(target_lang: str, glossary_text: str = "") -> str:
+    """Generate Latin token policy for target language.
+
+    Injects glossary term keys dynamically so LLM knows which terms to preserve."""
     if target_lang == "en":
         return "- Latin script is native — no restriction."
 
-    return (
-        "- **Latin script restriction:** only the following game UI tokens are allowed.\n"
-        "  HP, MP, EXP, SP, SSS, SSR, UR, LR, LV, LVL, ATK, DEF, STR, INT, AGI, CON,\n"
-        "  DPS, PvP, PvE, NPC, PC, UI, API, ID, VIP, S, SS, CD, DMG, BUFF, STAT, RES,\n"
-        "  DEBUFF, AOE, TPS, ELITE, RANK, MAX, MIN, SOLO, R, SR, G1, No., no.\n"
-        "- **Translate ALL other English/foreign words to Thai.**\n"
-        "  This includes skill names, item names, status effects, stat labels.\n"
-        "- **NO raw English game terms outside the allowed list above.**\n"
-        "  'CON', 'STAT', 'RES' → แก้เป็น 'ค่าพลัง', 'ค่าสถานะ', 'ค่าต้านทาน'\n"
-        "- Exception: character/system names that are inherently Latin-script\n"
-        "  (e.g., 'System A-001') may be kept with approval."
-    )
+    # Static base list (common game terms)
+    base_tokens = [
+        "HP", "MP", "EXP", "SP", "SSS", "SSR", "UR", "LR", "LV", "LVL",
+        "ATK", "DEF", "STR", "INT", "AGI", "CON", "DPS", "PvP", "PvE",
+        "NPC", "PC", "UI", "API", "ID", "VIP", "S", "SS", "CD", "DMG",
+        "BUFF", "DEBUFF", "AOE", "TPS", "ELITE", "RANK", "MAX", "MIN",
+        "SOLO", "R", "SR", "G1", "No.", "no.", "STAT", "RES",
+    ]
+
+    # Dynamic: extract term keys from glossary text
+    dyn_tokens = set()
+    if glossary_text:
+        for line in glossary_text.split("\n"):
+            line = line.strip()
+            # Match lines like "ATK → พลังโจมตี" or just "HP" as a key
+            if "→" in line:
+                key = line.split("→")[0].strip()
+            elif ":" in line and not line.startswith("#"):
+                key = line.split(":")[0].strip()
+            else:
+                continue
+            # Keep if it's a short all-caps Latin token
+            if key and key.isupper() and len(key) <= 12 and key.isascii():
+                dyn_tokens.add(key)
+
+    all_tokens = sorted(set(base_tokens) | dyn_tokens)
+    token_list = ", ".join(all_tokens)
+
+    lines = [
+        f"- **Latin script restriction:** only the following tokens are allowed.",
+        f"  {token_list}",
+        "- **Translate ALL other English/foreign words to Thai.**",
+        "  This includes skill names, item names, status effects, stat labels.",
+        "- **NO raw English game terms outside the allowed list above.**",
+    ]
+
+    # Add translation hints for common stats
+    stat_hints = {
+        "CON": "ค่าพลัง", "STAT": "ค่าสถานะ", "RES": "ค่าต้านทาน",
+        "STR": "พละกำลัง", "INT": "ปัญญา", "AGI": "ความว่องไว",
+    }
+    existing_hints = [f"  '{k}'→'{v}'" for k, v in stat_hints.items() if k in all_tokens]
+    if existing_hints:
+        lines.append("- Common stat translations (if they appear in context, translate them):")
+        lines.extend(existing_hints)
+
+    lines.append("- Exception: character/system names that are inherently Latin-script")
+    lines.append("  (e.g., 'System A-001') may be kept with approval.")
+
+    return "\n".join(lines)
 
 
 # ── CLI test ──────────────────────────────────────────────────────────
