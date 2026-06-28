@@ -272,38 +272,57 @@ def cmd_status(args: list[str]) -> None:
 
 
 def cmd_config(args: list[str]) -> None:
-    """novelclaw config — แสดง/เปลี่ยน provider config"""
-    try:
-        from llm_router.config_providers import (
-            get_provider_config, get_providers_list,
-            save_provider_config,
-        )
-    except ImportError:
-        print("❌ ไม่พบ config_providers.py")
+    """novelclaw config — แสดง/เปลี่ยน provider config และ API keys"""
+    import argparse
+
+    ap = argparse.ArgumentParser(prog="novelclaw config")
+    ap.add_argument("--provider", help="Set active provider")
+    ap.add_argument("--model", help="Set default translate model")
+    ap.add_argument("--discovery-model", help="Set discovery/judge model")
+    ap.add_argument("--set-key", nargs=2, metavar=("PROVIDER", "KEY"),
+                    help="Set API key for provider (e.g. openrouter sk-or-...)")
+    parsed = ap.parse_args(args)
+
+    if parsed.set_key:
+        provider_name, api_key = parsed.set_key
+        # Write to llm.json
+        llm_path = _PROJECT_ROOT / "llm.json"
+        try:
+            data = json.loads(llm_path.read_text(encoding="utf-8")) if llm_path.exists() else {}
+        except Exception:
+            data = {}
+
+        key_map = {
+            "openrouter": "openrouter_api_key",
+            "openmodel": "api_key",
+            "openai": "openai_api_key",
+            "anthropic": "anthropic_api_key",
+        }
+        json_key = key_map.get(provider_name, f"{provider_name}_api_key")
+        data[json_key] = api_key
+        llm_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        print(f"✅ ตั้งค่า API key สำหรับ {provider_name} แล้ว")
         return
 
-    if args:
-        import argparse
-        ap = argparse.ArgumentParser(prog="novelclaw config")
-        ap.add_argument("--provider", help="Set active provider")
-        ap.add_argument("--model", help="Set default translate model")
-        ap.add_argument("--discovery-model", help="Set discovery/judge model")
-        parsed = ap.parse_args(args)
+    if parsed.provider or parsed.model or parsed.discovery_model:
+        try:
+            from llm_router.config_providers import save_provider_config
+        except ImportError:
+            print("❌ ไม่พบ config_providers.py")
+            return
+        save_provider_config(active=parsed.provider, default_model=parsed.model)
+        if parsed.discovery_model:
+            text = _PROJECT_ROOT.joinpath("tools/config/providers.yaml").read_text(encoding="utf-8")
+            import re
+            text = re.sub(
+                r"^discovery_model:.*",
+                f'discovery_model: "{parsed.discovery_model}"',
+                text, flags=re.MULTILINE,
+            )
+            _PROJECT_ROOT.joinpath("tools/config/providers.yaml").write_text(text, encoding="utf-8")
+        print(f"✅ บันทึกแล้ว")
 
-        if parsed.provider or parsed.model or parsed.discovery_model:
-            save_provider_config(active=parsed.provider, default_model=parsed.model)
-            if parsed.discovery_model:
-                # Update discovery_model in yaml
-                text = _PROJECT_ROOT.joinpath("tools/config/providers.yaml").read_text(encoding="utf-8")
-                import re
-                text = re.sub(
-                    r"^discovery_model:.*",
-                    f'discovery_model: "{parsed.discovery_model}"',
-                    text, flags=re.MULTILINE,
-                )
-                _PROJECT_ROOT.joinpath("tools/config/providers.yaml").write_text(text, encoding="utf-8")
-            print(f"✅ บันทึกแล้ว")
-
+    from llm_router.config_providers import get_provider_config, get_providers_list
     cfg = get_provider_config()
     active = cfg.get("active", "?")
     model = cfg.get("default_model", "?")
