@@ -1083,6 +1083,7 @@ plist = get_providers_list()
 print(json.dumps({
   "active": cfg.get("active", ""),
   "default_model": cfg.get("default_model", ""),
+  "discovery_model": cfg.get("discovery_model", ""),
   "providers": plist,
   "profiles": cfg.get("profiles", []),
 }, ensure_ascii=False))
@@ -1111,16 +1112,25 @@ print(json.dumps({
 }));
 
 adminPost('/api/admin/provider-config', async (req, res) => {
-  const { active, default_model } = req.body;
+  const { active, default_model, discovery_model } = req.body;
   if (!active && !default_model) {
     return fail(res, 400, 'INVALID_INPUT', 'Provide at least active or default_model');
   }
   try {
     const py = getPythonCommand();
-    const code = `import sys; sys.path.insert(0, 'tools')
-from llm_router.config_providers import save_provider_config
-ok = save_provider_config(active=${JSON.stringify(active || '')}, default_model=${JSON.stringify(default_model || '')})
-print('ok' if ok else 'fail')`;
+    const cmds = [];
+    cmds.push('import sys; sys.path.insert(0, \"tools\")');
+    cmds.push('from llm_router.config_providers import save_provider_config');
+    cmds.push(`ok = save_provider_config(active=${JSON.stringify(active || '')}, default_model=${JSON.stringify(default_model || '')})`);
+    // Save discovery_model separately (YAML text edit)
+    if (discovery_model) {
+      const fs = require('fs');
+      const yamlPath = path.join(__dirname, '..', 'tools', 'config', 'providers.yaml');
+      let text = fs.readFileSync(yamlPath, 'utf-8');
+      text = text.replace(/^discovery_model:.*$/m, `discovery_model: "${discovery_model}"`);
+      fs.writeFileSync(yamlPath, text, 'utf-8');
+    }
+    const code = cmds.join('; ');
     const child = spawn(py, ['-c', code], {
       cwd: path.join(__dirname, '..'),
       windowsHide: true,
@@ -1131,7 +1141,7 @@ print('ok' if ok else 'fail')`;
     child.on('error', (err) => fail(res, 500, 'PYTHON_ERROR', err.message));
     child.on('close', (code) => {
       if (code !== 0) return fail(res, 500, 'PYTHON_EXIT', sanitizeOutput(stderr));
-      ok(res, { saved: true, active, default_model });
+      ok(res, { saved: true, active, default_model, discovery_model });
     });
   } catch (err) {
     fail(res, 500, 'SERVER_ERROR', err.message);
