@@ -244,12 +244,17 @@ def propose_translations(
             results.extend(batch)
             continue
 
-        # Parse response
+        # Parse response. Accept both plain pipe rows and Markdown table rows.
         for line in response.strip().split("\n"):
             line = line.strip()
-            if "|" not in line or line.startswith("#") or line.startswith("term"):
+            if "|" not in line or line.startswith("#"):
                 continue
-            parts = [p.strip() for p in line.split("|")]
+            parts = [p.strip() for p in line.strip("|").split("|")]
+            if not parts:
+                continue
+            first = parts[0].lower()
+            if first == "term" or set(first) <= {"-", " "}:
+                continue
             if len(parts) < 2:
                 continue
             term = parts[0]
