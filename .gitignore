@@ -18,6 +18,12 @@ ENV/
 
 # Environment / secrets
 .env
+
+# Hermes agent artifacts
+.hermes/
+
+# Runtime state
+reader/local_state.json
 .env.local
 .env.*.local
 

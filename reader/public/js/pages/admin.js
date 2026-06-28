@@ -81,6 +81,8 @@ const AdminDashboardPage = {
         '<div class="c-admin-dashboard__grid">' +
         '<a href="#admin/import" class="c-card c-admin-dashboard__tile" data-nav>' +
         '  <svg class="c-admin-dashboard__tile-icon"><use xlink:href="#icon-arrow-right"/></svg><div><div class="c-admin-dashboard__tile-title">นำเข้านิยาย</div><div class="c-admin-dashboard__tile-meta">เพิ่มเรื่องใหม่ / นำเข้าตอน</div></div></a>' +
+        '<a href="#admin/provider" class="c-card c-admin-dashboard__tile" data-nav>' +
+        '  <svg class="c-admin-dashboard__tile-icon c-admin-dashboard__tile-icon--accent-2"><use xlink:href="#icon-settings"/></svg><div><div class="c-admin-dashboard__tile-title">จัดการระบบ AI</div><div class="c-admin-dashboard__tile-meta">Provider / Model / Config</div></div></a>' +
         '</div></div>';
     } catch (err) { Ui.showError(page, 'โหลดไม่สำเร็จ', err.message); }
   }
@@ -1108,6 +1110,123 @@ const AdminTranslatePage = {
   }
 };
 
+// ── ADMIN PROVIDER CONFIG ──────────────────────────────────────────────
+const AdminProviderPage = {
+  async render(params) {
+    const page = Ui.$('page-admin-provider');
+    if (!page) { 
+      // Fallback: if no dedicated element, create one
+      const container = document.getElementById('page-admin');
+      if (!container) return;
+      container.innerHTML = '<div id="page-admin-provider"></div>';
+      return this.render(params);
+    }
+    Ui.showSkeleton('page-admin-provider');
+    try {
+      const cfg = await Api.getProviderConfig();
+      const providers = cfg.providers || [];
+      const active = cfg.active || '';
+      const defaultModel = cfg.default_model || '';
+      
+      let providerOptions = providers.map(p =>
+        `<option value="${Ui.esc(p.name)}" ${p.name === active ? 'selected' : ''}>${Ui.esc(p.display_name || p.name)}</option>`
+      ).join('');
+
+      // Build model options for active provider
+      const activeProvider = providers.find(p => p.name === active) || {};
+      const models = activeProvider.models || [];
+      let modelOptions = models.map(m =>
+        `<option value="${Ui.esc(m.id)}" ${m.id === defaultModel ? 'selected' : ''}>${Ui.esc(m.name || m.id)}</option>`
+      ).join('');
+      if (!models.some(m => m.id === defaultModel) && defaultModel) {
+        modelOptions = `<option value="${Ui.esc(defaultModel)}" selected>${Ui.esc(defaultModel)}</option>` + modelOptions;
+      }
+
+      const html = '<div class="c-container">' +
+        Ui.adminNav('provider') +
+        '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">🤖 จัดการระบบ AI / Provider</h3></div>' +
+        '<div class="c-settings-card">' +
+        '<div class="c-form">' +
+        // Provider selector
+        '<div class="c-form__group">' +
+        '<label class="c-form__label">ผู้ให้บริการ AI (Provider)</label>' +
+        '<select class="c-form__select" id="provider-select">' +
+        providerOptions +
+        '</select>' +
+        '</div>' +
+        // Model selector
+        '<div class="c-form__group">' +
+        '<label class="c-form__label">โมเดลเริ่มต้น (Default Model)</label>' +
+        '<select class="c-form__select" id="provider-model-select">' +
+        modelOptions +
+        '</select>' +
+        '</div>' +
+        // Provider info
+        '<div class="c-form__group" id="provider-info">' +
+        '<p class="u-text-muted" style="font-size:0.9rem">เปลี่ยน provider หรือ model ที่นี่ — ส่งผลทันทีต่อการแปลครั้งต่อไป</p>' +
+        '</div>' +
+        // Save button
+        '<div class="c-form__actions">' +
+        '<button class="c-btn c-btn--primary" id="save-provider-btn">💾 บันทึกการตั้งค่า</button>' +
+        '</div>' +
+        // Status area
+        '<div id="provider-status" class="u-mt-sm"></div>' +
+        '</div>' +
+        '</div>' +
+        // Provider list summary
+        '<div class="c-section__header c-admin-page__header c-admin-page__header--loose"><h3 class="c-section__title">📋 Providers พร้อมใช้งาน</h3></div>' +
+        '<div class="c-card">' +
+        '<table class="c-table"><thead><tr><th>ชื่อ</th><th>จำนวนโมเดล</th><th>ใช้งาน?</th></tr></thead><tbody>' +
+        providers.map(p => {
+          const modelCount = (p.models || []).length;
+          const isActive = p.name === active;
+          return `<tr><td><strong>${Ui.esc(p.display_name || p.name)}</strong></td><td>${modelCount} โมเดล</td><td>${isActive ? '✅ กำลังใช้' : '⏸️'}</td></tr>`;
+        }).join('') +
+        '</tbody></table>' +
+        '</div>' +
+        '</div>';
+
+      page.innerHTML = html;
+
+      // ── Model switcher on provider change ──
+      const providerSelect = document.getElementById('provider-select');
+      const modelSelect = document.getElementById('provider-model-select');
+      if (providerSelect) {
+        providerSelect.addEventListener('change', (e) => {
+          const selectedProvider = providers.find(p => p.name === e.target.value);
+          const providerModels = (selectedProvider && selectedProvider.models) || [];
+          if (modelSelect) {
+            modelSelect.innerHTML = providerModels.map(m =>
+              `<option value="${Ui.esc(m.id)}">${Ui.esc(m.name || m.id)}</option>`
+            ).join('');
+          }
+        });
+      }
+
+      // ── Save button ──
+      const saveBtn = document.getElementById('save-provider-btn');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', async () => {
+          const selProvider = document.getElementById('provider-select').value;
+          const selModel = document.getElementById('provider-model-select').value;
+          const statusEl = document.getElementById('provider-status');
+          if (statusEl) statusEl.innerHTML = '<span class="c-badge c-badge--amber">⏳ กำลังบันทึก...</span>';
+          try {
+            await Api.saveProviderConfig({ active: selProvider, default_model: selModel });
+            if (statusEl) statusEl.innerHTML = '<span class="c-badge c-badge--teal">✅ บันทึกแล้ว! Provider: ' + Ui.esc(selProvider) + ', Model: ' + Ui.esc(selModel) + '</span>';
+            Ui.showToast('บันทึกการตั้งค่า Provider สำเร็จ');
+          } catch (err) {
+            if (statusEl) statusEl.innerHTML = '<span class="c-badge c-badge--red">❌ บันทึกไม่สำเร็จ: ' + Ui.esc(err.message) + '</span>';
+            Ui.showToast('บันทึกไม่สำเร็จ', 'error');
+          }
+        });
+      }
+    } catch (err) {
+      Ui.showError(page, 'โหลดข้อมูล Provider ไม่สำเร็จ', err.message);
+    }
+  }
+};
+
 // ── Lazy-load registration ─────────────────────────────────────────
 // admin.js is loaded on demand by app.js Router (see ensureAdminLoaded()).
 // Register the real 'admin' route handler at module load so the router
@@ -1122,6 +1241,7 @@ Router.register('admin', (p) => {
     'novel-edit': AdminNovelEditPage,
     'logs': AdminLogsPage,
     'translate': AdminTranslatePage,
+    'provider': AdminProviderPage,
   };
   const handler = adminRoutes[sub] || AdminDashboardPage;
   handler.render(p);

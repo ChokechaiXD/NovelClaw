@@ -1,0 +1,126 @@
+# NovelClaw Provider Configuration
+# This file is read by llm_router/config.py AND can be edited via Admin UI.
+# Switching active provider + model here affects all translation pipelines.
+#
+# HOW TO SWITCH:
+#   1. Change `active:` to the provider key below
+#   2. Change `default_model:` to one of the listed models
+#   3. Set API key via environment variable or llm.json
+
+active: openrouter
+
+default_model: "google/gemma-4-31b-it:free"
+
+providers:
+  openrouter:
+    display_name: OpenRouter (free models)
+    base_url: "https://openrouter.ai/api/v1"
+    api_key_env: OPENROUTER_API_KEY
+    api_key_file: llm.json.key.openrouter_api_key
+    timeout_sec: 90
+    max_tokens: 4096
+    temperature: 0.28
+    models:
+      - id: "google/gemma-4-26b-a4b-it:free"
+        name: "Gemma 4 26B (free)"
+        tier: free
+      - id: "google/gemma-4-31b-it:free"
+        name: "Gemma 4 31B (free)"
+        tier: free
+      - id: "openai/gpt-oss-120b:free"
+        name: "GPT-OSS 120B (free)"
+        tier: free
+      - id: "openrouter/free"
+        name: "Auto: Best Free"
+        tier: free
+      - id: "deepseek/deepseek-chat"
+        name: "DeepSeek Chat (paid)"
+        tier: paid
+      - id: "google/gemini-2.0-flash"
+        name: "Gemini 2 Flash (paid)"
+        tier: paid
+
+  openmodel:
+    display_name: OpenModel.ai (free private)
+    base_url: "https://api.openmodel.ai/v1"
+    api_key_env: OPENMODEL_API_KEY
+    api_key_file: llm.json.key.api_key
+    timeout_sec: 90
+    max_tokens: 4096
+    temperature: 0.35
+    models:
+      - id: "deepseek-v4-flash"
+        name: "DeepSeek V4 Flash (free)"
+        tier: free
+      - id: "deepseek-v3"
+        name: "DeepSeek V3 (free)"
+        tier: free
+
+  ollama:
+    display_name: Ollama (local)
+    base_url: "http://localhost:11434/v1"
+    api_key_env: ""
+    api_key_file: ""
+    timeout_sec: 300
+    max_tokens: 4096
+    temperature: 0.3
+    models:
+      - id: "llama3.1"
+        name: "Llama 3.1 (local)"
+        tier: local
+      - id: "qwen2.5"
+        name: "Qwen 2.5 (local)"
+        tier: local
+
+  anthropic:
+    display_name: Anthropic (paid)
+    base_url: "https://api.anthropic.com/v1"
+    api_key_env: ANTHROPIC_API_KEY
+    api_key_file: ""
+    timeout_sec: 120
+    max_tokens: 4096
+    temperature: 0.3
+    models:
+      - id: "claude-sonnet-4"
+        name: "Claude Sonnet 4 (paid)"
+        tier: paid
+      - id: "claude-haiku-3.5"
+        name: "Claude Haiku 3.5 (paid)"
+        tier: paid
+
+  openai:
+    display_name: OpenAI (paid)
+    base_url: "https://api.openai.com/v1"
+    api_key_env: OPENAI_API_KEY
+    api_key_file: ""
+    timeout_sec: 120
+    max_tokens: 4096
+    temperature: 0.3
+    models:
+      - id: "gpt-4o"
+        name: "GPT-4o (paid)"
+        tier: paid
+      - id: "gpt-4o-mini"
+        name: "GPT-4o Mini (paid)"
+        tier: paid
+
+# Translation profiles (which provider + model to use for each task)
+profiles:
+  translate:
+    - provider: ${active}
+      model: ${default_model}
+      timeout_sec: 120
+      max_tokens: 8192
+      temperature: 0.28
+  validate:
+    - provider: openrouter
+      model: "google/gemma-4-31b-it:free"
+      timeout_sec: 100
+      max_tokens: 2048
+      temperature: 0.05
+  polish:
+    - provider: openrouter
+      model: "google/gemma-4-31b-it:free"
+      timeout_sec: 100
+      max_tokens: 4096
+      temperature: 0.35

@@ -55,18 +55,7 @@ class TestCleanSource:
 
     def test_identity_for_clean(self):
         result = translate.clean_source("test\nสวัสดีครับ")
-        assert "สวัสดีครับ" in result
-
-
-class TestExtractUnknownTerms:
-    def test_no_unknowns(self):
-        result = translate.extract_unknown_terms("你好", {"你好"})
-        assert result == []
-
-    def test_unknown_detected(self):
-        result = translate.extract_unknown_terms("冰霜魔法", {"火焰"})
-        # Should find terms not in known set
-        assert isinstance(result, list)
+        assert 'สวัสดีครับ' in result
 
 
 class TestSearchTerm:

@@ -10,7 +10,6 @@ import json
 import os
 import re
 import sys
-from collections.abc import Callable, Iterable as _Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -37,9 +36,6 @@ from schema import (  # noqa: E402
     Chapter,
 )
 from validation import (  # noqa: E402
-    ALLOWED_LATIN_TOKENS,
-    COMPLETENESS_MAX_RATIO,
-    COMPLETENESS_MIN_RATIO,
     SOURCE_ARTIFACT_RE,
     get_bracket_profile,
     get_profile_lang,
@@ -122,75 +118,9 @@ def clean_source(raw: str) -> str:
     return text.strip()
 
 
-def extract_unknown_terms(source_text: str, known_sources: _Iterable[str]) -> list[str]:
-    """Extract CN terms from source that aren't in glossary."""
-    known = set(known_sources)
-    ui_noise = {
-        "首頁",
-        "科幻小說",
-        "玄幻小說",
-        "都市言情",
-        "歷史軍事",
-        "遊戲競技",
-        "加入書籤",
-        "小說報錯",
-        "投票推薦",
-        "字體",
-        "上一章",
-        "下一章",
-        "目錄",
-        "關燈",
-        "開燈",
-        "下載",
-        "客戶端",
-        "手機看書",
-        "繁體",
-        "簡體",
-        "上一頁",
-        "下一頁",
-        "返回",
-        "確定",
-        "取消",
-        "提交",
-        "下載本章",
-        "請先",
-        "登錄",
-        "註冊",
-        "忘記密碼",
-        "會員中心",
-        "我的書架",
-        "正在加載",
-        "加載中",
-        "請稍候",
-        "暫無",
-        "評論",
-        "書友",
-        "全球降臨",
-        "帶著嫂嫂",
-        "末世種田",
-        "第",
-        "章",
-        "回",
-        "節",
-        "頁",
-        "卷",
-    }
-    known |= ui_noise
-    cleaned = re.sub(r"【[^】]*】", "", source_text)
-    cleaned = re.sub(r"《[^》]*》", "", cleaned)
-    cleaned = re.sub(r"「[^」]*」", "", cleaned)
-    cn_terms = re.findall(r"[\u4e00-\u9fff]{2,}", cleaned)
-    seen = set()
-    unknown = []
-    for term in cn_terms:
-        if term not in known and term not in seen:
-            seen.add(term)
-            unknown.append(term)
-    return unknown
-
+# ── Source scraping helpers ──────────────────────────────────────
 
 def _get_source_dir() -> Path:
-    """Get source directory dynamically (was hardcoded at module level)."""
     from schema import get_novel_root
     return get_novel_root() / "chapters" / "source"
 
@@ -301,198 +231,6 @@ def get_previous_chapter_context(ch_num: int, n: int = 3) -> str:
     return "Previous chapters:" + chr(10) + chr(10).join(parts)
 
 
-def get_unknown_terms_for_ch(ch_num: int, source: str | None = None) -> list[str]:
-    """Extract unknown CN terms from a chapter's source text.
-    If `source` is provided, skip reading/cleaning the file (avoid duplicate I/O).
-    """
-    if source is None:
-        _sd = _get_source_dir()
-        src_path = _sd / f"{ch_num:04d}.md"
-        if not src_path.exists():
-            return []
-        source = clean_source(src_path.read_text(encoding="utf-8"))
-    terms = load_terms()
-    known = {t["source"] for t in terms}
-    return extract_unknown_terms(source, known)
-
-
-def build_prompt(
-    ch_num: int,
-    source_text: str,
-    unknown_terms: list[str] | None = None,
-    source_lang: str = "zh",
-    target_lang: str = "th",
-    novel_title: str = "全球降臨：帶著嫂嫂末世種田",
-    profile_lang: str | None = None,
-    source_cleaned: str | None = None,
-) -> str:
-    """Build the LLM prompt for translating one chapter with prefix caching layout.
-
-    Static rules & examples are placed first, followed by semi-static glossary,
-    and dynamic context at the end.
-    """
-    glossary_lib = get_glossary_context_from_lib(ch_num, source=source_cleaned)
-    glossary = glossary_lib if glossary_lib else "(no glossary loaded)"
-    continuity = get_previous_chapter_context(ch_num, n=3)
-
-    # Prefix-caching optimized layout
-    prompt = f"""<task>
-You are a Chinese→Thai novel translator specializing in web novels.
-Output only the Thai translation, one paragraph per line.
-</task>
-
-<rules>
-- Translate faithfully, do NOT skip or edit paragraphs
-- Zero CJK characters (Chinese characters) in output
-- Use straight "..." for spoken dialogue (not 「」 or other brackets)
-- Use 【...】 for system/game notifications
-- Use 『...』 for inner thoughts
-- Keep character names consistent with glossary
-- **CRITICAL: Match source paragraph count exactly.** Each source paragraph = one output paragraph.
-- **CRITICAL: Output length must be ≥70% of source.** Do NOT condense or summarize.
-- Translate ALL monster/skill/item names to Thai — no English
-- REMOVE Chinese web novel footer (donations, thanks, author notes)
-- **No English words** — translate everything including "Open Beta", "Level", "Quest" etc
-|- **CRITICAL — "ก็" overuse is the #1 MT artifact in CN→TH translation.**
-  Chinese uses 就/也 as universal sentence connectors (~10-15% of clauses), but Thai ก็ should be used sparingly in written narrative.
-  **Do NOT translate every 就/也 as ก็.** Instead:
-  • Simply DROP ก็ from most character-action sentences: "เฉาซิงก็ยกไม้เท้าขึ้น" → "เฉาซิงยกไม้เท้าขึ้น"
-  • Use แล้ว, จึง, เลย sparingly where a connector is truly needed
-  • Let the sentence flow without a connector when possible
-  |Rule of thumb: ก็ should appear in ≤20% of paragraphs in natural Thai narrative.
-</rules>
-
-<style>
-{get_style_summary()}
-</style>
-
-<examples>
-Example Input:
-林凡深深吸了一口气，心中暗自思索。
-「看来这个末世并不简单。」
-【叮！系统正在加载中...】
-
-Example Output:
-หลินฟานสูดหายใจเข้าลึกๆ ในใจลอบครุ่นคิด
-『ดูเหมือนว่าวันสิ้นโลกนี้จะไม่ธรรมดาเสียแล้ว』
-【ติ๊ง! ระบบกำลังโหลด...】
-
-Example Input 2:
-他转过头，看着眼前的庞然大物。
-"我们快走！" 萧晨大喊一声。
-他们身后的石壁上，刻着《天玄决》三个古老的大字。
-
-Example Output 2:
-เขาหันศีรษะกลับไป มองดูสิ่งมีชีวิตขนาดยักษ์ตรงหน้า
-"พวกเรา รีบไปกันเถอะ!" เซียวเฉินตะโกนขึ้นเสียงดัง
-บนผนังหินด้านหลังของพวกเขา สลักอักษรโบราณสามตัวใหญ่ว่า 《เคล็ดเทียนเสวียน》
-</examples>
-
-<glossary>
-{glossary}
-</glossary>
-
-<continuity_context>
-{continuity}
-</continuity_context>
-
-<source_chapter>
-{source_text}
-</source_chapter>
-
-<now_translate>
-"""
-    return prompt
-
-
-def build_translate_prompt_v4(
-    ch_num: int,
-    source_text: str,
-    source_lang: str = "zh",
-    target_lang: str = "th",
-    profile_lang: str | None = None,
-    slug: str = "global-descent",
-    example: str = "",
-) -> str:
-    """Build a prompt with optimal prefix caching layout.
-
-    ORDER (most cache-friendly):
-      1. Static: task, style rules, format rules (IDENTICAL every call)
-      2. Semi-static: full glossary (same per novel, not per-chapter filtered)
-      3. Dynamic: chapter memory/TM context
-      4. Most dynamic: source text
-
-    This layout maximizes prefix caching: the first ~60% of the prompt
-    is identical across all chapters of the same novel.
-    """
-    from glossary import load_terms, format_tm_prompt
-
-    # Static parts (100% identical every call)
-    static = """<task>
-You are a Chinese→Thai novel translator specializing in web novels.
-Output only the Thai translation, one paragraph per line.
-</task>
-
-<style>
-{style}
-</style>
-
-<rules>
-- Translate faithfully, do NOT skip or edit paragraphs
-- Zero CJK characters (Chinese characters) in output
-- Use straight "..." for spoken dialogue
-- Use 【...】 for system/game notifications
-- Use 『...』 for inner thoughts
-- Keep character names consistent with glossary
-- **CRITICAL: Match source paragraph count exactly.** Each source paragraph = one output paragraph.
-|- **CRITICAL: Output length must be ≥70% of source.** Do NOT condense or summarize.
-- Translate ALL monster/skill/item names to Thai — no English
-- REMOVE Chinese web novel footer (donations, thanks, author notes)
-- **No English words** — translate everything including "Open Beta", "Level", "Quest" etc
-|- **CRITICAL — "ก็" overuse is the #1 MT artifact in CN→TH translation.**
-  Chinese uses 就/也 as universal sentence connectors (~10-15% of clauses), but Thai ก็ should be used sparingly in written narrative.
-  **Do NOT translate every 就/也 as ก็.** Instead:
-  • Simply DROP ก็ from most character-action sentences: "เฉาซิงก็ยกไม้เท้าขึ้น" → "เฉาซิงยกไม้เท้าขึ้น"
-  • Use แล้ว, จึง, เลย sparingly where a connector is truly needed
-  • Let the sentence flow without a connector when possible
-  |Rule of thumb: ก็ should appear in ≤20% of paragraphs in natural Thai narrative.
-</rules>
-
-<glossary>
-{glossary}
-</glossary>
-"""
-
-    # Semi-static: full glossary (same for all chapters)
-    terms = load_terms(slug)
-    glossary_text = "\n".join(
-        f'{t["source"]} → {t["thai"]}  ({t.get("category", "-")})'
-        for t in terms[:100]
-        if t.get("source") and t.get("thai")
-    ) if terms else "(no glossary)"
-
-    # Style summary
-    from glossary import load_style_rules
-    rules = load_style_rules(slug)
-    style_text = "; ".join(
-        item.get("text", "") for section in rules.values()
-        for item in section
-    ) if rules else "(default style)"
-
-    # TM context (changes per chapter)
-    tm_context = format_tm_prompt(slug, ch_num)
-
-    # Build final prompt — static first, dynamic last
-    prompt = static.format(style=style_text, glossary=glossary_text)
-
-    if tm_context:
-        prompt += f"\n<memory>\n{tm_context}\n</memory>\n"
-
-    prompt += f"\n<source_chapter>\n{source_text}\n</source_chapter>\n\n<now_translate>\n"
-
-    return prompt
-
-
 def get_chapter_context(
     ch_num: int,
     search_unknown: bool = True,
@@ -543,8 +281,33 @@ def get_chapter_context(
         f"\n{get_format_summary()}",
     ]
 
-    # Unknown terms
-    unknown = get_unknown_terms_for_ch(ch_num)
+    # Unknown terms — inline (no dedicated function needed for --dry-run)
+    unknown = []
+    try:
+        _sd = _get_source_dir()
+        _src_path = _sd / f"{ch_num:04d}.md"
+        if _src_path.exists():
+            _raw = clean_source(_src_path.read_text(encoding="utf-8"))
+            _known = {t["source"] for t in load_terms()}
+            _ui_noise = {"首頁","科幻小說","玄幻小說","都市言情","歷史軍事","遊戲競技",
+                          "加入書籤","小說報錯","投票推薦","字體","上一章","下一章","目錄",
+                          "關燈","開燈","下載","客戶端","手機看書","繁體","簡體",
+                          "上一頁","下一頁","返回","確定","取消","提交","下載本章",
+                          "請先","登錄","註冊","忘記密碼","會員中心","我的書架",
+                          "正在加載","加載中","請稍候","暫無","評論","書友","全球降臨",
+                          "帶著嫂嫂","末世種田","第","章","回","節","頁","卷"}
+            _known |= _ui_noise
+            _cleaned = re.sub(r"【[^】]*】", "", _raw)
+            _cleaned = re.sub(r"《[^》]*》", "", _cleaned)
+            _cleaned = re.sub(r"「[^」]*」", "", _cleaned)
+            _cn_terms = re.findall(r"[\u4e00-\u9fff]{2,}", _cleaned)
+            _seen = set()
+            for _t in _cn_terms:
+                if _t not in _known and _t not in _seen:
+                    _seen.add(_t)
+                    unknown.append(_t)
+    except Exception:
+        pass
     if unknown and search_unknown:
         parts.append(f"\n## Unknown CN terms ({len(unknown)}) — need Thai equivalent:")
         for term in unknown[:15]:
@@ -907,10 +670,8 @@ def translate_one(
     placeholder_map = {}
     translate_source = source
 
-    # Extract unknown terms for context
-    unknown_terms = get_unknown_terms_for_ch(ch_num, source=source) if search else None
-    if unknown_terms:
-        print(f"  → {len(unknown_terms)} unknown terms detected")
+    # ponytail: unknown terms detection removed — it was a dry-run-only feature
+    # that never fed into the actual prompt anymore (prompt_builder handles it)
 
     if mock:
         ch_data = mock_translate(
@@ -922,20 +683,37 @@ def translate_one(
         )
     else:
         # ── LLM translate ──
-        prompt = build_prompt(
-            ch_num,
-            translate_source,
-            unknown_terms=unknown_terms,
-            source_lang=source_lang,
-            target_lang=target_lang,
-            profile_lang=profile_lang,
-            source_cleaned=source,
+        # Use universal prompt_builder (supports CN/JP/KR/EN → TH)
+        from prompt_builder import build_prompt as _pb_build
+
+        # Map legacy language codes to prompt_builder codes
+        _src_pb = {"zh": "cn", "ja": "jp", "ko": "kr"}.get(source_lang, source_lang)
+        _tgt_pb = {"zh": "cn", "ja": "jp", "ko": "kr"}.get(target_lang, target_lang)
+
+        # Load dynamic context using existing local functions
+        _glossary_lib = get_glossary_context_from_lib(ch_num, source=source)
+        _continuity = get_previous_chapter_context(ch_num, n=3)
+        _style_text = get_style_summary()
+
+        prompt = _pb_build(
+            source_text=translate_source,
+            ch_num=ch_num,
+            source_lang=_src_pb,
+            target_lang=_tgt_pb,
+            novel_title=progress_slug,
+            glossary_text=_glossary_lib,
+            style_text=_style_text,
+            continuity_text=_continuity,
         )
         # Extract system prompt (rules + glossary) and user prompt (source + anchor)
-        # System = everything before <continuity_context>
+        # System = everything before <glossary> or <continuity>
         # This separation uses the API's `system` field for better instruction following
-        sys_end = prompt.find("<continuity_context>")
-        if sys_end > 0:
+        sys_end = prompt.find("<continuity>")
+        if sys_end < 0:
+            sys_end = prompt.find("<glossary>")
+        if sys_end < 0:
+            sys_end = len(prompt) // 2  # fallback: split at midpoint
+        if sys_end > 0 and sys_end < len(prompt):
             system_text = prompt[:sys_end].strip()
             user_text = prompt[sys_end:].strip()
         else:
@@ -995,19 +773,24 @@ def translate_one(
             # ── Retry with translate_quality router profile ───────────
             fallback_retried = False
             print(f"  ⚠ Quality gate failed — retrying with translate_quality profile (router)")
-            fb_prompt = build_prompt(
-                ch_num,
-                translate_source,
-                unknown_terms=unknown_terms,
-                source_lang=source_lang,
-                target_lang=target_lang,
-                profile_lang=profile_lang,
-                source_cleaned=source,
+            fb_prompt = _pb_build(
+                source_text=translate_source,
+                ch_num=ch_num,
+                source_lang=_src_pb,
+                target_lang=_tgt_pb,
+                novel_title=progress_slug,
+                glossary_text=_glossary_lib,
+                style_text=_style_text,
+                continuity_text=_continuity,
             )
-            sys_end = fb_prompt.find("<continuity_context>")
-            if sys_end > 0:
-                fb_system = fb_prompt[:sys_end].strip()
-                fb_user = fb_prompt[sys_end:].strip()
+            fb_sys_end = fb_prompt.find("<continuity>")
+            if fb_sys_end < 0:
+                fb_sys_end = fb_prompt.find("<glossary>")
+            if fb_sys_end < 0:
+                fb_sys_end = len(fb_prompt) // 2
+            if fb_sys_end > 0 and fb_sys_end < len(fb_prompt):
+                fb_system = fb_prompt[:fb_sys_end].strip()
+                fb_user = fb_prompt[fb_sys_end:].strip()
             else:
                 fb_system = None
                 fb_user = fb_prompt

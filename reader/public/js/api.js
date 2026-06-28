@@ -174,5 +174,22 @@ const Api = {
     }
     this.invalidateNovels();
     return res.json();
+  },
+
+  // ── Provider Config API (YAML-based) ──────────────────────────
+  async getProviderConfig() {
+    const res = await fetch('/api/admin/provider-config');
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return res.json();
+  },
+
+  async saveProviderConfig(config) {
+    const res = await fetch('/api/admin/provider-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return res.json();
   }
 };
