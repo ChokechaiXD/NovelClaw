@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   reader-renderer.js — Paragraph rendering for chapter reader
+   reader-renderer.js — Thai Style Paragraph Renderer
    NovelClaw Reader
    ═══════════════════════════════════════════════════════════════════════ */
 
@@ -7,95 +7,146 @@ const ReaderRenderer = {
 
   /**
    * Render chapter data to HTML.
-   * @param {object} data — chapter JSON (paragraphs[] or blocks[])
-   * @returns {string} rendered HTML
+   * Supports both new format (paragraphs with type) and legacy.
    */
   renderChapter(data) {
-    if (window.__NC_PERF) performance.mark('render-start');
     let html;
-    // New format: paragraphs (type-less, inline markers)
-    if (data.paragraphs && data.paragraphs.length) {
-      html = this._renderParagraphs(data.paragraphs);
+    // New format: paragraphs with type
+    if (data.paragraphs && data.paragraphs.length && typeof data.paragraphs[0] === 'object') {
+      html = this._renderTypedParagraphs(data.paragraphs);
     }
-    // Legacy format: blocks with types
+    // New format v2: paragraphs as strings (fallback via classify)
+    else if (data.paragraphs && data.paragraphs.length && typeof data.paragraphs[0] === 'string') {
+      html = this._renderClassifiedParagraphs(data.paragraphs);
+    }
+    // Legacy blocks
     else if (data.blocks && data.blocks.length) {
       html = this._renderBlocks(data.blocks);
     } else {
       html = '<p class="c-reader-empty-content">ยังไม่มีเนื้อหา</p>';
     }
-    if (window.__NC_PERF) {
-      performance.mark('render-end');
-      performance.measure('chapter-render', 'render-start', 'render-end');
-      const entries = performance.getEntriesByName('chapter-render');
-      const last = entries[entries.length - 1];
-      if (last && last.duration > 50) console.debug(`[perf] renderChapter: ${last.duration.toFixed(1)}ms (${html.length} chars)`);
-    }
     return html;
   },
 
-  /* ── v3 paragraph render ─────────────────────────────────────────── */
-  _renderParagraphs(paragraphs) {
+  /* ── New format: type-based rendering ───────────────────────────── */
+
+  _renderTypedParagraphs(paragraphs) {
     let html = '';
     for (const para of paragraphs) {
-      if (!para || !para.trim()) continue;
-      const t = this._esc(para.trim());
+      if (!para || !para.text || !para.text.trim()) continue;
+      const type = para.type || 'narration';
+      const text = this._esc(para.text.trim());
 
-      // End marker
-      if (t === '(จบบท)' || t === '(End)' || t === '（終）' || t === '(끝)' || /^\([\u0e00-\u0e7f]+\)$/.test(t)) {
-        html += `<p class="end-marker">${t}</p>`;
-        continue;
+      switch (type) {
+        case 'dialogue':
+          html += `<p class="c-para c-para--dialogue">${text}</p>`;
+          break;
+        case 'system':
+          html += `<p class="c-para c-para--system">${text}</p>`;
+          break;
+        case 'thought':
+          // text may already have <em> tags from classifier
+          html += `<p class="c-para c-para--thought">${text}</p>`;
+          break;
+        case 'action':
+          html += `<p class="c-para c-para--action">${text}</p>`;
+          break;
+        case 'end':
+          html += `<p class="end-marker">${text}</p>`;
+          break;
+        case 'narration':
+        default:
+          html += `<p class="c-para c-para--narration">${text}</p>`;
+          break;
       }
-
-      // Inline marker styling — single-pass approach
-      html += '<p>' + this._applyMarkers(t) + '</p>';
     }
     return html;
   },
 
-  /* ── Legacy v2 block render ──────────────────────────────────────── */
+  /* ── Classify string paragraphs on-the-fly (for legacy JSON) ──── */
+
+  _renderClassifiedParagraphs(paragraphs) {
+    const classified = this._classifyParagraphs(paragraphs);
+    return this._renderTypedParagraphs(classified);
+  },
+
+  _classifyParagraphs(paragraphs) {
+    const result = [];
+    for (const text of paragraphs) {
+      if (!text || !text.trim()) continue;
+      const t = text.trim();
+      // End markers
+      if (t === '(จบบท)' || t === '(End)' || t === '（終）' || t === '(끝)') {
+        result.push({ type: 'end', text: t });
+        continue;
+      }
+      // Dialogue
+      if (/["\u201c\u201d\u300c\u300d]/.test(t)) {
+        result.push({ type: 'dialogue', text: t });
+        continue;
+      }
+      // System
+      if (/【[^】]*】/.test(t)) {
+        result.push({ type: 'system', text: t });
+        continue;
+      }
+      // Thought (CN brackets)
+      if (/『[^』]+』/.test(t)) {
+        result.push({ type: 'thought', text: t.replace(/『([^』]+)』/g, '<em>$1</em>') });
+        continue;
+      }
+      // Thought (Thai indicators)
+      const thoughtWords = ['รู้สึก', 'คิด', 'นึก', 'สงสัย', 'ครุ่นคิด', 'นึกในใจ', 'ในใจ'];
+      if (thoughtWords.some(w => t.slice(0, 40).includes(w))) {
+        result.push({ type: 'thought', text: `<em>${t}</em>` });
+        continue;
+      }
+      // Action verbs
+      const actionVerbs = ['หัน', 'เดิน', 'วิ่ง', 'กระโดด', 'ยก', 'วาง', 'ดึง', 'ก้ม', 'เงย',
+                           'ก้าว', 'ลุก', 'ทรุด', 'เปิด', 'ปิด', 'หยิบ', 'คว้า'];
+      if (actionVerbs.some(v => t.startsWith(v))) {
+        result.push({ type: 'action', text: t });
+        continue;
+      }
+      // Default: narration
+      result.push({ type: 'narration', text: t });
+    }
+    return result;
+  },
+
+  /* ── Legacy v2 block render ────────────────────────────────────── */
+
   _renderBlocks(blocks) {
     let html = '';
     for (const b of blocks) {
       const t = (b.text || '').trim();
       if (!t) continue;
+      const esc = this._esc(t);
       switch (b.type) {
-        case 'dialogue': html += `<p class="dialogue">${this._esc(t)}</p>`; break;
-        case 'system':   html += `<p class="system-msg">${this._esc(t)}</p>`; break;
-        case 'game_title': html += `<p class="game-title">${this._esc(t)}</p>`; break;
-        case 'end':      html += `<p class="end-marker">${this._esc(t)}</p>`; break;
-        default:         html += `<p>${this._esc(t)}</p>`;
+        case 'dialogue':
+          html += `<p class="c-para c-para--dialogue">${esc}</p>`;
+          break;
+        case 'system':
+          html += `<p class="c-para c-para--system">${esc}</p>`;
+          break;
+        case 'game_title':
+          html += `<p class="c-para c-para--system">${esc}</p>`;
+          break;
+        case 'end':
+          html += `<p class="end-marker">${esc}</p>`;
+          break;
+        default:
+          html += `<p class="c-para c-para--narration">${esc}</p>`;
       }
     }
     return html;
   },
 
-  /* ── Marker styling ──────────────────────────────────────────────── */
-  _applyMarkers(text) {
-    // Order: dialogue first (uses " in HTML), then system+thought (no " conflict)
-    let html = this._replaceDialogue(text);
-    html = this._replaceSystem(html);
-    html = this._replaceThought(html);
-    return html;
-  },
-
-  _replaceDialogue(s) {
-    return s
-      .replace(/\u201c([^\u201d\n]+)\u201d/g, '<span class="c-marker--dialogue">$&</span>')
-      .replace(/「([^」]+)」/g, '<span class="c-marker--dialogue">$&</span>');
-  },
-
-  _replaceSystem(s) {
-    return s.replace(/【([^】]+)】/g, '<span class="c-marker--system">$&</span>');
-  },
-
-  _replaceThought(s) {
-    return s.replace(/『([^』]+)』/g, '<span class="c-marker--thought">$&</span>');
-  },
-
   /* ── HTML escape ─────────────────────────────────────────────────── */
+
   _esc(str) {
     const el = document.createElement('div');
     el.textContent = str;
     return el.innerHTML;
-  }
+  },
 };

@@ -71,7 +71,7 @@ class Chapter(BaseModel):
     schema_version: int = Field(default=3, description='Schema version — v3 (paragraphs)')
     num: int = Field(..., ge=1, le=9999, description='Chapter number')
     title: str = Field(..., min_length=1)
-    paragraphs: list[str] = Field(..., min_length=1, description='Content with inline markers')
+    paragraphs: list[str] | list[dict] = Field(..., min_length=1, description='Content — strings (legacy) or dicts with type+text (v4)')
     source: str = Field(..., pattern=r'^ch \d+$')
     notes: list[str] = Field(default_factory=list)
     lang: Language = Field(default=Language.CN)
@@ -99,8 +99,13 @@ class Chapter(BaseModel):
     @model_validator(mode='after')
     def validate_paragraphs(self) -> 'Chapter':
         if not isinstance(self.paragraphs, list) or not self.paragraphs:
-            raise ValueError('paragraphs must be a non-empty list of strings')
-        if self.paragraphs[-1] not in ('(จบบท)', '(End)', '（終）', '(끝)'):
+            raise ValueError('paragraphs must be a non-empty list')
+        # v4 format: paragraphs are dicts with type+text
+        if isinstance(self.paragraphs[0], dict):
+            last = self.paragraphs[-1].get("text", "") if isinstance(self.paragraphs[-1], dict) else str(self.paragraphs[-1])
+        else:
+            last = self.paragraphs[-1]
+        if last not in ('(จบบท)', '(End)', '（終）', '(끝)'):
             lang = self.lang.value if isinstance(self.lang, Language) else str(self.lang)
             end = BRACKETS.get(lang, {}).get('end_marker', '(จบบท)')
             self.paragraphs.append(end)

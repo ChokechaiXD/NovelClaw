@@ -1466,15 +1466,44 @@ pre code {
   font-size: var(--text-sm);
 }
 
-/* ── Reader markers ─────────────────────────────────────────────────── */
-.c-marker--dialogue { color: var(--quote); }
+/* ── Reader markers (legacy inline — no colors) ────────────────────── */
+.c-marker--dialogue { }
 .c-marker--system {
   font-size: 0.9em;
   font-weight: 500;
-  color: var(--stat-text);
 }
-.c-marker--thought { font-style: italic; color: var(--c-marker-thought, #7C3AED); }
+.c-marker--thought { font-style: italic; }
 .c-marker--end {
+  display: block;
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--c-text-muted);
+  margin: 3.5rem 0 1.5rem;
+  letter-spacing: 0.15em;
+}
+
+/* ── Thai Style paragraph types (NEW) ────────────────────────────── */
+/* No colors — pure semantic structure as specified by P'Chok */
+.c-para {
+  margin-bottom: 0.35em;
+  line-height: 1.8;
+}
+.c-para--narration {
+  /* Default styling — no special treatment */
+}
+.c-para--dialogue {
+  padding-left: 1em;  /* slight indent for dialogue */
+}
+.c-para--system {
+  margin: 0.6em 0 0.6em 0;
+  font-weight: 500;
+}
+.c-para--thought {
+  font-style: italic;
+}
+.c-para--action {
+  margin-top: 0.2em;  /* subtle separation for action beats */
+}
   display: block;
   text-align: center;
   font-size: var(--text-sm);
