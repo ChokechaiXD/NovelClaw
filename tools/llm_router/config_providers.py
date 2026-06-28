@@ -72,7 +72,52 @@ def get_provider_config() -> dict[str, Any]:
     with open(_CONFIG_PATH, encoding="utf-8") as f:
         raw = yaml.safe_load(f) or {}
 
-    return _resolve_refs(raw)
+    resolved = _resolve_refs(raw)
+
+    # Resolve file-based API keys (api_key_file → api_key)
+    providers = resolved.get("providers", {})
+    if isinstance(providers, dict):
+        for name, pcfg in providers.items():
+            if isinstance(pcfg, dict):
+                file_key = pcfg.get("api_key_file", "")
+                if file_key and not pcfg.get("api_key", ""):
+                    rk = _resolve_file_key(file_key)
+                    if rk:
+                        pcfg["api_key"] = rk
+
+    return resolved
+
+
+def _resolve_file_key(value: str) -> str:
+    """Resolve 'llm.json.xxx.yyy' references by reading llm.json."""
+    if not value or not value.startswith("llm.json."):
+        return ""
+    parts = value.split(".")
+    # parts = ["llm", "json", "key1", "key2", ...]
+    llm_path = _PROJECT_ROOT / "llm.json"
+    if not llm_path.exists():
+        return ""
+    try:
+        data: Any = json.loads(llm_path.read_text(encoding="utf-8"))
+        for p in parts[1:]:  # skip "llm", "json" — actual key starts at [2]? No, "llm.json" is one token
+            pass
+        # Fix: parts are ["llm.json", "openrouter_api_key"]
+        # So parts[1:] = ["openrouter_api_key"]
+        # But split on "." makes ["llm", "json", "openrouter_api_key"]
+        # So parts[2:] = ["openrouter_api_key"] for a 3-element split
+        if len(parts) >= 3:
+            key_path = parts[2:]
+        else:
+            key_path = parts[1:]
+        for k in key_path:
+            if isinstance(data, dict):
+                data = data.get(k, "")
+            else:
+                data = ""
+                break
+        return str(data) if data else ""
+    except (json.JSONDecodeError, OSError):
+        return ""
 
 
 def save_provider_config(active: str | None = None,

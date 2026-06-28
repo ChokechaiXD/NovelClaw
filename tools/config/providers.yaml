@@ -17,7 +17,7 @@ providers:
     display_name: OpenRouter (free models)
     base_url: "https://openrouter.ai/api/v1"
     api_key_env: OPENROUTER_API_KEY
-    api_key_file: llm.json.key.openrouter_api_key
+    api_key_file: llm.json.openrouter_api_key
     timeout_sec: 90
     max_tokens: 4096
     temperature: 0.28
@@ -45,7 +45,7 @@ providers:
     display_name: OpenModel.ai (free private)
     base_url: "https://api.openmodel.ai/v1"
     api_key_env: OPENMODEL_API_KEY
-    api_key_file: llm.json.key.api_key
+    api_key_file: llm.json.api_key
     timeout_sec: 90
     max_tokens: 4096
     temperature: 0.35
