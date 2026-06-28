@@ -122,6 +122,7 @@ const Ui = {
       { name: 'novels', label: 'นิยาย', page: 'admin/novels' },
       { name: 'chapters', label: 'ตอน', page: 'admin/chapters' },
       { name: 'glossary', label: 'คำศัพท์', page: 'admin/glossary' },
+      { name: 'provider', label: 'ระบบ AI', page: 'admin/provider' },
       { name: 'logs', label: 'ล็อก', page: 'admin/logs' },
     ];
     return '<div class="c-admin-nav">' + links.map(l =>

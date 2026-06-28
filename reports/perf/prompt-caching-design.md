@@ -34,18 +34,23 @@ Prefix caching / KV caching ทำงานโดย reuse computation ของ
 ## วิธีใช้
 
 ```python
-from translate import build_translate_prompt_v4
+from prompt_builder import build_prompt
 
-prompt = build_translate_prompt_v4(
-    ch_num=77,
+prompt = build_prompt(
     source_text=source_text,
-    slug="global-descent",
+    ch_num=77,
+    source_lang="cn",
+    target_lang="th",
+    novel_title="global-descent",
+    glossary_text=glossary_text,
+    style_text=style_text,
+    continuity_text=continuity_text,
 )
 ```
 
-## ข้อดี
+**หมายเหตุ:** v4 layout นี้ implement ผ่าน `prompt_builder.py` แล้ว
 
-| มิติ | v3 (old) | v4 (cache-optimized) |
+| มิติ | v3 (old) | v4 (cache-optimized, ผ่าน prompt_builder) |
 |:-----|:---------|:---------------------|
 | Cacheable % | ~30% (glossary filter break) | ~84% |
 | Glossary scope | per-chapter filtered (เปลี่ยนทุกครั้ง) | full novel (คงที่) |

@@ -1065,6 +1065,79 @@ adminPost('/api/local/llm-config', async (req, res) => {
   ok(res, { saved: true, config: buildLlmConfigResponse(data) });
 });
 
+// ── PROVIDER CONFIG (from providers.yaml) ──────────────────────────
+// Reads/writes tools/config/providers.yaml via Python helper.
+// Admin UI uses this to switch active provider and model.
+
+const PROVIDER_CONFIG_PY = path.join(__dirname, '..', 'tools', 'llm_router', 'config_providers.py');
+
+app.get('/api/admin/provider-config', asyncHandler(async (req, res) => {
+  try {
+    const py = getPythonCommand();
+    const child = spawn(py, ['-c', `
+import sys; sys.path.insert(0, 'tools')
+from llm_router.config_providers import get_provider_config, get_providers_list
+import json
+cfg = get_provider_config()
+plist = get_providers_list()
+print(json.dumps({
+  "active": cfg.get("active", ""),
+  "default_model": cfg.get("default_model", ""),
+  "providers": plist,
+  "profiles": cfg.get("profiles", []),
+}, ensure_ascii=False))
+    `], {
+      cwd: path.join(__dirname, '..'),
+      windowsHide: true,
+      timeout: 15_000,
+      env: { ...process.env }
+    });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
+    child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
+    child.on('error', (err) => fail(res, 500, 'PYTHON_ERROR', err.message));
+    child.on('close', (code) => {
+      if (code !== 0) return fail(res, 500, 'PYTHON_EXIT', sanitizeOutput(stderr || stdout));
+      try {
+        const data = JSON.parse(stdout.trim());
+        res.json(data);
+      } catch (e) {
+        fail(res, 500, 'PARSE_ERROR', 'Failed to parse provider config: ' + e.message);
+      }
+    });
+  } catch (err) {
+    fail(res, 500, 'SERVER_ERROR', err.message);
+  }
+}));
+
+adminPost('/api/admin/provider-config', async (req, res) => {
+  const { active, default_model } = req.body;
+  if (!active && !default_model) {
+    return fail(res, 400, 'INVALID_INPUT', 'Provide at least active or default_model');
+  }
+  try {
+    const py = getPythonCommand();
+    const code = `import sys; sys.path.insert(0, 'tools')
+from llm_router.config_providers import save_provider_config
+ok = save_provider_config(active=${JSON.stringify(active || '')}, default_model=${JSON.stringify(default_model || '')})
+print('ok' if ok else 'fail')`;
+    const child = spawn(py, ['-c', code], {
+      cwd: path.join(__dirname, '..'),
+      windowsHide: true,
+      timeout: 15_000,
+    });
+    let stderr = '';
+    child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
+    child.on('error', (err) => fail(res, 500, 'PYTHON_ERROR', err.message));
+    child.on('close', (code) => {
+      if (code !== 0) return fail(res, 500, 'PYTHON_EXIT', sanitizeOutput(stderr));
+      ok(res, { saved: true, active, default_model });
+    });
+  } catch (err) {
+    fail(res, 500, 'SERVER_ERROR', err.message);
+  }
+});
+
 function getPythonCommand() {
   return process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
 }
