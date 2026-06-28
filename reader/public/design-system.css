@@ -549,55 +549,6 @@ ul, ol { list-style: none; }
 
 
 /* ═══════════════════════════════════════════════════════════════════════
-   BOTTOM READER TOOLBAR
-   ═══════════════════════════════════════════════════════════════════════ */
-
-.c-reader-bottom-toolbar {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%) translateY(100%);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: rgba(17, 19, 26, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  margin-bottom: 0.75rem;
-  z-index: 50;
-  transition: transform 0.25s ease;
-}
-.c-reader-bottom-toolbar--show {
-  transform: translateX(-50%) translateY(0);
-}
-/* Reserve space for floating toolbar so nav buttons aren't covered */
-.c-app--reader-page .reader-body,
-.c-app--reader-page .reader-shell {
-  padding-bottom: 80px;
-  background: var(--reader-bg);
-}
-.c-reader-bottom-toolbar .c-btn {
-  min-width: var(--touch-min);
-  min-height: var(--touch-min);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 2px;
-  font-size: var(--text-xs);
-  color: var(--c-text-muted);
-  border-radius: var(--radius-sm);
-}
-.c-reader-bottom-toolbar .c-btn:hover {
-  background: var(--c-surface-hover);
-  color: var(--c-text-primary);
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════
    MOBILE BOTTOM NAV
    ═══════════════════════════════════════════════════════════════════════ */
 
@@ -644,9 +595,8 @@ ul, ol { list-style: none; }
     display: flex;
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  /* .c-mobile-nav + .c-reader-bottom-toolbar are body-level siblings of
-     .c-app, so .c-app--reader-page X selector doesn't reach them. Toggle
-     a body flag from JS instead. */
+  /* .c-mobile-nav is a body-level sibling of .c-app, so toggle a body flag
+     from JS while reader mode is active. */
   body.c-body--reader-mode .c-mobile-nav {
     display: none !important;
   }
@@ -656,10 +606,6 @@ ul, ol { list-style: none; }
   }
   .c-app--reader-page .c-app__main {
     padding-bottom: 0px !important;
-  }
-  /* Reader toolbar: safe bottom area on notched phones */
-  .c-reader-bottom-toolbar {
-    margin-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
   }
   /* Slightly smaller reader font on tiny screens */
   .reader-body {
@@ -879,10 +825,6 @@ button.c-form__input,
     order: 5;
     flex: 1 1 180px;
     max-width: none;
-  }
-  #reader-theme-toggle,
-  #reader-distraction-toggle {
-    order: 3;
   }
   .c-admin-nav {
     max-width: 100%;
@@ -1367,6 +1309,126 @@ pre code {
   background: var(--c-surface, rgba(255,255,255,0.05));
   color: var(--c-text-primary, #fff);
 }
+.c-reader__nav-btn--primary {
+  background: var(--c-accent) !important;
+  border-color: var(--c-accent) !important;
+  color: var(--c-accent-contrast, #fff) !important;
+  font-weight: var(--font-weight-semibold);
+}
+.c-reader__nav-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+.c-reader-actions {
+  max-width: 800px;
+  margin: clamp(2rem, 6vw, 4rem) auto 0;
+  padding: 1rem;
+  border: 1px solid var(--c-border-subtle, rgba(255,255,255,0.08));
+  border-radius: 8px;
+  background: var(--c-surface);
+}
+.c-reader-actions__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--c-border-subtle, rgba(255,255,255,0.08));
+}
+.c-reader-actions__nav button {
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--c-border-subtle, rgba(255,255,255,0.08));
+  background: transparent;
+  color: var(--c-text-secondary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.c-reader-actions__nav button:hover {
+  background: var(--c-surface-hover);
+  color: var(--c-text-primary);
+}
+.c-reader-actions__nav button:disabled:hover {
+  background: transparent;
+  color: var(--c-text-secondary);
+}
+.c-reader-actions__tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+  padding-top: 0.85rem;
+}
+.c-reader-tool-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: var(--touch-min);
+  padding: 0.2rem;
+  border: 1px solid var(--c-border-subtle, rgba(255,255,255,0.08));
+  border-radius: 8px;
+}
+.c-reader-tool,
+.c-reader-tool__value {
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+.c-reader-tool {
+  border: 0;
+  background: transparent;
+  color: var(--c-text-secondary);
+  cursor: pointer;
+}
+.c-reader-tool:hover {
+  background: var(--c-surface-hover);
+  color: var(--c-text-primary);
+}
+.c-reader-tool.is-active {
+  background: var(--c-accent-soft);
+  color: var(--c-accent);
+}
+.c-reader-tool__value {
+  color: var(--c-text-muted);
+  font-size: var(--text-xs);
+}
+.c-reader-tool--wide {
+  gap: 0.4rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--c-border-subtle, rgba(255,255,255,0.08));
+}
+@media (max-width: 640px) {
+  .c-reader-actions {
+    margin-inline: 1rem;
+    padding: 0.85rem;
+  }
+  .c-reader-actions__nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  .c-reader-actions__nav button {
+    padding-inline: 0.5rem;
+  }
+  .c-reader-actions__nav .c-reader__position {
+    grid-column: 1 / -1;
+    order: -1;
+    text-align: center;
+  }
+  .c-reader-actions__tools {
+    justify-content: stretch;
+  }
+  .c-reader-tool-group,
+  .c-reader-tool--wide {
+    flex: 1 1 calc(50% - 0.5rem);
+  }
+}
 
 
 /* ── Stat block (system messages, game stats) ──────────────────────── */
@@ -1380,14 +1442,6 @@ pre code {
   font-size: 0.9em;
 }
 
-/* ── Reader meta (font controls) ────────────────────────────────────── */
-.c-reader__meta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-md);
-}
 .c-reader__translator-info {
   margin-top: -8px;
   margin-bottom: var(--space-sm);
@@ -1395,10 +1449,6 @@ pre code {
   font-family: var(--font-ui);
   font-size: var(--text-xs);
   text-align: center;
-}
-.c-reader__meta-value {
-  color: var(--c-text-muted);
-  font-size: var(--text-sm);
 }
 .c-reader__error-message {
   padding: 2em;

@@ -44,38 +44,38 @@ const ReaderPage = {
           <span class="c-toolbar__divider"></span>
           
           <select id="reader-model-select" class="c-reader-toolbar__model-select" title="เลือกโมเดลแปล AI"></select>
-          <span class="c-toolbar__divider"></span>
-          
-          <button class="c-btn c-btn--icon" id="reader-theme-toggle" title="เปลี่ยนธีม"></button>
-          <button class="c-btn c-btn--icon" id="reader-distraction-toggle" title="โหมดอ่านหนังสือ">
-            <svg class="c-icon c-icon--sm"><use xlink:href="#icon-fullscreen"/></svg>
-          </button>
         </div>
 
         <div class="reader-shell">
-          <div class="c-reader__nav">
-            <button class="c-reader__nav-btn" id="reader-prev">◀ ก่อนหน้า</button>
-            <span class="c-reader__position" id="reader-position"></span>
-            <button class="c-reader__nav-btn" id="reader-next">ถัดไป ▶</button>
-          </div>
           <div class="reader-body">
             <h1 class="reader-title" id="reader-title"></h1>
             <div id="reader-translator-info" class="c-reader__translator-info"></div>
-            <div class="c-reader__meta">
-              <button class="c-btn c-btn--icon" id="reader-font-sm" title="ลดขนาดอักษร">A−</button>
-              <span class="c-reader__meta-value" id="reader-font-label">18px</span>
-              <button class="c-btn c-btn--icon" id="reader-font-lg" title="เพิ่มขนาดอักษร">A+</button>
-              <span class="c-toolbar__divider"></span>
-              <button class="c-btn c-btn--icon" id="reader-leading-sm" title="ลดช่องว่าง">↑↓</button>
-              <span class="c-reader__meta-value" id="reader-leading-label">1.8</span>
-              <button class="c-btn c-btn--icon" id="reader-leading-lg" title="เพิ่มช่องว่าง">↑↑</button>
-            </div>
             <div id="reader-content"></div>
           </div>
-          <div class="c-reader__nav">
-            <button class="c-reader__nav-btn" id="reader-prev-2">◀ ก่อนหน้า</button>
-            <button class="c-reader__nav-btn" id="reader-back-top">↑ กลับบน</button>
-            <button class="c-reader__nav-btn" id="reader-next-2">ถัดไป ▶</button>
+          <div class="c-reader-actions" aria-label="เครื่องมือท้ายบท">
+            <div class="c-reader-actions__nav" aria-label="เปลี่ยนตอน">
+              <button class="c-reader__nav-btn c-reader__nav-btn--prev" id="reader-prev-2" type="button">ก่อนหน้า</button>
+              <span class="c-reader__position" id="reader-position"></span>
+              <button class="c-reader__nav-btn" id="reader-back-top" type="button">กลับบน</button>
+              <button class="c-reader__nav-btn c-reader__nav-btn--primary" id="reader-next-2" type="button">ถัดไป</button>
+            </div>
+            <div class="c-reader-actions__tools" aria-label="ปรับการอ่าน">
+              <div class="c-reader-tool-group" aria-label="ขนาดตัวอักษร">
+                <button class="c-reader-tool" id="reader-font-sm" type="button" title="ลดขนาดอักษร">A−</button>
+                <span class="c-reader-tool__value" id="reader-font-label">18px</span>
+                <button class="c-reader-tool" id="reader-font-lg" type="button" title="เพิ่มขนาดอักษร">A+</button>
+              </div>
+              <div class="c-reader-tool-group" aria-label="ระยะบรรทัด">
+                <button class="c-reader-tool" id="reader-leading-sm" type="button" title="ลดช่องว่าง">−</button>
+                <span class="c-reader-tool__value" id="reader-leading-label">1.8</span>
+                <button class="c-reader-tool" id="reader-leading-lg" type="button" title="เพิ่มช่องว่าง">+</button>
+              </div>
+              <button class="c-reader-tool c-reader-tool--wide" id="reader-theme-toggle" type="button" title="เปลี่ยนธีม"></button>
+              <button class="c-reader-tool c-reader-tool--wide" id="reader-distraction-toggle" type="button" title="โหมดอ่านหนังสือ">
+                <svg class="c-icon c-icon--sm"><use xlink:href="#icon-fullscreen"/></svg>
+                <span>โหมดอ่าน</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -219,9 +219,7 @@ const ReaderPage = {
           Store.setLastPosition(slug, ch.num);
 
           // Update nav buttons
-          Ui.$('reader-prev').disabled = chIdx <= 0;
           Ui.$('reader-prev-2').disabled = chIdx <= 0;
-          Ui.$('reader-next').disabled = chIdx >= chapters.length - 1;
           Ui.$('reader-next-2').disabled = chIdx >= chapters.length - 1;
 
           // Scroll top
@@ -247,30 +245,20 @@ const ReaderPage = {
       currentReaderSlug = slug;
 
       // ── Wire Nav Events (navigate via hash — Router handles rendering) ─
-      Ui.$('reader-prev').onclick = () => {
+      const goPrev = () => {
         if (currentReaderIdx > 0) {
           const prev = chapters[currentReaderIdx - 1];
           if (prev) window.location.hash = `#novel/${slug}/${prev.num}`;
         }
       };
-      Ui.$('reader-next').onclick = () => {
+      const goNext = () => {
         if (currentReaderIdx < chapters.length - 1) {
           const next = chapters[currentReaderIdx + 1];
           if (next) window.location.hash = `#novel/${slug}/${next.num}`;
         }
       };
-      Ui.$('reader-prev-2').onclick = () => {
-        if (currentReaderIdx > 0) {
-          const prev = chapters[currentReaderIdx - 1];
-          if (prev) window.location.hash = `#novel/${slug}/${prev.num}`;
-        }
-      };
-      Ui.$('reader-next-2').onclick = () => {
-        if (currentReaderIdx < chapters.length - 1) {
-          const next = chapters[currentReaderIdx + 1];
-          if (next) window.location.hash = `#novel/${slug}/${next.num}`;
-        }
-      };
+      Ui.$('reader-prev-2').onclick = goPrev;
+      Ui.$('reader-next-2').onclick = goNext;
       Ui.$('reader-back-top').onclick = () => {
         const sc = document.querySelector('.c-content');
         if (sc) sc.scrollTo({ top: 0, behavior: 'smooth' });
@@ -340,7 +328,7 @@ const ReaderPage = {
       };
       const updateIcon = (t) => {
         const btn = Ui.$('reader-theme-toggle');
-        if (btn) btn.innerHTML = `<svg class="c-icon c-icon--sm"><use xlink:href="${THEME_ICONS[t] || '#icon-moon'}"/></svg>`;
+        if (btn) btn.innerHTML = `<svg class="c-icon c-icon--sm"><use xlink:href="${THEME_ICONS[t] || '#icon-moon'}"/></svg><span>ธีม</span>`;
       };
       applyTheme(currentTheme);
       Ui.$('reader-theme-toggle').onclick = () => {
@@ -354,6 +342,7 @@ const ReaderPage = {
         if (!app) return;
         app.classList.toggle('c-app--book-mode');
         const isActive = app.classList.contains('c-app--book-mode');
+        Ui.$('reader-distraction-toggle')?.classList.toggle('is-active', isActive);
         Ui.showToast(isActive ? 'โหมดอ่านหนังสือ' : 'ออกจากโหมดอ่านหนังสือ');
       };
 
@@ -398,8 +387,8 @@ const ReaderPage = {
       if (e.target.matches('input, textarea')) return;
       
       // Page navigation
-      if (e.key === 'ArrowLeft') Ui.$('reader-prev')?.click();
-      if (e.key === 'ArrowRight') Ui.$('reader-next')?.click();
+      if (e.key === 'ArrowLeft') Ui.$('reader-prev-2')?.click();
+      if (e.key === 'ArrowRight') Ui.$('reader-next-2')?.click();
       
       // Toggle Book Mode
       if (e.key === 'b' || e.key === 'B' || e.key === 'd' || e.key === 'D') {
