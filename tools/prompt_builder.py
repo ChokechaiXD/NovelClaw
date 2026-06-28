@@ -319,7 +319,6 @@ def build_prompt(
 MIKA — Cross-Language Novel Translation Specialist
 Source: {src_name} → Target: {tgt_name}
 Novel: {novel_title or "(unspecified)"}
-Chapter: {title}
 
 Core identity: Transmittor — preserve the author's original voice,
 scene order, sentence rhythm, and intentional flatness.
@@ -383,9 +382,14 @@ Before finishing, silently check:
 - End marker is present.
 </self_review>"""
 
-    # ── Assembly (prefix-caching layout: static first) ──────────────
+    # Unique meta per chapter (MUST come after static prefix to not break KV cache)
+    chapter_meta = f"<chapter_meta>\nChapter: {title}\n</chapter_meta>"
+
+    # ── Assembly (prefix-caching layout: static first, dynamic last) ──
     parts = [
         identity,
+        "",
+        chapter_meta,
         "",
         universal_rules,
         "",
@@ -446,38 +450,7 @@ def _latin_policy(target_lang: str) -> str:
     )
 
 
-# ── Convenience alias (backwards compat) ──────────────────────────────
-
-def build_translate_prompt_v4(
-    ch_num: int,
-    source_text: str,
-    source_lang: str = "cn",
-    target_lang: str = "th",
-    slug: str = "",
-    novel_title: str = "",
-    glossary_text: str = "",
-    style_text: str = "",
-    continuity_text: str = "",
-    extra_rules: str = "",
-) -> str:
-    """Backward-compatible alias matching translate.py's build_translate_prompt_v4 signature."""
-    return build_prompt(
-        source_text=source_text,
-        ch_num=ch_num,
-        source_lang=_to_old_lang(source_lang) or source_lang,
-        target_lang=_to_old_lang(target_lang) or target_lang,
-        glossary_text=glossary_text,
-        style_text=style_text,
-        continuity_text=continuity_text,
-        extra_rules=extra_rules,
-    )
-
-
-def _to_old_lang(lang: str) -> str | None:
-    """Map prompt_builder language codes to translate.py's codes."""
-    m = {"cn": "zh", "jp": "ja", "kr": "ko"}
-    return m.get(lang.lower())
-
+# ── CLI test ──────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     # Quick test
