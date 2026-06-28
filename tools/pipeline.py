@@ -36,7 +36,9 @@ sys.path.insert(0, str(_TOOLS_DIR))
 
 from classifier import classify_and_format, estimate_type_ratios  # noqa: E402
 from prompt_builder import build_prompt  # noqa: E402
-from scorer import score_chapter, report as score_report, PASS_THRESHOLD  # noqa: E402
+from scorer import PASS_THRESHOLD  # noqa: E402
+from source_cleaner import clean_source  # noqa: E402
+from quality_gate import evaluate_translation_quality  # noqa: E402
 from glossary_pre import build_glossary_pre_chunk  # noqa: E402
 from glossary_discovery import discover_and_save  # noqa: E402
 
@@ -44,12 +46,6 @@ from glossary_discovery import discover_and_save  # noqa: E402
 
 _SOURCE_DIR = _PROJECT_ROOT / "novels" / "global-descent" / "chapters" / "source"
 _CHAPTER_DIR = _PROJECT_ROOT / "novels" / "global-descent" / "chapters"
-
-_SOURCE_ARTIFACT_RE = re.compile(
-    r"(?:ขอบคุณ|感谢|หน้าที่|上一頁|下一頁|หน้าแรก|ลงทะเบียน|สมัครสมาชิก)"
-    r"|(?:Loading|กำลังโหลด)"
-)
-
 
 def read_source(ch_num: int, slug: str = "global-descent") -> str | None:
     """Station 1: Read source file. Supports .md and .cn.json."""
@@ -65,35 +61,6 @@ def read_source(ch_num: int, slug: str = "global-descent") -> str | None:
         return src_md.read_text(encoding="utf-8")
 
     return None
-
-
-# ── Station 2: Source Cleaner ────────────────────────────────────────
-
-def clean_source(raw: str) -> str:
-    """Station 2: Remove artifacts, line numbers, site noise."""
-    parts = raw.split("\n---\n")
-    body = parts[0]
-    lines = body.split("\n")
-    out = []
-    in_body = False
-    for line in lines[1:]:
-        stripped = line.strip()
-        if not in_body:
-            if stripped == "" or "全球降臨" in stripped:
-                continue
-            if re.match(r"^第[一二三四五六七八九十百千零\d]+章", stripped):
-                continue
-            if _SOURCE_ARTIFACT_RE.search(stripped):
-                continue
-            in_body = True
-        if _SOURCE_ARTIFACT_RE.search(stripped):
-            continue
-        out.append(line)
-    text = "\n".join(out)
-    text = re.sub(r"([！？。，；：…—])([」』”\"]?)\s*\d{1,4}(?=\s|$)", r"\1\2", text)
-    text = re.sub(r"^[^\n\u4e00-\u9fff\u0e00-\u0e7f]{1,40}$", "", text, flags=re.MULTILINE)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()
 
 
 # ── Station 3: Prompt Builder ─────────────────────────────────────────
@@ -309,14 +276,7 @@ def _score_and_report(
     threshold: float = PASS_THRESHOLD,
 ) -> dict[str, Any]:
     """Score translation quality. Returns result dict with pass/fail."""
-    result = score_chapter(classified, len(source_text), target_lang)
-    return {
-        "score": result.weighted_total,
-        "passed": result.passed,
-        "report": score_report(result),
-        "dimensions": {d.name: round(d.score * 100) for d in result.dimensions},
-        "errors": result.errors,
-    }
+    return evaluate_translation_quality(classified, source_text, target_lang, threshold)
 
 
 # ── Station 6.75: LLM Judge ────────────────────────────────────────────
