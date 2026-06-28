@@ -80,6 +80,12 @@ async function post(url, body) { return request('POST', url, body); }
 
 async function main() {
   console.log(`NovelClaw API Smoke Tests — ${BASE}\n`);
+  const preflight = await get('/');
+  if (preflight.status === 0) {
+    console.error(`Reader server is not reachable at ${BASE}. Start it first with: npm --prefix reader start`);
+    console.error(`Connection error: ${preflight.raw}`);
+    process.exit(1);
+  }
 
   // ── Test 1: Novel listing ─────────────────────────────────────────
   await test('/api/novels returns novels', async () => {
