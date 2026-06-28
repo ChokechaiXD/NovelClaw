@@ -199,8 +199,8 @@ def call_llm(
 def parse_output(output: str, ch_num: int) -> list[str]:
     """Station 5: Parse LLM plain text → list of paragraph strings."""
     # Strip markdown fences
-    output = re.sub(r"^```(?:text|markdown)?\s*\\n?", "", output.strip())
-    output = re.sub(r"\\n?```\s*$", "", output)
+    output = re.sub(r"^```[A-Za-z0-9_-]*\s*\n?", "", output.strip())
+    output = re.sub(r"\n?```\s*$", "", output)
     # Strip control chars
     output = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", output)
     # Normalize line endings
