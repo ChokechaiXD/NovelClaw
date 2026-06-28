@@ -30,7 +30,7 @@ NovelClaw/
 │   ├── translation_memory.py— Block-level translation cache
 │   └── providers/
 │       ├── __init__.py
-│       └── api.py           — LLM HTTP provider (via Hermes config)
+│       └── api.py           — LLM HTTP provider (direct HTTP)
 ├── reader/                  — Express.js web reader
 │   └── lib/
 │       ├── render.js        — renderChapterJson() + renderParagraphs()

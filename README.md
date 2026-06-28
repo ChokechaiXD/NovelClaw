@@ -44,7 +44,7 @@ novelclaw/
 │   ├── glossary.py             Glossary YAML loader (cached LRU)
 │   ├── translation_memory.py   Block-level cache (exact + fuzzy)
 │   ├── progress.py             Resume progress tracking
-│   ├── providers/              LLM provider abstraction (direct HTTP via Hermes config)
+│   ├── providers/              LLM provider abstraction (direct HTTP to providers)
 │   ├── scorer.py               8-dimension objective quality scorer
 │
 ├── reader/                     Web reader (Node.js / Express)
@@ -83,11 +83,10 @@ novelclaw/
 
 - Python 3.12+
 - Node.js 20+
-- [Hermes Agent](https://github.com/NousResearch/hermes-agent) (for LLM calls)
 
 ### Installation
 
-> **Note on Python env:** The repo ships its own venv at `.venv312/`. If it is missing or broken, run `scripts/setup-venv.sh` (POSIX) or `scripts\setup-venv.bat` (Windows). The setup uses `uv venv` when available because the Hermes Agent venv on this machine poisons PYTHONPATH for `python -m venv`. Once the venv exists, run tests directly: `.venv312/Scripts/python.exe -m pytest tests/`.
+> **Note on Python env:** The repo ships its own venv at `.venv312/`. If it is missing or broken, run `scripts/setup-venv.sh` (POSIX) or `scripts\setup-venv.bat` (Windows). Once the venv exists, run tests directly: `.venv312/Scripts/python.exe -m pytest tests/`.
 
 **Python toolkit**
 

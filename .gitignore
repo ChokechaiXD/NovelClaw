@@ -21,6 +21,7 @@ ENV/
 
 # Hermes agent artifacts
 .hermes/
+.agents/
 
 # Runtime state
 reader/local_state.json
@@ -97,6 +98,7 @@ jobs/active/
 jobs/done/
 jobs/failed/
 jobs/needs_review/
+jobs/quality/
 logs/
 staging/
 
