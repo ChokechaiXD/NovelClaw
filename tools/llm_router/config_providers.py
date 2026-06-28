@@ -112,6 +112,12 @@ def get_active_provider_and_model() -> tuple[str, str]:
     return cfg.get("active", "openmodel"), cfg.get("default_model", "deepseek-v4-flash")
 
 
+def get_discovery_model() -> str:
+    """Get discovery/judge model (separate from translate model)."""
+    cfg = get_provider_config()
+    return cfg.get("discovery_model", cfg.get("default_model", "deepseek-v4-flash"))
+
+
 def get_providers_list() -> list[dict[str, Any]]:
     """Get list of available providers with their models, for Admin UI."""
     cfg = get_provider_config()
