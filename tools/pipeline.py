@@ -19,10 +19,8 @@ Usage (via novelclaw.py CLI):
 from __future__ import annotations
 
 import json
-import os
 import re
 import sys
-import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -177,7 +175,13 @@ def call_llm(
     if model:
         cfg["model"] = model
     if provider:
-        cfg["base_url"] = provider
+        # Resolve provider name → base_url from config
+        cfg["provider_name"] = provider
+        from llm_router.config_providers import get_provider_config
+        pcfg = get_provider_config().get("providers", {}).get(provider, {})
+        if pcfg:
+            cfg["base_url"] = pcfg.get("base_url", cfg["base_url"])
+            cfg["api_key"] = pcfg.get("api_key", cfg["api_key"])
     if timeout:
         cfg["timeout"] = timeout
 
@@ -341,16 +345,6 @@ Provide 1-2 improvement suggestions if any score < 8."""
     except Exception as e:
         return {"ok": False, "feedback": str(e)[:200]}
 
-
-# ── Quick quality check (shared) ──────────────────────────────────────
-
-def _quick_script_check(paragraphs: list[dict[str, str]], target_lang: str = "th") -> list[str]:
-    """Quick script purity check — catch obvious leaks."""
-    from qa.script_policy import detect_script_leaks
-
-    texts = [p["text"] for p in paragraphs if p["text"] not in ("(จบบท)", "(End)", "（終）", "(끝)")]
-    if not texts:
-        return []
 
     try:
         from qa.term_policy import get_term_policy
@@ -567,9 +561,7 @@ def translate_one(
         return {"status": "failed", "ch": ch_num, "reason": str(e)[:300]}
 
 
-# ── CLI Test ──────────────────────────────────────────────────────────
 
-if __name__ == "__main__":
     import argparse
 
     ap = argparse.ArgumentParser(description="Test pipeline")
