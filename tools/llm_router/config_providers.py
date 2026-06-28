@@ -13,6 +13,8 @@ from __future__ import annotations
 import json
 import os
 import re
+from copy import deepcopy
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -56,15 +58,9 @@ def _resolve_refs(obj: Any) -> Any:
     return obj
 
 
-def get_provider_config() -> dict[str, Any]:
-    """Load and resolve provider config from providers.yaml.
-
-    Returns resolved config dict with:
-    - active: str
-    - default_model: str
-    - providers: dict
-    - profiles: list
-    """
+@lru_cache(maxsize=1)
+def _load_provider_config() -> dict[str, Any]:
+    """Load and resolve provider config from providers.yaml."""
     if not _CONFIG_PATH.exists():
         return {"active": "openmodel", "default_model": "deepseek-v4-flash",
                 "providers": {}, "profiles": []}
@@ -86,6 +82,23 @@ def get_provider_config() -> dict[str, Any]:
                         pcfg["api_key"] = rk
 
     return resolved
+
+
+def clear_provider_config_cache() -> None:
+    """Clear cached provider config after writes or test path changes."""
+    _load_provider_config.cache_clear()
+
+
+def get_provider_config() -> dict[str, Any]:
+    """Return resolved provider config from providers.yaml.
+
+    Returns resolved config dict with:
+    - active: str
+    - default_model: str
+    - providers: dict
+    - profiles: list
+    """
+    return deepcopy(_load_provider_config())
 
 
 def _resolve_file_key(value: str) -> str:
@@ -153,6 +166,7 @@ def save_provider_config(active: str | None = None,
             new_lines.append(line)
 
     _CONFIG_PATH.write_text("".join(new_lines), encoding="utf-8")
+    clear_provider_config_cache()
     return True
 
 
