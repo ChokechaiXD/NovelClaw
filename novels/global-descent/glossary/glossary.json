@@ -3702,6 +3702,2156 @@
       "verified": false,
       "explanation": "直译。",
       "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "點經驗值",
+      "thai": "คะแนนประสบการณ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal meaning “experience points”.",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "蛇人族祭司招募卷",
+      "thai": "ม้วนเรียกศาสตราจารย์เงือก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“卷” interpreted as scroll; “蛇人族祭司” = snake‑people priest.",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "新鮮的蛇肉",
+      "thai": "เนื้องูสด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "straightforward translation.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "二壯",
+      "thai": "เตียวจว่าง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "likely a personal name; provided phonetic transliteration.",
+      "notes": "auto_discovered (freq=2, confidence=low)"
+    },
+    {
+      "source": "建造所需材料",
+      "thai": "วัสดุก่อสร้างที่ต้องใช้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal meaning",
+      "notes": "auto_discovered (freq=6, confidence=high)"
+    },
+    {
+      "source": "提升",
+      "thai": "เพิ่มระดับ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "general verb “increase”",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "極地人",
+      "thai": "ชาวอาร์กติก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "likely refers to “polar people” in game context",
+      "notes": "auto_discovered (freq=3, confidence=medium)"
+    },
+    {
+      "source": "于是",
+      "thai": "แล้วก็",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "common conjunctive “so, then”",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "可改名",
+      "thai": "เปลี่ยนชื่อได้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "phrase meaning “renamable”",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "你為極地人賜名成",
+      "thai": "ให้ชื่อกับชาวอาร์กติกสำเร็จ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "truncated phrase, guess meaning",
+      "notes": "auto_discovered (freq=2, confidence=low)"
+    },
+    {
+      "source": "三壯",
+      "thai": "ซานจวัง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "likely a proper name, transliterated",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "曹星皺了皺眉頭",
+      "thai": "เคร่งเครียดของเฉาเซิง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal “Cao Xing frowned” – guessed name transliteration",
+      "notes": "auto_discovered (freq=2, confidence=low)"
+    },
+    {
+      "source": "這樣下去",
+      "thai": "ถ้าเป็นแบบนี้ต่อไป",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "idiomatic “if this continues”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "不限制發言次數",
+      "thai": "ไม่จำกัดจำนวนครั้งพูด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal meaning",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "四壯",
+      "thai": "สี่จวัง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "likely a proper name, transliterated",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "小雪",
+      "thai": "เสี่ยวเซวี่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ชื่อคน (音譯)",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "冰甲術",
+      "thai": "คาถาเกราะน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "เกมสกิล, แปลความหมาย",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "片刻後",
+      "thai": "ชั่วครู่ต่อมา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "วลีเวลา",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "視頻通話",
+      "thai": "วิดีโอคอล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "คำทั่วไป",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "而就在這時",
+      "thai": "แล้วในขณะนั้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "คำเชื่อม, อาจแปลว่า “แล้วในขณะนั้น”",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "小雪啊",
+      "thai": "เสี่ยวเซวี่เอ๊ะ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "คำเรียกคนใกล้ชิด, ใช้音譯พร้อมคำอุทาน",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "曹星搖頭道",
+      "thai": "เถาเซิงโย่วโท่เต้า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ชื่อบุคคล, ให้音譯แบบธรรมชาติ (อาจต้องตรวจสอบ)",
+      "notes": "auto_discovered (freq=2, confidence=low)"
+    },
+    {
+      "source": "等級",
+      "thai": "ระดับ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "General term for “level” in games.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "屬性",
+      "thai": "คุณลักษณะ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Could mean “attribute” or “element”; Thai “คุณลักษณะ” fits most contexts.",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "攻擊命中時",
+      "thai": "เมื่อโจมตีพุ่งตรง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Phrase describing “when attack hits”.",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "未進階",
+      "thai": "ยังไม่อัปเกรด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Means “not upgraded / not advanced”.",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "為敵人附加",
+      "thai": "เพิ่มให้ศัตรู",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“add to enemy”.",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "熱氣不斷升騰",
+      "thai": "ไอน้ำลอยขึ้นเรื่อย ๆ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Descriptive phrase for “steam continuously rising”.",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "技能",
+      "thai": "ทักษะ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Standard translation for “skill”.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "領主大人",
+      "thai": "พระเจ้าแห่งดินแดน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal meaning “lord” in a feudal sense, natural Thai phrasing.",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "你為領民",
+      "thai": "คุณเป็นประชาชนของฉัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "phrase “you are my subjects”; natural Thai rendering.",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "當前忠誠度",
+      "thai": "ความจงรักภักดีปัจจุบัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "direct translation.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "看得出來",
+      "thai": "สังเกตได้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "natural Thai expression meaning “can be seen”.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "忠誠度已提升",
+      "thai": "ความจงรักภักดีเพิ่มขึ้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "direct meaning.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "營地",
+      "thai": "ค่าย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "General term for a camp or base.",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "武興虎",
+      "thai": "วูซิงฮู",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Likely a personal name; use phonetic transliteration.",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "周博",
+      "thai": "โจ้วบ้อ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Likely a personal name; use phonetic transliteration.",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "老大",
+      "thai": "ผู้นำ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Common colloquial for “boss” or “leader”.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "遊獵者營地",
+      "thai": "ค่ายล่าเกม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“Hunter’s camp” in a game context; translated for meaning.",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "安德魯",
+      "thai": "แอนดรูว์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Standard phonetic transliteration of the name Andrew.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "極度危險",
+      "thai": "อันตรายระดับสูง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Direct meaning “extremely dangerous”.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星點頭道",
+      "thai": "เซา ซิงพยักหน้า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "proper name transliterated, meaning “nodded and said”",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "曹星看到",
+      "thai": "เซา ซิงเห็น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "proper name transliterated, “saw”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星點了點頭",
+      "thai": "เซา ซิงพยักหน้า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "same meaning as above, concise form",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "於是",
+      "thai": "ดังนั้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "common conjunctive “so/then”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "就代表那個地方有",
+      "thai": "หมายถึงที่นั่นมี",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal meaning; context‑dependent",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "謝謝",
+      "thai": "ขอบคุณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "standard Thai for “thank you”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "第一名",
+      "thai": "อันดับหนึ่ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "commonly used phrase for “first place”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "魔蛛",
+      "thai": "แมงมุมมังกร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal “demon spider”; guessed meaning based on context",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "附帶特效",
+      "thai": "เอฟเฟกต์เสริม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามความหมาย “effect attached”",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "魔蛛之杖",
+      "thai": "คทาแมงมุมมานา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ชื่อไอเท็ม, แปลตามความหมาย (คทา + แมงมุม)",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "曹星滿意的點了點",
+      "thai": "“Cao Xing พยักหน้าอย่างพอใจ”",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "เป็นประโยค, ให้การแปลโดยตรงพร้อมชื่อคน",
+      "notes": "auto_discovered (freq=2, confidence=low)"
+    },
+    {
+      "source": "曹星眼中出現喜色",
+      "thai": "“สีแห่งความยินดีปรากฏในตา Cao Xing”",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามความหมาย, ชื่อคนคง transliteration",
+      "notes": "auto_discovered (freq=2, confidence=low)"
+    },
+    {
+      "source": "鐵軌",
+      "thai": "รางรถไฟ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "คำทั่วไป, แปลตรงตัว",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "品質",
+      "thai": "คุณภาพ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "คำทั่วไป, แปลตรงตัว",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "器人",
+      "thai": "หุ่นยนต์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常用翻譯",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "鼴鼠人科技",
+      "thai": "เทคโนโลยีคนแรด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“鼴鼠人”直譯為 “คนแรด” (คนที่อาศัยอยู่ใต้ดิน)",
+      "notes": "auto_discovered (freq=3, confidence=medium)"
+    },
+    {
+      "source": "秘銀",
+      "thai": "เงินลับ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "遊戲中常見的 “Mithril” 翻譯",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "看到這一幕",
+      "thai": "เห็นฉากนั้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "直譯為自然的泰語表達",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "鑽地機器人",
+      "thai": "หุ่นยนต์ขุดดิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "描述其功能的意譯",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "鼴鼠人弓箭手",
+      "thai": "นักธนูคนแรด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "直譯 “鼴鼠人” 為 “คนแรด”，加上職業",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "還好",
+      "thai": "ยังไงก็ได้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常用口語翻譯，表示 “還好”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "機器人",
+      "thai": "หุ่นยนต์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常用翻譯",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "已損毀",
+      "thai": "เสียหายแล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ใช้ในความหมายว่าอุปกรณ์หรือสิ่งของถูกทำลายจนไม่ทำงานได้อีกต่อไป.",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "你獲得了經驗值",
+      "thai": "คุณได้รับค่า EXP",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“經驗值” 常譯為 “ค่า EXP” 或 “ค่าประสบการณ์”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "第二名",
+      "thai": "รองอันดับสอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常用 “รอง” 表示名次次於第一",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "級了",
+      "thai": "เลเวลอัปแล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "依上下文指升級，可譯為 “เลเวลอัปแล้ว”",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "我去",
+      "thai": "ไปเลย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "口語感嘆詞，常譯為 “ไปเลย” 或 “ไปกันเถอะ”",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "獲得經驗值",
+      "thai": "ได้ค่า EXP",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "同上，簡潔表達",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "你的領地成員",
+      "thai": "สมาชิกในดินแดนของคุณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“領地” → “ดินแดน”， “成員” → “สมาชิก”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "戰鬥人員獲得經驗",
+      "thai": "ได้รับประสบการณ์จากหน่วยรบ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal meaning; “戰鬥人員” = “หน่วยรบ/ทหารรบ”, “獲得經驗” = “ได้รับประสบการณ์”. Concise 3‑word Thai phrase.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "不過",
+      "thai": "แต่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ใช้เป็นคำเชื่อม “แต่” ในประโยค",
+      "notes": "auto_discovered (freq=2, confidence=confidence: high)"
+    },
+    {
+      "source": "骨折",
+      "thai": "กระดูกหัก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามความหมายของอาการบาดเจ็บ",
+      "notes": "auto_discovered (freq=2, confidence=confidence: high)"
+    },
+    {
+      "source": "我做到了",
+      "thai": "ทำได้แล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามความหมาย “สำเร็จแล้ว”",
+      "notes": "auto_discovered (freq=2, confidence=confidence: high)"
+    },
+    {
+      "source": "聽到這話",
+      "thai": "ได้ยินคำพูดนั้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ความหมายตรงตามบริบท, อาจใช้สั้นกว่าเป็น “ได้ยินนั้น” แต่เพื่อความชัดเจนเลือกแบบเต็ม​",
+      "notes": "auto_discovered (freq=2, confidence=confidence: medium)"
+    },
+    {
+      "source": "這張契約捲軸的成",
+      "thai": "อัตราความสำเร็จ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามความหมายของ “成功率” ในบริบทเกม",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星說道",
+      "thai": "โจ่ซิงพูด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ชื่อคน transliteration + คำกริยา “พูด”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "畢竟",
+      "thai": "อย่างไรก็ตาม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ใช้ในความหมาย “in the end / after all”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "諸位",
+      "thai": "ทุกท่าน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "คำสุภาพหลายคน",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "前進",
+      "thai": "เดินหน้า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ความหมายตรง",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "級的頭目級生物",
+      "thai": "สิ่งมีชีวิตบอสระดับ 20",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามความหมายเกม, ระดับอาจเปลี่ยนตามบริบท",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "鋒陷陣",
+      "thai": "พุ่งเข้าสู่การต่อสู้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามความหมาย “charge into battle” (อาจใช้เป็นสำนวนเกม)",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "的傷害",
+      "thai": "ความเสียหาย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal “damage”",
+      "notes": "auto_discovered (freq=2, confidence=confidence(high))"
+    },
+    {
+      "source": "獵者先鋒",
+      "thai": "นักล่าผู้นำหน้า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "interpreted as “Hunter Vanguard” (game title)",
+      "notes": "auto_discovered (freq=2, confidence=confidence(medium))"
+    },
+    {
+      "source": "當前等級",
+      "thai": "ระดับปัจจุบัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal “current level”",
+      "notes": "auto_discovered (freq=2, confidence=confidence(high))"
+    },
+    {
+      "source": "獲得錢幣",
+      "thai": "ได้รับเหรียญ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal meaning “obtain coins” in game context",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "這個",
+      "thai": "นี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "common demonstrative “this”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "了起來",
+      "thai": "ขึ้นมา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "phrase “起來” often means “to rise/act”, combined with “了” → “ขึ้นมา”",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "弧光閃",
+      "thai": "แสงโค้งระยิบ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "describes a skill “Arc Light Flash”, translated by meaning",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "霜凍護盾",
+      "thai": "โล่เยือกแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“frost shield” literal translation",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得精鐵",
+      "thai": "ได้รับเหล็กบริสุทธิ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“精鐵” = refined iron, translated meaning",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "刃舞",
+      "thai": "เต้นดาบ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal “blade dance”, common term for skill/item",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "耐久值",
+      "thai": "ความทนทาน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามความหมายของ “durability value”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "占地面積",
+      "thai": "พื้นที่ครอบคลุม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตาม “area occupied”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星思索道",
+      "thai": "เถา ซิง (曹星) คิดว่า…",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ชื่อคน, ใช้การถอดเสียง + คำบรรยาย",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "初級瞭望塔",
+      "thai": "หอคอยเฝ้าระดับต้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตาม “basic watchtower”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "級後",
+      "thai": "หลังอัปเกรดระดับ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ความหมายไม่ชัดเจน, จึงให้การตีความโดยประมาณ",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "平米",
+      "thai": "ตารางเมตร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "หน่วยวัดพื้นที่มาตรฐาน",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "可在領地中建造一",
+      "thai": "สามารถสร้างได้ในดินแดน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ขาดส่วนต่อท้ายของประโยค, ให้การแปลคร่าว ๆ",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "酒館",
+      "thai": "ร้านสุรา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "คำทั่วไปสำหรับ “tavern”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "修建時間",
+      "thai": "เวลาในการก่อสร้าง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตาม “construction time”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星點頭",
+      "thai": "เถา ซิง (曹星) พยักหน้า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ชื่อคน, ใช้การถอดเสียง + คำกริยา",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "點魅力",
+      "thai": "แรงเสน่ห์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“點”在此指數值，翻譯為 “แรงเสน่ห์” 表示魅力點數。",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星一愣",
+      "thai": "เถา ซิงอี้ เหลิง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "人名，採用音譯。",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "說道",
+      "thai": "พูดว่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "動詞 “說道” 可譯為 “พูดว่า”。",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "氣息",
+      "thai": "ออร่่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "在形容人物散發的氣質時，可譯為 “ออร่่า”。",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的食物",
+      "thai": "อาหารของ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“的” 在此作屬格助詞，意指「…的食物」",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "嗚嗚",
+      "thai": "อืมอืม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "表示讚嘆或滿足的感嘆詞",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "活力秘藥",
+      "thai": "ยาเพิ่มพลัง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "直譯為「活力」+「秘藥」",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "新手保護期結束後",
+      "thai": "หลังสิ้นระยะคุ้มครองผู้เริ่มต้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "直譯，常見於遊戲說明",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "曹星和柳慕雪",
+      "thai": "เถา ซิงและหลิว มู่ซิ่ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "人名音譯",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "怪物",
+      "thai": "มอนสเตอร์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常用外來語，亦可寫「สัตว์ประหลาด」但較長",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "呼道",
+      "thai": "ตะโกนว่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "文中為「驚呼道」，意為「喊道」",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "發生了什麼",
+      "thai": "เกิดอะไรขึ้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常見口語翻譯",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "天吶",
+      "thai": "ว้าว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "口語感嘆詞，類似「天哪」",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "聖騎士之盾",
+      "thai": "โล่อัศวินศักดิ์สิทธิ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "直譯「聖騎士」+「之盾」",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "領地",
+      "thai": "ดินแดน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常用於遊戲中的「領地」",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的極地人",
+      "thai": "ชาวขั้วโลก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“極地人”直譯為「คนขั้วโลก」",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "點體質",
+      "thai": "คะแนนพลังชีวิต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“體質”在遊戲中常指「生命值」或「耐久」",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "騎士之佑",
+      "thai": "พรของอัศวิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“之佑”意為「保佑」",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "忠誠已提升",
+      "thai": "ความจงรักภักดีเพิ่มขึ้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "直譯",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "減少對方",
+      "thai": "ลดความเสียหายต่อฝ่ายตรงข้าม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "依上下文為「減少對方」的傷害效果",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "獲得",
+      "thai": "ได้รับ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常用動詞，表示取得、獲得",
+      "notes": "auto_discovered (freq=6, confidence=high)"
+    },
+    {
+      "source": "這個樹靈族的女人",
+      "thai": "ผู้หญิงเผ่าต้นไม้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "直譯意義，非專有名詞",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "慕雪",
+      "thai": "มู่เซว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "人名，音譯",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "朱莉葉特",
+      "thai": "จูลีเย็ต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "人名，音譯",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "下一刻",
+      "thai": "ช่วงต่อไป",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "表示「下一瞬間」的常用說法",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "傷害",
+      "thai": "ความเสียหาย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "遊戲中常見術語",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "現在",
+      "thai": "ตอนนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常用時間副詞",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "而曹星",
+      "thai": "และเฉาเซิง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "人名音譯，前置連接詞保留",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "越級殺怪",
+      "thai": "สังหารมอนสเตอร์ระดับสูงกว่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "意譯為「跨等級擊殺怪物」",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "我擦",
+      "thai": "ฉันแย่!",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "口語感嘆詞，無直接對應，提供最接近的中文語氣翻譯（?）",
+      "notes": "auto_discovered (freq=2, confidence=low)"
+    },
+    {
+      "source": "半人馬戰士",
+      "thai": "ครึ่งม้า นักรบ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal meaning “centaur warrior”",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "蕾妮絲",
+      "thai": "เรนีส",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "likely a proper name, transliterated",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "個以上時",
+      "thai": "เมื่อจำนวน > ?",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ambiguous fragment, guessed meaning “when more than …”",
+      "notes": "auto_discovered (freq=2, confidence=low)"
+    },
+    {
+      "source": "說完",
+      "thai": "พูดเสร็จ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "natural Thai for “after saying”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "很快",
+      "thai": "อย่างเร็ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "natural Thai for “quickly”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "命中率",
+      "thai": "อัตราการแม่น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "game term “hit rate”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得穴居人狂戰士",
+      "thai": "ได้รับ นักรบบ้าถ้ำ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“cave‑dweller berserker” translated meaningfully",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "點耐久度",
+      "thai": "เพิ่มความทนทาน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“add durability” in game context",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "曹星手中出現了一",
+      "thai": "ปรากฏในมือของเซาเซิง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "proper name “Cao Xing” transliterated, natural Thai phrasing",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "曹星頓時眼睛一亮",
+      "thai": "เซาเซิงตาเปล่งประกาย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "natural Thai expression “eyes lit up”",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "我的光明之路",
+      "thai": "เส้นทางแสงของฉัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal translation of title",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "接下來",
+      "thai": "ต่อไป",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "natural Thai “next”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星又看向旁邊的",
+      "thai": "เซาเซิงหันไปมองข้าง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "fragment, natural continuation",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "那麼",
+      "thai": "ถ้าอย่างนั้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "common connective “then”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "尊敬的領主大人",
+      "thai": "พระเจ้าแผ่นดินผู้เคารพ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal respectful address to a lord",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "阿薩姆騎士",
+      "thai": "อัศรม์อัศวิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "transliteration of proper name “阿薩姆” + “騎士” (knight)",
+      "notes": "auto_discovered (freq=3, confidence=medium)"
+    },
+    {
+      "source": "詳細屬性",
+      "thai": "รายละเอียดสถิติ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“詳細”=detailed, “屬性”=attributes/statistics",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "這是",
+      "thai": "นี่คือ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "direct translation of “this is”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "打動",
+      "thai": "ประทับใจ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“to move (emotionally)” → “impress, touch”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的魔法防禦力",
+      "thai": "พลังป้องกันเวทมนตร์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“魔法防禦力”=magic defense power",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "這玩意",
+      "thai": "สิ่งนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "colloquial “this thing” → “สิ่งนี้”",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "種族",
+      "thai": "เชื้อชาติ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“race” (in game context)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "點擊可查看",
+      "thai": "คลิกเพื่อดู",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal UI phrase",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "死忠",
+      "thai": "ภักดีตายใจ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“死忠”=dead‑loyal, “ภักดีตายใจ” conveys extreme loyalty",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "冷卻時間",
+      "thai": "เวลารีโคลง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“cool‑down time” → “เวลารีโคลง” (common gaming term)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "額外",
+      "thai": "เพิ่มเติม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常用詞，意指「額外的」",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "等階",
+      "thai": "ระดับ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "在遊戲中表示「等級階段」",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "月華寶珠",
+      "thai": "ลูกแก้วจันทร์แสง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "直譯意義，未見固定譯名",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "初級腐化外殼",
+      "thai": "เปลือกผุพังระดับต้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "「初級」→ระดับต้น，「腐化」→ผุพัง，「外殼」→เปลือก",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "二階精英級生物",
+      "thai": "สิ่งมีชีวิตระดับเอลิทขั้นสอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "「二階」→ขั้นสอง，「精英級」→เอลิท，「生物」→สิ่งมีชีวิต",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "的加成",
+      "thai": "การเพิ่มของ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“加成” = bonus, “的” marks possession.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "布洛特",
+      "thai": "บลอท",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Likely a character name, transliterated.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "咔嚓",
+      "thai": "คักกะ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Onomatopoeia for snapping/cracking, Thai “คักกะ”.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "數字飄起",
+      "thai": "ตัวเลขลอยขึ้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Direct meaning.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "寶箱",
+      "thai": "หีบสมบัติ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Common term.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "之色",
+      "thai": "สีของ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Generic “之色” = “color/appearance of”.",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "卓越",
+      "thai": "ยอดเยี่ยม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Direct translation.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "轟隆",
+      "thai": "โห่​โหฬออ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Onomatopoeia for booming sound.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "紀君大哥",
+      "thai": "จิ่จุน 大哥",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“紀君” 為人名，使用音譯；“大哥” 直接保留中文意義",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "該死",
+      "thai": "แย่ซะแล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "口語感嘆，意譯為 “真糟”",
+      "notes": "auto_discovered (freq=3, confidence=medium)"
+    },
+    {
+      "source": "該死的",
+      "thai": "แย่ซะแล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "同上，作形容詞使用",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "此時",
+      "thai": "ขณะนั้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常見時間副詞翻譯",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "一時間",
+      "thai": "ชั่วคราวหนึ่ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“一時間” 表示短暫的感受，意譯為 “ชั่วคราวหนึ่ง”",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "卻被系統提示",
+      "thai": "แต่ระบบแจ้ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "直譯，保持原意",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "一下子死了那麼多",
+      "thai": "ตายหลายคนในพริบตา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“一下子” → “ในพริบตา”，意譯為 “หลายคนตาย”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "標位置",
+      "thai": "ตำแหน่งเป้าหมาย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“標” 為 “目標” 意，合併為 “ตำแหน่งเป้าหมาย”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "什麼情況",
+      "thai": "สถานการณ์เป็นอย่างไร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常用詢問語句",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "方龍",
+      "thai": "ฟางหลง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "人名音譯",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "快走",
+      "thai": "รีบไป",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "常用口語指令",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "殺了我",
+      "thai": "ฆ่าฉัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Direct translation of the phrase.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "字飄起",
+      "thai": "ตัวอักษรลอยขึ้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Literal meaning; could also be “อักษรลอย”.",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "的血量",
+      "thai": "ปริมาณเลือดของ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Common phrasing for “HP” or “blood amount”.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "腐化",
+      "thai": "เสื่อมสภาพ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Means “corruption/decay” in game context.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "霍格村",
+      "thai": "โฮเกะวิลล์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ชื่อสถานที่ในเกม, ใช้การถอดเสียงแบบธรรมชาติ",
+      "notes": "auto_discovered (freq=4, confidence=medium)"
+    },
+    {
+      "source": "咚咚",
+      "thai": "ดงดง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "เสียงกระแทก, อาจแปลเป็น “ดังกด” แต่不แน่ใจ",
+      "notes": "auto_discovered (freq=3, confidence=low)"
+    },
+    {
+      "source": "堅硬的兔牙",
+      "thai": "ฟันกระต่ายแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามความหมายของไอเท็ม",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "兔屍體",
+      "thai": "ศพกระต่าย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามความหมายของไอเท็ม",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得羽毛",
+      "thai": "ได้รับขนปีก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามข้อความเกม",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星打定了主意",
+      "thai": "เฉา ซิง ตัดสินใจ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ชื่อคน, ใช้การถอดเสียง",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "想到這裡",
+      "thai": "คิดถึงจุดนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ความหมายตามบริบท",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "累計獲得",
+      "thai": "สะสมได้ทั้งหมด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามความหมายของสถิติ",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得鳥蛋",
+      "thai": "ได้รับไข่นก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามข้อความเกม",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "初次服用",
+      "thai": "รับประทานครั้งแรก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามบริบทเกม",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "天賦",
+      "thai": "ความสามารถพิเศษ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามความหมายของ “talent/skill” ในเกม",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "攻擊力增加",
+      "thai": "เพิ่มพลังโจมตี",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "คำอธิบายของเอฟเฟกต์",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "已激活",
+      "thai": "เปิดใช้งานแล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "สถานะของฟีเจอร์",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "靈活跳躍",
+      "thai": "กระโดดคล่องแคล่ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "คำอธิบายการเคลื่อนที่",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "這一刻",
+      "thai": "ช่วงเวลานี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ความหมายตามบริบท",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "兔群",
+      "thai": "ฝูงกระต่าย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "คำแปลตรงตามความหมาย",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "發展",
+      "thai": "การพัฒนา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "คำทั่วไปในเกมหรือเรื่องราว",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "冰球投彈兔",
+      "thai": "กระต่ายยิงลูกน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "แปลตามลักษณะของไอเท็ม/ยูนิต",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "野獸",
+      "thai": "สัตว์ร้าย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "คำแปลของ “beast”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "耐寒",
+      "thai": "ทนความหนาว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "คำแปลของ “cold‑resistant”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "起來",
+      "thai": "ลุกขึ้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "verb meaning “to get up”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "蒼白之種",
+      "thai": "เมล็ดสีขาวซีด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal meaning “pale seed”",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "最高上限為",
+      "thai": "ขีดจำกัดสูงสุดคือ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "phrase “maximum limit is”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "希兒妲",
+      "thai": "ซีออร์ดา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "phonetic transliteration of a proper name",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "不過在出發前",
+      "thai": "ก่อนออกเดินทาง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "common phrase “before departure”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "效果",
+      "thai": "ผลลัพธ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“effect” in game context",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "生命力",
+      "thai": "พลังชีวิต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“vitality”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "血蛛女王",
+      "thai": "ราชินีแมงมุมเลือด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal translation of title",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "的生長速度",
+      "thai": "ความเร็วการเจริญเติบโต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“growth speed”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "閃耀王座",
+      "thai": "พระบัลลังก์อาบแสง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal meaning “shining throne”; natural Thai phrasing.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
     }
   ]
 }

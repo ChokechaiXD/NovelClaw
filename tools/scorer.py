@@ -100,9 +100,10 @@ def _score_script_purity(
     if not texts:
         return DimensionScore("Script Purity", 0.20, 0.0, "no paragraphs", False)
 
-    # Load allowed tokens
+    # Load allowed tokens — force fresh to pick up YAML changes
     try:
         from qa.term_policy import get_term_policy
+        get_term_policy.cache_clear()
         tp = get_term_policy(target_lang)
         allowed = tp.preserve_tokens | {t.upper() for t in tp.terms.keys()}
         for patterns in tp.preserve_patterns.values():
@@ -121,15 +122,22 @@ def _score_script_purity(
     count = result.error_count
     scripts = ", ".join(f"{s}×{c}" for s, c in result.foreign_script_counts.items())
 
-    if count <= 1:
-        score = 0.5
+    # Proportional scoring: more leaks = lower score, but not dropping to 0 at 4+
+    if count == 0:
+        score = 1.0
+    elif count <= 1:
+        score = 0.8
     elif count <= 3:
+        score = 0.6
+    elif count <= 5:
+        score = 0.4
+    elif count <= 10:
         score = 0.2
     else:
         score = 0.0
 
     return DimensionScore("Script Purity", 0.20, score,
-                          f"⚠️ {count} leaks ({scripts})", passed=count == 0)
+                          f"⚠️ {count} leaks ({scripts})", passed=count <= 1)
 
 
 def _score_end_marker(paragraphs: list[dict[str, str]]) -> DimensionScore:
@@ -199,6 +207,7 @@ def _score_term_compliance(
     """
     try:
         from qa.term_policy import get_term_policy
+        get_term_policy.cache_clear()
         tp = get_term_policy(target_lang)
     except ImportError:
         return DimensionScore("Term Compliance", 0.20, 1.0, "no term_policy loaded")

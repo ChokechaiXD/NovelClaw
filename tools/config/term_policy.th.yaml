@@ -57,6 +57,21 @@ terms:
   CD:
     action: preserve
     category: game_stat
+  CON:
+    action: preserve
+    category: game_stat
+  STAT:
+    action: preserve
+    category: game_stat
+  RES:
+    action: preserve
+    category: game_stat
+  RANK:
+    action: preserve
+    category: game_stat
+  LVL:
+    action: preserve
+    category: game_stat
   TPS:
     action: preserve
     category: game_stat
@@ -80,6 +95,15 @@ terms:
     value: ดีบัฟ
     category: game_mechanic
   ELITE:
+    action: preserve
+    category: game_term
+  MAX:
+    action: preserve
+    category: game_term
+  MIN:
+    action: preserve
+    category: game_term
+  SOLO:
     action: preserve
     category: game_term
 
