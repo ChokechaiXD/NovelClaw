@@ -183,7 +183,7 @@ def cmd_judge(args: list[str]) -> None:
     parsed = ap.parse_args(args)
     ch_nums = _parse_range(parsed.range)
 
-    for ch in ch_nums:
+    for ch in sorted(ch_nums):
         ch_path = _PROJECT_ROOT / "novels" / parsed.slug / "chapters" / f"{ch:04d}.th.json"
         if not ch_path.exists():
             print(f"  ❌ ตอน {ch}: .th.json ไม่พบ")
@@ -247,12 +247,11 @@ def cmd_status(args: list[str]) -> None:
 
         source_dir = chapters_dir / "source"
         source_count = len(list(source_dir.glob("*.md"))) if source_dir.exists() else 0
-
-        th_files = list(chapters_dir.glob("*.th.json"))
-        th_count = len(th_files)
-
         cn_files = list(chapters_dir.glob("*.cn.json"))
         cn_count = len(cn_files)
+        th_files = list(chapters_dir.glob("*.th.json"))
+        th_count = len(th_files)
+        source_all = source_count + cn_count
 
         title = "(unspecified)"
         novel_json = slug / "novel.json"
@@ -263,9 +262,9 @@ def cmd_status(args: list[str]) -> None:
             except Exception:
                 pass
 
-        pct = round(th_count / source_count * 100) if source_count > 0 else 0
+        pct = round(th_count / source_all * 100) if source_all > 0 else 0
         print(f"  📖 {title}")
-        print(f"     แหล่ง: {source_count + cn_count} ตอน | แปลแล้ว: {th_count} ({pct}%)")
+        print(f"     แหล่ง: {source_all} ตอน | แปลแล้ว: {th_count} ({pct}%)")
 
 
 # ── CONFIG ─────────────────────────────────────────────────────────────
@@ -343,6 +342,59 @@ def cmd_config(args: list[str]) -> None:
             print(f"     {mm} {m.get('id', '?')} ({m.get('tier', '?')})")
 
 
+# ── SCRAPE ──────────────────────────────────────────────────────────────
+
+
+def cmd_scrape(args: list[str]) -> None:
+    """novelclaw scrape <range> [options] — ดาวน์โหลด source จากเว็บ"""
+    import argparse
+
+    ap = argparse.ArgumentParser(prog="novelclaw scrape")
+    ap.add_argument("range", help="Chapter range (130 or 130-150)")
+    ap.add_argument("--site", default="69shu", choices=["69shu", "uukanshu"], help="Site to scrape")
+    ap.add_argument("--slug", default="global-descent", help="Novel slug")
+    ap.add_argument("--novel-id", default=None, help="Site novel ID (auto from novel.json if not set)")
+    ap.add_argument("--force", action="store_true", help="Re-download existing")
+    ap.add_argument("--delay", type=float, default=None, help="Seconds between requests")
+    ap.add_argument("--dry-run", action="store_true", help="Show what would be scraped without downloading")
+
+    parsed = ap.parse_args(args)
+    a, b = map(int, parsed.range.split("-")) if "-" in parsed.range else (int(parsed.range), int(parsed.range))
+    total = b - a + 1
+
+    if parsed.dry_run:
+        print(f"📋 จะ scrape {total} ตอน ({a}-{b})")
+        print(f"   Site: {parsed.site}")
+        print(f"   Slug: {parsed.slug}")
+        novel_id = parsed.novel_id
+        if not novel_id:
+            novel_json = _PROJECT_ROOT / "novels" / parsed.slug / "novel.json"
+            if novel_json.exists():
+                data = json.loads(novel_json.read_text(encoding="utf-8"))
+                novel_id = data.get(f"{parsed.site}_id") or data.get("id") or data.get("sourceId", "?")
+        print(f"   Novel ID: {novel_id}")
+        print(f"   Delay: {parsed.delay or 1}s")
+        return
+
+    from scraper import scrape_range
+
+    print(f"📥 กำลัง scrape {total} ตอน ({a}-{b}) จาก {parsed.site}")
+    results = scrape_range(
+        start=a, end=b,
+        slug=parsed.slug,
+        novel_id=parsed.novel_id,
+        site=parsed.site,
+        force=parsed.force,
+        incremental=not parsed.force,
+        delay=parsed.delay,
+    )
+
+    ok = sum(1 for r in results if r["status"] == "ok")
+    exists = sum(1 for r in results if r["status"] == "exists")
+    failed = sum(1 for r in results if r["status"] == "failed")
+    print(f"\n完毕! {ok} สำเร็จ, {exists} มีแล้ว, {failed} ล้มเหลว จาก {total} ตอน")
+
+
 # ── Main ──────────────────────────────────────────────────────────────
 
 
@@ -362,6 +414,8 @@ def main() -> None:
         cmd_status(args)
     elif command == "config":
         cmd_config(args)
+    elif command == "scrape":
+        cmd_scrape(args)
     elif command in ("-h", "--help"):
         print(__doc__)
     else:
