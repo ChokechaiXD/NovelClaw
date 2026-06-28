@@ -1110,12 +1110,13 @@ const AdminTranslatePage = {
   }
 };
 
-// ── ADMIN PROVIDER CONFIG ──────────────────────────────────────────────
+// ── ADMIN PROVIDER CONFIG — Step Wizard ⭐ ────────────────────────────
 const AdminProviderPage = {
+  _state: {},
+
   async render(params) {
     const page = Ui.$('page-admin-provider');
     if (!page) { 
-      // Fallback: if no dedicated element, create one
       const container = document.getElementById('page-admin');
       if (!container) return;
       container.innerHTML = '<div id="page-admin-provider"></div>';
@@ -1124,107 +1125,207 @@ const AdminProviderPage = {
     Ui.showSkeleton('page-admin-provider');
     try {
       const cfg = await Api.getProviderConfig();
-      const providers = cfg.providers || [];
-      const active = cfg.active || '';
-      const defaultModel = cfg.default_model || '';
-      
-      let providerOptions = providers.map(p =>
-        `<option value="${Ui.esc(p.name)}" ${p.name === active ? 'selected' : ''}>${Ui.esc(p.display_name || p.name)}</option>`
-      ).join('');
-
-      // Build model options for active provider
-      const activeProvider = providers.find(p => p.name === active) || {};
-      const models = activeProvider.models || [];
-      let modelOptions = models.map(m =>
-        `<option value="${Ui.esc(m.id)}" ${m.id === defaultModel ? 'selected' : ''}>${Ui.esc(m.name || m.id)}</option>`
-      ).join('');
-      if (!models.some(m => m.id === defaultModel) && defaultModel) {
-        modelOptions = `<option value="${Ui.esc(defaultModel)}" selected>${Ui.esc(defaultModel)}</option>` + modelOptions;
-      }
-
-      const html = '<div class="c-container">' +
-        Ui.adminNav('provider') +
-        '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">🤖 จัดการระบบ AI / Provider</h3></div>' +
-        '<div class="c-settings-card">' +
-        '<div class="c-form">' +
-        // Provider selector
-        '<div class="c-form__group">' +
-        '<label class="c-form__label">ผู้ให้บริการ AI (Provider)</label>' +
-        '<select class="c-form__select" id="provider-select">' +
-        providerOptions +
-        '</select>' +
-        '</div>' +
-        // Model selector
-        '<div class="c-form__group">' +
-        '<label class="c-form__label">โมเดลเริ่มต้น (Default Model)</label>' +
-        '<select class="c-form__select" id="provider-model-select">' +
-        modelOptions +
-        '</select>' +
-        '</div>' +
-        // Provider info
-        '<div class="c-form__group" id="provider-info">' +
-        '<p class="u-text-muted" style="font-size:0.9rem">เปลี่ยน provider หรือ model ที่นี่ — ส่งผลทันทีต่อการแปลครั้งต่อไป</p>' +
-        '</div>' +
-        // Save button
-        '<div class="c-form__actions">' +
-        '<button class="c-btn c-btn--primary" id="save-provider-btn">💾 บันทึกการตั้งค่า</button>' +
-        '</div>' +
-        // Status area
-        '<div id="provider-status" class="u-mt-sm"></div>' +
-        '</div>' +
-        '</div>' +
-        // Provider list summary
-        '<div class="c-section__header c-admin-page__header c-admin-page__header--loose"><h3 class="c-section__title">📋 Providers พร้อมใช้งาน</h3></div>' +
-        '<div class="c-card">' +
-        '<table class="c-table"><thead><tr><th>ชื่อ</th><th>จำนวนโมเดล</th><th>ใช้งาน?</th></tr></thead><tbody>' +
-        providers.map(p => {
-          const modelCount = (p.models || []).length;
-          const isActive = p.name === active;
-          return `<tr><td><strong>${Ui.esc(p.display_name || p.name)}</strong></td><td>${modelCount} โมเดล</td><td>${isActive ? '✅ กำลังใช้' : '⏸️'}</td></tr>`;
-        }).join('') +
-        '</tbody></table>' +
-        '</div>' +
-        '</div>';
-
-      page.innerHTML = html;
-
-      // ── Model switcher on provider change ──
-      const providerSelect = document.getElementById('provider-select');
-      const modelSelect = document.getElementById('provider-model-select');
-      if (providerSelect) {
-        providerSelect.addEventListener('change', (e) => {
-          const selectedProvider = providers.find(p => p.name === e.target.value);
-          const providerModels = (selectedProvider && selectedProvider.models) || [];
-          if (modelSelect) {
-            modelSelect.innerHTML = providerModels.map(m =>
-              `<option value="${Ui.esc(m.id)}">${Ui.esc(m.name || m.id)}</option>`
-            ).join('');
-          }
-        });
-      }
-
-      // ── Save button ──
-      const saveBtn = document.getElementById('save-provider-btn');
-      if (saveBtn) {
-        saveBtn.addEventListener('click', async () => {
-          const selProvider = document.getElementById('provider-select').value;
-          const selModel = document.getElementById('provider-model-select').value;
-          const statusEl = document.getElementById('provider-status');
-          if (statusEl) statusEl.innerHTML = '<span class="c-badge c-badge--amber">⏳ กำลังบันทึก...</span>';
-          try {
-            await Api.saveProviderConfig({ active: selProvider, default_model: selModel });
-            if (statusEl) statusEl.innerHTML = '<span class="c-badge c-badge--teal">✅ บันทึกแล้ว! Provider: ' + Ui.esc(selProvider) + ', Model: ' + Ui.esc(selModel) + '</span>';
-            Ui.showToast('บันทึกการตั้งค่า Provider สำเร็จ');
-          } catch (err) {
-            if (statusEl) statusEl.innerHTML = '<span class="c-badge c-badge--red">❌ บันทึกไม่สำเร็จ: ' + Ui.esc(err.message) + '</span>';
-            Ui.showToast('บันทึกไม่สำเร็จ', 'error');
-          }
-        });
-      }
+      this._state = {
+        providers: cfg.providers || [],
+        active: cfg.active || '',
+        default_model: cfg.default_model || '',
+        discovery_model: cfg.discovery_model || '',
+        step: 1,
+        selected_provider: cfg.active || '',
+        selected_model: cfg.default_model || '',
+        selected_discovery: cfg.discovery_model || '',
+      };
+      this._renderStep(page);
     } catch (err) {
-      Ui.showError(page, 'โหลดข้อมูล Provider ไม่สำเร็จ', err.message);
+      Ui.showError(page, 'โหลดข้อมูลไม่สำเร็จ', err.message);
     }
-  }
+  },
+
+  _renderStep(page) {
+    switch (this._state.step) {
+      case 1: this._renderStep1(page); break;
+      case 2: this._renderStep2(page); break;
+      case 3: this._renderStep3(page); break;
+      default: this._renderDone(page); break;
+    }
+  },
+
+  _stepIndicator(page, current) {
+    const steps = [
+      { num: 1, label: 'เลือก Provider' },
+      { num: 2, label: 'เลือกโมเดลแปล' },
+      { num: 3, label: 'ตั้งค่า + บันทึก' },
+    ];
+    return '<div class="c-admin-wizard__steps">' +
+      steps.map(s => {
+        const cls = s.num === current ? 'c-admin-wizard__step--active' :
+                    s.num < current ? 'c-admin-wizard__step--done' : '';
+        return '<div class="c-admin-wizard__step ' + cls + '">' +
+          '<span class="c-admin-wizard__step-num">' + (s.num < current ? '✓' : s.num) + '</span>' +
+          '<span class="c-admin-wizard__step-label">' + s.label + '</span></div>';
+      }).join(' → ') + '</div>';
+  },
+
+  // ── Step 1: เลือก Provider ──
+  _renderStep1(page) {
+    const { providers, selected_provider } = this._state;
+    page.innerHTML = '<div class="c-container">' +
+      Ui.adminNav('provider') +
+      '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">🤖 ตั้งค่าระบบ AI</h3></div>' +
+      this._stepIndicator(page, 1) +
+      '<div class="c-admin-wizard__body">' +
+      '<h4>ขั้นตอนที่ 1: เลือกผู้ให้บริการ AI</h4>' +
+      '<p class="u-text-muted">เลือก Provider ที่ต้องการใช้ แล้วกด "ต่อไป"</p>' +
+      '<div class="c-admin-provider__cards">' +
+      providers.map(p => {
+        const act = p.name === selected_provider ? ' c-admin-provider__card--active' : '';
+        const modelCount = (p.models || []).length;
+        return '<div class="c-card c-admin-provider__card' + act + '" data-provider="' + Ui.esc(p.name) + '">' +
+          '<div class="c-admin-provider__card-name">' + Ui.esc(p.display_name || p.name) + '</div>' +
+          '<div class="c-admin-provider__card-meta">' + modelCount + ' โมเดล</div>' +
+          '</div>';
+      }).join('') +
+      '</div></div>' +
+      '<div class="c-admin-wizard__actions">' +
+      '<button class="c-btn c-btn--primary" id="wizard-next-1" disabled>ต่อไป →</button>' +
+      '</div></div>';
+
+    // Card click handler
+    page.querySelectorAll('.c-admin-provider__card').forEach(card => {
+      card.addEventListener('click', () => {
+        page.querySelectorAll('.c-admin-provider__card').forEach(c => c.classList.remove('c-admin-provider__card--active'));
+        card.classList.add('c-admin-provider__card--active');
+        this._state.selected_provider = card.dataset.provider;
+        document.getElementById('wizard-next-1').disabled = false;
+      });
+    });
+
+    document.getElementById('wizard-next-1').addEventListener('click', () => {
+      this._state.step = 2;
+      this._renderStep(page);
+    });
+  },
+
+  // ── Step 2: เลือก Translate Model + Discovery Model ──
+  _renderStep2(page) {
+    const { providers, selected_provider, selected_model, selected_discovery } = this._state;
+    const activeProvider = providers.find(p => p.name === selected_provider) || {};
+    const models = activeProvider.models || [];
+
+    let translateOpts = models.map(m =>
+      `<option value="${Ui.esc(m.id)}" ${m.id === selected_model ? 'selected' : ''}>${Ui.esc(m.name || m.id)}</option>`
+    ).join('');
+    if (!models.some(m => m.id === selected_model) && selected_model) {
+      translateOpts = `<option value="${Ui.esc(selected_model)}" selected>${Ui.esc(selected_model)}</option>` + translateOpts;
+    }
+
+    let discOpts = models.map(m =>
+      `<option value="${Ui.esc(m.id)}" ${m.id === selected_discovery ? 'selected' : ''}>${Ui.esc(m.name || m.id)}</option>`
+    ).join('');
+    discOpts += '<option value="openai/gpt-oss-120b:free"' + (selected_discovery === 'openai/gpt-oss-120b:free' ? ' selected' : '') + '>openai/gpt-oss-120b:free</option>';
+
+    page.innerHTML = '<div class="c-container">' +
+      Ui.adminNav('provider') +
+      '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">🤖 ตั้งค่าระบบ AI</h3></div>' +
+      this._stepIndicator(page, 2) +
+      '<div class="c-admin-wizard__body">' +
+      '<h4>ขั้นตอนที่ 2: เลือกโมเดล</h4>' +
+      '<p class="u-text-muted">Provider: <strong>' + Ui.esc(activeProvider.display_name || selected_provider) + '</strong></p>' +
+      '<div class="c-form__group">' +
+      '<label class="c-form__label">โมเดลสำหรับแปล (Translate)</label>' +
+      '<select class="c-form__select" id="wiz-model-select">' + translateOpts + '</select>' +
+      '</div>' +
+      '<div class="c-form__group">' +
+      '<label class="c-form__label">โมเดลค้นหาคำศัพท์ (Discovery)</label>' +
+      '<p class="c-form__help-text">ใช้ LLM อีกตัวเพื่อค้นหา + เสนอคำแปลคำศัพท์ใหม่</p>' +
+      '<select class="c-form__select" id="wiz-discovery-select">' + discOpts + '</select>' +
+      '</div>' +
+      '</div>' +
+      '<div class="c-admin-wizard__actions">' +
+      '<button class="c-btn c-btn--ghost" id="wizard-prev-2">← ย้อนกลับ</button>' +
+      '<button class="c-btn c-btn--primary" id="wizard-next-2">ต่อไป →</button>' +
+      '</div></div>';
+
+    document.getElementById('wizard-prev-2').addEventListener('click', () => {
+      this._state.step = 1;
+      this._renderStep(page);
+    });
+    document.getElementById('wizard-next-2').addEventListener('click', () => {
+      this._state.selected_model = document.getElementById('wiz-model-select').value;
+      this._state.selected_discovery = document.getElementById('wiz-discovery-select').value;
+      this._state.step = 3;
+      this._renderStep(page);
+    });
+  },
+
+  // ── Step 3: Summary + Save ──
+  _renderStep3(page) {
+    const { selected_provider, selected_model, selected_discovery, providers } = this._state;
+    const p = providers.find(x => x.name === selected_provider) || {};
+    const pName = p.display_name || selected_provider;
+
+    page.innerHTML = '<div class="c-container">' +
+      Ui.adminNav('provider') +
+      '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">🤖 ตั้งค่าระบบ AI</h3></div>' +
+      this._stepIndicator(page, 3) +
+      '<div class="c-admin-wizard__body">' +
+      '<h4>ขั้นตอนที่ 3: ตรวจสอบและบันทึก</h4>' +
+      '<div class="c-card c-admin-wizard__summary">' +
+      '<table class="c-table"><tbody>' +
+      '<tr><td>ผู้ให้บริการ</td><td><strong>' + Ui.esc(pName) + '</strong></td></tr>' +
+      '<tr><td>โมเดลแปล</td><td><strong>' + Ui.esc(selected_model) + '</strong></td></tr>' +
+      '<tr><td>โมเดลค้นหาคำศัพท์</td><td><strong>' + Ui.esc(selected_discovery) + '</strong></td></tr>' +
+      '</tbody></table>' +
+      '</div>' +
+      '<div id="wizard-status"></div>' +
+      '<div class="c-admin-wizard__actions">' +
+      '<button class="c-btn c-btn--ghost" id="wizard-prev-3">← ย้อนกลับ</button>' +
+      '<button class="c-btn c-btn--primary" id="wizard-save">💾 บันทึก</button>' +
+      '</div></div></div>';
+
+    document.getElementById('wizard-prev-3').addEventListener('click', () => {
+      this._state.step = 2;
+      this._renderStep(page);
+    });
+
+    document.getElementById('wizard-save').addEventListener('click', async () => {
+      const btn = document.getElementById('wizard-save');
+      const statusEl = document.getElementById('wizard-status');
+      btn.disabled = true;
+      btn.textContent = '⏳ กำลังบันทึก...';
+      statusEl.innerHTML = '<span class="c-badge c-badge--amber">⏳ กำลังบันทึก...</span>';
+      try {
+        await Api.saveProviderConfig({
+          active: this._state.selected_provider,
+          default_model: this._state.selected_model,
+          discovery_model: this._state.selected_discovery,
+        });
+        statusEl.innerHTML = '<span class="c-badge c-badge--teal">✅ บันทึกสำเร็จ!</span>';
+        btn.textContent = '✅ บันทึกแล้ว';
+        Ui.showToast('บันทึกการตั้งค่าเรียบร้อย');
+        // Show done
+        this._state.step = 4;
+        setTimeout(() => this._renderStep(page), 1000);
+      } catch (err) {
+        statusEl.innerHTML = '<span class="c-badge c-badge--red">❌ ' + Ui.esc(err.message) + '</span>';
+        btn.disabled = false;
+        btn.textContent = '💾 ลองอีกครั้ง';
+      }
+    });
+  },
+
+  // ── Done ──
+  _renderDone(page) {
+    page.innerHTML = '<div class="c-container">' +
+      Ui.adminNav('provider') +
+      '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">🤖 ตั้งค่าระบบ AI</h3></div>' +
+      '<div class="c-admin-wizard__body" style="text-align:center;padding:3rem">' +
+      '<div style="font-size:3rem;margin-bottom:1rem">🎉</div>' +
+      '<h4>ตั้งค่าเสร็จสมบูรณ์!</h4>' +
+      '<p class="u-text-muted">ระบบ AI พร้อมทำงานแล้ว ต่อไปก็แค่กดแปล!</p>' +
+      '<a href="#admin/translate" class="c-btn c-btn--primary c-btn--lg" data-nav>ไปหน้าแปล →</a>' +
+      '</div></div>';
+  },
 };
 
 // ── Lazy-load registration ─────────────────────────────────────────

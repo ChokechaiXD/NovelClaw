@@ -1509,6 +1509,113 @@ pre code {
 .c-para--action {
   margin-top: 0.2em;  /* subtle separation for action beats */
 }
+
+
+/* ── Admin Step Wizard ──────────────────────────────────────────────── */
+.c-admin-wizard__steps {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 1.5rem 0;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+.c-admin-wizard__step {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #999;
+}
+.c-admin-wizard__step--active {
+  color: var(--color-primary, #3b82f6);
+  font-weight: 600;
+}
+.c-admin-wizard__step--done {
+  color: var(--color-success, #22c55e);
+}
+.c-admin-wizard__step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #eee;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.c-admin-wizard__step--active .c-admin-wizard__step-num {
+  background: var(--color-primary, #3b82f6);
+  color: #fff;
+}
+.c-admin-wizard__step--done .c-admin-wizard__step-num {
+  background: var(--color-success, #22c55e);
+  color: #fff;
+}
+.c-admin-wizard__body {
+  margin: 1rem 0;
+}
+.c-admin-wizard__actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+.c-admin-wizard__summary {
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+.c-admin-wizard__summary table {
+  width: 100%;
+}
+.c-admin-wizard__summary td {
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid #eee;
+}
+.c-admin-wizard__summary td:first-child {
+  color: #666;
+  width: 180px;
+}
+
+/* Provider selection cards */
+.c-admin-provider__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.8rem;
+  margin: 1rem 0;
+}
+.c-admin-provider__card {
+  padding: 1.2rem;
+  cursor: pointer;
+  border: 2px solid #e5e7eb;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+.c-admin-provider__card:hover {
+  border-color: var(--color-primary, #3b82f6);
+  background: #f8faff;
+}
+.c-admin-provider__card--active {
+  border-color: var(--color-primary, #3b82f6);
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+.c-admin-provider__card-name {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 0.3rem;
+}
+.c-admin-provider__card-meta {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.c-form__help-text {
+  font-size: 0.8rem;
+  color: #888;
+  margin: 0.2rem 0 0.4rem;
+}
+.c-end-marker-fix {
   display: block;
   text-align: center;
   font-size: var(--text-sm);
