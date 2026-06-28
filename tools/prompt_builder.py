@@ -47,14 +47,17 @@ LANG_CONFIG: dict[str, dict[str, Any]] = {
         ),
         "example_tgt": (
             "หลินฟานสูดหายใจเข้าลึกๆ ในใจลอบครุ่นคิด\n"
-            "『ดูเหมือนว่าวันสิ้นโลกนี้จะไม่ธรรมดาเสียแล้ว』\n"
+            "\"ดูเหมือนว่าวันสิ้นโลกนี้จะไม่ธรรมดาเสียแล้ว\"\n"
             "【ติ๊ง! ระบบกำลังโหลด...】"
         ),
         # CN→TH specific gotchas
         "leak_rule": (
             "- **Zero source-language characters (Chinese hanzi) in output.**\n"
             "  Every Chinese character must be translated to Thai.\n"
-            "  This includes text inside 【】symbol brackets."
+            "  This includes text inside 【】symbol brackets.\n"
+            "- **Zero English/Latin game term leaks.**\n"
+            "  Translate stat names (CON→ค่าพลัง, STAT→ค่าสถานะ, RES→ค่าต้านทาน) to Thai.\n"
+            "  Only the allowed list in <format_rules> may stay in Latin script."
         ),
         "gotchas": (
             "- Chinese 就/也 → do NOT overuse ก็.\n"
@@ -330,8 +333,13 @@ scene order, sentence rhythm, and intentional flatness.
 - **Preserve the author's voice.** Do NOT improve the author into a different writer.
 - **Completeness:** translate every source beat. Do NOT omit, summarize,
   merge, or silently skip repeated lines.
-- **Output format:** Plain paragraphs separated by blank lines. One paragraph
+|- **Output format:** Plain paragraphs separated by blank lines. One paragraph
   = one logical unit (scene beat, spoken line, or action).
+|- **CRITICAL: Narration and dialogue MUST be separate paragraphs.**
+  If a source paragraph has 「..."他说道」→ split into TWO paragraphs:
+  nar: "เขาพูดเช่นนั้น"
+  dia: "...."
+  NEVER mix narration text with dialogue quotes in the same paragraph.
 - **No JSON, XML, markdown fences, or any wrapper.**
 - **End with end marker.** The last paragraph must be the end marker.
 - **CRITICAL: Match source paragraph count exactly.** Each source paragraph = one output paragraph.
@@ -440,11 +448,13 @@ def _latin_policy(target_lang: str) -> str:
 
     return (
         "- **Latin script restriction:** only the following game UI tokens are allowed.\n"
-        "  HP, MP, EXP, SP, SSS, SSR, UR, LR, LV, LVL, ATK, DEF, STR, INT, AGI,\n"
-        "  DPS, PvP, PvE, NPC, PC, UI, API, ID, VIP, S, SS, CD, DMG, BUFF,\n"
-        "  DEBUFF, AOE, TPS, ELITE, No., no.\n"
+        "  HP, MP, EXP, SP, SSS, SSR, UR, LR, LV, LVL, ATK, DEF, STR, INT, AGI, CON,\n"
+        "  DPS, PvP, PvE, NPC, PC, UI, API, ID, VIP, S, SS, CD, DMG, BUFF, STAT, RES,\n"
+        "  DEBUFF, AOE, TPS, ELITE, RANK, MAX, MIN, SOLO, R, SR, G1, No., no.\n"
         "- **Translate ALL other English/foreign words to Thai.**\n"
         "  This includes skill names, item names, status effects, stat labels.\n"
+        "- **NO raw English game terms outside the allowed list above.**\n"
+        "  'CON', 'STAT', 'RES' → แก้เป็น 'ค่าพลัง', 'ค่าสถานะ', 'ค่าต้านทาน'\n"
         "- Exception: character/system names that are inherently Latin-script\n"
         "  (e.g., 'System A-001') may be kept with approval."
     )
