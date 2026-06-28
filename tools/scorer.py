@@ -101,10 +101,9 @@ def _score_script_purity(
     if not texts:
         return DimensionScore("Script Purity", 0.20, 0.0, "no paragraphs", False)
 
-    # Load allowed tokens — force fresh to pick up YAML changes
+    # Load allowed tokens from the cached policy.
     try:
         from qa.term_policy import get_term_policy
-        get_term_policy.cache_clear()
         tp = get_term_policy(target_lang)
         allowed = tp.preserve_tokens | {t.upper() for t in tp.terms.keys()}
         for patterns in tp.preserve_patterns.values():
@@ -198,7 +197,9 @@ def _score_dialogue_ratio(paragraphs: list[dict[str, str]]) -> DimensionScore:
 # ── Dimension 6: Term Compliance ────────────────────────────────────
 
 def _score_term_compliance(
-    paragraphs: list[dict[str, str]], target_lang: str = "th"
+    paragraphs: list[dict[str, str]],
+    target_lang: str = "th",
+    source_text: str = "",
 ) -> DimensionScore:
     """Check glossary term usage: no leaks AND proper coverage.
 
@@ -208,7 +209,6 @@ def _score_term_compliance(
     """
     try:
         from qa.term_policy import get_term_policy
-        get_term_policy.cache_clear()
         tp = get_term_policy(target_lang)
     except ImportError:
         return DimensionScore("Term Compliance", 0.20, 1.0, "no term_policy loaded")
@@ -221,7 +221,7 @@ def _score_term_compliance(
     full_text = "\n".join(texts)
 
     # ── Check 1: Leak detection ──
-    replace_terms = {k for k, v in tp.terms.items()
+    replace_terms = {k: v.value for k, v in tp.terms.items()
                      if v.action == "replace" and v.value}
     leaked = []
     for source_term in sorted(replace_terms):
@@ -238,21 +238,27 @@ def _score_term_compliance(
         else:
             leak_score = 0.1
 
-    # ── Check 2: Coverage — Thai values should appear ──
-    replace_values = {v.value for k, v in tp.terms.items()
-                      if v.action == "replace" and v.value}
+    # ── Check 2: Coverage — only source terms present in this chapter matter ──
+    source_lower = source_text.lower()
+    replace_values = set()
+    if source_lower:
+        replace_values = {
+            thai_value
+            for source_term, thai_value in replace_terms.items()
+            if source_term.lower() in source_lower
+        }
     missing_values = []
     for thai_val in sorted(replace_values):
         if thai_val.lower() not in full_text.lower():
             missing_values.append(thai_val)
 
     coverage_score = 1.0
-    if missing_values and len(replace_values) > 3:  # only penalize if we have meaningful terms
+    if missing_values:
         missing_pct = len(missing_values) / len(replace_values)
-        if missing_pct > 0.7:
+        if missing_pct > 0.5:
             coverage_score = 0.3  # most terms missing
-        elif missing_pct > 0.4:
-            coverage_score = 0.6  # many missing
+        else:
+            coverage_score = 0.5  # some source terms missing
 
     # ── Combined score ──
     combined = min(leak_score, coverage_score)
@@ -277,6 +283,7 @@ def score_chapter(
     paragraphs: list[dict[str, str]],
     source_char_count: int = 0,
     target_lang: str = "th",
+    source_text: str = "",
 ) -> ScorerResult:
     """Score one chapter across 6 dimensions. No LLM calls."""
     dims = [
@@ -285,13 +292,12 @@ def score_chapter(
         _score_end_marker(paragraphs),
         _score_type_diversity(paragraphs),
         _score_dialogue_ratio(paragraphs),
-        _score_term_compliance(paragraphs, target_lang),
+        _score_term_compliance(paragraphs, target_lang, source_text),
     ]
 
     weighted = sum(d.score * d.weight for d in dims) * 100
-    passed = weighted >= PASS_THRESHOLD
-
     errors = [f"{d.name}: {d.detail[:80]}" for d in dims if not d.passed]
+    passed = weighted >= PASS_THRESHOLD and not errors
 
     return ScorerResult(
         weighted_total=round(weighted, 1),

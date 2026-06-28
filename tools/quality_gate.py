@@ -36,8 +36,8 @@ def evaluate_translation_quality(
     threshold: float = PASS_THRESHOLD,
 ) -> dict[str, Any]:
     """Score a classified translation and apply the caller's threshold."""
-    result = score_chapter(classified, len(source_text), target_lang)
-    passed = result.weighted_total >= threshold
+    result = score_chapter(classified, len(source_text), target_lang, source_text)
+    passed = result.weighted_total >= threshold and not result.errors
     return {
         "score": result.weighted_total,
         "passed": passed,
