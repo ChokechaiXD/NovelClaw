@@ -834,7 +834,7 @@ const AdminLogsPage = {
   }
 };
 
-// ── ADMIN TRANSLATE & CONFIG PAGE ────────────────────────────────────────
+// ── ADMIN TRANSLATE PAGE (Simplified) ⭐ ──────────────────────────
 const AdminTranslatePage = {
   setConsole(state, title, message) {
     AdminUi.setConsole('translate', state, title, message);
@@ -847,14 +847,9 @@ const AdminTranslatePage = {
 
     try {
       const novels = await Api.getNovels();
-      const cfg = await Api.getLlmConfig();
 
       const novelOptions = novels.map(n => 
         `<option value="${Ui.esc(n.slug)}">${Ui.esc(Ui.displayTitle(n) || n.slug)}</option>`
-      ).join('');
-      const providers = Array.isArray(cfg.providers) ? cfg.providers : [];
-      const providerOptions = providers.map(p =>
-        `<option value="${Ui.esc(p.id)}" ${cfg.default_provider === p.id ? 'selected' : ''}>${Ui.esc(p.label || p.id)}</option>`
       ).join('');
 
       let html = `
@@ -862,86 +857,45 @@ const AdminTranslatePage = {
         ${Ui.adminNav('translate')}
         
         <div class="c-admin-translate">
-          
-          <!-- LLM CONFIG FORM -->
-          <div class="c-card c-admin-translate__panel">
-            <h3 class="c-admin-translate__title">ตั้งค่าความเชื่อมต่อ AI และโมเดล</h3>
-            <div class="c-form c-admin-translate__form">
-              <div class="c-admin-translate__grid c-admin-translate__grid--wide">
-                <div class="c-form__group">
-                  <label class="c-form__label">ผู้ให้บริการ (Provider)</label>
-                  <select class="c-form__select c-form__select--compact" id="translate-cfg-provider">
-                    ${providerOptions || `<option value="${Ui.esc(cfg.default_provider || 'openrouter')}" selected>${Ui.esc(cfg.default_provider || 'openrouter')}</option>`}
-                  </select>
-                </div>
-                <div class="c-form__group">
-                  <label class="c-form__label c-admin-translate__split-label">
-                    <span>รุ่นของ AI Model</span>
-                    <button id="fetch-models-btn" class="c-btn c-btn--xs c-btn--secondary c-admin-translate__mini-btn" hidden>ดึงโมเดลล่าสุด</button>
-                  </label>
-                  <select class="c-form__select c-form__select--compact" id="translate-cfg-model"></select>
-                </div>
-              </div>
-              <div class="c-form__group">
-                <label class="c-form__label" id="translate-cfg-key-label">API Key (เว้นว่างไว้เพื่อไม่ให้เปลี่ยนแปลง)</label>
-                <input type="password" class="c-form__input c-form__input--compact" id="translate-cfg-key" placeholder="กรอก API Key ใหม่ที่นี่..." />
-              </div>
-              <div class="c-admin-translate__actions">
-                <button class="c-btn c-btn--primary" id="translate-cfg-save-btn">บันทึกการตั้งค่า</button>
-              </div>
-            </div>
+          <!-- INFO: setting up AI → go to Provider wizard -->
+          <div class="c-card" style="padding:1rem;margin-bottom:1rem;background:#f8faff;border:1px solid #dbeafe">
+            <p style="font-size:0.9rem">🤖 ตั้งค่า Provider / Model ที่ <a href="#admin/provider" data-nav><strong>หน้า Provider</strong></a></p>
           </div>
- 
-          <!-- BATCH TRANSLATION PANEL -->
+
+          <!-- BATCH TRANSLATION PANEL (simplified) -->
           <div class="c-card c-admin-translate__panel">
-            <h3 class="c-admin-translate__title">สั่งการแปลนิยายเป็นกลุ่ม</h3>
+            <h3 class="c-admin-translate__title">สั่งการแปลนิยาย</h3>
             <div class="c-form c-admin-translate__form">
               <div class="c-admin-translate__grid">
                 <div class="c-form__group">
-                  <label class="c-form__label">เลือกนิยายที่ต้องการแปล</label>
+                  <label class="c-form__label">เลือกนิยาย</label>
                   <select class="c-form__select c-form__select--compact" id="translate-batch-novel">
                     ${novelOptions}
                   </select>
                 </div>
                 <div class="c-form__group">
-                  <label class="c-form__label">ช่วงตอนที่จะแปล (เช่น 5-10 หรือ 5)</label>
-                  <input type="text" class="c-form__input c-form__input--compact" id="translate-batch-range" placeholder="ระบุช่วง เช่น 1-10" />
+                  <label class="c-form__label">ช่วงตอน (เช่น 5-10 หรือ 5)</label>
+                  <input type="text" class="c-form__input c-form__input--compact" id="translate-batch-range" placeholder="เช่น 1-10" />
                 </div>
                 <div class="c-form__group">
-                  <label class="c-form__label">ประเมินผลคะแนนคุณภาพ</label>
-                  <select class="c-form__select c-form__select--compact" id="translate-batch-score">
-                    <option value="true">ประเมินด้วย LLM-as-Judge</option>
-                    <option value="false">ข้ามการประเมินคะแนน</option>
-                  </select>
-                </div>
-                <div class="c-form__group">
-                  <label class="c-form__label">โหมดการทำงาน</label>
-                  <select class="c-form__select c-form__select--compact" id="translate-batch-mode">
-                    <option value="autopilot" selected>Autopilot: แปลต่อเนื่องและซ่อมอัตโนมัติ</option>
-                    <option value="safe">Safe: หยุดเมื่อพบปัญหา</option>
-                    <option value="strict">Strict: เข้มงวดและส่งเข้า needs_review</option>
-                    <option value="draft">Draft: สร้างร่าง ไม่แตะไฟล์หลัก</option>
-                  </select>
-                </div>
-                <div class="c-form__group">
-                  <label class="c-form__label">แปลขนาน</label>
+                  <label class="c-form__label">แปลพร้อมกัน</label>
                   <select class="c-form__select c-form__select--compact" id="translate-batch-concurrent">
-                    <option value="1">1 ตอนพร้อมกัน</option>
-                    <option value="2">2 ตอนพร้อมกัน</option>
-                    <option value="3">3 ตอนพร้อมกัน</option>
+                    <option value="1">1 ตอน (default)</option>
+                    <option value="2">2 ตอน</option>
+                    <option value="3">3 ตอน</option>
                   </select>
                 </div>
               </div>
               <div class="c-admin-translate__actions">
-                <button class="c-btn c-btn--primary" id="translate-batch-run-btn">สั่งแปลตามช่วงที่เลือก</button>
+                <button class="c-btn c-btn--primary" id="translate-batch-run-btn">🚀 เริ่มแปล</button>
               </div>
             </div>
           </div>
 
-          <!-- TRANSLATION CONSOLE/PROGRESS -->
+          <!-- TRANSLATION CONSOLE -->
           <div class="c-card c-admin-translate__panel" id="translate-console-card" hidden>
             <div class="c-admin-translate__console-head">
-              <h4 class="c-admin-translate__console-title" id="translate-console-title">พร้อมรันคำสั่งแปลภาษา</h4>
+              <h4 class="c-admin-translate__console-title" id="translate-console-title">พร้อมแปล</h4>
               <span id="translate-console-badge" class="c-badge c-badge--teal">กำลังประมวลผล</span>
             </div>
             <pre id="translate-console-output" class="c-admin-translate__console" aria-live="polite">ระบบพร้อมทำงาน</pre>
@@ -952,117 +906,13 @@ const AdminTranslatePage = {
 
       page.innerHTML = html;
 
-      // ── Model Selector Management
-      const providerSelect = document.getElementById('translate-cfg-provider');
-      const modelSelect = document.getElementById('translate-cfg-model');
-      const keyLabel = document.getElementById('translate-cfg-key-label');
-      const keyInput = document.getElementById('translate-cfg-key');
-      const updateModelSelector = (provider) => {
-        const providerInfo = providers.find(p => p.id === provider) || providers[0] || {};
-        const fetchBtn = document.getElementById('fetch-models-btn');
-        if (!modelSelect) return;
-        
-        if (fetchBtn) fetchBtn.hidden = provider !== 'openrouter';
-        if (keyLabel) keyLabel.textContent = `${providerInfo.label || provider} API Key (เว้นว่างไว้เพื่อไม่ให้เปลี่ยนแปลง)`;
-        if (keyInput) {
-          keyInput.placeholder = providerInfo.hasKey
-            ? '●●●●●●●●●●●● (ตั้งค่าไว้เรียบร้อยแล้ว)'
-            : 'กรอก API Key ใหม่ที่นี่...';
-        }
-
-        const models = Array.isArray(providerInfo.models) ? providerInfo.models : [];
-        modelSelect.innerHTML = models.map(model =>
-          `<option value="${Ui.esc(model.id)}">${Ui.esc(model.label || model.id)}</option>`
-        ).join('');
-        if (provider === cfg.default_provider && cfg.default_model) {
-          if (![...modelSelect.options].some(opt => opt.value === cfg.default_model)) {
-            modelSelect.insertAdjacentHTML('afterbegin', `<option value="${Ui.esc(cfg.default_model)}">${Ui.esc(cfg.default_model)}</option>`);
-          }
-          modelSelect.value = cfg.default_model;
-        }
-      };
-
-      if (providerSelect) {
-        providerSelect.addEventListener('change', (e) => {
-          updateModelSelector(e.target.value);
-        });
-        updateModelSelector(providerSelect.value);
-      }
-
-      // ── Fetch Models Click Event
-      const fetchBtn = document.getElementById('fetch-models-btn');
-      if (fetchBtn) {
-        fetchBtn.addEventListener('click', async (e) => {
-          e.preventDefault();
-          try {
-            fetchBtn.disabled = true;
-            fetchBtn.textContent = 'กำลังดึง...';
-            
-            const response = await fetch('https://openrouter.ai/api/v1/models');
-            if (!response.ok) throw new Error('Network response was not ok');
-            const data = await response.json();
-            
-            if (data && Array.isArray(data.data)) {
-              if (modelSelect) {
-                const opts = data.data.map(model => 
-                  `<option value="${Ui.esc(model.id)}">${Ui.esc(model.name || model.id)}</option>`
-                ).join('');
-                modelSelect.innerHTML = opts;
-                Ui.showToast('ดึงโมเดล OpenRouter สำเร็จแล้ว');
-              }
-            }
-          } catch (err) {
-            Ui.showToast('ดึงโมเดลไม่สำเร็จ: ' + err.message, 'error');
-          } finally {
-            fetchBtn.disabled = false;
-            fetchBtn.textContent = 'ดึงโมเดลล่าสุด';
-          }
-        });
-      }
-
-      // ── Bind Settings Form Save Event
-      const saveBtn = document.getElementById('translate-cfg-save-btn');
-      if (saveBtn) {
-        saveBtn.addEventListener('click', async () => {
-          const modelVal = document.getElementById('translate-cfg-model').value;
-          const providerVal = document.getElementById('translate-cfg-provider').value;
-          const keyVal = document.getElementById('translate-cfg-key').value;
-
-          const payload = {
-            default_model: modelVal,
-            default_provider: providerVal
-          };
-          if (keyVal.trim()) {
-            if (providerVal === 'openrouter') payload.openrouter_api_key = keyVal.trim();
-            else if (providerVal === 'openmodel') payload.openmodel_api_key = keyVal.trim();
-            else payload.api_key = keyVal.trim();
-          }
-
-          try {
-            saveBtn.disabled = true;
-            saveBtn.textContent = 'กำลังบันทึก...';
-            await Api.saveLlmConfig(payload);
-            Ui.showToast('บันทึกการตั้งค่า AI แล้ว');
-            document.getElementById('translate-cfg-key').value = '';
-            AdminTranslatePage.render(params);
-          } catch (err) {
-            Ui.showToast('บันทึกไม่สำเร็จ: ' + err.message, 'error');
-          } finally {
-            saveBtn.disabled = false;
-            saveBtn.textContent = 'บันทึกการตั้งค่า';
-          }
-        });
-      }
-
       // ── Bind Batch Translation Event
       const runBtn = document.getElementById('translate-batch-run-btn');
       if (runBtn) {
         runBtn.addEventListener('click', async () => {
           const slugVal = document.getElementById('translate-batch-novel').value;
           const rangeVal = document.getElementById('translate-batch-range').value;
-          const scoreVal = document.getElementById('translate-batch-score').value === 'true';
           const concurrentVal = parseInt(document.getElementById('translate-batch-concurrent').value, 10);
-          const modeVal = document.getElementById('translate-batch-mode').value;
 
           if (!rangeVal.trim()) {
             AdminTranslatePage.setConsole('error', 'ยังไม่ได้ระบุช่วงตอน', 'กรุณากรอกช่วงตอนที่ต้องการสั่งแปล เช่น 5-10 หรือ 5');
@@ -1073,21 +923,21 @@ const AdminTranslatePage = {
           AdminTranslatePage.setConsole(
             'running',
             `รันการแปลช่วงตอน: ${rangeVal}`,
-            `กำลังส่งคำสั่งไปยัง tools/novelctl.py\nนิยาย: ${slugVal}\nโหมด: ${modeVal}\nWorkers: ${concurrentVal}`
+            `กำลังส่งคำสั่งแปล\\nนิยาย: ${slugVal}`
           );
 
           try {
             runBtn.disabled = true;
             runBtn.textContent = 'กำลังดำเนินการแปล...';
-            
-            const res = await Api.translateBatch(slugVal, rangeVal, scoreVal, concurrentVal, { mode: modeVal });
+
+            const res = await Api.translateBatch(slugVal, rangeVal, concurrentVal);
             const result = res.data || res;
-            
+
             if (res.ok && result.success) {
               AdminTranslatePage.setConsole(
                 'success',
                 `แปลเสร็จสิ้น: ${rangeVal}`,
-                `[SUCCESS] แปลภาษาสำเร็จเรียบร้อยแล้ว\n\nผลลัพธ์:\n${result.stdout || 'ไม่มีการส่งข้อมูลผลลัพธ์ออก'}\n\nล้างแคชบทเรียนและซิงค์เรียบร้อยแล้ว`
+                `[SUCCESS] แปลภาษาสำเร็จเรียบร้อยแล้ว\\n\\nผลลัพธ์:\\n${result.stdout || '—'}`
               );
               Api.invalidateAll(slugVal);
               Ui.showToast('แปลกลุ่มช่วงตอนสำเร็จแล้ว');
@@ -1095,11 +945,15 @@ const AdminTranslatePage = {
               throw new Error(res.error?.message || 'แปลไม่สำเร็จ');
             }
           } catch (err) {
-            AdminTranslatePage.setConsole('error', `แปลไม่สำเร็จ: ${rangeVal}`, `[ERROR] การแปลเกิดข้อผิดพลาด:\n\n${err.message}`);
+            AdminTranslatePage.setConsole(
+              'error',
+              `แปลไม่สำเร็จ: ${rangeVal}`,
+              `[ERROR] การแปลเกิดข้อผิดพลาด:\\n\\n${err.message}`
+            );
             Ui.showToast('การแปลเกิดข้อผิดพลาด: ' + err.message, 'error');
           } finally {
             runBtn.disabled = false;
-            runBtn.textContent = 'สั่งแปลตามช่วงที่เลือก';
+            runBtn.textContent = '🚀 เริ่มแปล';
           }
         });
       }

@@ -1152,38 +1152,31 @@ function getPythonCommand() {
   return process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
 }
 
-function normalizeTranslateMode(mode, fallback) {
-  return ['safe', 'strict', 'autopilot', 'draft'].includes(mode) ? mode : fallback;
-}
-
 function buildNovelctlTranslateArgs(slug, range, options = {}) {
-  const mode = normalizeTranslateMode(options.mode, 'safe');
+  // Uses new novelclaw.py CLI — simple, linear, quality-first
   const workers = Math.min(Math.max(parseInt(options.workers, 10) || 1, 1), 5);
   const args = [
-    path.join(__dirname, '..', 'tools', 'novelctl.py'),
-    '--slug', slug,
-    '--mode', mode,
+    path.join(__dirname, '..', 'novelclaw.py'),
+    'translate',
+    String(range),
   ];
 
-  if (options.force) args.push('--force');
-  if (options.noScore) args.push('--no-score');
-  if (workers > 1) args.push('--workers', String(workers));
-  args.push('translate', String(range));
+  if (workers > 1) args.push('--parallel', String(workers));
+  if (options.mock) args.push('--mock');
+  if (options.model) args.push('--model', options.model);
   return args;
 }
 
 adminPost('/api/novel/:slug/translate/single', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
-  const { num, score, mode, force } = req.body;
+  const { num, score, model } = req.body;
   const chapterNum = parseInt(num, 10);
   if (Number.isNaN(chapterNum)) return fail(res, 400, 'INVALID_NUM', 'Invalid chapter number');
 
-  const runMode = normalizeTranslateMode(mode, 'safe');
   const args = buildNovelctlTranslateArgs(slug, chapterNum, {
-    mode: runMode,
-    force: !!force,
-    noScore: score === false,
+    mock: false,
+    model: model || undefined,
   });
 
   const child = spawn(getPythonCommand(), args, {
@@ -1198,37 +1191,34 @@ adminPost('/api/novel/:slug/translate/single', async (req, res) => {
   child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
 
   child.on('error', (err) => {
-    console.error('Failed to start novelctl.py:', err);
+    console.error('Failed to start novelclaw.py:', err);
     if (!res.headersSent) {
-      fail(res, 500, 'TRANSLATE_SPAWN_FAILED', `Failed to start novelctl.py: ${err.message}`);
+      fail(res, 500, 'TRANSLATE_SPAWN_FAILED', `Failed to start novelclaw.py: ${err.message}`);
     }
   });
 
   child.on('close', (code) => {
     if (code !== 0) {
       if (!res.headersSent) {
-        return fail(res, 500, 'TRANSLATE_FAILED', `novelctl.py exited with code ${code}: ${sanitizeOutput(stderr || stdout)}`);
+        return fail(res, 500, 'TRANSLATE_FAILED', `novelclaw.py exited with code ${code}: ${sanitizeOutput(stderr || stdout)}`);
       }
       return;
     }
     
     chapterRepo.invalidateAll(slug);
-    ok(res, { success: true, result: { ch: chapterNum, status: 'done', mode: runMode }, stdout });
+    ok(res, { success: true, result: { ch: chapterNum, status: 'done' }, stdout });
   });
 });
 
 adminPost('/api/novel/:slug/translate/batch', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
-  const { range, score, concurrent, mode, force } = req.body;
+  const { range, concurrent, model } = req.body;
   if (!range) return fail(res, 400, 'MISSING_RANGE', 'Chapter range (e.g. 5-10) is required.');
 
-  const runMode = normalizeTranslateMode(mode, 'autopilot');
   const args = buildNovelctlTranslateArgs(slug, range, {
-    mode: runMode,
-    force: !!force,
-    noScore: score === false,
-    workers: concurrent,
+    workers: concurrent || 1,
+    model: model || undefined,
   });
 
   const child = spawn(getPythonCommand(), args, {
@@ -1243,22 +1233,22 @@ adminPost('/api/novel/:slug/translate/batch', async (req, res) => {
   child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
 
   child.on('error', (err) => {
-    console.error('Failed to start novelctl.py batch:', err);
+    console.error('Failed to start novelclaw.py batch:', err);
     if (!res.headersSent) {
-      fail(res, 500, 'TRANSLATE_SPAWN_FAILED', `Failed to start novelctl.py: ${err.message}`);
+      fail(res, 500, 'TRANSLATE_SPAWN_FAILED', `Failed to start novelclaw.py: ${err.message}`);
     }
   });
 
   child.on('close', (code) => {
     if (code !== 0) {
       if (!res.headersSent) {
-        return fail(res, 500, 'TRANSLATE_FAILED', `novelctl.py exited with code ${code}: ${sanitizeOutput(stderr || stdout)}`);
+        return fail(res, 500, 'TRANSLATE_FAILED', `novelclaw.py exited with code ${code}: ${sanitizeOutput(stderr || stdout)}`);
       }
       return;
     }
     
     chapterRepo.invalidateAll(slug);
-    ok(res, { success: true, result: { range: String(range), status: 'done', mode: runMode }, stdout });
+    ok(res, { success: true, result: { range: String(range), status: 'done' }, stdout });
   });
 });
 
