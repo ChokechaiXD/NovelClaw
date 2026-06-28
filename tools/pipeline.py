@@ -39,6 +39,7 @@ sys.path.insert(0, str(_TOOLS_DIR))
 from classifier import classify_and_format, estimate_type_ratios  # noqa: E402
 from prompt_builder import build_prompt  # noqa: E402
 from scorer import score_chapter, report as score_report, PASS_THRESHOLD  # noqa: E402
+from glossary_pre import build_glossary_pre_chunk  # noqa: E402
 
 # ── Station 1: Source Reader ─────────────────────────────────────────
 
@@ -107,7 +108,15 @@ def build_translate_prompt(
     glossary_text: str = "",
     continuity_text: str = "",
 ) -> str:
-    """Station 3: Build prompt using prompt_builder."""
+    """Station 3: Build prompt using prompt_builder + glossary_pre (char names)."""
+    # Inject character voice map from glossary_pre
+    char_context = build_glossary_pre_chunk(slug)
+    if char_context:
+        if glossary_text:
+            glossary_text = char_context + "\n\n" + glossary_text
+        else:
+            glossary_text = char_context
+
     return build_prompt(
         source_text=source_text,
         ch_num=ch_num,
