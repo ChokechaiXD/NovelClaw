@@ -68,6 +68,15 @@ const Ui = {
     return novel.translatedTitle || novel.title || novel.slug || '';
   },
 
+  isVisibleNovel(novel) {
+    if (!novel) return false;
+    const slug = novel.slug || '';
+    return !slug.startsWith('test-')
+      && !slug.startsWith('tmp-')
+      && !slug.startsWith('fixture-')
+      && (novel.totalChapters || novel.chapterCount || 0) > 0;
+  },
+
   // ── Cover SVG generator (NovelClaw brand fallback) ───────────────
   coverSVG(slug, title) {
     const initial = (title || slug || '?').charAt(0).toUpperCase();

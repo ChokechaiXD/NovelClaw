@@ -12,7 +12,7 @@ const HomePage = {
     try {
       const novels = await Api.getNovels();
       // Filter out test/fixture novels from reader-facing pages
-      const visibleNovels = novels.filter(n => !n.slug?.startsWith('test-') && !n.slug?.startsWith('tmp-') && !n.slug?.startsWith('fixture-') && n.totalChapters > 0);
+      const visibleNovels = novels.filter(Ui.isVisibleNovel);
       const enriched = visibleNovels.map(Ui.enrichNovel);
 
       let html = '<div class="c-container">';
@@ -73,10 +73,6 @@ const HomePage = {
       }
 
       html += `
-          <a href="#admin/import" class="c-card c-card--add" data-nav>
-            <span class="c-card-add__icon">+</span>
-            <span class="c-card-add__text">เพิ่มนิยาย</span>
-          </a>
         </div>
       </section>`;
 

@@ -71,6 +71,24 @@ const NovelPage = {
       const end = Math.min(start + pageSize, chapters.length);
       const pageChapters = chapters.slice(start, end);
 
+      const renderChapterButton = (ch) => {
+        const read = Store.isRead(slug, ch.num);
+        const sourceOnly = ch.status === 'source_only';
+        const chClass = `c-detail__ch-btn ${read ? 'c-detail__ch-btn--read' : ''} ${sourceOnly ? 'c-detail__ch-btn--source-only c-detail__ch-btn--with-action' : ''}`;
+        return `
+          <div class="c-detail__ch-wrapper">
+            <a href="#novel/${Ui.esc(slug)}/${Ui.esc(ch.num)}" class="${chClass.trim()}" data-nav>
+              ${Ui.esc(ch.title || 'ตอนที่ ' + ch.num)}
+              ${read ? '<br><span class="c-detail__read-mark">✔ อ่านแล้ว</span>' : ''}
+            </a>
+            ${sourceOnly ? `
+              <button class="ch-quick-translate-btn" data-slug="${Ui.esc(slug)}" data-num="${Ui.esc(ch.num)}" type="button" title="แปลไทยด้วย AI ทันที" aria-label="แปลตอนที่ ${Ui.esc(ch.num)}">
+                ⚡
+              </button>
+            ` : ''}
+          </div>`;
+      };
+
       // ฟังก์ชันสำหรับผูก Event สั่งแปลตอนแบบเจาะจง
       const bindTranslateEvents = (container) => {
         const translateBtns = container.querySelectorAll('.ch-quick-translate-btn');
@@ -112,21 +130,7 @@ const NovelPage = {
         <div class="c-detail__chapters" id="detail-chapters-grid-container">`;
 
       for (const ch of pageChapters) {
-        const read = Store.isRead(slug, ch.num);
-        const sourceOnly = ch.status === 'source_only';
-        const chClass = `c-detail__ch-btn ${read ? 'c-detail__ch-btn--read' : ''} ${sourceOnly ? 'c-detail__ch-btn--source-only c-detail__ch-btn--with-action' : ''}`;
-        html += `
-          <div class="c-detail__ch-wrapper">
-            <a href="#novel/${slug}/${ch.num}" class="${chClass.trim()}" data-nav>
-              ${Ui.esc(ch.title || 'ตอนที่ ' + ch.num)}
-              ${read ? '<br><span class="c-detail__read-mark">✔ อ่านแล้ว</span>' : ''}
-            </a>
-            ${sourceOnly ? `
-              <button class="ch-quick-translate-btn" data-slug="${slug}" data-num="${ch.num}" title="แปลไทยด้วย AI ทันที">
-                ⚡
-              </button>
-            ` : ''}
-          </div>`;
+        html += renderChapterButton(ch);
       }
 
       html += `</div></div>`;
@@ -146,31 +150,7 @@ const NovelPage = {
           const pChs = chapters.slice(pStart, pEnd);
           const grid = document.getElementById('detail-chapters-grid-container');
           if (!grid) return;
-          grid.innerHTML = '';
-          for (const ch of pChs) {
-            const read = Store.isRead(slug, ch.num);
-            const sourceOnly = ch.status === 'source_only';
-            const chClass = `c-detail__ch-btn ${read ? 'c-detail__ch-btn--read' : ''} ${sourceOnly ? 'c-detail__ch-btn--source-only' : ''}`;
-            
-            const wrapper = Ui.el('div', { class: 'c-detail__ch-wrapper', style: 'position:relative;' });
-            const link = Ui.el('a',
-              { href: `#novel/${slug}/${ch.num}`, class: chClass.trim(), 'data-nav': '', style: `display:block; padding-right:${sourceOnly ? '32px' : 'var(--space-sm)'};` },
-              `${ch.title || 'ตอนที่ ' + ch.num}${read ? ' ✔' : ''}`
-            );
-            wrapper.appendChild(link);
-            
-            if (sourceOnly) {
-              const translateBtn = Ui.el('button', {
-                class: 'ch-quick-translate-btn',
-                'data-slug': slug,
-                'data-num': ch.num,
-                title: 'แปลไทยด้วย AI ทันที',
-                style: 'position:absolute; right:4px; top:50%; transform:translateY(-50%); width:24px; height:24px; display:flex; align-items:center; justify-content:center; background:var(--c-accent-soft); border:1px solid var(--c-accent); border-radius:4px; color:var(--c-accent); font-size:10px; cursor:pointer; transition:all 0.15s; z-index:10;'
-              }, '⚡');
-              wrapper.appendChild(translateBtn);
-            }
-            grid.appendChild(wrapper);
-          }
+          grid.innerHTML = pChs.map(renderChapterButton).join('');
           bindTranslateEvents(grid);
           // Swap classes: remove primary from all, add ghost; add primary to clicked, remove ghost
           const allBtns = page.querySelectorAll('.page-range-btn');

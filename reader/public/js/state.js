@@ -87,7 +87,6 @@ const Store = {
     theme: 'sepia',
     autoTranslate: false,
     sidebarCollapsed: false,
-    rightbarCollapsed: false,
   },
 
   loadSettings() {

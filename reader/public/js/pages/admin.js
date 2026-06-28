@@ -79,8 +79,6 @@ const AdminDashboardPage = {
         '</div>' +
         '<div class="c-section__header c-admin-page__header c-admin-page__header--loose"><h3 class="c-section__title">เครื่องมือ</h3></div>' +
         '<div class="c-admin-dashboard__grid">' +
-        '<a href="#admin/import" class="c-card c-admin-dashboard__tile" data-nav>' +
-        '  <svg class="c-admin-dashboard__tile-icon"><use xlink:href="#icon-arrow-right"/></svg><div><div class="c-admin-dashboard__tile-title">นำเข้านิยาย</div><div class="c-admin-dashboard__tile-meta">เพิ่มเรื่องใหม่ / นำเข้าตอน</div></div></a>' +
         '<a href="#admin/provider" class="c-card c-admin-dashboard__tile" data-nav>' +
         '  <svg class="c-admin-dashboard__tile-icon c-admin-dashboard__tile-icon--accent-2"><use xlink:href="#icon-settings"/></svg><div><div class="c-admin-dashboard__tile-title">จัดการระบบ AI</div><div class="c-admin-dashboard__tile-meta">Provider / Model / Config</div></div></a>' +
         '</div></div>';
@@ -97,13 +95,14 @@ const AdminNovelsPage = {
     try {
       const novels = await Api.getNovels();
       let html = '<div class="c-container">' + Ui.adminNav('novels') +
-        '<div class="c-admin-page__toolbar"><h3 class="c-admin-page__title">📚 รายการนิยายทั้งหมด</h3><a href="#admin/import" class="c-btn c-btn--primary c-btn--sm c-admin-page__action" data-nav>📥 นำเข้านิยายใหม่</a></div>' +
+        '<div class="c-admin-page__toolbar"><h3 class="c-admin-page__title">📚 รายการนิยายทั้งหมด</h3></div>' +
         '<div class="c-table-wrap c-admin-table-wrap"><table class="c-table"><thead><tr><th>Slug</th><th>ชื่อเรื่อง</th><th>ภาษา</th><th>ตอน</th><th>แปลแล้ว</th><th>สถานะ</th><th class="c-admin-novels__actions-col">การจัดการ</th></tr></thead><tbody>';
       for (const n of novels) {
         const translated = n.translatedChapters || 0;
         const total = n.totalChapters || n.chapterCount || 0;
+        const pct = total > 0 ? Math.round((translated / total) * 100) : 0;
         const statusClass = n.status === 'complete' ? 'c-badge--purple' : n.status === 'ongoing' ? 'c-badge--teal' : 'c-badge--gray';
-        html += '<tr><td class="c-admin-table__mono-strong">' + Ui.esc(n.slug) + '</td><td>' + Ui.esc(n.title||'') + '</td><td>' + (n.source_lang||'cn').toUpperCase() + ' → ' + (n.target_lang||'th').toUpperCase() + '</td><td class="c-admin-table__mono">' + total + '</td><td class="c-admin-table__mono-accent">' + translated + ' (' + Math.round(translated/total*100) + '%)</td><td><span class="c-badge ' + statusClass + '">' + Ui.esc(Ui.statusMap[n.status]||'ไม่ระบุ') + '</span></td><td class="c-admin-table__actions-cell"><button class="c-btn c-btn--danger c-btn--xs c-admin-novels__delete-btn delete-novel-btn" data-slug="' + Ui.esc(n.slug) + '">ลบ</button></td></tr>';
+        html += '<tr><td class="c-admin-table__mono-strong">' + Ui.esc(n.slug) + '</td><td>' + Ui.esc(n.title||'') + '</td><td>' + (n.source_lang||'cn').toUpperCase() + ' → ' + (n.target_lang||'th').toUpperCase() + '</td><td class="c-admin-table__mono">' + total + '</td><td class="c-admin-table__mono-accent">' + translated + ' (' + pct + '%)</td><td><span class="c-badge ' + statusClass + '">' + Ui.esc(Ui.statusMap[n.status]||'ไม่ระบุ') + '</span></td><td class="c-admin-table__actions-cell"><button class="c-btn c-btn--danger c-btn--xs c-admin-novels__delete-btn delete-novel-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">ลบ</button></td></tr>';
       }
       html += '</tbody></table></div></div>';
       page.innerHTML = html;
@@ -140,7 +139,7 @@ const AdminChaptersPage = {
     if (!page) return;
     try {
       const novels = await Api.getNovels();
-      const firstReal = novels.find(n => !n.slug?.startsWith('test-') && !n.slug?.startsWith('fixture-') && !n.slug?.startsWith('tmp-'));
+      const firstReal = novels.find(Ui.isVisibleNovel);
       const slug = params.slug || firstReal?.slug || novels[0]?.slug;
       if (!slug) { page.innerHTML = '<div class="c-container">' + Ui.adminNav('chapters') + '<p class="u-text-muted u-p-lg">ไม่มีนิยายในระบบ</p></div>'; return; }
       const chapters = await Api.getChapters(slug);
@@ -149,13 +148,12 @@ const AdminChaptersPage = {
         return;
       }
 
-      let filtered = [...chapters];
       let filterStatus = 'all';
       let searchQuery = '';
       let pageSize = 100;
       let currentPage = 0;
 
-      const renderTable = () => {
+      const renderTable = (opts = {}) => {
         // Apply filters
         let list = [...chapters];
         if (filterStatus === 'translated') list = list.filter(c => c.status === 'translated');
@@ -172,7 +170,7 @@ const AdminChaptersPage = {
         }
 
         const totalFiltered = list.length;
-        const maxPage = Math.ceil(totalFiltered / pageSize) - 1;
+        const maxPage = Math.max(0, Math.ceil(totalFiltered / pageSize) - 1);
         if (currentPage > maxPage) currentPage = Math.max(0, maxPage);
         const start = currentPage * pageSize;
         const pageList = list.slice(start, start + pageSize);
@@ -191,14 +189,14 @@ const AdminChaptersPage = {
           '<option value="unread"' + (filterStatus === 'unread' ? ' selected' : '') + '>📕 ยังไม่อ่าน</option>' +
           '</select>' +
           '<input id="ch-jump-num" type="number" min="1" max="' + chapters.length + '" placeholder="ไปตอน..." class="c-form__input c-admin-chapters__jump-input" />' +
-          '<button id="ch-jump-btn" class="c-btn c-btn--sm">ไป</button>' +
+          '<button id="ch-jump-btn" class="c-btn c-btn--sm" type="button">ไป</button>' +
           '</div>' +
 
           // ── Pagination ──
           '<div class="c-admin-chapters__pagination">' +
-          '<button class="c-btn c-btn--xs" id="ch-page-prev"' + (currentPage <= 0 ? ' disabled' : '') + '>◀ ก่อนหน้า</button>' +
+          '<button class="c-btn c-btn--xs" id="ch-page-prev" type="button"' + (currentPage <= 0 ? ' disabled' : '') + '>◀ ก่อนหน้า</button>' +
           '<span>หน้า ' + (currentPage + 1) + ' / ' + (maxPage + 1) + '</span>' +
-          '<button class="c-btn c-btn--xs" id="ch-page-next"' + (currentPage >= maxPage ? ' disabled' : '') + '>ถัดไป ▶</button>' +
+          '<button class="c-btn c-btn--xs" id="ch-page-next" type="button"' + (currentPage >= maxPage ? ' disabled' : '') + '>ถัดไป ▶</button>' +
           '</div>' +
 
           // ── Table ──
@@ -208,7 +206,7 @@ const AdminChaptersPage = {
           const statusLabel = ch.status === 'translated' ? '✅ แปลแล้ว' : (ch.status === 'source_only' ? '📄 ต้นฉบับ' : '⬜');
           const statusClass = ch.status === 'translated' ? 'c-badge--teal' : (ch.status === 'source_only' ? 'c-badge--amber' : 'c-badge--gray');
           html += '<tr><td class="c-admin-table__mono-strong">' + ch.num + '</td>' +
-            '<td><a href="#novel/' + slug + '/' + ch.num + '" class="c-link" data-nav>' + Ui.esc(ch.title || '') + '</a></td>' +
+            '<td><a href="#novel/' + Ui.esc(slug) + '/' + Ui.esc(ch.num) + '" class="c-link" data-nav>' + Ui.esc(ch.title || '') + '</a></td>' +
             '<td><span class="c-badge ' + statusClass + '">' + statusLabel + '</span></td></tr>';
         }
 
@@ -217,9 +215,10 @@ const AdminChaptersPage = {
 
         // Bind filter events
         Ui.$('ch-filter-search').oninput = () => {
-          searchQuery = Ui.$('ch-filter-search').value;
+          const input = Ui.$('ch-filter-search');
+          searchQuery = input.value;
           currentPage = 0;
-          renderTable();
+          renderTable({ focusSearch: true, cursor: input.selectionStart });
         };
         Ui.$('ch-filter-status').onchange = () => {
           filterStatus = Ui.$('ch-filter-status').value;
@@ -235,6 +234,12 @@ const AdminChaptersPage = {
           }
         };
         Ui.$('ch-jump-num').onkeydown = (e) => { if (e.key === 'Enter') Ui.$('ch-jump-btn').click(); };
+
+        if (opts.focusSearch) {
+          const input = Ui.$('ch-filter-search');
+          input?.focus();
+          input?.setSelectionRange?.(opts.cursor ?? searchQuery.length, opts.cursor ?? searchQuery.length);
+        }
       };
 
       renderTable();
@@ -348,8 +353,8 @@ const AdminGlossaryPage = {
               '</div>' +
             '</div>' +
             '<div class="c-glossary-admin__actions">' +
-              '<button class="c-btn c-btn--primary" id="glossary-save-btn">บันทึก</button>' +
-              '<button class="c-btn c-btn--secondary" id="glossary-cancel-btn" hidden>ยกเลิก</button>' +
+              '<button class="c-btn c-btn--primary" id="glossary-save-btn" type="button">บันทึก</button>' +
+              '<button class="c-btn c-btn--secondary" id="glossary-cancel-btn" type="button" hidden>ยกเลิก</button>' +
             '</div>' +
           '</div>' +
           '<div id="glossary-status" class="c-glossary-admin__status" aria-live="polite"></div>' +
@@ -363,7 +368,7 @@ const AdminGlossaryPage = {
               '<label class="c-form__label">ตอนที่ต้องการสแกน</label>' +
               '<input type="number" min="1" class="c-form__input" id="ai-glossary-ch" placeholder="เช่น 1" />' +
             '</div>' +
-            '<button class="c-btn c-btn--secondary" id="ai-glossary-scan-btn">สแกน</button>' +
+            '<button class="c-btn c-btn--secondary" id="ai-glossary-scan-btn" type="button">สแกน</button>' +
           '</div>' +
           '<div id="ai-glossary-loading" class="c-glossary-admin__loading" hidden>' +
             'กำลังสแกนหาศัพท์จีนที่ยังไม่ได้แปล...' +
@@ -397,8 +402,8 @@ const AdminGlossaryPage = {
             '</span>' +
           '</td>' +
           '<td><div class="c-glossary-admin__table-actions">' +
-            '<button class="c-btn c-btn--xs c-btn--secondary glossary-edit-btn" data-index="' + index + '">แก้ไข</button>' +
-            '<button class="c-btn c-btn--xs c-btn--danger glossary-del-btn" data-index="' + index + '">ลบ</button>' +
+            '<button class="c-btn c-btn--xs c-btn--secondary glossary-edit-btn" data-index="' + index + '" type="button">แก้ไข</button>' +
+            '<button class="c-btn c-btn--xs c-btn--danger glossary-del-btn" data-index="' + index + '" type="button">ลบ</button>' +
           '</div></td>' +
         '</tr>';
       });
@@ -589,15 +594,16 @@ const AdminGlossaryPage = {
           if (terms.length === 0) {
             aiResultsList.innerHTML = '<div class="c-glossary-admin__empty">ไม่พบคำศัพท์ภาษาจีนใหม่ในตอนนี้นะคะ</div>';
           } else {
-            terms.forEach(term => {
+            terms.forEach((term, termIdx) => {
+              const resultId = `ai-suggest-res-${termIdx}`;
               const item = document.createElement('div');
               item.className = 'c-glossary-admin__result-item';
               item.innerHTML = `
                 <span class="c-glossary-admin__term">${Ui.esc(term)}</span>
                 <div class="c-glossary-admin__result-actions">
-                  <span id="ai-suggest-res-${term}" class="c-glossary-admin__suggestion"></span>
-                  <button class="c-btn c-btn--xs c-btn--secondary ai-suggest-btn c-glossary-admin__mini-btn" data-term="${Ui.esc(term)}">ขอไอเดียแปล</button>
-                  <button class="c-btn c-btn--xs c-btn--primary ai-add-btn c-glossary-admin__mini-btn" data-term="${Ui.esc(term)}" hidden>ย้ายเข้าฟอร์ม</button>
+                  <span id="${resultId}" class="c-glossary-admin__suggestion"></span>
+                  <button class="c-btn c-btn--xs c-btn--secondary ai-suggest-btn c-glossary-admin__mini-btn" data-term="${Ui.esc(term)}" data-result-id="${resultId}" type="button">ขอไอเดียแปล</button>
+                  <button class="c-btn c-btn--xs c-btn--primary ai-add-btn c-glossary-admin__mini-btn" data-term="${Ui.esc(term)}" type="button" hidden>ย้ายเข้าฟอร์ม</button>
                 </div>
               `;
               aiResultsList.appendChild(item);
@@ -607,8 +613,9 @@ const AdminGlossaryPage = {
             aiResultsList.querySelectorAll('.ai-suggest-btn').forEach(btn => {
               btn.onclick = async () => {
                 const term = btn.dataset.term;
-                const resSpan = document.getElementById(`ai-suggest-res-${term}`);
+                const resSpan = document.getElementById(btn.dataset.resultId);
                 const addBtn = btn.nextElementSibling;
+                if (!resSpan || !addBtn) return;
 
                 try {
                   btn.disabled = true;
@@ -694,7 +701,7 @@ const AdminNovelEditPage = {
     try {
       const novels = await Api.getNovels();
       const novel = novels.find(n => n.slug === slug);
-      page.innerHTML = '<div class="c-container"><div class="c-section__header c-admin-page__header"><h3 class="c-section__title">แก้ไขนิยาย: ' + Ui.esc(slug||'') + '</h3></div><div class="c-settings-form"><div class="c-form"><div class="c-form__group"><label class="c-form__label">ชื่อไทย</label><input class="c-form__input" id="edit-translated-title" value="' + Ui.esc(novel?.translatedTitle||'') + '" /></div><div class="c-form__group"><label class="c-form__label">ชื่อต้นฉบับ</label><input class="c-form__input" id="edit-title" value="' + Ui.esc(novel?.title||'') + '" /></div><div class="c-form__group"><label class="c-form__label">ผู้แต่ง</label><input class="c-form__input" id="edit-author" value="' + Ui.esc(novel?.author||'') + '" /></div><div class="c-form__group c-admin-edit__actions"><button class="c-btn c-btn--primary" id="edit-save">บันทึก</button><span id="edit-status" class="c-admin-edit__status"></span></div></div></div></div>';
+      page.innerHTML = '<div class="c-container"><div class="c-section__header c-admin-page__header"><h3 class="c-section__title">แก้ไขนิยาย: ' + Ui.esc(slug||'') + '</h3></div><div class="c-settings-form"><div class="c-form"><div class="c-form__group"><label class="c-form__label" for="edit-translated-title">ชื่อไทย</label><input class="c-form__input" id="edit-translated-title" value="' + Ui.esc(novel?.translatedTitle||'') + '" /></div><div class="c-form__group"><label class="c-form__label" for="edit-title">ชื่อต้นฉบับ</label><input class="c-form__input" id="edit-title" value="' + Ui.esc(novel?.title||'') + '" /></div><div class="c-form__group"><label class="c-form__label" for="edit-author">ผู้แต่ง</label><input class="c-form__input" id="edit-author" value="' + Ui.esc(novel?.author||'') + '" /></div><div class="c-form__group c-admin-edit__actions"><button class="c-btn c-btn--primary" id="edit-save" type="button">บันทึก</button><span id="edit-status" class="c-admin-edit__status"></span></div></div></div></div>';
     } catch(_) { Ui.showError(page, 'เกิดข้อผิดพลาด'); }
 
     // ── Save handler ────────────────────────────────────────────────
@@ -783,7 +790,7 @@ const AdminLogsPage = {
           '</div>' +
           '</div>' +
           '<div id="logs-query-status" class="c-admin-logs__status" aria-live="polite"></div>' +
-          '<button class="c-btn c-btn--primary c-admin-logs__submit" id="logs-query-btn">ตรวจสอบ Audit Log</button>' +
+          '<button class="c-btn c-btn--primary c-admin-logs__submit" id="logs-query-btn" type="button">ตรวจสอบ Audit Log</button>' +
           '</div>' +
           '</div>' +
           '</div>';
@@ -887,7 +894,7 @@ const AdminTranslatePage = {
                 </div>
               </div>
               <div class="c-admin-translate__actions">
-                <button class="c-btn c-btn--primary" id="translate-batch-run-btn">🚀 เริ่มแปล</button>
+                <button class="c-btn c-btn--primary" id="translate-batch-run-btn" type="button">🚀 เริ่มแปล</button>
               </div>
             </div>
           </div>
@@ -1041,7 +1048,7 @@ const AdminProviderPage = {
       }).join('') +
       '</div></div>' +
       '<div class="c-admin-wizard__actions">' +
-      '<button class="c-btn c-btn--primary" id="wizard-next-1" disabled>ต่อไป →</button>' +
+      '<button class="c-btn c-btn--primary" id="wizard-next-1" type="button" disabled>ต่อไป →</button>' +
       '</div></div>';
 
     // Card click handler
@@ -1096,8 +1103,8 @@ const AdminProviderPage = {
       '</div>' +
       '</div>' +
       '<div class="c-admin-wizard__actions">' +
-      '<button class="c-btn c-btn--ghost" id="wizard-prev-2">← ย้อนกลับ</button>' +
-      '<button class="c-btn c-btn--primary" id="wizard-next-2">ต่อไป →</button>' +
+      '<button class="c-btn c-btn--ghost" id="wizard-prev-2" type="button">← ย้อนกลับ</button>' +
+      '<button class="c-btn c-btn--primary" id="wizard-next-2" type="button">ต่อไป →</button>' +
       '</div></div>';
 
     document.getElementById('wizard-prev-2').addEventListener('click', () => {
@@ -1133,8 +1140,8 @@ const AdminProviderPage = {
       '</div>' +
       '<div id="wizard-status"></div>' +
       '<div class="c-admin-wizard__actions">' +
-      '<button class="c-btn c-btn--ghost" id="wizard-prev-3">← ย้อนกลับ</button>' +
-      '<button class="c-btn c-btn--primary" id="wizard-save">💾 บันทึก</button>' +
+      '<button class="c-btn c-btn--ghost" id="wizard-prev-3" type="button">← ย้อนกลับ</button>' +
+      '<button class="c-btn c-btn--primary" id="wizard-save" type="button">💾 บันทึก</button>' +
       '</div></div></div>';
 
     document.getElementById('wizard-prev-3').addEventListener('click', () => {
