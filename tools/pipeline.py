@@ -46,6 +46,8 @@ from glossary_discovery import discover_and_save  # noqa: E402
 
 _SOURCE_DIR = _PROJECT_ROOT / "novels" / "global-descent" / "chapters" / "source"
 _CHAPTER_DIR = _PROJECT_ROOT / "novels" / "global-descent" / "chapters"
+_MAX_REPAIR_RETRIES = 1
+_FALLBACK_MODEL = "google/gemma-4-31b-it:free"
 
 def read_source(ch_num: int, slug: str = "global-descent") -> str | None:
     """Station 1: Read source file. Supports .md and .cn.json."""
@@ -275,6 +277,22 @@ def _score_and_report(
     return evaluate_translation_quality(classified, source_text, target_lang, threshold)
 
 
+def _build_repair_instruction(score_result: dict[str, Any]) -> str:
+    notes = score_result.get("repair_notes") or score_result.get("errors") or []
+    if not notes:
+        return ""
+    lines = [
+        "",
+        "",
+        "<repair>",
+        "The previous translation failed the deterministic quality gate.",
+        "Rewrite the full chapter and fix these issues before returning the final Thai text:",
+    ]
+    lines.extend(f"- {note}" for note in notes[:5])
+    lines.append("</repair>")
+    return "\n".join(lines)
+
+
 # ── Station 6.75: LLM Judge ────────────────────────────────────────────
 
 _JUDGE_SYSTEM = """You are a translation quality judge. Review a Thai novel translation.
@@ -422,21 +440,19 @@ def translate_one(
             judge_result = {"ok": True, "feedback": "(mock)"}
             discovery_result = {"discovered": 0, "saved": 0, "terms": []}
         else:
-            # ── Retry logic: up to MAX_RETRIES attempts, then fallback model ──
-            MAX_RETRIES = 3
-            FALLBACK_MODEL = "google/gemma-4-31b-it:free"
-
+            # ── Retry logic: one repair attempt, then fallback model if available ──
             all_models = []
             if model_override:
-                all_models = [(model_override, provider_override)] * (MAX_RETRIES + 1)
+                all_models = [(model_override, provider_override)] * (_MAX_REPAIR_RETRIES + 1)
             else:
-                cfg = _get_active_config()
-                primary_model = model_override or cfg.get("default_model", "google/gemma-4-26b-a4b-it:free")
-                primary_provider = provider_override or cfg.get("active", "openrouter")
-                all_models = [(primary_model, primary_provider)] * MAX_RETRIES
-                all_models.append((FALLBACK_MODEL, primary_provider))
+                cfg = _get_active_config(provider_override)
+                primary_model = cfg.get("model", "google/gemma-4-26b-a4b-it:free")
+                primary_provider = cfg.get("provider_name", provider_override or "openrouter")
+                all_models = [(primary_model, primary_provider)]
+                all_models.append((_FALLBACK_MODEL, primary_provider))
 
             last_error = None
+            repair_instruction = ""
             for attempt, (retry_model, retry_provider) in enumerate(all_models):
                 try:
                     # ── Station 4: Call LLM ──
@@ -449,6 +465,8 @@ def translate_one(
                     else:
                         system_text = None
                         user_text = prompt
+                    if repair_instruction:
+                        user_text += repair_instruction
 
                     response, provider_name, model_name = call_llm(
                         prompt=user_text,
@@ -479,6 +497,7 @@ def translate_one(
                         break  # success!
 
                     last_error = f"scorer: {score_result['score']}/100 < {PASS_THRESHOLD}"
+                    repair_instruction = _build_repair_instruction(score_result)
 
                     if attempt < len(all_models) - 1:
                         continue  # retry with next model/attempt
