@@ -96,18 +96,18 @@ def build_translate_prompt(
 
 # ── Station 4: LLM Caller (Direct HTTP) ──────────────────────────────
 
-def _get_active_config() -> dict[str, Any]:
+def _get_active_config(provider_name: str | None = None) -> dict[str, Any]:
     """Get active provider + model from config_providers."""
-    from llm_router.config_providers import get_provider_config, get_discovery_model
+    from llm_router.config_providers import get_provider_config
 
     cfg = get_provider_config()
-    active = cfg.get("active", "openrouter")
+    active = provider_name or cfg.get("active", "openrouter")
     providers = cfg.get("providers", {})
     pcfg = providers.get(active, {})
     base_url = pcfg.get("base_url", "https://openrouter.ai/api/v1")
     api_key = pcfg.get("api_key", "")
     default_model = cfg.get("default_model", "google/gemma-4-26b-a4b-it:free")
-    discovery_model = get_discovery_model()
+    discovery_model = cfg.get("discovery_model", default_model)
     timeout = pcfg.get("timeout_sec", 90)
     max_tokens = pcfg.get("max_tokens", 4096)
     temperature = pcfg.get("temperature", 0.28)
@@ -138,26 +138,22 @@ def call_llm(
     Returns:
         (response_text, provider_name, model_name)
     """
-    cfg = _get_active_config()
+    cfg = _get_active_config(provider)
     if model:
         cfg["model"] = model
-    if provider:
-        # Resolve provider name → base_url from config
-        cfg["provider_name"] = provider
-        from llm_router.config_providers import get_provider_config
-        pcfg = get_provider_config().get("providers", {}).get(provider, {})
-        if pcfg:
-            cfg["base_url"] = pcfg.get("base_url", cfg["base_url"])
-            cfg["api_key"] = pcfg.get("api_key", cfg["api_key"])
-    if timeout:
+    if timeout is not None:
         cfg["timeout"] = timeout
+    if max_tokens is not None:
+        cfg["max_tokens"] = max_tokens
+    if temperature is not None:
+        cfg["temperature"] = temperature
 
     base_url = cfg["base_url"].rstrip("/")
     api_key = cfg["api_key"]
     model_name = cfg["model"]
     timeout_sec = cfg.get("timeout", 90)
-    max_tok = max_tokens or cfg.get("max_tokens", 4096)
-    temp = temperature or cfg.get("temperature", 0.28)
+    max_tok = cfg.get("max_tokens", 4096)
+    temp = cfg.get("temperature", 0.28)
 
     messages = []
     if system:
