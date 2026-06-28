@@ -74,6 +74,7 @@ _CN_RE = re.compile(r"[\u4e00-\u9fff]{2,8}")  # 2-8 CJK chars
 _HANGUL_RE = re.compile(r"[\uac00-\ud7af]{2,8}")
 _KATAKANA_RE = re.compile(r"[\u30a0-\u30ff]{2,8}")
 _HIRAGANA_RE = re.compile(r"[\u3040-\u309f]{2,8}")
+_SAVE_CONFIDENCE = {"high", "medium"}
 
 
 def _get_glossary_path(slug: str = "global-descent") -> Path:
@@ -277,13 +278,28 @@ def propose_translations(
 
 # ── Save discovered terms to glossary ─────────────────────────────────
 
+def _normalize_confidence(value: Any) -> str:
+    return str(value or "").strip().lower().split()[0]
+
+
+def _should_save_discovered_term(candidate: dict[str, Any]) -> bool:
+    term = str(candidate.get("term", "")).strip()
+    proposed = str(candidate.get("proposed_thai", "")).strip()
+    confidence = _normalize_confidence(candidate.get("confidence", "medium"))
+
+    if not term or term in _UI_NOISE or term in _KOREAN_MARKERS:
+        return False
+    if not proposed or proposed.startswith("?"):
+        return False
+    return confidence in _SAVE_CONFIDENCE
+
 def save_discovered_terms(
     discovered: list[dict[str, Any]],
     slug: str = "global-descent",
 ) -> int:
     """Save auto-discovered terms to glossary.json.
 
-    Only saves terms with proposed_thai and confidence != "?".
+    Only saves medium/high-confidence terms with safe proposed_thai values.
 
     Returns:
         Number of terms saved.
@@ -303,17 +319,17 @@ def save_discovered_terms(
     saved = 0
 
     for c in discovered:
-        proposed = c.get("proposed_thai", "")
-        if not proposed or proposed.startswith("?"):
+        if not _should_save_discovered_term(c):
             continue
 
-        term = c["term"]
+        proposed = str(c.get("proposed_thai", "")).strip()
+        term = str(c["term"]).strip()
         if term in existing_sources:
             continue  # Already in glossary, skip
 
         new_entry = {
             "source": term,
-            "thai": proposed.lstrip("?").strip(),
+            "thai": proposed,
             "category": "auto_discovered",
             "priority": 3,
             "lock": "auto",
