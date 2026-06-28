@@ -26,8 +26,8 @@ function sanitizeOutput(s) {
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const fs = require('node:fs/promises');
-const fsSync = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 
 // ── Lib modules ────────────────────────────────────────────────────
@@ -47,6 +47,7 @@ const BIND_HOST = process.env.HOST || '127.0.0.1';
 const PUBLIC_DIR = path.resolve(__dirname, 'public');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const TRUSTED_LAN = process.env.TRUSTED_LAN === 'true';
+const PERF_LOG = process.env.PERF_LOG === 'true';
 
 // ── API response helpers ──────────────────────────────────────────
 function ok(res, data = {}) {
@@ -97,6 +98,7 @@ const adminWriteLimiter = rateLimit({
   limit: 60,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  skip: () => isTrustedAdminMode(),
 });
 
 // Static files with cache disabled for dev
@@ -133,20 +135,94 @@ function isLocalBind(host) {
   return host === '127.0.0.1' || host === 'localhost' || host === '::1' || host === '0:0:0:0:0:0:0:1';
 }
 
-function allowsUnauthenticatedAdmin() {
-  return !ADMIN_TOKEN && (isLocalBind(BIND_HOST) || TRUSTED_LAN);
+function isTrustedAdminMode() {
+  return TRUSTED_LAN || isLocalBind(BIND_HOST);
+}
+
+function isValidAdminToken(provided) {
+  if (!ADMIN_TOKEN || !provided) return false;
+  const providedBuffer = Buffer.from(provided);
+  const tokenBuffer = Buffer.from(ADMIN_TOKEN);
+  return providedBuffer.length === tokenBuffer.length
+    && crypto.timingSafeEqual(providedBuffer, tokenBuffer);
 }
 
 function requireAdmin(req, res, next) {
-  if (allowsUnauthenticatedAdmin()) return next();
+  if (isTrustedAdminMode()) return next();
+  if (!ADMIN_TOKEN) {
+    return fail(res, 403, 'ADMIN_LOCKED', 'Admin write APIs require ADMIN_TOKEN unless HOST is local or TRUSTED_LAN=true');
+  }
   const provided = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!provided) {
     return fail(res, 401, 'AUTH_REQUIRED', 'Unauthorized — provide Authorization: Bearer <token>');
   }
-  if (provided.length === ADMIN_TOKEN.length && crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(ADMIN_TOKEN))) {
+  if (isValidAdminToken(provided)) {
     return next();
   }
   fail(res, 401, 'AUTH_INVALID', 'Unauthorized — invalid token');
+}
+
+function logTiming(label, startedAt) {
+  if (!PERF_LOG) return;
+  console.log(`[perf] ${label} ${Date.now() - startedAt}ms`);
+}
+
+const qualityMetaCache = new Map();
+const QUALITY_META_TTL_MS = 30 * 1000;
+
+function getCachedQualityMeta(cacheKey) {
+  const cached = qualityMetaCache.get(cacheKey);
+  if (!cached || Date.now() - cached.time > QUALITY_META_TTL_MS) return null;
+  return cached.value;
+}
+
+function invalidateQualityMeta(slug, num = null) {
+  if (num !== null && num !== undefined) {
+    qualityMetaCache.delete(`${slug}:${num}`);
+    return;
+  }
+  for (const key of qualityMetaCache.keys()) {
+    if (key.startsWith(`${slug}:`)) qualityMetaCache.delete(key);
+  }
+}
+
+async function readChapterQualityMeta(slug, num) {
+  const cacheKey = `${slug}:${num}`;
+  const cached = getCachedQualityMeta(cacheKey);
+  if (cached) return cached;
+
+  const paddedNum = String(num).padStart(4, '0');
+  const qualityPath = path.join(__dirname, '..', 'jobs', 'quality', slug, `${paddedNum}.json`);
+  const meta = { score: null, model: 'unknown', provider: 'unknown' };
+
+  try {
+    const rawQuality = await fs.readFile(qualityPath, 'utf8');
+    const qData = JSON.parse(rawQuality);
+    if (qData && Array.isArray(qData.records)) {
+      for (let i = qData.records.length - 1; i >= 0; i--) {
+        const rec = qData.records[i];
+        if (meta.score === null && rec.score !== undefined && rec.score !== null) meta.score = rec.score;
+        if (meta.model === 'unknown' && rec.model && rec.model !== 'unknown') meta.model = rec.model;
+        if (meta.provider === 'unknown' && rec.provider && rec.provider !== 'unknown') meta.provider = rec.provider;
+      }
+      if (qData.records.length > 0) {
+        const lastRec = qData.records[qData.records.length - 1];
+        if (meta.model === 'unknown' && lastRec.model) meta.model = lastRec.model;
+        if (meta.provider === 'unknown' && lastRec.provider) meta.provider = lastRec.provider;
+      }
+    }
+  } catch {
+    const reportPath = path.join(__dirname, '..', 'logs', 'translate', slug, paddedNum, 'report.json');
+    try {
+      const rawReport = await fs.readFile(reportPath, 'utf8');
+      const rData = JSON.parse(rawReport);
+      if (rData && rData.result && rData.result.score !== undefined) meta.score = rData.result.score;
+    } catch {}
+  }
+
+  if (meta.score === null) meta.score = 100;
+  qualityMetaCache.set(cacheKey, { time: Date.now(), value: meta });
+  return meta;
 }
 
 // File read helper
@@ -158,6 +234,7 @@ async function readTextOrNull(filepath) {
 // ── Novel listing and metadata ─────────────────────────────────────
 
 app.get('/api/novels', asyncHandler(async (_req, res) => {
+  const startedAt = Date.now();
   const slugs = await novelRepo.listNovels();
   const novels = await Promise.all(
     slugs.map(async (slug) => {
@@ -179,6 +256,7 @@ app.get('/api/novels', asyncHandler(async (_req, res) => {
       };
     }),
   );
+  logTiming('GET /api/novels', startedAt);
   res.json(novels);
 }));
 
@@ -199,8 +277,10 @@ app.get('/api/novel/:slug/meta', asyncHandler(async (req, res) => {
 // ── Chapter listing ────────────────────────────────────────────────
 
 app.get('/api/novel/:slug/chapters', asyncHandler(async (req, res) => {
+  const startedAt = Date.now();
   const chapters = await chapterRepo.listChapters(req.params.slug);
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  logTiming(`GET /api/novel/${req.params.slug}/chapters`, startedAt);
   res.json({ slug: req.params.slug, chapters });
 }));
 
@@ -221,7 +301,7 @@ app.get('/api/novel/:slug/chapters/search', asyncHandler(async (req, res) => {
   const all = await chapterRepo.listChapters(req.params.slug);
 
   if (mode === 'title' || mode === 'all') {
-    const { results: titleResults, skip } = searchService.searchTitle(all, q, limit);
+    const { results: titleResults } = searchService.searchTitle(all, q, limit);
     results = titleResults;
     if (mode === 'title') return res.json(results);
   }
@@ -239,57 +319,17 @@ app.get('/api/novel/:slug/chapters/search', asyncHandler(async (req, res) => {
 // ── Single chapter ─────────────────────────────────────────────────
 
 app.get('/api/novel/:slug/chapter/:num', asyncHandler(async (req, res) => {
+  const startedAt = Date.now();
   const num = parseInt(req.params.num, 10);
   if (Number.isNaN(num)) return fail(res, 400, 'INVALID_NUM', 'Invalid chapter number');
   const lang = (req.query.lang || 'th').toString();
   const result = await chapterRepo.getChapter(req.params.slug, num, lang);
   if (!result) return fail(res, 404, 'CHAPTER_NOT_FOUND', 'Chapter not found');
-
-  // ดึงข้อมูลคุณภาพการแปลจาก jobs/quality หรือ logs
-  let score = null;
-  let model = 'unknown';
-  let provider = 'unknown';
-
-  const paddedNum = String(num).padStart(4, '0');
-  const qualityPath = path.join(__dirname, '..', 'jobs', 'quality', req.params.slug, `${paddedNum}.json`);
-  
-  try {
-    const rawQuality = await fs.readFile(qualityPath, 'utf8');
-    const qData = JSON.parse(rawQuality);
-    if (qData && Array.isArray(qData.records)) {
-      for (let i = qData.records.length - 1; i >= 0; i--) {
-        const rec = qData.records[i];
-        if (score === null && rec.score !== undefined && rec.score !== null) {
-          score = rec.score;
-        }
-        if (model === 'unknown' && rec.model && rec.model !== 'unknown') {
-          model = rec.model;
-        }
-        if (provider === 'unknown' && rec.provider && rec.provider !== 'unknown') {
-          provider = rec.provider;
-        }
-      }
-      if (qData.records.length > 0) {
-        const lastRec = qData.records[qData.records.length - 1];
-        if (model === 'unknown' && lastRec.model) model = lastRec.model;
-        if (provider === 'unknown' && lastRec.provider) provider = lastRec.provider;
-      }
-    }
-  } catch (err) {
-    const reportPath = path.join(__dirname, '..', 'logs', 'translate', req.params.slug, paddedNum, 'report.json');
-    try {
-      const rawReport = await fs.readFile(reportPath, 'utf8');
-      const rData = JSON.parse(rawReport);
-      if (rData && rData.result && rData.result.score !== undefined) {
-        score = rData.result.score;
-      }
-    } catch {}
-  }
-
-  if (score === null) score = 100;
+  const qualityMeta = await readChapterQualityMeta(req.params.slug, num);
 
   res.set('Cache-Control', 'public, max-age=20, stale-while-revalidate=60');
   res.set('X-Cache-TTL', '20');
+  logTiming(`GET /api/novel/${req.params.slug}/chapter/${num}?lang=${lang}`, startedAt);
 
   res.json({
     slug: req.params.slug,
@@ -301,9 +341,9 @@ app.get('/api/novel/:slug/chapter/:num', asyncHandler(async (req, res) => {
     source: result.source || '',
     lang: result.lang || 'cn',
     notes: result.notes || [],
-    score: score,
-    model: model,
-    provider: provider,
+    score: qualityMeta.score,
+    model: qualityMeta.model,
+    provider: qualityMeta.provider,
     isTranslated: result.isTranslated !== false,
     validation: { valid: true, errors: [], warnings: [], info: [] },
   });
@@ -1069,12 +1109,42 @@ adminPost('/api/local/llm-config', async (req, res) => {
 // Reads/writes tools/config/providers.yaml via Python helper.
 // Admin UI uses this to switch active provider and model.
 
-const PROVIDER_CONFIG_PY = path.join(__dirname, '..', 'tools', 'llm_router', 'config_providers.py');
+const providerConfigCache = { time: 0, data: null, inFlight: null };
+const PROVIDER_CONFIG_TTL_MS = 5 * 1000;
 
-app.get('/api/admin/provider-config', asyncHandler(async (req, res) => {
-  try {
-    const py = getPythonCommand();
-    const child = spawn(py, ['-c', `
+function runProviderConfigScript(code, input = null) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(getPythonCommand(), ['-c', code], {
+      cwd: path.join(__dirname, '..'),
+      windowsHide: true,
+      timeout: 15_000,
+      env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+    });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
+    child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(sanitizeOutput(stderr || stdout) || `Python exited ${code}`));
+        return;
+      }
+      resolve(stdout);
+    });
+    if (input !== null) child.stdin.write(input);
+    child.stdin.end();
+  });
+}
+
+async function readProviderConfig() {
+  const now = Date.now();
+  if (providerConfigCache.data && now - providerConfigCache.time < PROVIDER_CONFIG_TTL_MS) {
+    return providerConfigCache.data;
+  }
+  if (providerConfigCache.inFlight) return providerConfigCache.inFlight;
+
+  providerConfigCache.inFlight = (async () => {
+    const stdout = await runProviderConfigScript(`
 import sys; sys.path.insert(0, 'tools')
 from llm_router.config_providers import get_provider_config, get_providers_list
 import json
@@ -1087,25 +1157,31 @@ print(json.dumps({
   "providers": plist,
   "profiles": cfg.get("profiles", []),
 }, ensure_ascii=False))
-    `], {
-      cwd: path.join(__dirname, '..'),
-      windowsHide: true,
-      timeout: 15_000,
-      env: { ...process.env }
-    });
-    let stdout = '', stderr = '';
-    child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
-    child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
-    child.on('error', (err) => fail(res, 500, 'PYTHON_ERROR', err.message));
-    child.on('close', (code) => {
-      if (code !== 0) return fail(res, 500, 'PYTHON_EXIT', sanitizeOutput(stderr || stdout));
-      try {
-        const data = JSON.parse(stdout.trim());
-        res.json(data);
-      } catch (e) {
-        fail(res, 500, 'PARSE_ERROR', 'Failed to parse provider config: ' + e.message);
-      }
-    });
+    `);
+    const data = JSON.parse(stdout.trim());
+    providerConfigCache.time = Date.now();
+    providerConfigCache.data = data;
+    providerConfigCache.inFlight = null;
+    return data;
+  })().catch((err) => {
+    providerConfigCache.inFlight = null;
+    throw err;
+  });
+  return providerConfigCache.inFlight;
+}
+
+function invalidateProviderConfig() {
+  providerConfigCache.time = 0;
+  providerConfigCache.data = null;
+  providerConfigCache.inFlight = null;
+}
+
+app.get('/api/admin/provider-config', asyncHandler(async (req, res) => {
+  const startedAt = Date.now();
+  try {
+    const data = await readProviderConfig();
+    logTiming('GET /api/admin/provider-config', startedAt);
+    res.json(data);
   } catch (err) {
     fail(res, 500, 'SERVER_ERROR', err.message);
   }
@@ -1113,36 +1189,27 @@ print(json.dumps({
 
 adminPost('/api/admin/provider-config', async (req, res) => {
   const { active, default_model, discovery_model } = req.body;
-  if (!active && !default_model) {
-    return fail(res, 400, 'INVALID_INPUT', 'Provide at least active or default_model');
+  if (!active && !default_model && !discovery_model) {
+    return fail(res, 400, 'INVALID_INPUT', 'Provide at least active, default_model, or discovery_model');
   }
   try {
-    const py = getPythonCommand();
-    const cmds = [];
-    cmds.push('import sys; sys.path.insert(0, \"tools\")');
-    cmds.push('from llm_router.config_providers import save_provider_config');
-    cmds.push(`ok = save_provider_config(active=${JSON.stringify(active || '')}, default_model=${JSON.stringify(default_model || '')})`);
-    // Save discovery_model separately (YAML text edit)
-    if (discovery_model) {
-      const fs = require('fs');
-      const yamlPath = path.join(__dirname, '..', 'tools', 'config', 'providers.yaml');
-      let text = fs.readFileSync(yamlPath, 'utf-8');
-      text = text.replace(/^discovery_model:.*$/m, `discovery_model: "${discovery_model}"`);
-      fs.writeFileSync(yamlPath, text, 'utf-8');
-    }
-    const code = cmds.join('; ');
-    const child = spawn(py, ['-c', code], {
-      cwd: path.join(__dirname, '..'),
-      windowsHide: true,
-      timeout: 15_000,
+    const payload = JSON.stringify({
+      active: active || null,
+      default_model: default_model || null,
+      discovery_model: discovery_model || null,
     });
-    let stderr = '';
-    child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
-    child.on('error', (err) => fail(res, 500, 'PYTHON_ERROR', err.message));
-    child.on('close', (code) => {
-      if (code !== 0) return fail(res, 500, 'PYTHON_EXIT', sanitizeOutput(stderr));
-      ok(res, { saved: true, active, default_model, discovery_model });
-    });
+    await runProviderConfigScript(`
+import json, sys
+sys.path.insert(0, 'tools')
+from llm_router.config_providers import save_provider_config
+payload = json.load(sys.stdin)
+saved = save_provider_config(**payload)
+if not saved:
+    raise SystemExit(2)
+print(json.dumps({"saved": True}))
+    `, payload);
+    invalidateProviderConfig();
+    ok(res, { saved: true, active, default_model, discovery_model });
   } catch (err) {
     fail(res, 500, 'SERVER_ERROR', err.message);
   }
@@ -1206,6 +1273,7 @@ adminPost('/api/novel/:slug/translate/single', async (req, res) => {
     }
     
     chapterRepo.invalidateAll(slug);
+    invalidateQualityMeta(slug, chapterNum);
     ok(res, { success: true, result: { ch: chapterNum, status: 'done' }, stdout });
   });
 });
@@ -1248,6 +1316,7 @@ adminPost('/api/novel/:slug/translate/batch', async (req, res) => {
     }
     
     chapterRepo.invalidateAll(slug);
+    invalidateQualityMeta(slug);
     ok(res, { success: true, result: { range: String(range), status: 'done' }, stdout });
   });
 });

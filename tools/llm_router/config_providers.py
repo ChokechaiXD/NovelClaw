@@ -121,12 +121,14 @@ def _resolve_file_key(value: str) -> str:
 
 
 def save_provider_config(active: str | None = None,
-                         default_model: str | None = None) -> bool:
+                         default_model: str | None = None,
+                         discovery_model: str | None = None) -> bool:
     """Update active provider and/or default model in YAML file.
 
     Args:
         active: New active provider name (or None to keep).
         default_model: New default model ID (or None to keep).
+        discovery_model: New discovery/judge model ID (or None to keep).
 
     Returns:
         True if saved successfully.
@@ -144,6 +146,9 @@ def save_provider_config(active: str | None = None,
             # Keep or remove quotes
             new_lines.append(re.sub(r'^(\s*default_model:\s*).*',
                                      rf'\1"{default_model}"', line))
+        elif discovery_model is not None and re.match(r"^discovery_model:", stripped):
+            new_lines.append(re.sub(r'^(\s*discovery_model:\s*).*',
+                                     rf'\1"{discovery_model}"', line))
         else:
             new_lines.append(line)
 

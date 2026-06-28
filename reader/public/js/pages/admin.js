@@ -858,8 +858,8 @@ const AdminTranslatePage = {
         
         <div class="c-admin-translate">
           <!-- INFO: setting up AI → go to Provider wizard -->
-          <div class="c-card" style="padding:1rem;margin-bottom:1rem;background:#f8faff;border:1px solid #dbeafe">
-            <p style="font-size:0.9rem">🤖 ตั้งค่า Provider / Model ที่ <a href="#admin/provider" data-nav><strong>หน้า Provider</strong></a></p>
+          <div class="c-card c-admin-translate__provider-note">
+            <p class="c-admin-translate__provider-note-text">🤖 ตั้งค่า Provider / Model ที่ <a href="#admin/provider" data-nav><strong>หน้า Provider</strong></a></p>
           </div>
 
           <!-- BATCH TRANSLATION PANEL (simplified) -->
@@ -1173,8 +1173,8 @@ const AdminProviderPage = {
     page.innerHTML = '<div class="c-container">' +
       Ui.adminNav('provider') +
       '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">🤖 ตั้งค่าระบบ AI</h3></div>' +
-      '<div class="c-admin-wizard__body" style="text-align:center;padding:3rem">' +
-      '<div style="font-size:3rem;margin-bottom:1rem">🎉</div>' +
+      '<div class="c-admin-wizard__body c-admin-wizard__done">' +
+      '<div class="c-admin-wizard__done-icon">🎉</div>' +
       '<h4>ตั้งค่าเสร็จสมบูรณ์!</h4>' +
       '<p class="u-text-muted">ระบบ AI พร้อมทำงานแล้ว ต่อไปก็แค่กดแปล!</p>' +
       '<a href="#admin/translate" class="c-btn c-btn--primary c-btn--lg" data-nav>ไปหน้าแปล →</a>' +

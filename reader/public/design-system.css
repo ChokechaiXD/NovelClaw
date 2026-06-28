@@ -1525,6 +1525,14 @@ pre code {
 .c-admin-wizard__body {
   margin: 1rem 0;
 }
+.c-admin-wizard__done {
+  padding: 3rem;
+  text-align: center;
+}
+.c-admin-wizard__done-icon {
+  margin-bottom: 1rem;
+  font-size: 3rem;
+}
 .c-admin-wizard__actions {
   display: flex;
   gap: 1rem;
@@ -1773,6 +1781,16 @@ pre code {
   grid-template-columns: 1fr;
   gap: var(--space-md);
   margin-top: var(--space-md);
+}
+.c-admin-translate__provider-note {
+  margin-bottom: var(--space-md);
+  padding: var(--space-md);
+  border-color: var(--c-accent-soft);
+  background: var(--c-surface);
+}
+.c-admin-translate__provider-note-text {
+  margin: 0;
+  font-size: var(--text-sm);
 }
 .c-admin-translate__panel { padding: var(--space-md); }
 .c-admin-translate__title {

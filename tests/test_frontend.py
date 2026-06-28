@@ -8,6 +8,20 @@ import pytest
 SERVER_URL = "http://127.0.0.1:4173"
 
 
+def _server_available() -> bool:
+    try:
+        with urllib.request.urlopen(SERVER_URL, timeout=1) as r:
+            return r.status == 200
+    except (urllib.error.URLError, TimeoutError):
+        return False
+
+
+pytestmark = pytest.mark.skipif(
+    not _server_available(),
+    reason="NovelClaw reader server is not running on http://127.0.0.1:4173",
+)
+
+
 class TestFrontend:
     def test_server_running(self):
         with urllib.request.urlopen(SERVER_URL, timeout=3) as r:
