@@ -1197,12 +1197,16 @@ const AdminImportPage = {
     const rows = (risky.length ? risky : novels.slice(0, 5)).map(n => {
       const badgeText = n.status === 'error' ? 'ต้องตรวจ' : (n.status === 'warn' ? 'ควรดู' : 'พร้อม');
       const genericCount = n.issueSummary?.byCode?.generic_title || 0;
+      const toc = n.sourceToc || {};
+      const tocText = toc.exists
+        ? 'toc: ' + (toc.chapterCount || 0) + (toc.site ? ' · ' + toc.site : '')
+        : 'toc: missing';
       const recoverButton = genericCount > 0
         ? '<button class="c-btn c-btn--sm c-btn--ghost import-recover-toc-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Recover TOC</button>'
         : '';
       return '<tr>' +
         '<td><strong>' + Ui.esc(n.title || n.slug) + '</strong><div class="u-text-muted">' + Ui.esc(n.slug) + '</div></td>' +
-        '<td>' + Ui.esc(n.sourceSite || '-') + '</td>' +
+        '<td>' + Ui.esc(n.sourceSite || '-') + '<div class="u-text-muted">' + Ui.esc(tocText) + '</div></td>' +
         '<td class="c-admin-table__mono">' + (n.sourceFileCount || 0) + '</td>' +
         '<td><span class="' + this._healthBadge(n.status) + '">' + badgeText + '</span></td>' +
         '<td>' + Ui.esc(this._issueText(n.issueSummary)) + (n.staleIndexTitleCount ? '<div class="u-text-muted">stale title × ' + n.staleIndexTitleCount + '</div>' : '') + '</td>' +

@@ -124,6 +124,7 @@ test('repairNovelImport uses source toc manifest to replace generic titles', asy
   await fs.writeFile(path.join(root, slug, 'novel.json'), JSON.stringify({ slug, title: 'TOC Title' }), 'utf8');
   await fs.writeFile(path.join(sourceDir, 'toc.json'), JSON.stringify({
     site: 'fixture',
+    title: 'TOC Title',
     chapters: [
       { num: 10, title: '第10章 Lost Signal', url: 'https://fixture.test/10' },
     ],
@@ -139,12 +140,16 @@ test('repairNovelImport uses source toc manifest to replace generic titles', asy
   const preview = await repairNovelImport(slug, 'all', { dryRun: true });
   const applied = await repairNovelImport(slug, 'all');
   const inspected = await inspectSourceChapter(slug, 10);
+  const health = await require('../lib/import-health').getNovelImportHealth(slug);
 
   assert.equal(preview.repair.titlesRepaired, 1);
   assert.equal(preview.repair.changes[0].titleAfter, '第10章 Lost Signal');
   assert.equal(applied.repair.titlesRepaired, 1);
   assert.equal(inspected.title, '第10章 Lost Signal');
   assert.match(inspected.raw, /^# 第10章 Lost Signal/);
+  assert.equal(health.sourceToc.exists, true);
+  assert.equal(health.sourceToc.chapterCount, 1);
+  assert.equal(health.sourceToc.title, 'TOC Title');
 });
 
 test('repairMissingSourceTitles adds a markdown title from the first chapter line', async () => {

@@ -299,6 +299,27 @@ async function readSourceTocTitles(slug) {
   return titles;
 }
 
+async function getSourceTocInfo(slug) {
+  let raw;
+  try { raw = await fs.readFile(sourceTocPath(slug), 'utf8'); }
+  catch (err) {
+    if (err.code === 'ENOENT') return { exists: false, chapterCount: 0 };
+    throw err;
+  }
+  try {
+    const data = JSON.parse(raw);
+    return {
+      exists: true,
+      site: data.site || '',
+      title: data.title || '',
+      chapterCount: Array.isArray(data.chapters) ? data.chapters.length : (data.chapterCount || 0),
+      updatedAt: data.updatedAt || '',
+    };
+  } catch (err) {
+    return { exists: true, invalid: true, chapterCount: 0, error: err.message };
+  }
+}
+
 function summarizeIssues(chapters) {
   const byCode = {};
   let errorCount = 0;
@@ -376,6 +397,7 @@ async function getNovelImportHealth(slug) {
   const meta = await novelRepo.getNovelMeta(slug);
   const chapters = await chapterRepo.listChapters(slug);
   const sourceDiagnostics = await scanSourceFiles(slug);
+  const sourceToc = await getSourceTocInfo(slug);
   const issueSummary = summarizeIssues(sourceDiagnostics);
   const sourceOnlyCount = chapters.filter((chapter) => chapter.status === 'source_only').length;
   const translatedCount = chapters.filter((chapter) => chapter.isTranslated).length;
@@ -395,6 +417,7 @@ async function getNovelImportHealth(slug) {
     sourceLang: meta.sourceLang || meta.source_lang || '',
     totalChapters: chapters.length,
     sourceFileCount: sourceDiagnostics.length,
+    sourceToc,
     sourceOnlyCount,
     translatedCount,
     staleIndexTitleCount,
