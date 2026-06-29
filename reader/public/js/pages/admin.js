@@ -170,9 +170,11 @@ const AdminNovelsPage = {
             btn.disabled = true;
             btn.textContent = 'Repairing...';
             try {
-              await Api.repairImport(slug, 'rebuild-index');
-              Ui.showToast('ซ่อม index สำเร็จ');
-              await AdminNovelsPage.render(params);
+              const result = await Api.repairImport(slug, 'all');
+              const repair = result.data?.repair || {};
+              Ui.showToast('ซ่อมแล้ว: title ' + (repair.titlesRepaired || 0) + ', index rebuilt');
+              btn.textContent = 'Done';
+              setTimeout(() => AdminNovelsPage.render(params), 900);
             } catch (err) {
               Ui.showToast('ซ่อมไม่สำเร็จ: ' + err.message, 'error');
               btn.disabled = false;
@@ -1156,7 +1158,7 @@ const AdminImportPage = {
         '<td class="c-admin-table__mono">' + (n.sourceFileCount || 0) + '</td>' +
         '<td><span class="' + this._healthBadge(n.status) + '">' + badgeText + '</span></td>' +
         '<td>' + Ui.esc(this._issueText(n.issueSummary)) + (n.staleIndexTitleCount ? '<div class="u-text-muted">stale title × ' + n.staleIndexTitleCount + '</div>' : '') + '</td>' +
-        '<td><button class="c-btn c-btn--sm c-btn--secondary import-repair-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Repair index</button></td>' +
+        '<td><button class="c-btn c-btn--sm c-btn--secondary import-repair-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Repair</button></td>' +
         '</tr>';
     }).join('');
 
@@ -1365,17 +1367,25 @@ const AdminImportPage = {
         if (!slug) return;
         btn.disabled = true;
         btn.textContent = 'Repairing...';
-        this.setConsole('running', 'Repair running', 'Rebuilding chapter index for ' + slug + '...');
+        this.setConsole('running', 'Repair running', 'Repairing source titles and rebuilding chapter index for ' + slug + '...');
         try {
-          await Api.repairImport(slug, 'rebuild-index');
-          this.setConsole('success', 'Repair complete', 'Index rebuilt for ' + slug);
-          Ui.showToast('ซ่อม index สำเร็จ');
-          await this.render(params);
+          const result = await Api.repairImport(slug, 'all');
+          const repair = result.data?.repair || {};
+          const message = [
+            'slug: ' + slug,
+            'titles repaired: ' + (repair.titlesRepaired || 0),
+            'titles unchanged: ' + (repair.titlesUnchanged || 0),
+            'index rebuilt: ' + (repair.indexRebuilt ? 'yes' : 'no'),
+          ].join('\n');
+          this.setConsole('success', 'Repair complete', message);
+          Ui.showToast('ซ่อมแล้ว: title ' + (repair.titlesRepaired || 0) + ', index rebuilt');
+          btn.disabled = false;
+          btn.textContent = 'Done';
         } catch (err) {
           this.setConsole('error', 'Repair failed', err.message);
           Ui.showToast(err.message, 'error');
           btn.disabled = false;
-          btn.textContent = 'Repair index';
+          btn.textContent = 'Repair';
         }
       });
     });

@@ -625,10 +625,10 @@ adminPost('/api/import/repair', async (req, res) => {
   const { slug, action } = req.body;
   if (!slug || !SLUG_RE.test(slug)) return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');
   try {
-    const health = await importHealth.repairNovelImport(slug, action || 'rebuild-index');
+    const result = await importHealth.repairNovelImport(slug, action || 'rebuild-index');
     invalidateCache('/api/novel/' + slug);
     invalidateCache('/api/novels');
-    ok(res, { slug, action: action || 'rebuild-index', health });
+    ok(res, { slug, action: action || 'rebuild-index', ...result });
   } catch (err) {
     fail(res, err.status || 500, 'IMPORT_REPAIR_FAILED', err.message);
   }

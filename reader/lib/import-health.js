@@ -96,6 +96,29 @@ function analyzeSourceMarkdown(raw, num, filename = '') {
   };
 }
 
+function inferTitleFromBody(body) {
+  const lines = String(body || '').replace(/\r\n/g, '\n').split('\n');
+  for (const line of lines) {
+    const title = line.trim();
+    if (!title) continue;
+    if (title.startsWith('#')) return title.replace(/^#+\s*/, '').trim();
+    if (title.length > 140) return '';
+    if (/^(第\s*\d+\s*[章节章]|Chapter\s+\d+|ตอนที่\s*\d+)/i.test(title)) return title;
+    return '';
+  }
+  return '';
+}
+
+function addMarkdownTitle(raw, title) {
+  const normalized = String(raw || '').replace(/\r\n/g, '\n').trimStart();
+  const frontmatterMatch = normalized.match(/^---\n[\s\S]*?\n---(?:\n|$)/);
+  const frontmatter = frontmatterMatch ? frontmatterMatch[0] : '';
+  const body = frontmatterMatch ? normalized.slice(frontmatter.length).trimStart() : normalized;
+  const lines = body.split('\n');
+  if (lines[0]?.trim() === title) lines.shift();
+  return frontmatter + `# ${title}\n\n` + lines.join('\n').replace(/^\n+/, '');
+}
+
 function summarizeIssues(chapters) {
   const byCode = {};
   let errorCount = 0;
@@ -126,6 +149,34 @@ async function scanSourceFiles(slug) {
     const raw = await fs.readFile(path.join(dir, entry.name), 'utf8');
     return analyzeSourceMarkdown(raw, num, entry.name);
   }));
+}
+
+async function repairMissingSourceTitles(slug) {
+  if (!SLUG_RE.test(slug)) return { repaired: 0, unchanged: 0 };
+  const dir = path.join(chapterDir(slug), 'source');
+  let entries;
+  try { entries = await fs.readdir(dir, { withFileTypes: true }); }
+  catch (err) { if (err.code === 'ENOENT') return { repaired: 0, unchanged: 0 }; throw err; }
+
+  let repaired = 0;
+  let unchanged = 0;
+  for (const entry of entries) {
+    if (!entry.isFile() || !/^\d{4}\.md$/.test(entry.name)) continue;
+    const filepath = path.join(dir, entry.name);
+    const raw = await fs.readFile(filepath, 'utf8');
+    const parsed = parseMarkdownToBlocks(raw, parseInt(entry.name, 10));
+    if (parsed.title) continue;
+    const frontmatterMatch = String(raw).replace(/\r\n/g, '\n').trimStart().match(/^---\n[\s\S]*?\n---(?:\n|$)/);
+    const body = frontmatterMatch ? String(raw).replace(/\r\n/g, '\n').trimStart().slice(frontmatterMatch[0].length) : raw;
+    const title = inferTitleFromBody(body);
+    if (!title) {
+      unchanged += 1;
+      continue;
+    }
+    await fs.writeFile(filepath, addMarkdownTitle(raw, title), 'utf8');
+    repaired += 1;
+  }
+  return { repaired, unchanged };
 }
 
 async function getNovelImportHealth(slug) {
@@ -187,12 +238,19 @@ async function repairNovelImport(slug, action = 'rebuild-index') {
   if (!SLUG_RE.test(slug)) {
     throw Object.assign(new Error('Invalid slug format'), { status: 400 });
   }
-  if (!['rebuild-index', 'all'].includes(action)) {
+  if (!['rebuild-index', 'repair-titles', 'all'].includes(action)) {
     throw Object.assign(new Error('Unknown repair action'), { status: 400 });
   }
+  const result = { titlesRepaired: 0, titlesUnchanged: 0, indexRebuilt: false };
+  if (action === 'repair-titles' || action === 'all') {
+    const titleRepair = await repairMissingSourceTitles(slug);
+    result.titlesRepaired = titleRepair.repaired;
+    result.titlesUnchanged = titleRepair.unchanged;
+  }
   await chapterRepo.rebuildChaptersIndex(slug);
+  result.indexRebuilt = true;
   chapterRepo.invalidateAll(slug);
-  return getNovelImportHealth(slug);
+  return { repair: result, health: await getNovelImportHealth(slug) };
 }
 
 async function inspectSourceChapter(slug, num) {
@@ -236,5 +294,6 @@ module.exports = {
   getAllImportHealth,
   getNovelImportHealth,
   inspectSourceChapter,
+  repairMissingSourceTitles,
   repairNovelImport,
 };
