@@ -246,7 +246,7 @@ const ReaderPage = {
           }
         } catch (err) {
           Ui.$('reader-title').textContent = 'เกิดข้อผิดพลาด';
-          Ui.$('reader-content').innerHTML = `<p class="c-reader__error-message">โหลดไม่สำเร็จ: ${err.message}</p>`;
+          Ui.$('reader-content').innerHTML = `<p class="c-reader__error-message">โหลดไม่สำเร็จ: ${Ui.esc(err.message)}</p>`;
         }
       };
 
