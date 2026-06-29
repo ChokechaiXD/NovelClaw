@@ -13,7 +13,7 @@ function ensureAdminLoaded() {
   if (!adminModulePromise) {
     adminModulePromise = new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = '/js/pages/admin.js?_v=20260629_cover_qol';
+      s.src = '/js/pages/admin.js?_v=20260629_import_health';
       s.async = false;  // preserve execution order with the rest
       s.onload = () => {
         // admin.js attaches Admin* globals to window via the existing wiring

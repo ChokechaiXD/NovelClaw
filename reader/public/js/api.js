@@ -205,6 +205,26 @@ const Api = {
     return data;
   },
 
+  async getImportHealth(slug) {
+    const suffix = slug ? `?slug=${encodeURIComponent(slug)}` : '';
+    const res = await fetch('/api/import/health' + suffix);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error?.message || `${res.status} ${res.statusText}`);
+    return data;
+  },
+
+  async repairImport(slug, action = 'rebuild-index') {
+    const res = await fetch('/api/import/repair', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug, action })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error?.message || `${res.status} ${res.statusText}`);
+    this.invalidateAll(slug);
+    return data;
+  },
+
   async importPreview(payload) {
     const res = await fetch('/api/import/preview', {
       method: 'POST',

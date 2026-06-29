@@ -926,6 +926,7 @@ const AdminLogsPage = {
 const AdminImportPage = {
   _preview: null,
   _sites: [],
+  _health: null,
 
   setConsole(state, title, message) {
     AdminUi.setConsole('import', state, title, message);
@@ -977,6 +978,70 @@ const AdminImportPage = {
     return '<div class="c-table-wrap c-admin-import__sites"><table class="c-table"><thead><tr><th>เว็บ</th><th>ภาษา</th><th>ชนิด</th><th>คุณภาพ</th><th>โหมด</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
   },
 
+  _healthBadge(status) {
+    if (status === 'error') return 'c-badge c-badge--red';
+    if (status === 'warn') return 'c-badge c-badge--amber';
+    return 'c-badge c-badge--teal';
+  },
+
+  _issueText(issueSummary = {}) {
+    const byCode = issueSummary.byCode || {};
+    const entries = Object.entries(byCode).filter(([, count]) => count > 0);
+    if (!entries.length) return 'ปกติ';
+    return entries.slice(0, 3).map(([code, count]) => code + ' × ' + count).join(', ');
+  },
+
+  _renderHealthPanel() {
+    const health = this._health || { summary: {}, novels: [] };
+    const summary = health.summary || {};
+    const novels = health.novels || [];
+    const risky = novels.filter(n => n.status !== 'ok' || n.staleIndexTitleCount > 0);
+    const rows = (risky.length ? risky : novels.slice(0, 5)).map(n => {
+      const badgeText = n.status === 'error' ? 'ต้องตรวจ' : (n.status === 'warn' ? 'ควรดู' : 'พร้อม');
+      return '<tr>' +
+        '<td><strong>' + Ui.esc(n.title || n.slug) + '</strong><div class="u-text-muted">' + Ui.esc(n.slug) + '</div></td>' +
+        '<td>' + Ui.esc(n.sourceSite || '-') + '</td>' +
+        '<td class="c-admin-table__mono">' + (n.sourceFileCount || 0) + '</td>' +
+        '<td><span class="' + this._healthBadge(n.status) + '">' + badgeText + '</span></td>' +
+        '<td>' + Ui.esc(this._issueText(n.issueSummary)) + (n.staleIndexTitleCount ? '<div class="u-text-muted">stale title × ' + n.staleIndexTitleCount + '</div>' : '') + '</td>' +
+        '<td><button class="c-btn c-btn--sm c-btn--secondary import-repair-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Repair index</button></td>' +
+        '</tr>';
+    }).join('');
+
+    return '<div class="c-card c-admin-import__panel c-admin-import__health">' +
+      '<div class="c-admin-import__health-head"><h3 class="c-admin-import__title">Import Health</h3><button class="c-btn c-btn--sm c-btn--ghost" id="import-health-refresh" type="button">Refresh</button></div>' +
+      '<div class="c-admin-import__health-stats">' +
+      Ui.stat('นิยาย', summary.novels || 0, { tone: 'accent' }) +
+      Ui.stat('source files', summary.sourceFiles || 0, { tone: 'accent' }) +
+      Ui.stat('errors', summary.errors || 0, { tone: summary.errors ? 'warn' : 'success' }) +
+      Ui.stat('warnings', summary.warnings || 0, { tone: summary.warnings ? 'warn' : 'success' }) +
+      '</div>' +
+      '<div class="c-table-wrap c-admin-import__health-table"><table class="c-table"><thead><tr><th>นิยาย</th><th>เว็บ</th><th>source</th><th>สถานะ</th><th>ปัญหา</th><th>ซ่อม</th></tr></thead><tbody>' +
+      (rows || '<tr><td colspan="6" class="u-text-muted">ยังไม่มีข้อมูล import source</td></tr>') +
+      '</tbody></table></div>' +
+      '</div>';
+  },
+
+  _previewDiagnosticsHtml(data) {
+    const diag = data.diagnostics || {};
+    const sample = data.sampleChapter;
+    const statusClass = diag.recommendImport ? 'c-badge c-badge--teal' : 'c-badge c-badge--amber';
+    let html = '<div class="c-admin-import__diagnostics">' +
+      '<span class="' + statusClass + '">' + (diag.recommendImport ? 'sample พร้อม import' : 'ควรตรวจ sample') + '</span>' +
+      '<span class="c-badge ' + (diag.hasSampleContent ? 'c-badge--teal' : 'c-badge--red') + '">' + (diag.hasSampleContent ? 'มีเนื้อหา' : 'ไม่พบเนื้อหา') + '</span>';
+    if (diag.sampleError) html += '<span class="c-badge c-badge--red">' + Ui.esc(diag.sampleError) + '</span>';
+    html += '</div>';
+    if (sample) {
+      const warningHtml = (sample.warnings || []).map(w => '<span class="c-badge c-badge--amber">' + Ui.esc(w) + '</span>').join('');
+      html += '<div class="c-admin-import__sample-card">' +
+        '<div class="c-admin-import__sample-meta"><strong>' + Ui.esc(sample.title || '') + '</strong><span>' + (sample.paragraphCount || 0) + ' paragraphs · ' + (sample.charCount || 0) + ' chars</span></div>' +
+        (warningHtml ? '<div class="c-admin-import__diagnostics">' + warningHtml + '</div>' : '') +
+        '<div class="c-admin-import__sample-text">' + (sample.paragraphs || []).map(p => '<p>' + Ui.esc(p) + '</p>').join('') + '</div>' +
+        '</div>';
+    }
+    return html;
+  },
+
   _renderPreview(data) {
     const box = document.getElementById('import-preview');
     if (!box) return;
@@ -993,6 +1058,7 @@ const AdminImportPage = {
       '<div><span class="c-form__label">ภาษา</span><strong>' + Ui.esc(data.sourceLang || '') + '</strong></div>' +
       '<div><span class="c-form__label">จำนวนตอน</span><strong>' + Ui.esc(data.chapterCount || 0) + '</strong></div>' +
       '</div>' +
+      this._previewDiagnosticsHtml(data) +
       '<div class="c-admin-import__run-grid">' +
       '<div class="c-form__group"><label class="c-form__label" for="import-slug">Slug</label><input class="c-form__input" id="import-slug" value="' + Ui.esc(this._slugFromTitle(data.title)) + '" /></div>' +
       '<div class="c-form__group"><label class="c-form__label" for="import-range">ช่วงตอน</label><input class="c-form__input" id="import-range" placeholder="1-20" /></div>' +
@@ -1044,12 +1110,18 @@ const AdminImportPage = {
     } catch (err) {
       this._sites = [];
     }
+    try {
+      this._health = this._data(await Api.getImportHealth());
+    } catch (err) {
+      this._health = { summary: {}, novels: [] };
+    }
 
     page.innerHTML = `
       <div class="c-container">
         ${Ui.adminNav('import')}
         <div class="c-section__header c-admin-page__header"><h3 class="c-section__title">นำเข้าต้นฉบับ</h3></div>
         <div class="c-admin-import">
+          ${this._renderHealthPanel()}
           <div class="c-card c-admin-import__panel">
             <h3 class="c-admin-import__title">URL</h3>
             <div class="c-form c-admin-import__form">
@@ -1092,6 +1164,31 @@ const AdminImportPage = {
         </div>
       </div>`;
 
+    document.getElementById('import-health-refresh')?.addEventListener('click', async () => {
+      await this.render(params);
+    });
+
+    page.querySelectorAll('.import-repair-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const slug = btn.dataset.slug;
+        if (!slug) return;
+        btn.disabled = true;
+        btn.textContent = 'Repairing...';
+        this.setConsole('running', 'Repair running', 'Rebuilding chapter index for ' + slug + '...');
+        try {
+          await Api.repairImport(slug, 'rebuild-index');
+          this.setConsole('success', 'Repair complete', 'Index rebuilt for ' + slug);
+          Ui.showToast('ซ่อม index สำเร็จ');
+          await this.render(params);
+        } catch (err) {
+          this.setConsole('error', 'Repair failed', err.message);
+          Ui.showToast(err.message, 'error');
+          btn.disabled = false;
+          btn.textContent = 'Repair index';
+        }
+      });
+    });
+
     document.getElementById('import-preview-btn')?.addEventListener('click', async () => {
       const btn = document.getElementById('import-preview-btn');
       const url = document.getElementById('import-url')?.value.trim();
@@ -1102,12 +1199,13 @@ const AdminImportPage = {
       }
       btn.disabled = true;
       btn.textContent = 'Loading...';
-      this.setConsole('running', 'Preview running', 'Fetching table of contents...');
+      this.setConsole('running', 'Preview running', 'Fetching table of contents and sample chapter...');
       try {
         const data = this._data(await Api.importPreview({ url, site }));
         this._preview = data;
         this._renderPreview(data);
-        this.setConsole('success', 'Preview ready', `${data.chapterCount || 0} chapters found`);
+        const diag = data.diagnostics || {};
+        this.setConsole('success', 'Preview ready', `${data.chapterCount || 0} chapters found\nsample content: ${diag.hasSampleContent ? 'yes' : 'no'}\nrecommend import: ${diag.recommendImport ? 'yes' : 'review first'}`);
       } catch (err) {
         this.setConsole('error', 'Preview failed', err.message);
         Ui.showToast(err.message, 'error');
