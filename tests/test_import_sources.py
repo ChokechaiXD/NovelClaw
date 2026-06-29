@@ -118,3 +118,24 @@ def test_import_sites_command_returns_catalog_shape():
     assert isinstance(payload["sites"], list)
     assert payload["sites"][0]["id"]
     assert "fallbackAdapters" in payload
+
+
+def test_preview_url_includes_sample_chapter_diagnostics(monkeypatch):
+    def fake_fetch(url, *_args, **_kwargs):
+        if url.endswith("/1.html"):
+            return read_fixture("import_69shu_chapter.html")
+        return read_fixture("import_69shu_toc.html")
+
+    monkeypatch.setattr(static_sites, "fetch_url", fake_fetch)
+    adapter = Shu69Adapter()
+    monkeypatch.setattr(import_sources, "get_adapter", lambda *_args, **_kwargs: adapter)
+    monkeypatch.setattr(import_sources, "list_adapters", lambda: [adapter])
+
+    payload = import_sources.preview_url("https://www.69shu.com/12345/", "69shu")
+
+    assert payload["chapterCount"] == 2
+    assert payload["diagnostics"]["hasToc"] is True
+    assert payload["diagnostics"]["hasSampleContent"] is True
+    assert payload["diagnostics"]["recommendImport"] is True
+    assert payload["sampleChapter"]["num"] == 1
+    assert payload["sampleChapter"]["paragraphCount"] >= 2

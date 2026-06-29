@@ -138,6 +138,35 @@ def update_novel_json(
 def preview_url(url: str, site: str = "auto") -> dict:
     adapter = get_adapter(url, site)
     toc = adapter.fetch_toc(url)
+    sample: dict | None = None
+    diagnostics: dict = {
+        "hasToc": len(toc.chapters) > 0,
+        "hasSampleContent": False,
+        "recommendImport": len(toc.chapters) > 0,
+        "warnings": [],
+    }
+    if toc.chapters:
+        ref = toc.chapters[0]
+        try:
+            raw = adapter.fetch_chapter(ref)
+            chapter = adapter.extract(raw, ref)
+            total_chars = sum(len(p) for p in chapter.paragraphs)
+            sample = {
+                "num": ref.num,
+                "title": chapter.title or ref.title,
+                "sourceUrl": chapter.source_url,
+                "paragraphCount": len(chapter.paragraphs),
+                "charCount": total_chars,
+                "paragraphs": chapter.paragraphs[:3],
+                "warnings": list(chapter.warnings),
+                "needsReview": chapter.needs_review,
+            }
+            diagnostics["hasSampleContent"] = total_chars > 0 and len(chapter.paragraphs) > 0
+            diagnostics["warnings"] = list(chapter.warnings)
+            diagnostics["recommendImport"] = diagnostics["hasSampleContent"] and "empty_content" not in chapter.warnings
+        except Exception as exc:
+            diagnostics["sampleError"] = str(exc)[:200]
+            diagnostics["recommendImport"] = False
     return {
         "site": toc.site,
         "displayName": getattr(adapter, "display_name", toc.site),
@@ -147,6 +176,8 @@ def preview_url(url: str, site: str = "auto") -> dict:
         "sourceLang": toc.source_lang,
         "chapterCount": len(toc.chapters),
         "chapters": [asdict(ch) for ch in toc.chapters[:200]],
+        "sampleChapter": sample,
+        "diagnostics": diagnostics,
         "supportedAdapters": [adapter.id for adapter in list_adapters()],
     }
 

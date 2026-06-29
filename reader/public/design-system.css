@@ -2208,6 +2208,30 @@ pre code {
   font-size: 1rem;
 }
 
+.c-admin-import__health-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.c-admin-import__health-head .c-admin-import__title {
+  margin-bottom: 0;
+}
+
+.c-admin-import__health-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.c-admin-import__health-table {
+  max-height: 320px;
+  overflow: auto;
+}
+
 .c-admin-import__form,
 .c-admin-import__paste-form,
 .c-admin-import__run-grid,
@@ -2268,6 +2292,47 @@ pre code {
   overflow: auto;
 }
 
+.c-admin-import__diagnostics {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  margin: var(--space-sm) 0;
+}
+
+.c-admin-import__sample-card {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  background: var(--c-bg-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.c-admin-import__sample-meta {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: baseline;
+  justify-content: space-between;
+  color: var(--c-text-secondary);
+  font-size: var(--text-xs);
+}
+
+.c-admin-import__sample-meta strong {
+  color: var(--c-text-primary);
+  font-size: var(--text-sm);
+}
+
+.c-admin-import__sample-text {
+  max-height: 180px;
+  overflow: auto;
+  color: var(--c-text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.c-admin-import__sample-text p {
+  margin: var(--space-xs) 0 0;
+}
+
 .c-admin-import__sites {
   margin-top: var(--space-md);
   max-height: 260px;
@@ -2280,6 +2345,9 @@ pre code {
   .c-admin-import__run-grid,
   .c-admin-import__preview-grid {
     grid-template-columns: 1fr;
+  }
+  .c-admin-import__health-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

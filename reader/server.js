@@ -37,6 +37,7 @@ const { pad, assertValidSlug, SLUG_RE, novelDir, novelJsonPath, novelCoverPath,
 const chapterRepo = require('./lib/chapter-repo');
 const novelRepo = require('./lib/novel-repo');
 const searchService = require('./lib/search-service');
+const importHealth = require('./lib/import-health');
 const { parseMarkdownToBlocks } = require('./lib/blocks');
 
 // Re-export for tests
@@ -594,6 +595,31 @@ app.get('/api/import/sites', asyncHandler(async (_req, res) => {
     fail(res, 500, 'IMPORT_SITES_FAILED', err.message);
   }
 }));
+
+app.get('/api/import/health', asyncHandler(async (req, res) => {
+  try {
+    const slug = (req.query.slug || '').toString().trim();
+    const data = slug
+      ? await importHealth.getNovelImportHealth(slug)
+      : await importHealth.getAllImportHealth();
+    ok(res, data);
+  } catch (err) {
+    fail(res, err.status || 500, 'IMPORT_HEALTH_FAILED', err.message);
+  }
+}));
+
+adminPost('/api/import/repair', async (req, res) => {
+  const { slug, action } = req.body;
+  if (!slug || !SLUG_RE.test(slug)) return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');
+  try {
+    const health = await importHealth.repairNovelImport(slug, action || 'rebuild-index');
+    invalidateCache('/api/novel/' + slug);
+    invalidateCache('/api/novels');
+    ok(res, { slug, action: action || 'rebuild-index', health });
+  } catch (err) {
+    fail(res, err.status || 500, 'IMPORT_REPAIR_FAILED', err.message);
+  }
+});
 
 adminPost('/api/import/preview', async (req, res) => {
   const { url, site } = req.body;
