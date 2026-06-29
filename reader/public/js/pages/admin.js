@@ -57,6 +57,22 @@ function formatImportRepairSummary(slug, repair = {}) {
   ].filter(Boolean).join('\n');
 }
 
+function formatTocRecoverySummary(slug, data = {}) {
+  const sample = (data.sampleChapters || []).slice(0, 8).map(item =>
+    '  - ' + item.num + ': ' + (item.title || '(untitled)')
+  );
+  return [
+    'slug: ' + slug,
+    'site: ' + (data.site || 'auto'),
+    'url: ' + (data.url || '-'),
+    'title: ' + (data.title || '-'),
+    'chapters found: ' + (data.chapterCount || 0),
+    'toc path: ' + (data.tocPath || '-'),
+    sample.length ? 'sample:' : '',
+    ...sample,
+  ].filter(Boolean).join('\n');
+}
+
 // ── ADMIN DASHBOARD
 const AdminDashboardPage = {
   async render(params) {
@@ -1180,13 +1196,17 @@ const AdminImportPage = {
     const risky = novels.filter(n => n.status !== 'ok' || n.staleIndexTitleCount > 0);
     const rows = (risky.length ? risky : novels.slice(0, 5)).map(n => {
       const badgeText = n.status === 'error' ? 'ต้องตรวจ' : (n.status === 'warn' ? 'ควรดู' : 'พร้อม');
+      const genericCount = n.issueSummary?.byCode?.generic_title || 0;
+      const recoverButton = genericCount > 0
+        ? '<button class="c-btn c-btn--sm c-btn--ghost import-recover-toc-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Recover TOC</button>'
+        : '';
       return '<tr>' +
         '<td><strong>' + Ui.esc(n.title || n.slug) + '</strong><div class="u-text-muted">' + Ui.esc(n.slug) + '</div></td>' +
         '<td>' + Ui.esc(n.sourceSite || '-') + '</td>' +
         '<td class="c-admin-table__mono">' + (n.sourceFileCount || 0) + '</td>' +
         '<td><span class="' + this._healthBadge(n.status) + '">' + badgeText + '</span></td>' +
         '<td>' + Ui.esc(this._issueText(n.issueSummary)) + (n.staleIndexTitleCount ? '<div class="u-text-muted">stale title × ' + n.staleIndexTitleCount + '</div>' : '') + '</td>' +
-        '<td><button class="c-btn c-btn--sm c-btn--secondary import-repair-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Repair</button></td>' +
+        '<td><div class="c-admin-novels__actions"><button class="c-btn c-btn--sm c-btn--secondary import-repair-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Repair</button>' + recoverButton + '</div></td>' +
         '</tr>';
     }).join('');
 
@@ -1421,6 +1441,45 @@ const AdminImportPage = {
           Ui.showToast(err.message, 'error');
           btn.disabled = false;
           btn.textContent = 'Repair';
+        }
+      });
+    });
+
+    page.querySelectorAll('.import-recover-toc-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const slug = btn.dataset.slug;
+        if (!slug) return;
+        btn.disabled = true;
+        btn.textContent = 'Checking...';
+        this.setConsole('running', 'TOC recovery preview', 'Fetching source table of contents for ' + slug + '...');
+        try {
+          const preview = this._data(await Api.recoverImportToc(slug, { dryRun: true }));
+          const previewMessage = formatTocRecoverySummary(slug, preview);
+          this.setConsole('idle', 'TOC recovery preview', previewMessage);
+          if (!preview.chapterCount) {
+            Ui.showToast('ไม่พบตอนจากสารบัญต้นทาง', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Recover TOC';
+            return;
+          }
+          if (!confirm('TOC recovery preview\n\n' + previewMessage + '\n\nSave this toc.json?')) {
+            btn.disabled = false;
+            btn.textContent = 'Recover TOC';
+            return;
+          }
+
+          btn.textContent = 'Saving...';
+          this.setConsole('running', 'TOC recovery running', 'Saving toc.json for ' + slug + '...');
+          const result = this._data(await Api.recoverImportToc(slug, { dryRun: false }));
+          this.setConsole('success', 'TOC recovery complete', formatTocRecoverySummary(slug, result));
+          Ui.showToast('สร้าง toc.json แล้ว กด Repair เพื่อซ่อม generic title ต่อ');
+          btn.disabled = false;
+          btn.textContent = 'Done';
+        } catch (err) {
+          this.setConsole('error', 'TOC recovery failed', err.message);
+          Ui.showToast(err.message, 'error');
+          btn.disabled = false;
+          btn.textContent = 'Recover TOC';
         }
       });
     });

@@ -632,6 +632,28 @@ adminPost('/api/import/repair', async (req, res) => {
   }
 });
 
+adminPost('/api/import/recover-toc', async (req, res) => {
+  const { slug, site, url, dryRun } = req.body;
+  if (!slug || !SLUG_RE.test(slug)) return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');
+  const args = [
+    path.join(__dirname, '..', 'tools', 'import_sources.py'),
+    'recover-toc',
+    '--slug',
+    slug,
+    '--site',
+    site || 'auto',
+  ];
+  if (url) args.push('--url', String(url));
+  if (dryRun === true) args.push('--dry-run');
+
+  try {
+    const result = await runPythonJson(args, { timeout: 120_000 });
+    ok(res, result);
+  } catch (err) {
+    fail(res, err.status || 500, 'IMPORT_TOC_RECOVERY_FAILED', err.message);
+  }
+});
+
 adminPost('/api/import/preview', async (req, res) => {
   const { url, site } = req.body;
   if (!url) return fail(res, 400, 'MISSING_URL', 'Source URL is required');
