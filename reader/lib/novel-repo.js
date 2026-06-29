@@ -86,18 +86,25 @@ exports.getNovelMeta = getNovelMeta;
 async function saveNovelMeta(slug, data) {
   assertValidSlug(slug);
   const novelDirPath = novelDir(slug);
+  let existing = {};
+  try {
+    existing = JSON.parse(await fs.readFile(novelJsonPath(slug), 'utf8'));
+  } catch {}
 
   // Write canonical novel.json
   const novelData = {
+    ...existing,
     slug,
-    title: data.title || slug,
-    translatedTitle: data.translatedTitle || '',
-    author: data.author || '',
-    sourceLang: data.source_lang || 'cn',
-    targetLang: data.target_lang || 'th',
-    status: data.status || 'ongoing',
-    totalChapters: data.total_chapters ? parseInt(data.total_chapters, 10) : 0,
-    description: data.description || '',
+    title: data.title || existing.title || slug,
+    translatedTitle: data.translatedTitle ?? existing.translatedTitle ?? '',
+    author: data.author ?? existing.author ?? '',
+    sourceLang: data.source_lang || data.sourceLang || existing.sourceLang || existing.source_lang || 'cn',
+    targetLang: data.target_lang || data.targetLang || existing.targetLang || existing.target_lang || 'th',
+    status: data.status || existing.status || 'ongoing',
+    totalChapters: data.total_chapters !== undefined
+      ? parseInt(data.total_chapters, 10) || 0
+      : (data.totalChapters !== undefined ? parseInt(data.totalChapters, 10) || 0 : (existing.totalChapters || 0)),
+    description: data.description ?? existing.description ?? '',
     updatedAt: new Date().toISOString(),
   };
   await fs.mkdir(novelDirPath, { recursive: true });
@@ -107,14 +114,14 @@ async function saveNovelMeta(slug, data) {
   const metaYaml = [
     '---',
     `slug: ${slug}`,
-    `title: ${data.title || slug}`,
-    `author: ${data.author || ''}`,
-    `source_lang: ${data.source_lang || 'cn'}`,
-    `target_lang: ${data.target_lang || 'th'}`,
-    `status: ${data.status || 'ongoing'}`,
-    `total_chapters: ${String(data.total_chapters || '0')}`,
+    `title: ${novelData.title || slug}`,
+    `author: ${novelData.author || ''}`,
+    `source_lang: ${novelData.sourceLang || 'cn'}`,
+    `target_lang: ${novelData.targetLang || 'th'}`,
+    `status: ${novelData.status || 'ongoing'}`,
+    `total_chapters: ${String(novelData.totalChapters || '0')}`,
     '---',
-    `# ${data.title || slug}`,
+    `# ${novelData.translatedTitle || novelData.title || slug}`,
   ].join('\n');
   await fs.writeFile(metaMdPath(slug), metaYaml, 'utf8');
 

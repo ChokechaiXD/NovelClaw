@@ -176,6 +176,43 @@ const Api = {
     return res.json();
   },
 
+  async importPreview(payload) {
+    const res = await fetch('/api/import/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || {})
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error?.message || `${res.status} ${res.statusText}`);
+    return data;
+  },
+
+  async importRun(payload) {
+    const res = await fetch('/api/import/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || {})
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error?.message || `${res.status} ${res.statusText}`);
+    const slug = payload?.slug;
+    if (slug) this.invalidateAll(slug);
+    return data;
+  },
+
+  async importPaste(payload) {
+    const res = await fetch('/api/import/paste', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || {})
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error?.message || `${res.status} ${res.statusText}`);
+    const slug = payload?.slug;
+    if (slug) this.invalidateAll(slug);
+    return data;
+  },
+
   // ── Provider Config API (YAML-based) ──────────────────────────
   async getProviderConfig() {
     const res = await fetch('/api/admin/provider-config');
