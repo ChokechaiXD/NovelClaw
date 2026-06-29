@@ -13,6 +13,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import urllib.error
+import urllib.request
 from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
@@ -24,12 +26,15 @@ _CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "providers.ya
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
-def _resolve_refs(obj: Any) -> Any:
+def _resolve_refs(obj: Any, config_refs: dict[str, Any] | None = None) -> Any:
     """Recursively resolve env var refs (${VAR}) and file-based keys."""
     if isinstance(obj, str):
         # Resolve ${VAR}
         def _env_replace(m: re.Match) -> str:
-            return os.environ.get(m.group(1), "")
+            name = m.group(1)
+            if config_refs and name in config_refs:
+                return str(config_refs.get(name) or "")
+            return os.environ.get(name, "")
         obj = re.sub(r"\$\{(\w+)\}", _env_replace, obj)
 
         # Resolve llm.json.key.xxx
@@ -52,9 +57,9 @@ def _resolve_refs(obj: Any) -> Any:
         return obj
 
     if isinstance(obj, dict):
-        return {k: _resolve_refs(v) for k, v in obj.items()}
+        return {k: _resolve_refs(v, config_refs) for k, v in obj.items()}
     if isinstance(obj, list):
-        return [_resolve_refs(v) for v in obj]
+        return [_resolve_refs(v, config_refs) for v in obj]
     return obj
 
 
@@ -68,7 +73,12 @@ def _load_provider_config() -> dict[str, Any]:
     with open(_CONFIG_PATH, encoding="utf-8") as f:
         raw = yaml.safe_load(f) or {}
 
-    resolved = _resolve_refs(raw)
+    config_refs = {
+        "active": raw.get("active", ""),
+        "default_model": raw.get("default_model", ""),
+        "discovery_model": raw.get("discovery_model", raw.get("default_model", "")),
+    }
+    resolved = _resolve_refs(raw, config_refs)
 
     # Resolve file-based API keys (api_key_file → api_key)
     providers = resolved.get("providers", {})
@@ -133,15 +143,58 @@ def _resolve_file_key(value: str) -> str:
         return ""
 
 
+def _write_llm_json_key(key: str, value: str) -> None:
+    llm_path = _PROJECT_ROOT / "llm.json"
+    data: dict[str, Any] = {}
+    if llm_path.exists():
+        try:
+            existing = json.loads(llm_path.read_text(encoding="utf-8"))
+            if isinstance(existing, dict):
+                data = existing
+        except (json.JSONDecodeError, OSError):
+            data = {}
+    data[key] = value
+    llm_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _replace_custom_base_url(text: str, custom_base_url: str) -> str:
+    lines = text.splitlines(keepends=True)
+    in_custom = False
+    custom_indent = None
+    updated = False
+    out: list[str] = []
+    for line in lines:
+        stripped = line.lstrip()
+        indent = len(line) - len(stripped)
+        if re.match(r"^custom:\s*(?:#.*)?$", stripped):
+            in_custom = True
+            custom_indent = indent
+        elif in_custom and stripped and indent <= (custom_indent or 0):
+            in_custom = False
+            custom_indent = None
+
+        if in_custom and re.match(r"^base_url:", stripped):
+            out.append(re.sub(r'^(\s*base_url:\s*).*', rf'\1"{custom_base_url}"', line))
+            updated = True
+        else:
+            out.append(line)
+
+    return "".join(out) if updated else text
+
+
 def save_provider_config(active: str | None = None,
                          default_model: str | None = None,
-                         discovery_model: str | None = None) -> bool:
+                         discovery_model: str | None = None,
+                         custom_base_url: str | None = None,
+                         custom_api_key: str | None = None) -> bool:
     """Update active provider and/or default model in YAML file.
 
     Args:
         active: New active provider name (or None to keep).
         default_model: New default model ID (or None to keep).
         discovery_model: New discovery/judge model ID (or None to keep).
+        custom_base_url: OpenAI-compatible endpoint for the custom provider.
+        custom_api_key: Optional API key for the custom provider, saved to llm.json.
 
     Returns:
         True if saved successfully.
@@ -165,7 +218,12 @@ def save_provider_config(active: str | None = None,
         else:
             new_lines.append(line)
 
-    _CONFIG_PATH.write_text("".join(new_lines), encoding="utf-8")
+    text = "".join(new_lines)
+    if custom_base_url is not None:
+        text = _replace_custom_base_url(text, custom_base_url.strip())
+    _CONFIG_PATH.write_text(text, encoding="utf-8")
+    if custom_api_key is not None and custom_api_key.strip():
+        _write_llm_json_key("custom_api_key", custom_api_key.strip())
     clear_provider_config_cache()
     return True
 
@@ -182,7 +240,76 @@ def get_discovery_model() -> str:
     return cfg.get("discovery_model", cfg.get("default_model", "deepseek-v4-flash"))
 
 
-def get_providers_list() -> list[dict[str, Any]]:
+def _model_label(model_id: str) -> str:
+    return model_id.rsplit("/", 1)[-1].replace("-", " ").replace("_", " ").strip() or model_id
+
+
+def _model_catalog(models: list[Any], source: str = "static") -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for model in models:
+        if isinstance(model, str):
+            model_id = model
+            item = {"id": model_id, "name": _model_label(model_id), "tier": source}
+        elif isinstance(model, dict):
+            model_id = str(model.get("id") or "").strip()
+            if not model_id:
+                continue
+            item = {
+                "id": model_id,
+                "name": model.get("name") or _model_label(model_id),
+                "tier": model.get("tier") or source,
+            }
+        else:
+            continue
+        if item["id"] in seen:
+            continue
+        seen.add(item["id"])
+        result.append(item)
+    return result
+
+
+def discover_provider_models(provider_name: str, timeout_sec: float = 8.0) -> dict[str, Any]:
+    """Fetch the current model list from a provider's /models endpoint.
+
+    Returns a small status dict and never raises for expected network/provider
+    failures. Static config stays the fallback for offline/local-first use.
+    """
+    cfg = get_provider_config()
+    providers = cfg.get("providers", {})
+    pcfg = providers.get(provider_name, {}) if isinstance(providers, dict) else {}
+    if not isinstance(pcfg, dict):
+        return {"ok": False, "models": [], "error": f"Unknown provider: {provider_name}"}
+
+    base_url = str(pcfg.get("base_url") or "").rstrip("/")
+    if not base_url:
+        return {"ok": False, "models": [], "error": "Provider has no base_url"}
+
+    headers = {"Accept": "application/json"}
+    api_key = str(pcfg.get("api_key") or "").strip()
+    if provider_name == "anthropic":
+        if api_key:
+            headers["x-api-key"] = api_key
+        headers["anthropic-version"] = "2023-06-01"
+    elif api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    request = urllib.request.Request(f"{base_url}/models", headers=headers, method="GET")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout_sec) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+        return {"ok": False, "models": [], "error": str(exc)[:200]}
+
+    raw_models = payload.get("data", payload) if isinstance(payload, dict) else payload
+    if not isinstance(raw_models, list):
+        return {"ok": False, "models": [], "error": "Provider returned an unsupported model list"}
+
+    models = _model_catalog(raw_models, "live")
+    return {"ok": True, "models": models, "error": ""}
+
+
+def get_providers_list(refresh: bool = False) -> list[dict[str, Any]]:
     """Get list of available providers with their models, for Admin UI."""
     cfg = get_provider_config()
     providers = cfg.get("providers", {})
@@ -191,10 +318,24 @@ def get_providers_list() -> list[dict[str, Any]]:
     result = []
     for name, pcfg in providers.items():
         if isinstance(pcfg, dict):
+            static_models = _model_catalog(pcfg.get("models", []), "static")
+            models = static_models
+            model_source = "static"
+            model_error = ""
+            if refresh:
+                discovered = discover_provider_models(name)
+                if discovered.get("ok") and discovered.get("models"):
+                    models = discovered["models"]
+                    model_source = "live"
+                else:
+                    model_error = discovered.get("error", "")
             result.append({
                 "name": name,
                 "display_name": pcfg.get("display_name", name),
-                "models": pcfg.get("models", []),
+                "base_url": pcfg.get("base_url", ""),
+                "models": models,
+                "model_source": model_source,
+                "model_error": model_error,
             })
     return result
 

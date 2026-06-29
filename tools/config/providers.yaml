@@ -105,6 +105,19 @@ providers:
         name: "GPT-4o Mini (paid)"
         tier: paid
 
+  custom:
+    display_name: Custom OpenAI-compatible
+    base_url: "http://localhost:8000/v1"
+    api_key_env: CUSTOM_API_KEY
+    api_key_file: llm.json.custom_api_key
+    timeout_sec: 120
+    max_tokens: 4096
+    temperature: 0.3
+    models:
+      - id: "custom-model"
+        name: "Custom model"
+        tier: custom
+
 # Translation profiles (which provider + model to use for each task)
 profiles:
   translate:

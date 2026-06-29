@@ -824,6 +824,54 @@ adminPost('/api/invalidate-cache', (req, res) => {
 const SLUG_RE_LOOSE = /^[a-z0-9-]+$/i;
 const NUM_RE = /^\d{1,5}$/;
 const LOGS_DIR = path.resolve(__dirname, '..', 'logs', 'translate');
+const JOBS_DIR = path.resolve(__dirname, '..', 'jobs');
+
+async function collectJobBucket(bucket) {
+  const dir = path.join(JOBS_DIR, bucket);
+  const files = [];
+  async function walk(current, depth = 0) {
+    if (depth > 2) return;
+    let entries;
+    try { entries = await fs.readdir(current, { withFileTypes: true }); }
+    catch (err) {
+      if (err.code === 'ENOENT') return;
+      throw err;
+    }
+    for (const entry of entries) {
+      const fullPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        await walk(fullPath, depth + 1);
+      } else if (entry.isFile()) {
+        const stat = await fs.stat(fullPath);
+        files.push({
+          name: path.relative(dir, fullPath).replace(/\\/g, '/'),
+          mtimeMs: stat.mtimeMs,
+          size: stat.size,
+        });
+      }
+    }
+  }
+  await walk(dir);
+  files.sort((a, b) => b.mtimeMs - a.mtimeMs);
+  return files;
+}
+
+app.get('/api/admin/translation-health', requireAdmin, asyncHandler(async (req, res) => {
+  const buckets = ['active', 'done', 'failed', 'needs_review'];
+  const result = {};
+  for (const bucket of buckets) {
+    const files = await collectJobBucket(bucket);
+    result[bucket] = {
+      count: files.length,
+      latest: files.slice(0, 5).map(file => ({
+        name: file.name,
+        size: file.size,
+        updatedAt: new Date(file.mtimeMs).toISOString(),
+      })),
+    };
+  }
+  ok(res, { buckets: result });
+}));
 
 app.get('/api/admin/logs/:slug/:num', requireAdmin, asyncHandler(async (req, res) => {
   const { slug, num } = req.params;
@@ -1332,20 +1380,22 @@ function runProviderConfigScript(code, input = null) {
   });
 }
 
-async function readProviderConfig() {
+async function readProviderConfig(options = {}) {
+  const refreshModels = options.refreshModels === true;
   const now = Date.now();
-  if (providerConfigCache.data && now - providerConfigCache.time < PROVIDER_CONFIG_TTL_MS) {
+  if (!refreshModels && providerConfigCache.data && now - providerConfigCache.time < PROVIDER_CONFIG_TTL_MS) {
     return providerConfigCache.data;
   }
-  if (providerConfigCache.inFlight) return providerConfigCache.inFlight;
+  if (!refreshModels && providerConfigCache.inFlight) return providerConfigCache.inFlight;
 
-  providerConfigCache.inFlight = (async () => {
+  const load = (async () => {
     const stdout = await runProviderConfigScript(`
 import sys; sys.path.insert(0, 'tools')
 from llm_router.config_providers import get_provider_config, get_providers_list
 import json
+refresh = ${refreshModels ? 'True' : 'False'}
 cfg = get_provider_config()
-plist = get_providers_list()
+plist = get_providers_list(refresh=refresh)
 print(json.dumps({
   "active": cfg.get("active", ""),
   "default_model": cfg.get("default_model", ""),
@@ -1355,14 +1405,18 @@ print(json.dumps({
 }, ensure_ascii=False))
     `);
     const data = JSON.parse(stdout.trim());
-    providerConfigCache.time = Date.now();
-    providerConfigCache.data = data;
-    providerConfigCache.inFlight = null;
+    if (!refreshModels) {
+      providerConfigCache.time = Date.now();
+      providerConfigCache.data = data;
+      providerConfigCache.inFlight = null;
+    }
     return data;
   })().catch((err) => {
-    providerConfigCache.inFlight = null;
+    if (!refreshModels) providerConfigCache.inFlight = null;
     throw err;
   });
+  if (refreshModels) return load;
+  providerConfigCache.inFlight = load;
   return providerConfigCache.inFlight;
 }
 
@@ -1375,7 +1429,9 @@ function invalidateProviderConfig() {
 app.get('/api/admin/provider-config', asyncHandler(async (req, res) => {
   const startedAt = Date.now();
   try {
-    const data = await readProviderConfig();
+    const data = await readProviderConfig({
+      refreshModels: req.query.refreshModels === '1' || req.query.refreshModels === 'true',
+    });
     logTiming('GET /api/admin/provider-config', startedAt);
     res.json(data);
   } catch (err) {
@@ -1384,15 +1440,17 @@ app.get('/api/admin/provider-config', asyncHandler(async (req, res) => {
 }));
 
 adminPost('/api/admin/provider-config', async (req, res) => {
-  const { active, default_model, discovery_model } = req.body;
-  if (!active && !default_model && !discovery_model) {
-    return fail(res, 400, 'INVALID_INPUT', 'Provide at least active, default_model, or discovery_model');
+  const { active, default_model, discovery_model, custom_base_url, custom_api_key } = req.body;
+  if (!active && !default_model && !discovery_model && !custom_base_url && !custom_api_key) {
+    return fail(res, 400, 'INVALID_INPUT', 'Provide at least active, default_model, discovery_model, or custom endpoint settings');
   }
   try {
     const payload = JSON.stringify({
       active: active || null,
       default_model: default_model || null,
       discovery_model: discovery_model || null,
+      custom_base_url: custom_base_url || null,
+      custom_api_key: custom_api_key || null,
     });
     await runProviderConfigScript(`
 import json, sys
@@ -1405,7 +1463,7 @@ if not saved:
 print(json.dumps({"saved": True}))
     `, payload);
     invalidateProviderConfig();
-    ok(res, { saved: true, active, default_model, discovery_model });
+    ok(res, { saved: true, active, default_model, discovery_model, custom_base_url: custom_base_url || null });
   } catch (err) {
     fail(res, 500, 'SERVER_ERROR', err.message);
   }
