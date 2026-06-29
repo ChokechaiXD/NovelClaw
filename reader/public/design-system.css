@@ -2125,6 +2125,108 @@ pre code {
 }
 .c-form__input:focus, .c-form__select:focus { outline: none; border-color: var(--c-accent); }
 
+.c-form__textarea {
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-surface);
+  color: var(--c-text);
+  font: inherit;
+  line-height: 1.7;
+}
+
+.c-form__textarea:focus {
+  outline: none;
+  border-color: var(--c-accent);
+}
+
+.c-admin-import {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.c-admin-import__panel,
+.c-admin-import__preview {
+  padding: var(--space-md);
+}
+
+.c-admin-import__title {
+  margin: 0 0 var(--space-md);
+  font-size: 1rem;
+}
+
+.c-admin-import__form,
+.c-admin-import__paste-form,
+.c-admin-import__run-grid,
+.c-admin-import__preview-grid {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.c-admin-import__form {
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px) auto;
+  align-items: end;
+}
+
+.c-admin-import__paste-form {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+}
+
+.c-admin-import__url-group,
+.c-admin-import__textarea-group {
+  min-width: 0;
+}
+
+.c-admin-import__textarea-group {
+  grid-column: 1 / -1;
+}
+
+.c-admin-import__preview {
+  margin-top: var(--space-md);
+}
+
+.c-admin-import__preview-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: var(--space-md);
+}
+
+.c-admin-import__preview-grid strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.c-admin-import__run-grid {
+  grid-template-columns: minmax(180px, 1fr) minmax(120px, 180px) auto auto;
+  align-items: end;
+}
+
+.c-admin-import__check {
+  display: inline-flex;
+  gap: var(--space-xs);
+  align-items: center;
+  min-height: 40px;
+  color: var(--c-text-muted);
+}
+
+.c-admin-import__sample {
+  margin-top: var(--space-md);
+  max-height: 320px;
+  overflow: auto;
+}
+
+@media (max-width: 900px) {
+  .c-admin-import__form,
+  .c-admin-import__paste-form,
+  .c-admin-import__run-grid,
+  .c-admin-import__preview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 /* ── Search ─────────────────────────────────────────────────────────── */
 .c-search { position: relative; }

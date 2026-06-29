@@ -127,6 +127,7 @@ const Ui = {
   adminNav(active) {
     const links = [
       { name: 'dashboard', label: 'ภาพรวม', page: 'admin' },
+      { name: 'import', label: 'นำเข้า', page: 'admin/import' },
       { name: 'translate', label: 'สั่งแปล & AI', page: 'admin/translate' },
       { name: 'novels', label: 'นิยาย', page: 'admin/novels' },
       { name: 'chapters', label: 'ตอน', page: 'admin/chapters' },

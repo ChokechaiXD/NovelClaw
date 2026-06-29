@@ -76,6 +76,8 @@ const AdminDashboardPage = {
         '  <svg class="c-admin-dashboard__tile-icon"><use xlink:href="#icon-book"/></svg><div><div class="c-admin-dashboard__tile-title">จัดการตอน</div><div class="c-admin-dashboard__tile-meta">' + untranslated + ' ตอนที่ยังไม่แปล</div></div></a>' +
         '<a href="#admin/glossary" class="c-card c-admin-dashboard__tile" data-nav>' +
         '  <svg class="c-admin-dashboard__tile-icon c-admin-dashboard__tile-icon--accent-2"><use xlink:href="#icon-bookmarks"/></svg><div><div class="c-admin-dashboard__tile-title">จัดการคำศัพท์</div><div class="c-admin-dashboard__tile-meta">Glossary / NPC names</div></div></a>' +
+        '<a href="#admin/import" class="c-card c-admin-dashboard__tile" data-nav>' +
+        '  <svg class="c-admin-dashboard__tile-icon"><use xlink:href="#icon-library"/></svg><div><div class="c-admin-dashboard__tile-title">นำเข้าต้นฉบับ</div><div class="c-admin-dashboard__tile-meta">URL / Paste → Source</div></div></a>' +
         '</div>' +
         '<div class="c-section__header c-admin-page__header c-admin-page__header--loose"><h3 class="c-section__title">เครื่องมือ</h3></div>' +
         '<div class="c-admin-dashboard__grid">' +
@@ -841,6 +843,204 @@ const AdminLogsPage = {
   }
 };
 
+// ── ADMIN IMPORT SOURCE ──────────────────────────────────────────────────
+const AdminImportPage = {
+  _preview: null,
+
+  setConsole(state, title, message) {
+    AdminUi.setConsole('import', state, title, message);
+  },
+
+  _data(resp) {
+    return resp && resp.data ? resp.data : (resp || {});
+  },
+
+  _slugFromTitle(title) {
+    return String(title || 'imported-novel')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || 'imported-novel';
+  },
+
+  _summary(data) {
+    const results = data.results || [];
+    const warningCount = results.reduce((sum, item) => sum + ((item.warnings || []).length > 0 ? 1 : 0), 0);
+    return [
+      'imported: ' + (data.imported || 0),
+      'skipped: ' + (data.skipped || 0),
+      'failed: ' + (data.failed || 0),
+      'warnings: ' + warningCount,
+    ].join('\n');
+  },
+
+  _renderPreview(data) {
+    const box = document.getElementById('import-preview');
+    if (!box) return;
+    const chapters = data.chapters || [];
+    const sampleRows = chapters.slice(0, 8).map(ch =>
+      '<tr><td class="c-admin-table__mono">' + Ui.esc(ch.num) + '</td><td>' + Ui.esc(ch.title || '') + '</td></tr>'
+    ).join('');
+    box.hidden = false;
+    box.innerHTML =
+      '<div class="c-card c-admin-import__preview">' +
+      '<div class="c-admin-import__preview-grid">' +
+      '<div><span class="c-form__label">ชื่อเรื่อง</span><strong>' + Ui.esc(data.title || '') + '</strong></div>' +
+      '<div><span class="c-form__label">เว็บ</span><strong>' + Ui.esc(data.displayName || data.site || '') + '</strong></div>' +
+      '<div><span class="c-form__label">ภาษา</span><strong>' + Ui.esc(data.sourceLang || '') + '</strong></div>' +
+      '<div><span class="c-form__label">จำนวนตอน</span><strong>' + Ui.esc(data.chapterCount || 0) + '</strong></div>' +
+      '</div>' +
+      '<div class="c-admin-import__run-grid">' +
+      '<div class="c-form__group"><label class="c-form__label" for="import-slug">Slug</label><input class="c-form__input" id="import-slug" value="' + Ui.esc(this._slugFromTitle(data.title)) + '" /></div>' +
+      '<div class="c-form__group"><label class="c-form__label" for="import-range">ช่วงตอน</label><input class="c-form__input" id="import-range" placeholder="1-20" /></div>' +
+      '<label class="c-admin-import__check"><input type="checkbox" id="import-force" /> overwrite</label>' +
+      '<button class="c-btn c-btn--primary" id="import-run" type="button">นำเข้า source</button>' +
+      '</div>' +
+      '<div class="c-table-wrap c-admin-import__sample"><table class="c-table"><thead><tr><th>ตอน</th><th>ชื่อ</th></tr></thead><tbody>' + sampleRows + '</tbody></table></div>' +
+      '</div>';
+
+    document.getElementById('import-run')?.addEventListener('click', async () => {
+      const btn = document.getElementById('import-run');
+      const slug = document.getElementById('import-slug')?.value.trim();
+      const range = document.getElementById('import-range')?.value.trim();
+      const force = document.getElementById('import-force')?.checked;
+      if (!slug) {
+        Ui.showToast('กรุณาระบุ slug', 'error');
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'กำลังนำเข้า...';
+      this.setConsole('running', 'Import running', 'Fetching and cleaning source chapters...');
+      try {
+        const result = this._data(await Api.importRun({
+          url: data.url,
+          site: data.site || 'auto',
+          slug,
+          range,
+          force,
+        }));
+        this.setConsole('success', 'Import complete', this._summary(result));
+        Ui.showToast('นำเข้า source สำเร็จ');
+      } catch (err) {
+        this.setConsole('error', 'Import failed', err.message);
+        Ui.showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'นำเข้า source';
+      }
+    });
+  },
+
+  async render(params) {
+    const page = Ui.$('page-admin-import');
+    if (!page) return;
+
+    page.innerHTML = `
+      <div class="c-container">
+        ${Ui.adminNav('import')}
+        <div class="c-section__header c-admin-page__header"><h3 class="c-section__title">นำเข้าต้นฉบับ</h3></div>
+        <div class="c-admin-import">
+          <div class="c-card c-admin-import__panel">
+            <h3 class="c-admin-import__title">URL</h3>
+            <div class="c-form c-admin-import__form">
+              <div class="c-form__group c-admin-import__url-group">
+                <label class="c-form__label" for="import-url">URL สารบัญ</label>
+                <input class="c-form__input" id="import-url" placeholder="https://..." />
+              </div>
+              <div class="c-form__group">
+                <label class="c-form__label" for="import-site">Adapter</label>
+                <select class="c-form__select" id="import-site">
+                  <option value="auto">auto</option>
+                  <option value="69shu">69shu</option>
+                  <option value="uukanshu">uukanshu</option>
+                  <option value="syosetu">syosetu</option>
+                  <option value="kakuyomu">kakuyomu</option>
+                  <option value="royalroad">royalroad</option>
+                </select>
+              </div>
+              <button class="c-btn c-btn--secondary c-admin-import__preview-btn" id="import-preview-btn" type="button">Preview</button>
+            </div>
+            <div id="import-preview" hidden></div>
+          </div>
+
+          <div class="c-card c-admin-import__panel">
+            <h3 class="c-admin-import__title">Paste</h3>
+            <div class="c-form c-admin-import__paste-form">
+              <div class="c-form__group"><label class="c-form__label" for="paste-slug">Slug</label><input class="c-form__input" id="paste-slug" /></div>
+              <div class="c-form__group"><label class="c-form__label" for="paste-title">ชื่อเรื่อง</label><input class="c-form__input" id="paste-title" /></div>
+              <div class="c-form__group"><label class="c-form__label" for="paste-lang">ภาษา source</label><input class="c-form__input" id="paste-lang" value="cn" /></div>
+              <div class="c-form__group"><label class="c-form__label" for="paste-rule">Split rule</label><input class="c-form__input" id="paste-rule" placeholder="(?:ตอนที่|第|Chapter)\\s*(\\d+)" /></div>
+              <div class="c-form__group c-admin-import__textarea-group"><label class="c-form__label" for="paste-content">ข้อความ</label><textarea class="c-form__textarea" id="paste-content"></textarea></div>
+              <label class="c-admin-import__check"><input type="checkbox" id="paste-force" /> overwrite</label>
+              <button class="c-btn c-btn--primary" id="paste-run" type="button">บันทึก source</button>
+            </div>
+          </div>
+
+          <div class="c-card c-admin-translate__panel" id="import-console-card" hidden>
+            <div class="c-admin-translate__console-head">
+              <h4 id="import-console-title">Import</h4>
+              <span id="import-console-badge" class="c-badge c-badge--gray">พร้อมใช้งาน</span>
+            </div>
+            <pre class="c-admin-translate__console" id="import-console-output"></pre>
+          </div>
+        </div>
+      </div>`;
+
+    document.getElementById('import-preview-btn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('import-preview-btn');
+      const url = document.getElementById('import-url')?.value.trim();
+      const site = document.getElementById('import-site')?.value || 'auto';
+      if (!url) {
+        Ui.showToast('กรุณาระบุ URL', 'error');
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Loading...';
+      this.setConsole('running', 'Preview running', 'Fetching table of contents...');
+      try {
+        const data = this._data(await Api.importPreview({ url, site }));
+        this._preview = data;
+        this._renderPreview(data);
+        this.setConsole('success', 'Preview ready', `${data.chapterCount || 0} chapters found`);
+      } catch (err) {
+        this.setConsole('error', 'Preview failed', err.message);
+        Ui.showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Preview';
+      }
+    });
+
+    document.getElementById('paste-run')?.addEventListener('click', async () => {
+      const btn = document.getElementById('paste-run');
+      const slug = document.getElementById('paste-slug')?.value.trim();
+      const title = document.getElementById('paste-title')?.value.trim();
+      const sourceLang = document.getElementById('paste-lang')?.value.trim() || 'cn';
+      const splitRule = document.getElementById('paste-rule')?.value.trim();
+      const content = document.getElementById('paste-content')?.value || '';
+      const force = document.getElementById('paste-force')?.checked;
+      if (!slug || !content.trim()) {
+        Ui.showToast('กรุณาระบุ slug และข้อความ', 'error');
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'กำลังบันทึก...';
+      this.setConsole('running', 'Paste import running', 'Cleaning pasted source...');
+      try {
+        const result = this._data(await Api.importPaste({ slug, title, sourceLang, splitRule, content, force }));
+        this.setConsole('success', 'Paste import complete', this._summary(result));
+        Ui.showToast('บันทึก source สำเร็จ');
+      } catch (err) {
+        this.setConsole('error', 'Paste import failed', err.message);
+        Ui.showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'บันทึก source';
+      }
+    });
+  }
+};
+
 // ── ADMIN TRANSLATE PAGE (Simplified) ⭐ ──────────────────────────
 const AdminTranslatePage = {
   setConsole(state, title, message) {
@@ -1200,6 +1400,7 @@ Router.register('admin', (p) => {
     'novels': AdminNovelsPage,
     'chapters': AdminChaptersPage,
     'glossary': AdminGlossaryPage,
+    'import': AdminImportPage,
     'novel-edit': AdminNovelEditPage,
     'logs': AdminLogsPage,
     'translate': AdminTranslatePage,

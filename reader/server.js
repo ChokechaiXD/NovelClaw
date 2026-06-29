@@ -231,6 +231,49 @@ async function readTextOrNull(filepath) {
   catch (err) { if (err.code === 'ENOENT') return null; throw err; }
 }
 
+function runPythonJson(args, options = {}) {
+  const { input = null, timeout = 300_000 } = options;
+  return new Promise((resolve, reject) => {
+    const child = spawn(getPythonCommand(), args, {
+      cwd: path.join(__dirname, '..'),
+      windowsHide: true,
+      timeout,
+      env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
+    child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(sanitizeOutput(stderr || stdout) || `Python exited ${code}`));
+        return;
+      }
+      try {
+        const payload = JSON.parse(stdout);
+        if (payload && payload.ok === false) {
+          reject(new Error(payload.error?.message || 'Import command failed'));
+          return;
+        }
+        resolve(payload && payload.data !== undefined ? payload.data : payload);
+      } catch (err) {
+        reject(new Error('Failed to parse import JSON: ' + sanitizeOutput(stdout)));
+      }
+    });
+    if (input !== null) child.stdin.write(input);
+    child.stdin.end();
+  });
+}
+
+async function finalizeSourceImport(slug) {
+  assertValidSlug(slug);
+  await chapterRepo.rebuildChaptersIndex(slug);
+  chapterRepo.invalidateAll(slug);
+  invalidateCache('/api/novel/' + slug);
+  invalidateCache('/api/novels');
+}
+
 // ── Novel listing and metadata ─────────────────────────────────────
 
 app.get('/api/novels', asyncHandler(async (_req, res) => {
@@ -438,112 +481,114 @@ adminPost('/api/novel/:slug/delete', async (req, res) => {
   ok(res, { deleted: true });
 });
 
+// ── Admin source import ──────────────────────────────────────────────
+
+adminPost('/api/import/preview', async (req, res) => {
+  const { url, site } = req.body;
+  if (!url) return fail(res, 400, 'MISSING_URL', 'Source URL is required');
+
+  try {
+    const data = await runPythonJson([
+      path.join(__dirname, '..', 'novelclaw.py'),
+      'import-url',
+      String(url),
+      '--slug',
+      'preview',
+      '--site',
+      site || 'auto',
+      '--preview',
+    ], { timeout: 120_000 });
+    ok(res, data);
+  } catch (err) {
+    fail(res, 400, 'IMPORT_PREVIEW_FAILED', err.message);
+  }
+});
+
+adminPost('/api/import/run', async (req, res) => {
+  const { url, slug, site, range, force } = req.body;
+  if (!url) return fail(res, 400, 'MISSING_URL', 'Source URL is required');
+  if (!slug || !SLUG_RE.test(slug)) return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');
+
+  const args = [
+    path.join(__dirname, '..', 'novelclaw.py'),
+    'import-url',
+    String(url),
+    '--slug',
+    slug,
+    '--site',
+    site || 'auto',
+  ];
+  if (range) args.push('--range', String(range));
+  if (force) args.push('--force');
+
+  try {
+    const data = await runPythonJson(args, { timeout: 600_000 });
+    await finalizeSourceImport(slug);
+    ok(res, data);
+  } catch (err) {
+    fail(res, 500, 'IMPORT_RUN_FAILED', err.message);
+  }
+});
+
+adminPost('/api/import/paste', async (req, res) => {
+  const { slug, title, author, sourceLang, splitRule, content, force } = req.body;
+  if (!slug || !SLUG_RE.test(slug)) return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');
+  if (!content || !String(content).trim()) return fail(res, 400, 'MISSING_CONTENT', 'Import content is required');
+
+  const args = [
+    path.join(__dirname, '..', 'tools', 'import_sources.py'),
+    'paste',
+    '--slug',
+    slug,
+    '--title',
+    title || slug,
+    '--source-lang',
+    sourceLang || 'cn',
+  ];
+  if (author) args.push('--author', String(author));
+  if (splitRule) args.push('--split-rule', String(splitRule));
+  if (force) args.push('--force');
+
+  try {
+    const data = await runPythonJson(args, { input: String(content), timeout: 180_000 });
+    await finalizeSourceImport(slug);
+    ok(res, data);
+  } catch (err) {
+    fail(res, 500, 'IMPORT_PASTE_FAILED', err.message);
+  }
+});
+
 // ── Admin import novel from text file ──────────────────────────────
 
 adminPost('/api/novel/import-file', async (req, res) => {
   const { title, slug, author, sourceLang, splitRule, content } = req.body;
   if (!slug || !SLUG_RE.test(slug)) {
-    return res.status(400).json({ ok: false, error: { code: 'INVALID_SLUG', message: 'Invalid slug format' } });
+    return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');
+  }
+  if (!content || !String(content).trim()) {
+    return fail(res, 400, 'MISSING_CONTENT', 'Import content is required');
   }
 
-  // 1. Save novel metadata (Creates directory as well)
-  await novelRepo.saveNovelMeta(slug, {
-    title,
-    author,
-    source_lang: sourceLang,
-    target_lang: 'th',
-    status: 'ongoing',
-    description: `นิยายนำเข้าด้วยไฟล์ข้อความเมื่อ ${new Date().toLocaleDateString('th-TH')}`
-  });
-
-  // Create chapters subdirectory
-  const chaptersDirPath = path.join(NOVELS_DIR, slug, 'chapters');
-  await fs.mkdir(chaptersDirPath, { recursive: true });
-
-  // 2. Parse and split chapters
-  let chapters = [];
-  let rule = splitRule || '(?:ตอนที่|第)\\s*(\\d+)\\s*(?:章|ตอน)?';
-  let regex = new RegExp('^' + rule + '.*$', 'gm');
-  
-  let matches = [];
-  let match;
-  while ((match = regex.exec(content)) !== null) {
-    matches.push({
-      index: match.index,
-      text: match[0],
-      chNum: parseInt(match[1], 10) || (matches.length + 1)
-    });
-  }
-
-  if (matches.length === 0) {
-    chapters.push({
-      num: 1,
-      title: 'ตอนที่ 1',
-      text: content
-    });
-  } else {
-    for (let i = 0; i < matches.length; i++) {
-      let start = matches[i].index;
-      let end = (i + 1 < matches.length) ? matches[i + 1].index : content.length;
-      let text = content.slice(start, end).trim();
-      let titleLine = matches[i].text.trim();
-      
-      // Extract paragraphs without the title line itself to avoid duplicates
-      let lines = text.split('\n');
-      if (lines[0].trim() === titleLine) {
-        lines.shift();
-      }
-      let filteredText = lines.join('\n').trim();
-
-      chapters.push({
-        num: matches[i].chNum || (i + 1),
-        title: titleLine,
-        text: filteredText || titleLine
-      });
-    }
-  }
-
-  // 3. Write each chapter json file
-  for (const ch of chapters) {
-    const paragraphs = ch.text.split('\n').map(p => p.trim()).filter(p => p.length > 0);
-    const chData = {
-      novelId: slug,
-      chapterNo: ch.num,
-      sourceLang: sourceLang,
-      targetLang: sourceLang,
-      title: {
-        source: ch.title
-      },
-      status: "source",
-      paragraphs: paragraphs,
-      updatedAt: new Date().toISOString()
-    };
-    await fs.writeFile(chapterPath(slug, ch.num, sourceLang), JSON.stringify(chData, null, 2), 'utf8');
-  }
-
-  // 4. Rebuild chapters index
-  await chapterRepo.rebuildChaptersIndex(slug);
-
-  // Update total chapters in novel.json
-  await novelRepo.saveNovelMeta(slug, {
-    title,
-    author,
-    source_lang: sourceLang,
-    target_lang: 'th',
-    status: 'ongoing',
-    total_chapters: chapters.length,
-    description: `นิยายนำเข้าด้วยไฟล์ข้อความเมื่อ ${new Date().toLocaleDateString('th-TH')}`
-  });
-
-  invalidateCache('/api/novels');
-
-  res.json({
-    success: true,
-    title,
+  const args = [
+    path.join(__dirname, '..', 'tools', 'import_sources.py'),
+    'paste',
+    '--slug',
     slug,
-    chaptersCount: chapters.length,
-    sourceLang
-  });
+    '--title',
+    title || slug,
+    '--source-lang',
+    sourceLang || 'cn',
+  ];
+  if (author) args.push('--author', String(author));
+  if (splitRule) args.push('--split-rule', String(splitRule));
+
+  try {
+    const data = await runPythonJson(args, { input: String(content), timeout: 180_000 });
+    await finalizeSourceImport(slug);
+    res.json({ ...data, success: true, chaptersCount: data.chapterCount });
+  } catch (err) {
+    fail(res, 500, 'IMPORT_FILE_FAILED', err.message);
+  }
 });
 
 // ── Admin save chapter ─────────────────────────────────────────────

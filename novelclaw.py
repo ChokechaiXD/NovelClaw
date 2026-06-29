@@ -389,6 +389,34 @@ def cmd_scrape(args: list[str]) -> None:
     print(f"\n完毕! {ok} สำเร็จ, {exists} มีแล้ว, {failed} ล้มเหลว จาก {total} ตอน")
 
 
+# ── IMPORT SOURCE ───────────────────────────────────────────────────────
+
+
+def cmd_import_url(args: list[str]) -> None:
+    """novelclaw import-url <url> [options] — import source chapters from a TOC URL."""
+    import argparse
+
+    from import_sources import main as import_sources_main
+
+    ap = argparse.ArgumentParser(prog="novelclaw import-url")
+    ap.add_argument("url", help="Novel TOC URL")
+    ap.add_argument("--slug", default="preview", help="Novel slug")
+    ap.add_argument("--site", default="auto", help="Adapter id or auto")
+    ap.add_argument("--range", dest="range_text", default=None, help="Chapter range, e.g. 1-20 or 1,3-5")
+    ap.add_argument("--force", action="store_true", help="Overwrite existing source chapters")
+    ap.add_argument("--preview", action="store_true", help="Preview only")
+    parsed = ap.parse_args(args)
+
+    delegated = ["preview" if parsed.preview else "run", parsed.url, "--site", parsed.site]
+    if not parsed.preview:
+        delegated += ["--slug", parsed.slug]
+        if parsed.range_text:
+            delegated += ["--range", parsed.range_text]
+        if parsed.force:
+            delegated.append("--force")
+    raise SystemExit(import_sources_main(delegated))
+
+
 # ── Main ──────────────────────────────────────────────────────────────
 
 
@@ -414,11 +442,13 @@ def main() -> None:
         cmd_config(args)
     elif command == "scrape":
         cmd_scrape(args)
+    elif command == "import-url":
+        cmd_import_url(args)
     elif command in ("-h", "--help"):
         print(__doc__)
     else:
         print(f"❌ ไม่รู้จักคำสั่ง '{command}'")
-        print("คำสั่งที่มี: translate, judge, status, config")
+        print("คำสั่งที่มี: translate, judge, status, config, scrape, import-url")
         sys.exit(1)
 
 
