@@ -107,8 +107,7 @@ const NovelPage = {
             try {
               const res = await Api.translateSingle(chSlug, chNum, true);
               if (res.ok) {
-                Api.invalidateChapterContent(chSlug, chNum);
-                Api.invalidateChapters(chSlug);
+                Api.invalidateAll(chSlug);
                 Ui.showToast(`แปลตอนที่ ${chNum} สำเร็จเรียบร้อยแล้วค่ะ`, 'success');
                 // โหลดหน้านี้ใหม่เพื่ออัปเดตสถานะปุ่ม
                 await NovelPage.render(params);

@@ -59,7 +59,7 @@ const Api = {
     const cached = this._chapterContentCache[key];
     if (cached && (now - cached.time) < this._CONTENT_TTL) return cached.data;
 
-    const res = await fetch(`/api/novel/${slug}/chapter/${num}?lang=${lang}`);
+    const res = await fetch(`/api/novel/${slug}/chapter/${num}?lang=${lang}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     const data = await res.json();
     this._chapterContentCache[key] = { data, time: now };
@@ -122,7 +122,9 @@ const Api = {
       const errData = await res.json().catch(() => ({}));
       throw new Error(errData.error?.message || `${res.status} ${res.statusText}`);
     }
-    return res.json();
+    const data = await res.json();
+    if (data.ok) this.invalidateAll(slug);
+    return data;
   },
 
   async translateBatch(slug, range, concurrent = 1, options = {}) {
@@ -212,8 +214,11 @@ const Api = {
     return data;
   },
 
-  async getImportHealth(slug) {
-    const suffix = slug ? `?slug=${encodeURIComponent(slug)}` : '';
+  async getImportHealth(slug, options = {}) {
+    const qs = new URLSearchParams();
+    if (slug) qs.set('slug', slug);
+    if (options.includeChapters) qs.set('includeChapters', '1');
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
     const res = await fetch('/api/import/health' + suffix);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error?.message || `${res.status} ${res.statusText}`);

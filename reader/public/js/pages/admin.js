@@ -284,22 +284,41 @@ const AdminChaptersPage = {
       const firstReal = novels.find(Ui.isVisibleNovel);
       const slug = params.slug || firstReal?.slug || novels[0]?.slug;
       if (!slug) { page.innerHTML = '<div class="c-container">' + Ui.adminNav('chapters') + '<p class="u-text-muted u-p-lg">ไม่มีนิยายในระบบ</p></div>'; return; }
-      const chapters = await Api.getChapters(slug);
+      const [chapters, importHealthResp] = await Promise.all([
+        Api.getChapters(slug),
+        Api.getImportHealth(slug, { includeChapters: true }).catch(() => ({ data: { chapters: [] } })),
+      ]);
       if (!chapters || chapters.length === 0) {
         page.innerHTML = '<div class="c-container">' + Ui.adminNav('chapters') + '<p class="u-text-muted u-p-lg">ไม่มีตอนในนิยายนี้</p></div>';
         return;
       }
 
+      const importHealth = importHealthResp.data || {};
+      const sourceIssueByNum = {};
+      for (const item of importHealth.chapters || []) sourceIssueByNum[item.num] = item;
+      const blockingNums = new Set(importHealth.blockingSourceNums || []);
+      const selectedNums = new Set();
       let filterStatus = 'all';
       let searchQuery = '';
       let pageSize = 100;
       let currentPage = 0;
+
+      const selectedRange = () => [...selectedNums].sort((a, b) => a - b).join(',');
+      const issueBadgeHtml = (ch) => {
+        const issue = sourceIssueByNum[ch.num];
+        if (!issue) return '<span class="c-badge c-badge--teal">source ok</span>';
+        const hasError = (issue.issues || []).some(item => item.severity === 'error');
+        const codes = (issue.issues || []).map(item => item.code).slice(0, 2).join(', ');
+        return '<span class="c-badge ' + (hasError ? 'c-badge--red' : 'c-badge--amber') + '">' + Ui.esc(codes || 'source issue') + '</span>';
+      };
 
       const renderTable = (opts = {}) => {
         // Apply filters
         let list = [...chapters];
         if (filterStatus === 'translated') list = list.filter(c => c.status === 'translated');
         else if (filterStatus === 'source_only') list = list.filter(c => c.status === 'source_only');
+        else if (filterStatus === 'source_dirty') list = list.filter(c => sourceIssueByNum[c.num]);
+        else if (filterStatus === 'source_error') list = list.filter(c => blockingNums.has(c.num));
         else if (filterStatus === 'read') list = list.filter(c => Store.isRead(slug, c.num));
         else if (filterStatus === 'unread') list = list.filter(c => !Store.isRead(slug, c.num));
 
@@ -319,6 +338,12 @@ const AdminChaptersPage = {
 
         let html = '<div class="c-container">' + Ui.adminNav('chapters') +
           '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">📖 ตอนทั้งหมด: ' + Ui.esc(slug) + '</h3><span class="c-admin-page__meta">' + totalFiltered + ' / ' + chapters.length + ' ตอน</span></div>' +
+          '<div class="c-admin-chapters__summary">' +
+          Ui.stat('แปลแล้ว', chapters.filter(c => c.status === 'translated').length, { tone: 'success' }) +
+          Ui.stat('ต้นฉบับ', chapters.filter(c => c.status === 'source_only').length, { tone: 'warn' }) +
+          Ui.stat('source error', importHealth.blockingSourceCount || 0, { tone: importHealth.blockingSourceCount ? 'warn' : 'success' }) +
+          Ui.stat('เลือกไว้', selectedNums.size, { tone: 'accent' }) +
+          '</div>' +
 
           // ── Search + Filter Controls ──
           '<div class="c-admin-chapters__filters">' +
@@ -327,11 +352,22 @@ const AdminChaptersPage = {
           '<option value="all"' + (filterStatus === 'all' ? ' selected' : '') + '>ทั้งหมด</option>' +
           '<option value="translated"' + (filterStatus === 'translated' ? ' selected' : '') + '>✅ แปลแล้ว</option>' +
           '<option value="source_only"' + (filterStatus === 'source_only' ? ' selected' : '') + '>📄 ต้นฉบับ</option>' +
+          '<option value="source_error"' + (filterStatus === 'source_error' ? ' selected' : '') + '>⛔ source error</option>' +
+          '<option value="source_dirty"' + (filterStatus === 'source_dirty' ? ' selected' : '') + '>⚠️ source issue</option>' +
           '<option value="read"' + (filterStatus === 'read' ? ' selected' : '') + '>📖 อ่านแล้ว</option>' +
           '<option value="unread"' + (filterStatus === 'unread' ? ' selected' : '') + '>📕 ยังไม่อ่าน</option>' +
           '</select>' +
           '<input id="ch-jump-num" type="number" min="1" max="' + chapters.length + '" placeholder="ไปตอน..." class="c-form__input c-admin-chapters__jump-input" />' +
           '<button id="ch-jump-btn" class="c-btn c-btn--sm" type="button">ไป</button>' +
+          '</div>' +
+
+          '<div class="c-admin-chapters__bulk">' +
+          '<button class="c-btn c-btn--xs c-btn--secondary" id="ch-select-visible" type="button">เลือกหน้านี้</button>' +
+          '<button class="c-btn c-btn--xs c-btn--ghost" id="ch-clear-selected" type="button">ล้างเลือก</button>' +
+          '<button class="c-btn c-btn--xs c-btn--primary" id="ch-translate-selected" type="button"' + (selectedNums.size ? '' : ' disabled') + '>แปลที่เลือก</button>' +
+          '<button class="c-btn c-btn--xs c-btn--secondary" id="ch-reimport-selected" type="button"' + (selectedNums.size ? '' : ' disabled') + '>Re-import ที่เลือก</button>' +
+          '<button class="c-btn c-btn--xs c-btn--ghost" id="ch-inspect-first" type="button"' + (selectedNums.size ? '' : ' disabled') + '>Inspect แรก</button>' +
+          '<span class="c-admin-chapters__selected-range">' + Ui.esc(selectedRange() || 'ยังไม่ได้เลือกตอน') + '</span>' +
           '</div>' +
 
           // ── Pagination ──
@@ -342,14 +378,20 @@ const AdminChaptersPage = {
           '</div>' +
 
           // ── Table ──
-          '<div class="c-table-wrap"><table class="c-table"><thead><tr><th>#</th><th>ชื่อตอน</th><th>สถานะ</th></tr></thead><tbody>';
+          '<div class="c-table-wrap"><table class="c-table"><thead><tr><th><span class="u-sr-only">เลือก</span></th><th>#</th><th>ชื่อตอน</th><th>แปล</th><th>source</th><th>คำสั่ง</th></tr></thead><tbody>';
 
         for (const ch of pageList) {
           const statusLabel = ch.status === 'translated' ? '✅ แปลแล้ว' : (ch.status === 'source_only' ? '📄 ต้นฉบับ' : '⬜');
           const statusClass = ch.status === 'translated' ? 'c-badge--teal' : (ch.status === 'source_only' ? 'c-badge--amber' : 'c-badge--gray');
-          html += '<tr><td class="c-admin-table__mono-strong">' + ch.num + '</td>' +
+          html += '<tr><td><input class="ch-row-check" type="checkbox" data-num="' + Ui.esc(ch.num) + '"' + (selectedNums.has(ch.num) ? ' checked' : '') + '></td>' +
+            '<td class="c-admin-table__mono-strong">' + ch.num + '</td>' +
             '<td><a href="#novel/' + Ui.esc(slug) + '/' + Ui.esc(ch.num) + '" class="c-link" data-nav>' + Ui.esc(ch.title || '') + '</a></td>' +
-            '<td><span class="c-badge ' + statusClass + '">' + statusLabel + '</span></td></tr>';
+            '<td><span class="c-badge ' + statusClass + '">' + statusLabel + '</span></td>' +
+            '<td>' + issueBadgeHtml(ch) + '</td>' +
+            '<td><div class="c-admin-chapters__row-actions">' +
+            '<button class="c-btn c-btn--xs c-btn--ghost ch-inspect-one" data-num="' + Ui.esc(ch.num) + '" type="button">Inspect</button>' +
+            '<button class="c-btn c-btn--xs c-btn--secondary ch-translate-one" data-num="' + Ui.esc(ch.num) + '" type="button">แปล</button>' +
+            '</div></td></tr>';
         }
 
         html += '</tbody></table></div></div>';
@@ -369,6 +411,69 @@ const AdminChaptersPage = {
         };
         Ui.$('ch-page-prev').onclick = () => { if (currentPage > 0) { currentPage--; renderTable(); } };
         Ui.$('ch-page-next').onclick = () => { if (currentPage < maxPage) { currentPage++; renderTable(); } };
+        page.querySelectorAll('.ch-row-check').forEach(input => {
+          input.onchange = () => {
+            const num = parseInt(input.dataset.num, 10);
+            if (!Number.isNaN(num)) {
+              if (input.checked) selectedNums.add(num);
+              else selectedNums.delete(num);
+              renderTable();
+            }
+          };
+        });
+        Ui.$('ch-select-visible').onclick = () => {
+          for (const ch of pageList) selectedNums.add(ch.num);
+          renderTable();
+        };
+        Ui.$('ch-clear-selected').onclick = () => {
+          selectedNums.clear();
+          renderTable();
+        };
+        Ui.$('ch-reimport-selected').onclick = () => {
+          const range = selectedRange();
+          if (range) window.location.hash = '#admin/import/' + encodeURIComponent(slug) + '/' + encodeURIComponent(range);
+        };
+        Ui.$('ch-inspect-first').onclick = () => {
+          const first = [...selectedNums].sort((a, b) => a - b)[0];
+          if (first) window.location.hash = '#admin/import/' + encodeURIComponent(slug) + '/' + encodeURIComponent(first);
+        };
+        Ui.$('ch-translate-selected').onclick = async () => {
+          const range = selectedRange();
+          if (!range) return;
+          if (!confirm('เริ่มแปลตอนที่เลือก?\n\n' + range)) return;
+          try {
+            await Api.translateBatch(slug, range, 1);
+            Api.invalidateAll(slug);
+            Ui.showToast('ส่งงานแปลแล้ว');
+            selectedNums.clear();
+            await AdminChaptersPage.render({ slug });
+          } catch (err) {
+            Ui.showToast(err.message, 'error');
+          }
+        };
+        page.querySelectorAll('.ch-inspect-one').forEach(btn => {
+          btn.onclick = () => {
+            window.location.hash = '#admin/import/' + encodeURIComponent(slug) + '/' + encodeURIComponent(btn.dataset.num || '1');
+          };
+        });
+        page.querySelectorAll('.ch-translate-one').forEach(btn => {
+          btn.onclick = async () => {
+            const num = parseInt(btn.dataset.num, 10);
+            if (!num) return;
+            btn.disabled = true;
+            btn.textContent = 'กำลังแปล...';
+            try {
+              await Api.translateSingle(slug, num, true);
+              Api.invalidateAll(slug);
+              Ui.showToast('แปลตอน ' + num + ' สำเร็จ');
+              await AdminChaptersPage.render({ slug });
+            } catch (err) {
+              Ui.showToast(err.message, 'error');
+              btn.disabled = false;
+              btn.textContent = 'แปล';
+            }
+          };
+        });
         Ui.$('ch-jump-btn').onclick = () => {
           const num = parseInt(Ui.$('ch-jump-num').value, 10);
           if (num) {
@@ -1189,6 +1294,13 @@ const AdminImportPage = {
     return entries.slice(0, 3).map(([code, count]) => code + ' × ' + count).join(', ');
   },
 
+  _issueRange(n = {}) {
+    const nums = n.blockingSourceNums || [];
+    if (nums.length) return nums.join(',');
+    const firstIssue = n.sampleIssues?.[0]?.num;
+    return firstIssue ? String(firstIssue) : '';
+  },
+
   _renderHealthPanel() {
     const health = this._health || { summary: {}, novels: [] };
     const summary = health.summary || {};
@@ -1204,13 +1316,19 @@ const AdminImportPage = {
       const recoverButton = genericCount > 0
         ? '<button class="c-btn c-btn--sm c-btn--ghost import-recover-toc-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Recover TOC</button>'
         : '';
+      const issueRange = this._issueRange(n);
       return '<tr>' +
         '<td><strong>' + Ui.esc(n.title || n.slug) + '</strong><div class="u-text-muted">' + Ui.esc(n.slug) + '</div></td>' +
         '<td>' + Ui.esc(n.sourceSite || '-') + '<div class="u-text-muted">' + Ui.esc(tocText) + '</div></td>' +
         '<td class="c-admin-table__mono">' + (n.sourceFileCount || 0) + '</td>' +
         '<td><span class="' + this._healthBadge(n.status) + '">' + badgeText + '</span></td>' +
-        '<td>' + Ui.esc(this._issueText(n.issueSummary)) + (n.staleIndexTitleCount ? '<div class="u-text-muted">stale title × ' + n.staleIndexTitleCount + '</div>' : '') + '</td>' +
-        '<td><div class="c-admin-novels__actions"><button class="c-btn c-btn--sm c-btn--secondary import-repair-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Repair</button>' + recoverButton + '</div></td>' +
+        '<td>' + Ui.esc(this._issueText(n.issueSummary)) + (n.staleIndexTitleCount ? '<div class="u-text-muted">stale title × ' + n.staleIndexTitleCount + '</div>' : '') + (n.blockingSourceCount ? '<div class="u-text-muted">blocked × ' + n.blockingSourceCount + '</div>' : '') + '</td>' +
+        '<td><div class="c-admin-import__row-actions">' +
+        '<button class="c-btn c-btn--sm c-btn--secondary import-repair-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Repair</button>' +
+        '<button class="c-btn c-btn--sm c-btn--ghost import-view-issues-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Issues</button>' +
+        '<button class="c-btn c-btn--sm c-btn--ghost import-inspect-btn" data-slug="' + Ui.esc(n.slug) + '" data-num="' + Ui.esc(issueRange.split(',')[0] || '1') + '" type="button">Inspect</button>' +
+        '<button class="c-btn c-btn--sm c-btn--secondary import-reimport-range-btn" data-slug="' + Ui.esc(n.slug) + '" data-range="' + Ui.esc(issueRange) + '" type="button">Re-import</button>' +
+        recoverButton + '</div></td>' +
         '</tr>';
     }).join('');
 
@@ -1303,8 +1421,8 @@ const AdminImportPage = {
       '</div>' +
       this._previewDiagnosticsHtml(data) +
       '<div class="c-admin-import__run-grid">' +
-      '<div class="c-form__group"><label class="c-form__label" for="import-slug">Slug</label><input class="c-form__input" id="import-slug" value="' + Ui.esc(this._slugFromTitle(data.title)) + '" /></div>' +
-      '<div class="c-form__group"><label class="c-form__label" for="import-range">ช่วงตอน</label><input class="c-form__input" id="import-range" placeholder="1-20" /></div>' +
+      '<div class="c-form__group"><label class="c-form__label" for="import-slug">Slug</label><input class="c-form__input" id="import-slug" value="' + Ui.esc(document.getElementById('import-target-slug')?.value || this._slugFromTitle(data.title)) + '" /></div>' +
+      '<div class="c-form__group"><label class="c-form__label" for="import-range">ช่วงตอน</label><input class="c-form__input" id="import-range" placeholder="1-20" value="' + Ui.esc(document.getElementById('import-target-range')?.value || '') + '" /></div>' +
       '<label class="c-admin-import__check"><input type="checkbox" id="import-force" /> overwrite</label>' +
       '<button class="c-btn c-btn--primary" id="import-run" type="button">นำเข้า source</button>' +
       '</div>' +
@@ -1378,6 +1496,14 @@ const AdminImportPage = {
                   ${this._siteOptions()}
                 </select>
               </div>
+              <div class="c-form__group">
+                <label class="c-form__label" for="import-target-slug">Target slug</label>
+                <input class="c-form__input" id="import-target-slug" value="${Ui.esc(params?.slug || '')}" />
+              </div>
+              <div class="c-form__group">
+                <label class="c-form__label" for="import-target-range">ช่วง</label>
+                <input class="c-form__input" id="import-target-range" value="${Ui.esc(params?.num || '')}" placeholder="เช่น 563,598 หรือ 800-900" />
+              </div>
               <button class="c-btn c-btn--secondary c-admin-import__preview-btn" id="import-preview-btn" type="button">Preview</button>
             </div>
             ${this._siteCatalogHtml()}
@@ -1409,8 +1535,80 @@ const AdminImportPage = {
         </div>
       </div>`;
 
+    if (params?.slug) {
+      const range = params.num || '';
+      const importSlugInput = document.getElementById('import-target-slug');
+      const importRangeInput = document.getElementById('import-target-range');
+      const inspectSlugSelect = document.getElementById('inspect-slug');
+      const inspectNumInput = document.getElementById('inspect-num');
+      if (importSlugInput) importSlugInput.value = params.slug;
+      if (importRangeInput) importRangeInput.value = range;
+      if (inspectSlugSelect) inspectSlugSelect.value = params.slug;
+      if (inspectNumInput && range) inspectNumInput.value = String(range).split(',')[0] || '1';
+      if (range) {
+        this.setConsole('idle', 'Re-import range ready', 'slug: ' + params.slug + '\nrange: ' + range + '\nใส่ URL สารบัญหรือ URL source แล้วกด Preview/Import เพื่อดึงช่วงนี้ใหม่');
+      }
+    }
+
     document.getElementById('import-health-refresh')?.addEventListener('click', async () => {
       await this.render(params);
+    });
+
+    page.querySelectorAll('.import-view-issues-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const slug = btn.dataset.slug;
+        if (!slug) return;
+        btn.disabled = true;
+        btn.textContent = 'Loading...';
+        try {
+          const health = this._data(await Api.getImportHealth(slug, { includeChapters: true }));
+          const lines = (health.chapters || []).slice(0, 80).map(ch => {
+            const codes = (ch.issues || []).map(issue => issue.code + ':' + issue.severity).join(', ');
+            return String(ch.num).padStart(4, '0') + '  ' + codes + '  ' + (ch.title || '');
+          });
+          this.setConsole(
+            health.status === 'error' ? 'error' : 'idle',
+            'Source issues: ' + slug,
+            [
+              'status: ' + health.status,
+              'blocking: ' + (health.blockingSourceCount || 0),
+              'warnings: ' + (health.issueSummary?.warningCount || 0),
+              '',
+              ...(lines.length ? lines : ['ไม่มี source issue']),
+            ].join('\n')
+          );
+        } catch (err) {
+          this.setConsole('error', 'Issue load failed', err.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Issues';
+        }
+      });
+    });
+
+    page.querySelectorAll('.import-inspect-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const slug = btn.dataset.slug || '';
+        const num = btn.dataset.num || '1';
+        const slugEl = document.getElementById('inspect-slug');
+        const numEl = document.getElementById('inspect-num');
+        if (slugEl) slugEl.value = slug;
+        if (numEl) numEl.value = num;
+        document.getElementById('inspect-run')?.click();
+      });
+    });
+
+    page.querySelectorAll('.import-reimport-range-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const slug = btn.dataset.slug || '';
+        const range = btn.dataset.range || '';
+        const importSlugInput = document.getElementById('import-target-slug');
+        const importRangeInput = document.getElementById('import-target-range');
+        if (importSlugInput) importSlugInput.value = slug;
+        if (importRangeInput) importRangeInput.value = range;
+        this.setConsole('idle', 'Re-import range ready', 'slug: ' + slug + '\nrange: ' + (range || '-') + '\nใส่ URL แล้วกด Preview เพื่อดึง source ใหม่เฉพาะช่วงนี้');
+        document.getElementById('import-url')?.focus();
+      });
     });
 
     page.querySelectorAll('.import-repair-btn').forEach(btn => {
@@ -1577,11 +1775,14 @@ const AdminTranslatePage = {
     Ui.showSkeleton('page-admin-translate');
 
     try {
-      const [novels, translationHealth] = await Promise.all([
+      const [novels, translationHealth, importHealth] = await Promise.all([
         Api.getNovels(),
         Api.getTranslationHealth().catch(() => ({ data: { buckets: {} } })),
+        Api.getImportHealth().catch(() => ({ data: { novels: [] } })),
       ]);
       const buckets = translationHealth.data?.buckets || {};
+      const importHealthBySlug = {};
+      for (const item of importHealth.data?.novels || []) importHealthBySlug[item.slug] = item;
       const bucketStat = (name) => buckets[name]?.count || 0;
       const batchLogs = translationHealth.data?.batchLogs || [];
       const activeBatch = batchLogs[0] || null;
@@ -1595,8 +1796,11 @@ const AdminTranslatePage = {
       ).join('') || '';
       const batchRecent = activeBatch?.recentLines?.map(line => Ui.esc(line)).join('\n') || '';
 
-      const novelOptions = novels.map(n => 
-        `<option value="${Ui.esc(n.slug)}">${Ui.esc(Ui.displayTitle(n) || n.slug)}</option>`
+      const novelOptions = novels.map(n => {
+        const h = importHealthBySlug[n.slug] || {};
+        const label = h.status === 'error' ? 'source error' : (h.status === 'warn' ? 'source warn' : 'ready');
+        return `<option value="${Ui.esc(n.slug)}" data-source-status="${Ui.esc(h.status || 'ok')}">${Ui.esc(Ui.displayTitle(n) || n.slug)} · ${Ui.esc(label)}</option>`;
+      }
       ).join('');
 
       let html = `
@@ -1673,8 +1877,10 @@ const AdminTranslatePage = {
                   </select>
                 </div>
               </div>
+              <div id="translate-source-health" class="c-admin-translate__source-health"></div>
               <div class="c-admin-translate__actions">
                 <button class="c-btn c-btn--primary" id="translate-batch-run-btn" type="button">🚀 เริ่มแปล</button>
+                <label class="c-admin-import__check"><input id="translate-force-source" type="checkbox"> force แปลแม้ source error</label>
               </div>
             </div>
           </div>
@@ -1694,6 +1900,25 @@ const AdminTranslatePage = {
       page.innerHTML = html;
       document.getElementById('translate-health-refresh')?.addEventListener('click', () => this.render(params));
 
+      const updateSourceHealth = () => {
+        const slugVal = document.getElementById('translate-batch-novel')?.value || '';
+        const h = importHealthBySlug[slugVal] || {};
+        const box = document.getElementById('translate-source-health');
+        if (!box) return;
+        const status = h.status || 'ok';
+        const cls = status === 'error' ? 'c-badge c-badge--red' : (status === 'warn' ? 'c-badge c-badge--amber' : 'c-badge c-badge--teal');
+        const issueText = this._sourceIssueText ? this._sourceIssueText(h) : '';
+        box.innerHTML = '<span class="' + cls + '">' + Ui.esc(status === 'error' ? 'source error' : (status === 'warn' ? 'source warning' : 'source ready')) + '</span>' +
+          '<span>' + Ui.esc(issueText || 'พร้อมแปล') + '</span>' +
+          (status !== 'ok' ? '<a class="c-btn c-btn--xs c-btn--ghost" href="#admin/import/' + Ui.esc(slugVal) + '" data-nav>ดู Import Health</a>' : '');
+      };
+      this._sourceIssueText = (h = {}) => {
+        const byCode = h.issueSummary?.byCode || {};
+        return Object.entries(byCode).filter(([, count]) => count > 0).slice(0, 3).map(([code, count]) => code + ' × ' + count).join(', ');
+      };
+      document.getElementById('translate-batch-novel')?.addEventListener('change', updateSourceHealth);
+      updateSourceHealth();
+
       // ── Bind Batch Translation Event
       const runBtn = document.getElementById('translate-batch-run-btn');
       if (runBtn) {
@@ -1701,10 +1926,18 @@ const AdminTranslatePage = {
           const slugVal = document.getElementById('translate-batch-novel').value;
           const rangeVal = document.getElementById('translate-batch-range').value;
           const concurrentVal = parseInt(document.getElementById('translate-batch-concurrent').value, 10);
+          const forceSource = document.getElementById('translate-force-source')?.checked === true;
+          const selectedHealth = importHealthBySlug[slugVal] || {};
 
           if (!rangeVal.trim()) {
             AdminTranslatePage.setConsole('error', 'ยังไม่ได้ระบุช่วงตอน', 'กรุณากรอกช่วงตอนที่ต้องการสั่งแปล เช่น 5-10 หรือ 5');
             Ui.showToast('กรุณากรอกช่วงตอนที่ต้องการสั่งแปล', 'error');
+            return;
+          }
+          if (selectedHealth.status === 'error' && !forceSource) {
+            const issueText = this._sourceIssueText(selectedHealth);
+            AdminTranslatePage.setConsole('error', 'Source ยังไม่พร้อมแปล', issueText || 'พบ source error ในเรื่องนี้');
+            Ui.showToast('Source มี error ต้องซ่อมหรือกด force ก่อนแปล', 'error');
             return;
           }
 
@@ -1718,7 +1951,7 @@ const AdminTranslatePage = {
             runBtn.disabled = true;
             runBtn.textContent = 'กำลังดำเนินการแปล...';
 
-            const res = await Api.translateBatch(slugVal, rangeVal, concurrentVal);
+            const res = await Api.translateBatch(slugVal, rangeVal, concurrentVal, { force: forceSource });
             const result = res.data || res;
 
             if (res.ok && result.success) {

@@ -210,7 +210,7 @@ const ReaderPage = {
                   provider: selectedProvider || undefined,
                 });
                 if (res.ok) {
-                  Api.invalidateChapterContent(slug, ch.num);
+                  Api.invalidateAll(slug);
                   Store.setSetting('readerLang', 'th');
                   await loadChapter(chIdx);
                   Ui.showToast('แปลตอนนี้สำเร็จแล้ว', 'success');
