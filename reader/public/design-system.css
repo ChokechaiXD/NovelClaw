@@ -2218,6 +2218,12 @@ pre code {
   overflow: auto;
 }
 
+.c-admin-import__sites {
+  margin-top: var(--space-md);
+  max-height: 260px;
+  overflow: auto;
+}
+
 @media (max-width: 900px) {
   .c-admin-import__form,
   .c-admin-import__paste-form,

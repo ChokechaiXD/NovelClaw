@@ -32,10 +32,17 @@ class StaticHtmlAdapter:
     id = "static"
     display_name = "Static HTML"
     source_lang = "cn"
+    adapter_type = "static_html"
+    status = "supported"
+    quality = "beta"
     domains: tuple[str, ...] = ()
     toc_link_patterns: tuple[str, ...] = ()
     content_attrs: tuple[str, ...] = ()
     headers: dict[str, str] = DEFAULT_HEADERS
+    requires_js = False
+    requires_login = False
+    has_paywall = False
+    notes = "Plain HTML adapter. Does not bypass login, paywall, captcha, or DRM."
 
     def detect(self, url: str) -> bool:
         host = urlparse(url).netloc.lower()
@@ -87,6 +94,7 @@ class Shu69Adapter(StaticHtmlAdapter):
     id = "69shu"
     display_name = "69shu"
     source_lang = "cn"
+    quality = "fixture"
     domains = ("69shu.com",)
     toc_link_patterns = (r"/\d+/\d+\.html$",)
     content_attrs = ("content",)
@@ -100,6 +108,7 @@ class UukanshuAdapter(StaticHtmlAdapter):
     id = "uukanshu"
     display_name = "uukanshu"
     source_lang = "cn"
+    quality = "beta"
     domains = ("uukanshu.com",)
     toc_link_patterns = (r"/b/\d+/\d+\.html$",)
     content_attrs = ("contentbox", "content")
@@ -109,6 +118,7 @@ class SyosetuAdapter(StaticHtmlAdapter):
     id = "syosetu"
     display_name = "Syosetu"
     source_lang = "jp"
+    quality = "beta"
     domains = ("syosetu.com",)
     toc_link_patterns = (r"/n[0-9a-z]+/\d+/?$",)
     content_attrs = ("novel_honbun", "js-novel-text")
@@ -118,6 +128,7 @@ class KakuyomuAdapter(StaticHtmlAdapter):
     id = "kakuyomu"
     display_name = "Kakuyomu"
     source_lang = "jp"
+    quality = "experimental"
     domains = ("kakuyomu.jp",)
     toc_link_patterns = (r"/works/\d+/episodes/\d+",)
     content_attrs = ("widget-episodeBody", "widget-episode")
@@ -127,6 +138,7 @@ class RoyalRoadAdapter(StaticHtmlAdapter):
     id = "royalroad"
     display_name = "Royal Road"
     source_lang = "en"
+    quality = "experimental"
     domains = ("royalroad.com",)
     toc_link_patterns = (r"/fiction/\d+/.+/chapter/\d+",)
     content_attrs = ("chapter-inner", "chapter-content")

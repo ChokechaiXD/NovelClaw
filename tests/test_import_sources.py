@@ -5,6 +5,7 @@ from pathlib import Path
 
 from tools import import_sources
 from tools.import_adapters import static_sites
+from tools.import_adapters.registry import list_site_catalog
 from tools.import_adapters.static_sites import Shu69Adapter
 
 
@@ -67,3 +68,26 @@ def test_import_paste_writes_canonical_source_markdown(tmp_path, monkeypatch):
 
 def test_parse_range_supports_commas_and_ranges():
     assert import_sources.parse_range("1,3-5") == {1, 3, 4, 5}
+
+
+def test_site_catalog_exposes_stable_adapter_metadata():
+    catalog = list_site_catalog()
+    sites = catalog["sites"]
+    by_id = {site["id"]: site for site in sites}
+
+    assert {"69shu", "uukanshu", "syosetu", "kakuyomu", "royalroad"}.issubset(by_id)
+    assert by_id["69shu"]["sourceLang"] == "cn"
+    assert by_id["syosetu"]["sourceLang"] == "jp"
+    assert by_id["royalroad"]["sourceLang"] == "en"
+    assert by_id["69shu"]["capabilities"]["toc"] is True
+    assert by_id["69shu"]["access"]["requiresJs"] is False
+    assert catalog["fallbackAdapters"][0]["id"] == "manual-paste"
+    assert any(item["id"] == "ocr" and item["status"] == "planned" for item in catalog["fallbackAdapters"])
+
+
+def test_import_sites_command_returns_catalog_shape():
+    payload = import_sources.import_sites()
+
+    assert isinstance(payload["sites"], list)
+    assert payload["sites"][0]["id"]
+    assert "fallbackAdapters" in payload

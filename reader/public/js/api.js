@@ -176,6 +176,13 @@ const Api = {
     return res.json();
   },
 
+  async getImportSites() {
+    const res = await fetch('/api/import/sites');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error?.message || `${res.status} ${res.statusText}`);
+    return data;
+  },
+
   async importPreview(payload) {
     const res = await fetch('/api/import/preview', {
       method: 'POST',
