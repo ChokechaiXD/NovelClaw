@@ -67,6 +67,10 @@ def source_path(slug: str, num: int) -> Path:
     return source_dir(slug) / f"{num:04d}.md"
 
 
+def source_toc_path(slug: str) -> Path:
+    return source_dir(slug) / "toc.json"
+
+
 def frontmatter_value(value: str) -> str:
     return json.dumps(value or "", ensure_ascii=False)
 
@@ -133,6 +137,22 @@ def update_novel_json(
     )
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return data
+
+
+def write_toc_manifest(slug: str, toc, adapter_id: str) -> Path:
+    payload = {
+        "site": adapter_id,
+        "url": toc.url,
+        "title": toc.title,
+        "author": toc.author,
+        "sourceLang": toc.source_lang,
+        "chapterCount": len(toc.chapters),
+        "updatedAt": datetime.now(timezone.utc).isoformat(),
+        "chapters": [asdict(ch) for ch in toc.chapters],
+    }
+    path = source_toc_path(slug)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return path
 
 
 def preview_url(url: str, site: str = "auto") -> dict:
@@ -232,6 +252,7 @@ def import_url(url: str, slug: str, site: str = "auto", range_text: str | None =
         source_url=url,
         total_chapters=len(toc.chapters),
     )
+    toc_path = write_toc_manifest(slug, toc, adapter.id)
     return {
         "slug": slug,
         "site": adapter.id,
@@ -241,6 +262,7 @@ def import_url(url: str, slug: str, site: str = "auto", range_text: str | None =
         "imported": imported,
         "skipped": skipped,
         "failed": failed,
+        "tocPath": str(toc_path),
         "results": results,
     }
 

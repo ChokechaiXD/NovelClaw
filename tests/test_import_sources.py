@@ -164,3 +164,47 @@ def test_preview_url_includes_sample_chapter_diagnostics(monkeypatch):
     assert payload["diagnostics"]["recommendImport"] is True
     assert payload["sampleChapter"]["num"] == 1
     assert payload["sampleChapter"]["paragraphCount"] >= 2
+
+
+def test_import_url_writes_toc_manifest_for_later_repairs(tmp_path, monkeypatch):
+    class FakeAdapter:
+        id = "fake-site"
+        display_name = "Fake Site"
+        source_lang = "cn"
+
+        def fetch_toc(self, url):
+            return static_sites.TocResult(
+                site=self.id,
+                url=url,
+                title="Fake Novel",
+                author="Fixture Author",
+                source_lang="cn",
+                chapters=[
+                    static_sites.ChapterRef(1, "第1章 Arrival", "https://fixture.test/1"),
+                    static_sites.ChapterRef(2, "第2章 Signal", "https://fixture.test/2"),
+                ],
+            )
+
+        def fetch_chapter(self, ref):
+            return "<html><body><h1>{}</h1><div id='content'><p>正文一。</p><p>正文二。</p></div></body></html>".format(ref.title)
+
+        def extract(self, raw, ref):
+            return static_sites.ExtractedChapter(
+                title=ref.title,
+                paragraphs=["正文一。", "正文二。"],
+                source_url=ref.url,
+                source_lang="cn",
+            )
+
+    monkeypatch.setattr(import_sources, "NOVELS_DIR", tmp_path / "novels")
+    monkeypatch.setattr(import_sources, "get_adapter", lambda *_args, **_kwargs: FakeAdapter())
+
+    result = import_sources.import_url("https://fixture.test/toc", "fake-novel", "fake-site")
+
+    toc_path = tmp_path / "novels" / "fake-novel" / "chapters" / "source" / "toc.json"
+    toc = json.loads(toc_path.read_text(encoding="utf-8"))
+
+    assert result["tocPath"] == str(toc_path)
+    assert toc["site"] == "fake-site"
+    assert toc["chapterCount"] == 2
+    assert toc["chapters"][1]["title"] == "第2章 Signal"

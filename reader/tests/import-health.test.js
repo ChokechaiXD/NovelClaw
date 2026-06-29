@@ -112,6 +112,41 @@ test('import health flags generic chapter-number-only titles', async () => {
   assert.equal(health.sampleIssues[0].issues[0].code, 'generic_title');
 });
 
+test('repairNovelImport uses source toc manifest to replace generic titles', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-repair-toc-title-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const { inspectSourceChapter, repairNovelImport } = require('../lib/import-health');
+  const slug = 'sample-repair-toc-title';
+  const sourceDir = path.join(root, slug, 'chapters', 'source');
+  await fs.mkdir(sourceDir, { recursive: true });
+  await fs.writeFile(path.join(root, slug, 'novel.json'), JSON.stringify({ slug, title: 'TOC Title' }), 'utf8');
+  await fs.writeFile(path.join(sourceDir, 'toc.json'), JSON.stringify({
+    site: 'fixture',
+    chapters: [
+      { num: 10, title: '第10章 Lost Signal', url: 'https://fixture.test/10' },
+    ],
+  }), 'utf8');
+  await fs.writeFile(path.join(sourceDir, '0010.md'), [
+    '# 第10章',
+    '',
+    'First real paragraph has prose.',
+    '',
+    'Second real paragraph has more prose.',
+  ].join('\n'), 'utf8');
+
+  const preview = await repairNovelImport(slug, 'all', { dryRun: true });
+  const applied = await repairNovelImport(slug, 'all');
+  const inspected = await inspectSourceChapter(slug, 10);
+
+  assert.equal(preview.repair.titlesRepaired, 1);
+  assert.equal(preview.repair.changes[0].titleAfter, '第10章 Lost Signal');
+  assert.equal(applied.repair.titlesRepaired, 1);
+  assert.equal(inspected.title, '第10章 Lost Signal');
+  assert.match(inspected.raw, /^# 第10章 Lost Signal/);
+});
+
 test('repairMissingSourceTitles adds a markdown title from the first chapter line', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-repair-title-'));
   process.env.NOVELCLAW_ROOT = root;
