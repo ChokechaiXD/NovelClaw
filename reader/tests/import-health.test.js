@@ -329,3 +329,67 @@ test('import health flags Chinese site shell contamination as blocking source er
   assert.equal(health.issueSummary.byCode.site_shell, 1);
   assert.equal(inspected.diagnostic.issues.some(issue => issue.code === 'dirty_title'), true);
 });
+
+test('getBlockingSourceIssues returns only requested source-error chapters', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-blocking-source-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const { getBlockingSourceIssues } = require('../lib/import-health');
+  const slug = 'sample-blocking-source';
+  const sourceDir = path.join(root, slug, 'chapters', 'source');
+  await fs.mkdir(sourceDir, { recursive: true });
+  await fs.writeFile(path.join(root, slug, 'novel.json'), JSON.stringify({ slug, title: 'Blocking Source' }), 'utf8');
+  await fs.writeFile(path.join(sourceDir, '0001.md'), [
+    '# 第1章 Clean',
+    '',
+    '曹星緩緩睜開雙眼，輕聲感嘆道：“果然……兩條神性之間的沖突消失了。”',
+    '“雖然我現在還不知道，靠自己的力量解決這種沖突，需要耗費多大的代價。”',
+  ].join('\n'), 'utf8');
+  await fs.writeFile(path.join(sourceDir, '0002.md'), [
+    '# 第2章 Broken',
+    '',
+    '閱讀底色..',
+    '淡藍海洋',
+    '明黃清俊',
+    '瀏覽記錄',
+    '曹星緩緩睜開雙眼，輕聲感嘆道：“果然……”',
+  ].join('\n'), 'utf8');
+
+  const allBlocking = await getBlockingSourceIssues(slug);
+  const onlyClean = await getBlockingSourceIssues(slug, [1]);
+  const onlyDirty = await getBlockingSourceIssues(slug, [2]);
+
+  assert.deepEqual(allBlocking.map(chapter => chapter.num), [2]);
+  assert.deepEqual(onlyClean, []);
+  assert.equal(onlyDirty[0].issues[0].code, 'site_shell');
+});
+
+test('import health flags recommendation shell after visual theme lines are gone', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-recommendation-shell-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const { getBlockingSourceIssues } = require('../lib/import-health');
+  const slug = 'sample-recommendation-shell';
+  const sourceDir = path.join(root, slug, 'chapters', 'source');
+  await fs.mkdir(sourceDir, { recursive: true });
+  await fs.writeFile(path.join(root, slug, 'novel.json'), JSON.stringify({ slug, title: 'Recommendation Shell' }), 'utf8');
+  await fs.writeFile(path.join(sourceDir, '0563.md'), [
+    '# 第563章 Clean Title',
+    '',
+    '道君',
+    '大王饒命',
+    '神話紀元',
+    '飛劍問道',
+    '重生似水青春',
+    '隨機推薦：',
+    '曹星便帶著眾人重新返回了那處洞口中。',
+    '“冰蘭，你跟我一起進去搜查。”',
+  ].join('\n'), 'utf8');
+
+  const blocking = await getBlockingSourceIssues(slug, [563]);
+
+  assert.equal(blocking.length, 1);
+  assert.equal(blocking[0].issues[0].code, 'site_shell');
+});

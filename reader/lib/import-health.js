@@ -32,6 +32,8 @@ const DIRTY_MARKERS = [
   '頁面執行時間',
   '页面执行时间',
   'hjwzw@live.com',
+  '隨機推薦',
+  '随机推荐',
 ];
 
 const DIRTY_TITLE_MARKERS = [
@@ -70,6 +72,16 @@ const SITE_SHELL_MARKERS = [
   '更多標簽',
   '更多标签',
   'hjwzw@live.com',
+  '隨機推薦',
+  '随机推荐',
+  '道君',
+  '大王饒命',
+  '大王饶命',
+  '神話紀元',
+  '神话纪元',
+  '飛劍問道',
+  '飞剑问道',
+  '重生似水青春',
 ];
 
 function parseFrontmatterValue(value) {
@@ -269,6 +281,7 @@ function isSourceNoiseLine(line, title) {
   if (/^(上一章|下一章|返回目錄|返回目录|加入书签|加入書簽)/.test(text)) return true;
   if (/^(>>|目錄|目录|更多標簽\.*|更多标签\.*|快捷鍵:|快捷键:|瀏覽記錄|浏览记录|聯系我們:|联系我们:|頁面執行時間:|页面执行时间:)$/i.test(text)) return true;
   if (/^(閱讀底色\.*|阅读底色\.*|淡藍海洋|淡蓝海洋|明黃清俊|明黄清俊|綠意淡雅|绿意淡雅|紅粉世家|红粉世家|白雪天地|灰色世界)$/.test(text)) return true;
+  if (/^(隨機推薦[:：]?|随机推荐[:：]?|道君|大王饒命|大王饶命|神話紀元|神话纪元|飛劍問道|飞剑问道|重生似水青春)$/.test(text)) return true;
   if (/^hjwzw@live\.com$/i.test(text)) return true;
   if (/^\d+\.\d{4,}$/.test(text)) return true;
   if (lower.includes('read next') || lower.includes('next chapter')) return true;
@@ -409,6 +422,30 @@ async function scanSourceFiles(slug) {
   }));
 }
 
+async function getSourceIssueMap(slug) {
+  const diagnostics = await scanSourceFiles(slug);
+  const issueMap = new Map();
+  for (const chapter of diagnostics) {
+    if (!chapter.issues.length) continue;
+    issueMap.set(chapter.num, chapter);
+  }
+  return issueMap;
+}
+
+async function getBlockingSourceIssues(slug, nums = []) {
+  const wanted = new Set(nums.map((num) => parseInt(num, 10)).filter((num) => Number.isFinite(num) && num > 0));
+  const diagnostics = await scanSourceFiles(slug);
+  return diagnostics
+    .filter((chapter) => wanted.size === 0 || wanted.has(chapter.num))
+    .filter((chapter) => chapter.issues.some((issue) => issue.severity === 'error'))
+    .map((chapter) => ({
+      num: chapter.num,
+      title: chapter.title,
+      charCount: chapter.charCount,
+      issues: chapter.issues.filter((issue) => issue.severity === 'error'),
+    }));
+}
+
 async function repairMissingSourceTitles(slug, options = {}) {
   if (!SLUG_RE.test(slug)) return { repaired: 0, unchanged: 0, noiseLinesRemoved: 0, filesChanged: 0, changes: [] };
   const dir = path.join(chapterDir(slug), 'source');
@@ -450,7 +487,7 @@ async function repairMissingSourceTitles(slug, options = {}) {
   return { repaired, unchanged, noiseLinesRemoved, filesChanged, changes };
 }
 
-async function getNovelImportHealth(slug) {
+async function getNovelImportHealth(slug, options = {}) {
   const meta = await novelRepo.getNovelMeta(slug);
   const chapters = await chapterRepo.listChapters(slug);
   const sourceDiagnostics = await scanSourceFiles(slug);
@@ -471,7 +508,9 @@ async function getNovelImportHealth(slug) {
     ? 'error'
     : (issueSummary.warningCount > 0 || staleIndexTitleCount > 0 ? 'warn' : 'ok');
 
-  return {
+  const blockingIssues = sourceDiagnostics.filter((chapter) =>
+    chapter.issues.some((issue) => issue.severity === 'error'));
+  const payload = {
     slug,
     title: meta.translatedTitle || meta.translated_title || meta.title || slug,
     sourceSite: meta.sourceSite || '',
@@ -484,6 +523,8 @@ async function getNovelImportHealth(slug) {
     staleIndexTitleCount,
     status,
     translationReady: issueSummary.errorCount === 0,
+    blockingSourceCount: blockingIssues.length,
+    blockingSourceNums: blockingIssues.slice(0, 100).map((chapter) => chapter.num),
     issueSummary,
     sampleIssues: sourceDiagnostics
       .filter((chapter) => chapter.issues.length > 0)
@@ -495,6 +536,18 @@ async function getNovelImportHealth(slug) {
         issues: chapter.issues,
       })),
   };
+  if (options.includeChapters) {
+    payload.chapters = sourceDiagnostics
+      .filter((chapter) => chapter.issues.length > 0)
+      .map((chapter) => ({
+        num: chapter.num,
+        title: chapter.title,
+        charCount: chapter.charCount,
+        paragraphCount: chapter.paragraphCount,
+        issues: chapter.issues,
+      }));
+  }
+  return payload;
 }
 
 async function getAllImportHealth() {
@@ -585,6 +638,8 @@ async function inspectSourceChapter(slug, num) {
 module.exports = {
   analyzeSourceMarkdown,
   getAllImportHealth,
+  getBlockingSourceIssues,
+  getSourceIssueMap,
   getNovelImportHealth,
   inspectSourceChapter,
   repairMissingSourceTitles,

@@ -595,8 +595,9 @@ app.get('/api/import/sites', asyncHandler(async (_req, res) => {
 app.get('/api/import/health', asyncHandler(async (req, res) => {
   try {
     const slug = (req.query.slug || '').toString().trim();
+    const includeChapters = req.query.includeChapters === '1' || req.query.includeChapters === 'true';
     const data = slug
-      ? await importHealth.getNovelImportHealth(slug)
+      ? await importHealth.getNovelImportHealth(slug, { includeChapters })
       : await importHealth.getAllImportHealth();
     ok(res, data);
   } catch (err) {
@@ -1343,12 +1344,51 @@ function buildNovelctlTranslateArgs(slug, range, options = {}) {
   return args;
 }
 
+function parseChapterRangeSpec(range) {
+  const nums = new Set();
+  const parts = String(range || '').split(',').map(part => part.trim()).filter(Boolean);
+  for (const part of parts) {
+    const match = part.match(/^(\d+)(?:-(\d+))?$/);
+    if (!match) continue;
+    const start = parseInt(match[1], 10);
+    const end = match[2] ? parseInt(match[2], 10) : start;
+    if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+    const lo = Math.max(1, Math.min(start, end));
+    const hi = Math.max(start, end);
+    for (let n = lo; n <= hi && nums.size < 5000; n++) nums.add(n);
+  }
+  return [...nums].sort((a, b) => a - b);
+}
+
+async function assertSourceReadyForTranslate(slug, nums, options = {}) {
+  if (options.force === true) return [];
+  const blocking = await importHealth.getBlockingSourceIssues(slug, nums);
+  if (!blocking.length) return [];
+  const sample = blocking.slice(0, 8).map(chapter => {
+    const codes = chapter.issues.map(issue => issue.code).join(', ');
+    return `ตอน ${chapter.num}: ${codes}`;
+  }).join('; ');
+  const err = new Error(`Source ยังไม่พร้อมแปล พบ source error ${blocking.length} ตอน (${sample})`);
+  err.status = 409;
+  err.code = 'SOURCE_NOT_READY';
+  err.details = {
+    blockingCount: blocking.length,
+    blocking: blocking.slice(0, 20),
+  };
+  throw err;
+}
+
 adminPost('/api/novel/:slug/translate/single', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
-  const { num, score, model, provider } = req.body;
+  const { num, score, model, provider, force } = req.body;
   const chapterNum = parseInt(num, 10);
   if (Number.isNaN(chapterNum)) return fail(res, 400, 'INVALID_NUM', 'Invalid chapter number');
+  try {
+    await assertSourceReadyForTranslate(slug, [chapterNum], { force: force === true });
+  } catch (err) {
+    return fail(res, err.status || 500, err.code || 'SOURCE_CHECK_FAILED', err.message, err.details);
+  }
 
   const args = buildNovelctlTranslateArgs(slug, chapterNum, {
     mock: false,
@@ -1402,8 +1442,15 @@ adminPost('/api/novel/:slug/translate/single', async (req, res) => {
 adminPost('/api/novel/:slug/translate/batch', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
-  const { range, concurrent, model, provider } = req.body;
+  const { range, concurrent, model, provider, force } = req.body;
   if (!range) return fail(res, 400, 'MISSING_RANGE', 'Chapter range (e.g. 5-10) is required.');
+  const nums = parseChapterRangeSpec(range);
+  if (!nums.length) return fail(res, 400, 'INVALID_RANGE', 'Invalid chapter range. Use examples like 5, 5-10, or 1,3-5.');
+  try {
+    await assertSourceReadyForTranslate(slug, nums, { force: force === true });
+  } catch (err) {
+    return fail(res, err.status || 500, err.code || 'SOURCE_CHECK_FAILED', err.message, err.details);
+  }
 
   const args = buildNovelctlTranslateArgs(slug, range, {
     workers: concurrent || 1,

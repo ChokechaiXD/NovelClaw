@@ -80,6 +80,9 @@ def test_cleaning_strips_chinese_site_shell_lines():
             "瀏覽記錄",
             "聯系我們:",
             "hjwzw@live.com",
+            "隨機推薦：",
+            "道君",
+            "大王饒命",
             real_a,
             real_b,
         ])
