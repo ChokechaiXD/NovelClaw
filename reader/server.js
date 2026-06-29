@@ -608,6 +608,19 @@ app.get('/api/import/health', asyncHandler(async (req, res) => {
   }
 }));
 
+app.get('/api/import/source-inspect', asyncHandler(async (req, res) => {
+  const slug = (req.query.slug || '').toString().trim();
+  const num = parseInt(req.query.num, 10);
+  if (!slug || !SLUG_RE.test(slug)) return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');
+  if (Number.isNaN(num)) return fail(res, 400, 'INVALID_NUM', 'Invalid chapter number');
+  try {
+    const data = await importHealth.inspectSourceChapter(slug, num);
+    ok(res, data);
+  } catch (err) {
+    fail(res, err.status || 500, 'SOURCE_INSPECT_FAILED', err.message);
+  }
+}));
+
 adminPost('/api/import/repair', async (req, res) => {
   const { slug, action } = req.body;
   if (!slug || !SLUG_RE.test(slug)) return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');

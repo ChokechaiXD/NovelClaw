@@ -96,23 +96,93 @@ const AdminNovelsPage = {
     Ui.showSkeleton('page-admin-novels');
     try {
       const novels = await Api.getNovels();
-      let html = '<div class="c-container">' + Ui.adminNav('novels') +
-        '<div class="c-admin-page__toolbar"><h3 class="c-admin-page__title">📚 รายการนิยายทั้งหมด</h3></div>' +
-        '<div class="c-table-wrap c-admin-table-wrap"><table class="c-table"><thead><tr><th>Slug</th><th>ชื่อเรื่อง</th><th>ภาษา</th><th>ตอน</th><th>แปลแล้ว</th><th>สถานะ</th><th class="c-admin-novels__actions-col">การจัดการ</th></tr></thead><tbody>';
-      for (const n of novels) {
-        const translated = n.translatedChapters || 0;
-        const total = n.totalChapters || n.chapterCount || 0;
-        const pct = total > 0 ? Math.round((translated / total) * 100) : 0;
-        const statusClass = n.status === 'complete' ? 'c-badge--purple' : n.status === 'ongoing' ? 'c-badge--teal' : 'c-badge--gray';
-        html += '<tr><td class="c-admin-table__mono-strong">' + Ui.esc(n.slug) + '</td><td>' + Ui.esc(n.title||'') + '</td><td>' + (n.source_lang||'cn').toUpperCase() + ' → ' + (n.target_lang||'th').toUpperCase() + '</td><td class="c-admin-table__mono">' + total + '</td><td class="c-admin-table__mono-accent">' + translated + ' (' + pct + '%)</td><td><span class="c-badge ' + statusClass + '">' + Ui.esc(Ui.statusMap[n.status]||'ไม่ระบุ') + '</span></td><td class="c-admin-table__actions-cell"><button class="c-btn c-btn--danger c-btn--xs c-admin-novels__delete-btn delete-novel-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">ลบ</button></td></tr>';
-      }
-      html += '</tbody></table></div></div>';
-      page.innerHTML = html;
+      const healthPayload = (await Api.getImportHealth().catch(() => ({ data: { novels: [] } }))).data || { novels: [] };
+      const healthBySlug = {};
+      for (const h of healthPayload.novels || []) healthBySlug[h.slug] = h;
+      let query = '';
+      let filter = 'all';
+      let sortBy = 'title';
 
-      // Bind delete button events
-      page.querySelectorAll('.delete-novel-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          const slug = btn.dataset.slug;
+      const healthBadge = (status) => {
+        if (status === 'error') return ['ต้องตรวจ', 'c-badge c-badge--red'];
+        if (status === 'warn') return ['ควรดู', 'c-badge c-badge--amber'];
+        return ['พร้อม', 'c-badge c-badge--teal'];
+      };
+
+      const renderRows = () => {
+        let list = novels.map(n => ({ ...n, health: healthBySlug[n.slug] || null }));
+        const q = query.trim().toLowerCase();
+        if (q) {
+          list = list.filter(n =>
+            (n.slug || '').toLowerCase().includes(q) ||
+            (n.title || '').toLowerCase().includes(q) ||
+            (n.translatedTitle || '').toLowerCase().includes(q) ||
+            (n.author || '').toLowerCase().includes(q)
+          );
+        }
+        if (filter === 'source') list = list.filter(n => (n.health?.sourceFileCount || 0) > 0);
+        else if (filter === 'warn') list = list.filter(n => n.health && n.health.status !== 'ok');
+        else if (filter === 'translated') list = list.filter(n => (n.translatedChapters || 0) > 0);
+        else if (filter === 'empty-cover') list = list.filter(n => !n.coverImage);
+
+        list.sort((a, b) => {
+          if (sortBy === 'chapters') return (b.totalChapters || b.chapterCount || 0) - (a.totalChapters || a.chapterCount || 0);
+          if (sortBy === 'progress') return (b.translatedChapters || 0) - (a.translatedChapters || 0);
+          if (sortBy === 'health') return (a.health?.status || 'ok').localeCompare(b.health?.status || 'ok');
+          return Ui.displayTitle(a).localeCompare(Ui.displayTitle(b));
+        });
+
+        const rows = list.map(n => {
+          const translated = n.translatedChapters || 0;
+          const total = n.totalChapters || n.chapterCount || 0;
+          const pct = total > 0 ? Math.round((translated / total) * 100) : 0;
+          const statusClass = n.status === 'complete' ? 'c-badge--purple' : n.status === 'ongoing' ? 'c-badge--teal' : 'c-badge--gray';
+          const [healthText, healthClass] = healthBadge(n.health?.status || 'ok');
+          const sourceMeta = n.health ? `${n.health.sourceFileCount || 0} source` : 'no scan';
+          return '<tr>' +
+            '<td><div class="c-admin-novel-cell"><div class="c-admin-novel-cover">' + Ui.coverHtml(n) + '</div><div><strong>' + Ui.esc(Ui.displayTitle(n)) + '</strong><div class="u-text-muted">' + Ui.esc(n.slug) + '</div></div></div></td>' +
+            '<td>' + Ui.esc(n.author || '-') + '</td>' +
+            '<td>' + Ui.esc((n.source_lang || 'cn').toUpperCase()) + ' → ' + Ui.esc((n.target_lang || 'th').toUpperCase()) + '<div class="u-text-muted">' + Ui.esc(n.health?.sourceSite || '') + '</div></td>' +
+            '<td class="c-admin-table__mono">' + total + '<div class="u-text-muted">' + sourceMeta + '</div></td>' +
+            '<td class="c-admin-table__mono-accent">' + translated + ' (' + pct + '%)</td>' +
+            '<td><span class="c-badge ' + statusClass + '">' + Ui.esc(Ui.statusMap[n.status] || 'ไม่ระบุ') + '</span><div class="c-admin-novels__health"><span class="' + healthClass + '">' + healthText + '</span></div></td>' +
+            '<td class="c-admin-table__actions-cell"><div class="c-admin-novels__actions">' +
+            '<a class="c-btn c-btn--xs c-btn--ghost" href="#novel/' + Ui.esc(n.slug) + '" data-nav>อ่าน</a>' +
+            '<a class="c-btn c-btn--xs c-btn--secondary" href="#admin/novels/' + Ui.esc(n.slug) + '" data-nav>แก้</a>' +
+            '<button class="c-btn c-btn--xs c-btn--secondary repair-novel-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Repair</button>' +
+            '<button class="c-btn c-btn--danger c-btn--xs c-admin-novels__delete-btn delete-novel-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">ลบ</button>' +
+            '</div></td>' +
+            '</tr>';
+        }).join('');
+
+        const countEl = document.getElementById('admin-novel-count');
+        if (countEl) countEl.textContent = list.length + ' / ' + novels.length + ' เรื่อง';
+        const tbody = document.getElementById('admin-novels-tbody');
+        if (tbody) tbody.innerHTML = rows || '<tr><td colspan="7" class="u-text-muted">ไม่พบนิยายตามเงื่อนไข</td></tr>';
+        bindRowActions();
+      };
+
+      const bindRowActions = () => {
+        page.querySelectorAll('.repair-novel-btn').forEach(btn => {
+          btn.onclick = async () => {
+            const slug = btn.dataset.slug;
+            if (!slug) return;
+            btn.disabled = true;
+            btn.textContent = 'Repairing...';
+            try {
+              await Api.repairImport(slug, 'rebuild-index');
+              Ui.showToast('ซ่อม index สำเร็จ');
+              await AdminNovelsPage.render(params);
+            } catch (err) {
+              Ui.showToast('ซ่อมไม่สำเร็จ: ' + err.message, 'error');
+              btn.disabled = false;
+              btn.textContent = 'Repair';
+            }
+          };
+        });
+        page.querySelectorAll('.delete-novel-btn').forEach(btn => {
+          btn.onclick = async () => {
+            const slug = btn.dataset.slug;
           if (!slug) return;
           if (confirm('⚠️ คำเตือน: คุณต้องการลบนิยาย "' + slug + '" ใช่หรือไม่?\nการลบนี้จะทำลายโฟลเดอร์นิยาย บทแปล และศัพท์เฉพาะทั้งหมดอย่างถาวรและไม่สามารถเรียกคืนได้!')) {
             try {
@@ -128,8 +198,32 @@ const AdminNovelsPage = {
               btn.textContent = 'ลบ';
             }
           }
+          };
         });
+      };
+
+      page.innerHTML = '<div class="c-container">' + Ui.adminNav('novels') +
+        '<div class="c-admin-page__toolbar"><h3 class="c-admin-page__title">รายการนิยายทั้งหมด</h3><span id="admin-novel-count" class="c-admin-page__meta"></span></div>' +
+        '<div class="c-admin-novels__filters">' +
+        '<input id="admin-novel-search" class="c-form__input c-admin-novels__search" placeholder="ค้นหา title, slug, author..." />' +
+        '<select id="admin-novel-filter" class="c-form__select c-admin-novels__select"><option value="all">ทั้งหมด</option><option value="source">มี source</option><option value="warn">ต้องตรวจ</option><option value="translated">มีแปลแล้ว</option><option value="empty-cover">ยังไม่มีปก</option></select>' +
+        '<select id="admin-novel-sort" class="c-form__select c-admin-novels__select"><option value="title">เรียงตามชื่อ</option><option value="chapters">ตอนมากสุด</option><option value="progress">แปลมากสุด</option><option value="health">health</option></select>' +
+        '</div>' +
+        '<div class="c-table-wrap c-admin-table-wrap"><table class="c-table"><thead><tr><th>นิยาย</th><th>ผู้แต่ง</th><th>ภาษา</th><th>ตอน</th><th>แปลแล้ว</th><th>สถานะ</th><th class="c-admin-novels__actions-col">การจัดการ</th></tr></thead><tbody id="admin-novels-tbody"></tbody></table></div></div>';
+
+      document.getElementById('admin-novel-search')?.addEventListener('input', (event) => {
+        query = event.target.value || '';
+        renderRows();
       });
+      document.getElementById('admin-novel-filter')?.addEventListener('change', (event) => {
+        filter = event.target.value || 'all';
+        renderRows();
+      });
+      document.getElementById('admin-novel-sort')?.addEventListener('change', (event) => {
+        sortBy = event.target.value || 'title';
+        renderRows();
+      });
+      renderRows();
     } catch (err) { Ui.showError(page, 'โหลดไม่สำเร็จ', err.message); }
   }
 };
@@ -738,7 +832,37 @@ const AdminNovelEditPage = {
     const coverSaveBtn = document.getElementById('edit-cover-save');
     const coverDeleteBtn = document.getElementById('edit-cover-delete');
     const coverPreview = document.getElementById('edit-cover-preview');
+    const coverPanel = coverPreview?.closest('.c-admin-cover-panel');
     let selectedCoverData = '';
+
+    const resizeCoverImage = (file) => new Promise((resolve, reject) => {
+      if (!file.type.startsWith('image/')) {
+        reject(new Error('ไฟล์นี้ไม่ใช่รูปภาพ'));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const maxW = 900;
+          const scale = Math.min(1, maxW / Math.max(1, img.naturalWidth));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+          canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(String(reader.result || ''));
+            return;
+          }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/webp', 0.86));
+        };
+        img.onerror = () => reject(new Error('อ่านรูปไม่สำเร็จ'));
+        img.src = String(reader.result || '');
+      };
+      reader.onerror = () => reject(new Error('อ่านไฟล์รูปไม่สำเร็จ'));
+      reader.readAsDataURL(file);
+    });
 
     const readSelectedCover = () => new Promise((resolve, reject) => {
       const file = coverInput?.files?.[0];
@@ -754,16 +878,44 @@ const AdminNovelEditPage = {
         reject(new Error('รูปปกต้องไม่เกิน 4 MB'));
         return;
       }
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ''));
-      reader.onerror = () => reject(new Error('อ่านไฟล์รูปไม่สำเร็จ'));
-      reader.readAsDataURL(file);
+      resizeCoverImage(file).then(resolve).catch(reject);
     });
 
     if (coverInput && coverPreview) {
       coverInput.addEventListener('change', async () => {
         try {
           selectedCoverData = await readSelectedCover();
+          coverPreview.innerHTML = '<img class="c-cover-img" src="' + Ui.esc(selectedCoverData) + '" alt="Cover preview">';
+          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', 'พร้อมบันทึกปกใหม่', 'muted');
+        } catch (err) {
+          selectedCoverData = '';
+          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', '❌ ' + err.message, 'error');
+        }
+      });
+    }
+
+    if (coverPanel && coverInput && coverPreview) {
+      ['dragenter', 'dragover'].forEach(type => {
+        coverPanel.addEventListener(type, (event) => {
+          event.preventDefault();
+          coverPanel.classList.add('is-dragging');
+        });
+      });
+      ['dragleave', 'drop'].forEach(type => {
+        coverPanel.addEventListener(type, (event) => {
+          event.preventDefault();
+          coverPanel.classList.remove('is-dragging');
+        });
+      });
+      coverPanel.addEventListener('drop', async (event) => {
+        const file = event.dataTransfer?.files?.[0];
+        if (!file) return;
+        try {
+          if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type)) {
+            throw new Error('รองรับเฉพาะ PNG, JPEG, WebP หรือ GIF');
+          }
+          if (file.size > 4 * 1024 * 1024) throw new Error('รูปปกต้องไม่เกิน 4 MB');
+          selectedCoverData = await resizeCoverImage(file);
           coverPreview.innerHTML = '<img class="c-cover-img" src="' + Ui.esc(selectedCoverData) + '" alt="Cover preview">';
           AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', 'พร้อมบันทึกปกใหม่', 'muted');
         } catch (err) {
@@ -1042,6 +1194,43 @@ const AdminImportPage = {
     return html;
   },
 
+  _renderSourceInspector() {
+    const novels = this._health?.novels || [];
+    const options = novels
+      .filter(n => (n.sourceFileCount || 0) > 0)
+      .map(n => '<option value="' + Ui.esc(n.slug) + '">' + Ui.esc(n.title || n.slug) + '</option>')
+      .join('');
+    return '<div class="c-card c-admin-import__panel c-admin-source-inspector">' +
+      '<h3 class="c-admin-import__title">Source Inspector</h3>' +
+      '<div class="c-admin-source-inspector__form">' +
+      '<div class="c-form__group"><label class="c-form__label" for="inspect-slug">นิยาย</label><select class="c-form__select" id="inspect-slug">' + options + '</select></div>' +
+      '<div class="c-form__group"><label class="c-form__label" for="inspect-num">ตอน</label><input class="c-form__input" id="inspect-num" type="number" min="1" value="1"></div>' +
+      '<button class="c-btn c-btn--secondary" id="inspect-run" type="button">Inspect</button>' +
+      '</div>' +
+      '<div id="inspect-output" class="c-admin-source-inspector__output" hidden></div>' +
+      '</div>';
+  },
+
+  _renderInspection(data) {
+    const out = document.getElementById('inspect-output');
+    if (!out) return;
+    const diagnostic = data.diagnostic || {};
+    const issues = diagnostic.issues || [];
+    const issueHtml = issues.length
+      ? issues.map(issue => '<span class="c-badge ' + (issue.severity === 'error' ? 'c-badge--red' : 'c-badge--amber') + '">' + Ui.esc(issue.code) + '</span>').join('')
+      : '<span class="c-badge c-badge--teal">clean</span>';
+    out.hidden = false;
+    out.innerHTML = '<div class="c-admin-source-inspector__summary">' +
+      '<strong>' + Ui.esc(data.title || 'Untitled') + '</strong>' +
+      '<span>' + (diagnostic.paragraphCount || 0) + ' paragraphs · ' + (diagnostic.charCount || 0) + ' chars</span>' +
+      '<div class="c-admin-import__diagnostics">' + issueHtml + '</div>' +
+      '</div>' +
+      '<div class="c-admin-source-inspector__grid">' +
+      '<div><div class="c-form__label">Raw source</div><pre class="c-admin-source-inspector__pre"><code>' + Ui.esc(data.raw || '') + '</code></pre></div>' +
+      '<div><div class="c-form__label">Parsed clean text</div><pre class="c-admin-source-inspector__pre"><code>' + Ui.esc(data.cleanedText || '') + '</code></pre></div>' +
+      '</div>';
+  },
+
   _renderPreview(data) {
     const box = document.getElementById('import-preview');
     if (!box) return;
@@ -1154,6 +1343,8 @@ const AdminImportPage = {
             </div>
           </div>
 
+          ${this._renderSourceInspector()}
+
           <div class="c-card c-admin-translate__panel" id="import-console-card" hidden>
             <div class="c-admin-translate__console-head">
               <h4 id="import-console-title">Import</h4>
@@ -1187,6 +1378,27 @@ const AdminImportPage = {
           btn.textContent = 'Repair index';
         }
       });
+    });
+
+    document.getElementById('inspect-run')?.addEventListener('click', async () => {
+      const btn = document.getElementById('inspect-run');
+      const slug = document.getElementById('inspect-slug')?.value || '';
+      const num = document.getElementById('inspect-num')?.value || '1';
+      if (!slug) {
+        Ui.showToast('ยังไม่มี source ให้ inspect', 'error');
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Inspecting...';
+      try {
+        const data = this._data(await Api.inspectSource(slug, num));
+        this._renderInspection(data);
+      } catch (err) {
+        Ui.showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Inspect';
+      }
     });
 
     document.getElementById('import-preview-btn')?.addEventListener('click', async () => {
