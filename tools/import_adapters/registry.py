@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .base import SourceAdapter
 from .static_sites import ADAPTERS
+from urllib.parse import urlparse
 
 
 def list_adapters() -> list[SourceAdapter]:
@@ -66,16 +67,24 @@ def list_site_catalog() -> dict:
 
 def get_adapter(url: str, site: str = "auto") -> SourceAdapter:
     adapters = list_adapters()
+    host = urlparse(url).netloc.lower() or "(missing host)"
     if site and site != "auto":
         for adapter in adapters:
             if adapter.id == site:
                 if adapter.detect(url):
                     return adapter
-                raise ValueError(f"Adapter '{site}' does not support this URL")
+                domains = ", ".join(getattr(adapter, "domains", ())) or "unknown"
+                raise ValueError(
+                    f"Adapter '{site}' does not support host '{host}'. "
+                    f"Expected one of: {domains}. Use adapter 'auto' or paste/manual import for unsupported sites."
+                )
         raise ValueError(f"Unknown import adapter: {site}")
 
     for adapter in adapters:
         if adapter.detect(url):
             return adapter
-    supported = ", ".join(adapter.id for adapter in adapters)
-    raise ValueError(f"Unsupported source URL. Supported adapters: {supported}")
+    supported = ", ".join(f"{adapter.id}({', '.join(getattr(adapter, 'domains', ()))})" for adapter in adapters)
+    raise ValueError(
+        f"Unsupported source host '{host}'. Supported adapters: {supported}. "
+        "Use manual paste for this site or add a new adapter fixture."
+    )

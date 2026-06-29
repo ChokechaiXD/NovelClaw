@@ -4,11 +4,16 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 
+function resetNovelRootModules() {
+  for (const mod of ['../lib/paths', '../lib/chapter-repo', '../lib/novel-repo', '../lib/import-health']) {
+    delete require.cache[require.resolve(mod)];
+  }
+}
+
 test('import health flags link-only and dirty source chapters', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-health-'));
   process.env.NOVELCLAW_ROOT = root;
-  delete require.cache[require.resolve('../lib/paths')];
-  delete require.cache[require.resolve('../lib/import-health')];
+  resetNovelRootModules();
 
   const { getNovelImportHealth } = require('../lib/import-health');
   const slug = 'sample-health';
@@ -56,8 +61,7 @@ This text was taken from Royal Road. Help the author by reading the original ver
 test('source inspector returns raw and parsed source chapter views', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-inspect-'));
   process.env.NOVELCLAW_ROOT = root;
-  delete require.cache[require.resolve('../lib/paths')];
-  delete require.cache[require.resolve('../lib/import-health')];
+  resetNovelRootModules();
 
   const { inspectSourceChapter } = require('../lib/import-health');
   const slug = 'sample-inspect';
@@ -81,4 +85,26 @@ Second paragraph.
   assert.match(inspected.raw, /source_site/);
   assert.equal(inspected.cleanedText, 'First paragraph.\n\nSecond paragraph.');
   assert.equal(inspected.diagnostic.charCount, inspected.cleanedText.length);
+});
+
+test('repairMissingSourceTitles adds a markdown title from the first chapter line', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-repair-title-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const { inspectSourceChapter, repairNovelImport } = require('../lib/import-health');
+  const slug = 'sample-repair-title';
+  const sourceDir = path.join(root, slug, 'chapters', 'source');
+  await fs.mkdir(sourceDir, { recursive: true });
+  await fs.writeFile(path.join(root, slug, 'novel.json'), JSON.stringify({ slug, title: 'Repair Title' }), 'utf8');
+  await fs.writeFile(path.join(sourceDir, '0007.md'), '第7章 Repairable\n\nReal content paragraph.\nSecond paragraph.', 'utf8');
+
+  const result = await repairNovelImport(slug, 'all');
+  const inspected = await inspectSourceChapter(slug, 7);
+
+  assert.equal(result.repair.titlesRepaired, 1);
+  assert.equal(inspected.title, '第7章 Repairable');
+  assert.match(inspected.raw, /^# 第7章 Repairable/);
+  assert.match(inspected.cleanedText, /Real content paragraph\./);
+  assert.match(inspected.cleanedText, /Second paragraph\./);
 });

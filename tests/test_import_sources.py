@@ -5,7 +5,7 @@ from pathlib import Path
 
 from tools import import_sources
 from tools.import_adapters import static_sites
-from tools.import_adapters.registry import list_site_catalog
+from tools.import_adapters.registry import get_adapter, list_site_catalog
 from tools.import_adapters.static_sites import RoyalRoadAdapter, Shu69Adapter
 
 
@@ -118,6 +118,31 @@ def test_import_sites_command_returns_catalog_shape():
     assert isinstance(payload["sites"], list)
     assert payload["sites"][0]["id"]
     assert "fallbackAdapters" in payload
+
+
+def test_get_adapter_error_mentions_host_and_expected_domains():
+    try:
+        get_adapter("https://example.com/novel/1", "69shu")
+    except ValueError as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("expected ValueError")
+
+    assert "example.com" in message
+    assert "69shu.com" in message
+    assert "auto" in message
+
+
+def test_get_adapter_auto_error_mentions_manual_paste_path():
+    try:
+        get_adapter("https://example.com/novel/1", "auto")
+    except ValueError as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("expected ValueError")
+
+    assert "Unsupported source host" in message
+    assert "manual paste" in message
 
 
 def test_preview_url_includes_sample_chapter_diagnostics(monkeypatch):
