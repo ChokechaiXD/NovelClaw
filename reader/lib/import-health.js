@@ -458,10 +458,14 @@ async function getNovelImportHealth(slug) {
   const issueSummary = summarizeIssues(sourceDiagnostics);
   const sourceOnlyCount = chapters.filter((chapter) => chapter.status === 'source_only').length;
   const translatedCount = chapters.filter((chapter) => chapter.isTranslated).length;
+  const dirtyTitleNums = new Set(sourceDiagnostics
+    .filter((chapter) => chapter.issues.some((issue) => issue.code === 'dirty_title'))
+    .map((chapter) => chapter.num));
   const staleIndexTitleCount = chapters.filter((chapter) =>
     chapter.status === 'source_only'
     && typeof chapter.title === 'string'
     && /^ตอนที่ \d+ \[ยังไม่แปล\]$/.test(chapter.title)
+    && !dirtyTitleNums.has(chapter.num)
   ).length;
   const status = issueSummary.errorCount > 0
     ? 'error'

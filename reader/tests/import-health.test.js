@@ -325,6 +325,7 @@ test('import health flags Chinese site shell contamination as blocking source er
 
   assert.equal(health.status, 'error');
   assert.equal(health.translationReady, false);
+  assert.equal(health.staleIndexTitleCount, 0);
   assert.equal(health.issueSummary.byCode.site_shell, 1);
   assert.equal(inspected.diagnostic.issues.some(issue => issue.code === 'dirty_title'), true);
 });
