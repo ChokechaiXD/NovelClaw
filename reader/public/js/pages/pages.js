@@ -29,7 +29,7 @@ const LibraryPage = {
       let html = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title"><svg class="c-icon c-icon--sm c-title-icon"><use xlink:href="#icon-library"/></svg>หอสมุด</h3><div class="c-section__tools"><span class="c-section__count">' + visibleNovels.length + ' เรื่อง</span><select id="library-sort" class="c-library-sort"><option value="title"' + (sortBy === 'title' ? ' selected' : '') + '>ชื่อ</option><option value="progress"' + (sortBy === 'progress' ? ' selected' : '') + '>ความคืบหน้า</option><option value="chapters"' + (sortBy === 'chapters' ? ' selected' : '') + '>ตอน</option></select></div></div><div class="c-card-grid">';
       for (const n of sorted) {
         const lr = Store.getLastPosition(n.slug);
-        html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover">' + Ui.coverSVG(n.slug, Ui.displayTitle(n)) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span>' + (lr ? '<span class="c-library-last-read">อ่านล่าสุด: ตอนที่ ' + lr + '</span>' : '') + '</div></a>';
+        html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover">' + Ui.coverHtml(n) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span>' + (lr ? '<span class="c-library-last-read">อ่านล่าสุด: ตอนที่ ' + lr + '</span>' : '') + '</div></a>';
       }
       html += '</div></section></div>';
       page.innerHTML = html;
@@ -66,7 +66,7 @@ const SearchPage = {
       }
       let html = '<div class="c-card-grid c-search-results-grid">';
       for (const n of filteredList) {
-        html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover">' + Ui.coverSVG(n.slug, Ui.displayTitle(n)) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span></div></a>';
+        html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover">' + Ui.coverHtml(n) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span></div></a>';
       }
       html += '</div>';
       results.innerHTML = html;
@@ -139,7 +139,7 @@ const RankingPage = {
       for (let i = 0; i < Math.min(10, sorted.length); i++) {
         const n = sorted[i];
         const rankClass = 'c-popular__rank--' + (i + 1);
-        html += '<a href="#novel/' + n.slug + '" class="c-popular__item" data-nav><span class="c-popular__rank ' + rankClass + '">' + (i + 1) + '</span><div class="c-popular__cover">' + Ui.coverSVG(n.slug, Ui.displayTitle(n)) + '</div><div class="c-popular__info"><span class="c-popular__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-popular__meta">' + (n.author || '') + '</span><span class="c-popular__views">' + (n.translatedChapters || 0) + '/' + (n.totalChapters || n.chapterCount || 0) + ' ตอนที่แปลแล้ว</span></div></a>';
+        html += '<a href="#novel/' + n.slug + '" class="c-popular__item" data-nav><span class="c-popular__rank ' + rankClass + '">' + (i + 1) + '</span><div class="c-popular__cover">' + Ui.coverHtml(n) + '</div><div class="c-popular__info"><span class="c-popular__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-popular__meta">' + (n.author || '') + '</span><span class="c-popular__views">' + (n.translatedChapters || 0) + '/' + (n.totalChapters || n.chapterCount || 0) + ' ตอนที่แปลแล้ว</span></div></a>';
       }
       html += '</div></section></div>';
       page.innerHTML = html;

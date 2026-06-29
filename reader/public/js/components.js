@@ -109,6 +109,15 @@ const Ui = {
     </svg>`;
   },
 
+  coverHtml(novel) {
+    const title = Ui.displayTitle(novel);
+    const src = novel?.coverImage || '';
+    if (src) {
+      return `<img class="c-cover-img" src="${Ui.esc(src)}" alt="${Ui.esc(title || 'Novel cover')}" loading="lazy">`;
+    }
+    return Ui.coverSVG(novel?.slug || '', title);
+  },
+
   showToast(message, type = 'success') {
     let container = document.getElementById('toast-container');
     if (!container) {

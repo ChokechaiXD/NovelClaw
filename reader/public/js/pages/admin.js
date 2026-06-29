@@ -703,7 +703,7 @@ const AdminNovelEditPage = {
     try {
       const novels = await Api.getNovels();
       const novel = novels.find(n => n.slug === slug);
-      page.innerHTML = '<div class="c-container"><div class="c-section__header c-admin-page__header"><h3 class="c-section__title">แก้ไขนิยาย: ' + Ui.esc(slug||'') + '</h3></div><div class="c-settings-form"><div class="c-form"><div class="c-form__group"><label class="c-form__label" for="edit-translated-title">ชื่อไทย</label><input class="c-form__input" id="edit-translated-title" value="' + Ui.esc(novel?.translatedTitle||'') + '" /></div><div class="c-form__group"><label class="c-form__label" for="edit-title">ชื่อต้นฉบับ</label><input class="c-form__input" id="edit-title" value="' + Ui.esc(novel?.title||'') + '" /></div><div class="c-form__group"><label class="c-form__label" for="edit-author">ผู้แต่ง</label><input class="c-form__input" id="edit-author" value="' + Ui.esc(novel?.author||'') + '" /></div><div class="c-form__group c-admin-edit__actions"><button class="c-btn c-btn--primary" id="edit-save" type="button">บันทึก</button><span id="edit-status" class="c-admin-edit__status"></span></div></div></div></div>';
+      page.innerHTML = '<div class="c-container"><div class="c-section__header c-admin-page__header"><h3 class="c-section__title">แก้ไขนิยาย: ' + Ui.esc(slug||'') + '</h3></div><div class="c-admin-edit-layout"><div class="c-admin-cover-panel"><div class="c-admin-cover-preview" id="edit-cover-preview">' + Ui.coverHtml(novel || { slug }) + '</div><input class="c-admin-cover-input" id="edit-cover-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"><div class="c-admin-cover-actions"><button class="c-btn c-btn--primary" id="edit-cover-save" type="button">บันทึกปก</button><button class="c-btn c-btn--ghost" id="edit-cover-delete" type="button">ลบปก</button></div><span id="edit-cover-status" class="c-admin-edit__status"></span></div><div class="c-settings-form c-admin-edit-form"><div class="c-form"><div class="c-form__group"><label class="c-form__label" for="edit-translated-title">ชื่อไทย</label><input class="c-form__input" id="edit-translated-title" value="' + Ui.esc(novel?.translatedTitle||'') + '" /></div><div class="c-form__group"><label class="c-form__label" for="edit-title">ชื่อต้นฉบับ</label><input class="c-form__input" id="edit-title" value="' + Ui.esc(novel?.title||'') + '" /></div><div class="c-form__group"><label class="c-form__label" for="edit-author">ผู้แต่ง</label><input class="c-form__input" id="edit-author" value="' + Ui.esc(novel?.author||'') + '" /></div><div class="c-form__group c-admin-edit__actions"><button class="c-btn c-btn--primary" id="edit-save" type="button">บันทึก</button><span id="edit-status" class="c-admin-edit__status"></span></div></div></div></div></div>';
     } catch(_) { Ui.showError(page, 'เกิดข้อผิดพลาด'); }
 
     // ── Save handler ────────────────────────────────────────────────
@@ -723,12 +723,91 @@ const AdminNovelEditPage = {
           });
           const data = await res.json();
           if (res.ok) {
+            Api.invalidateNovels();
             AdminUi.setStatus('edit-status', 'c-admin-edit__status', '✅ บันทึกสำเร็จ', 'success');
           } else {
-            AdminUi.setStatus('edit-status', 'c-admin-edit__status', '❌ ' + (data.error || 'เกิดข้อผิดพลาด'), 'error');
+            AdminUi.setStatus('edit-status', 'c-admin-edit__status', '❌ ' + (data.error?.message || 'เกิดข้อผิดพลาด'), 'error');
           }
         } catch (e) {
           AdminUi.setStatus('edit-status', 'c-admin-edit__status', '❌ ' + e.message, 'error');
+        }
+      };
+    }
+
+    const coverInput = document.getElementById('edit-cover-file');
+    const coverSaveBtn = document.getElementById('edit-cover-save');
+    const coverDeleteBtn = document.getElementById('edit-cover-delete');
+    const coverPreview = document.getElementById('edit-cover-preview');
+    let selectedCoverData = '';
+
+    const readSelectedCover = () => new Promise((resolve, reject) => {
+      const file = coverInput?.files?.[0];
+      if (!file) {
+        reject(new Error('กรุณาเลือกรูปปกก่อนค่ะ'));
+        return;
+      }
+      if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type)) {
+        reject(new Error('รองรับเฉพาะ PNG, JPEG, WebP หรือ GIF'));
+        return;
+      }
+      if (file.size > 4 * 1024 * 1024) {
+        reject(new Error('รูปปกต้องไม่เกิน 4 MB'));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('อ่านไฟล์รูปไม่สำเร็จ'));
+      reader.readAsDataURL(file);
+    });
+
+    if (coverInput && coverPreview) {
+      coverInput.addEventListener('change', async () => {
+        try {
+          selectedCoverData = await readSelectedCover();
+          coverPreview.innerHTML = '<img class="c-cover-img" src="' + Ui.esc(selectedCoverData) + '" alt="Cover preview">';
+          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', 'พร้อมบันทึกปกใหม่', 'muted');
+        } catch (err) {
+          selectedCoverData = '';
+          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', '❌ ' + err.message, 'error');
+        }
+      });
+    }
+
+    if (coverSaveBtn) {
+      coverSaveBtn.onclick = async () => {
+        try {
+          coverSaveBtn.disabled = true;
+          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', 'กำลังบันทึกปก...', 'muted');
+          const imageData = selectedCoverData || await readSelectedCover();
+          const res = await Api.saveNovelCover(slug, imageData);
+          selectedCoverData = '';
+          if (coverPreview) {
+            coverPreview.innerHTML = '<img class="c-cover-img" src="' + Ui.esc(res.data.coverImage) + '" alt="Cover preview">';
+          }
+          if (coverInput) coverInput.value = '';
+          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', '✅ บันทึกปกสำเร็จ', 'success');
+        } catch (err) {
+          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', '❌ ' + err.message, 'error');
+        } finally {
+          coverSaveBtn.disabled = false;
+        }
+      };
+    }
+
+    if (coverDeleteBtn) {
+      coverDeleteBtn.onclick = async () => {
+        try {
+          coverDeleteBtn.disabled = true;
+          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', 'กำลังลบปก...', 'muted');
+          await Api.deleteNovelCover(slug);
+          selectedCoverData = '';
+          if (coverInput) coverInput.value = '';
+          if (coverPreview) coverPreview.innerHTML = Ui.coverHtml({ slug, title: novel?.title || slug });
+          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', 'ลบปกแล้ว', 'success');
+        } catch (err) {
+          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', '❌ ' + err.message, 'error');
+        } finally {
+          coverDeleteBtn.disabled = false;
         }
       };
     }

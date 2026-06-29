@@ -10,6 +10,7 @@ const path = require('node:path');
 const { chapterDir, chapterPath, legacyChapterPath, legacyMdPath,
         sourceMdPath, chaptersIndexPath, legacyIndexPath, allChapterVariants,
         pad, NOVELS_DIR } = require('./paths');
+const { extractMarkdownTitle, parseFrontmatter, parseMarkdownToBlocks } = require('./blocks');
 
 // ── Cache ──────────────────────────────────────────────────────────
 const cache = new Map();
@@ -101,8 +102,7 @@ async function scanChapters(slug) {
               title = (j.title || '').toString();
             }
           } else if (titleFile.endsWith('.md')) {
-            const m = raw.match(/^#\s+(.+?)\r?\n/);
-            if (m) title = m[1].trim();
+            title = extractMarkdownTitle(raw);
           }
         } catch {}
       }
@@ -197,18 +197,19 @@ async function getChapter(slug, num, lang) {
   }
 
   if (!isTranslated) {
-    const { parseMarkdownToBlocks } = require('./blocks');
     const parsed = parseMarkdownToBlocks(raw, num);
+    const sourceLang = parsed.frontmatter?.source_lang || parsed.frontmatter?.sourceLang || 'cn';
     const _mdTitle = parsed.title || '';
-    // Strip Chinese chapter prefix like md source files
-    const _mdClean = _mdTitle.replace(/^第\d+[章장]\s*/, '').trim();
+    const _mdClean = sourceLang === 'cn'
+      ? _mdTitle.replace(/^第\d+[章장]\s*/, '').trim()
+      : _mdTitle.trim();
     return {
       title: _mdClean ? `ตอนที่ ${num} ${_mdClean}` : (_mdTitle || `ตอนที่ ${num} [ยังไม่แปล]`),
       isJson: true,
       blocks: parsed.blocks,
       source: `ch ${num} (Original Source)`,
-      lang: 'cn',
-      notes: [],
+      lang: sourceLang,
+      notes: parsed.notes,
       isTranslated: false,
     };
   }
@@ -234,7 +235,9 @@ async function getChapter(slug, num, lang) {
   }
 
   // Legacy .md
-  const parts = raw.split(/\n---\n/);
+  const frontmatter = parseFrontmatter(raw);
+  const rawBody = frontmatter.body || raw;
+  const parts = rawBody.split(/\n---\n/);
   let body = (parts[0] || '').trim();
   let meta = '';
   if (parts.length >= 3) {
@@ -253,16 +256,15 @@ async function getChapter(slug, num, lang) {
   const m = body.match(/^#\s+(.+?)\r?\n/);
   if (m) { mdTitle = m[1].trim(); body = body.slice(m[0].length).trim(); }
 
-  const { parseMarkdownToBlocks } = require('./blocks');
   const parsed = parseMarkdownToBlocks(raw, num);
   return {
-    title: mdTitle,
+    title: mdTitle || parsed.title,
     body,
     meta,
     isJson: false,
     blocks: parsed.blocks,
     source: parsed.notes.length > 0 ? '' : `ch ${num}`,
-    lang: 'cn',
+    lang: parsed.frontmatter?.source_lang || frontmatter.data?.source_lang || 'cn',
     notes: parsed.notes,
   };
 }
@@ -343,6 +345,16 @@ async function listChapters(slug, options = {}) {
         isTranslated: c.status !== 'source_only',
         status: c.status || 'translated',
       }));
+      const hasStaleSourceTitles = out.some(c =>
+        c.status === 'source_only'
+        && typeof c.title === 'string'
+        && /^ตอนที่ \d+ \[ยังไม่แปล\]$/.test(c.title)
+      );
+      if (hasStaleSourceTitles) {
+        const scanned = await scanChapters(slug);
+        cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: scanned });
+        return scanned;
+      }
       cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: out });
       return out;
     }

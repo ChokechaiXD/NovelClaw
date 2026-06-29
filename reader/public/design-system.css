@@ -893,12 +893,20 @@ button.c-form__input,
   font-size: 2.5rem;
   font-weight: var(--font-weight-bold);
   color: #fff;
+  overflow: hidden;
 }
 .c-cover-svg {
   display: block;
   width: 100%;
   height: 100%;
   border-radius: var(--radius);
+}
+.c-cover-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
 }
 .c-card__info { padding: var(--space-sm) var(--space-md) var(--space-md); }
 .c-card__title { font-size: var(--text-sm); font-weight: var(--font-weight-semibold); color: var(--c-text-primary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -972,7 +980,7 @@ button.c-form__input,
   transition: all 0.15s;
 }
 .c-update:hover { border-color: var(--c-accent); }
-.c-update__cover { width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-weight: var(--font-weight-bold); color: #fff; font-size: var(--text-sm); flex-shrink: 0; }
+.c-update__cover { width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-weight: var(--font-weight-bold); color: #fff; font-size: var(--text-sm); flex-shrink: 0; overflow: hidden; }
 .c-update__badge { font-size: 10px; background: var(--c-accent); color: #fff; padding: 1px 6px; border-radius: 3px; margin-right: var(--space-sm); }
 .c-update__info { flex: 1; min-width: 0; }
 .c-update__title { font-size: var(--text-sm); font-weight: var(--font-weight-medium); color: var(--c-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -991,7 +999,7 @@ button.c-form__input,
 .c-popular__item:hover { background: var(--c-surface); }
 .c-popular__rank { width: 24px; text-align: center; font-weight: var(--font-weight-bold); font-size: var(--text-sm); color: var(--c-text-muted); }
 .c-popular__rank--1, .c-popular__rank--2, .c-popular__rank--3 { color: var(--c-warning); }
-.c-popular__cover { width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-weight: var(--font-weight-bold); color: #fff; font-size: var(--text-xs); flex-shrink: 0; }
+.c-popular__cover { width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-weight: var(--font-weight-bold); color: #fff; font-size: var(--text-xs); flex-shrink: 0; overflow: hidden; }
 .c-popular__info { flex: 1; min-width: 0; }
 .c-popular__title { font-size: var(--text-sm); font-weight: var(--font-weight-medium); color: var(--c-text-primary); }
 .c-popular__meta { font-size: var(--text-xs); color: var(--c-text-muted); }
@@ -1105,7 +1113,7 @@ pre code {
 .c-detail { display: flex; gap: var(--space-lg); margin-bottom: var(--space-lg); }
 .c-detail__cover {
   width: 160px;
-  min-height: 200px;
+  height: 220px;
   border-radius: var(--radius);
   display: flex;
   align-items: center;
@@ -1113,6 +1121,7 @@ pre code {
   font-size: 4rem;
   font-weight: var(--font-weight-bold);
   flex-shrink: 0;
+  overflow: hidden;
 }
 .c-detail__info { flex: 1; }
 .c-detail__title { font-family: var(--font-ui); font-size: var(--text-2xl); font-weight: var(--font-weight-bold); color: var(--c-text-primary); margin-bottom: var(--space-xs); }
@@ -1804,6 +1813,39 @@ pre code {
   gap: var(--space-sm);
   margin-top: var(--space-md);
 }
+.c-admin-edit-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 480px);
+  gap: var(--space-lg);
+  align-items: start;
+}
+.c-admin-edit-form {
+  max-width: none;
+}
+.c-admin-cover-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.c-admin-cover-preview {
+  width: 100%;
+  aspect-ratio: 2 / 2.7;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--c-bg-secondary);
+}
+.c-admin-cover-input {
+  display: block;
+  width: 100%;
+  color: var(--c-text-secondary);
+  font-size: var(--text-xs);
+}
+.c-admin-cover-actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
 .c-admin-edit__status {
   font-size: var(--text-sm);
 }
@@ -1815,6 +1857,14 @@ pre code {
 }
 .c-admin-edit__status--error {
   color: var(--c-error);
+}
+@media (max-width: 680px) {
+  .c-admin-edit-layout {
+    grid-template-columns: 1fr;
+  }
+  .c-admin-cover-preview {
+    max-width: 220px;
+  }
 }
 .c-admin-table__actions-cell,
 .c-admin-novels__actions-col {

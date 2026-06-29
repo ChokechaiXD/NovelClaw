@@ -94,6 +94,7 @@ async function saveNovelMeta(slug, data) {
   // Write canonical novel.json
   const novelData = {
     ...existing,
+    ...data,
     slug,
     title: data.title || existing.title || slug,
     translatedTitle: data.translatedTitle ?? existing.translatedTitle ?? '',

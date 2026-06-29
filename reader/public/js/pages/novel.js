@@ -37,7 +37,7 @@ const NovelPage = {
       html += `
       <div class="c-detail">
         <div class="c-detail__cover">
-          ${Ui.coverSVG(novel.slug, Ui.displayTitle(novel))}
+          ${Ui.coverHtml(novel)}
         </div>
         <div class="c-detail__info">
           <h2 class="c-detail__title">${Ui.esc(Ui.displayTitle(novel))}</h2>
