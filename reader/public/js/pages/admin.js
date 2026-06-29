@@ -38,6 +38,25 @@ const AdminUi = {
   },
 };
 
+function formatImportRepairSummary(slug, repair = {}) {
+  const sample = (repair.changes || []).slice(0, 5).map(item => {
+    const before = item.titleBefore || '(missing)';
+    const after = item.titleAfter || '(unchanged)';
+    return '  - ' + item.filename + ': ' + before + ' -> ' + after +
+      (item.noiseLinesRemoved ? ' | noise -' + item.noiseLinesRemoved : '');
+  });
+  return [
+    'slug: ' + slug,
+    'source files changed: ' + (repair.filesChanged || 0),
+    'titles repaired: ' + (repair.titlesRepaired || 0),
+    'noise lines removed: ' + (repair.noiseLinesRemoved || 0),
+    'titles unchanged: ' + (repair.titlesUnchanged || 0),
+    'index rebuild: ' + (repair.indexRebuilt ? 'yes' : 'no'),
+    sample.length ? 'sample:' : '',
+    ...sample,
+  ].filter(Boolean).join('\n');
+}
+
 // ── ADMIN DASHBOARD
 const AdminDashboardPage = {
   async render(params) {
@@ -168,8 +187,17 @@ const AdminNovelsPage = {
             const slug = btn.dataset.slug;
             if (!slug) return;
             btn.disabled = true;
-            btn.textContent = 'Repairing...';
+            btn.textContent = 'Checking...';
             try {
+              const preview = await Api.repairImport(slug, 'all', { dryRun: true });
+              const previewRepair = preview.data?.repair || {};
+              const summary = formatImportRepairSummary(slug, previewRepair);
+              if (!confirm('Repair preview\n\n' + summary + '\n\nApply these changes?')) {
+                btn.disabled = false;
+                btn.textContent = 'Repair';
+                return;
+              }
+              btn.textContent = 'Repairing...';
               const result = await Api.repairImport(slug, 'all');
               const repair = result.data?.repair || {};
               Ui.showToast('ซ่อมแล้ว: title ' + (repair.titlesRepaired || 0) + ', index rebuilt');
@@ -1366,17 +1394,24 @@ const AdminImportPage = {
         const slug = btn.dataset.slug;
         if (!slug) return;
         btn.disabled = true;
-        btn.textContent = 'Repairing...';
-        this.setConsole('running', 'Repair running', 'Repairing source titles and rebuilding chapter index for ' + slug + '...');
+        btn.textContent = 'Checking...';
+        this.setConsole('running', 'Repair preview', 'Checking source titles, noise lines, and chapter index for ' + slug + '...');
         try {
+          const preview = await Api.repairImport(slug, 'all', { dryRun: true });
+          const previewRepair = preview.data?.repair || {};
+          const previewMessage = formatImportRepairSummary(slug, previewRepair);
+          this.setConsole('idle', 'Repair preview', previewMessage);
+          if (!confirm('Repair preview\n\n' + previewMessage + '\n\nApply these changes?')) {
+            btn.disabled = false;
+            btn.textContent = 'Repair';
+            return;
+          }
+
+          btn.textContent = 'Repairing...';
+          this.setConsole('running', 'Repair running', 'Applying source title/noise repairs and rebuilding chapter index for ' + slug + '...');
           const result = await Api.repairImport(slug, 'all');
           const repair = result.data?.repair || {};
-          const message = [
-            'slug: ' + slug,
-            'titles repaired: ' + (repair.titlesRepaired || 0),
-            'titles unchanged: ' + (repair.titlesUnchanged || 0),
-            'index rebuilt: ' + (repair.indexRebuilt ? 'yes' : 'no'),
-          ].join('\n');
+          const message = formatImportRepairSummary(slug, repair);
           this.setConsole('success', 'Repair complete', message);
           Ui.showToast('ซ่อมแล้ว: title ' + (repair.titlesRepaired || 0) + ', index rebuilt');
           btn.disabled = false;
