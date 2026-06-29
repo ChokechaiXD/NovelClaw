@@ -40,6 +40,7 @@ const searchService = require('./lib/search-service');
 const importHealth = require('./lib/import-health');
 const providerConfigService = require('./lib/provider-config-service');
 const translationHealth = require('./lib/translation-health');
+const { parseTranslateJsonOutput, parseBatchTranslateSummary } = require('./lib/translate-result');
 const { parseMarkdownToBlocks } = require('./lib/blocks');
 
 // Re-export for tests
@@ -484,33 +485,26 @@ app.get('/api/novel/:slug/glossary/data', asyncHandler(async (req, res) => {
   }
 }));
 
+async function readGlossaryTerms(slug) {
+  const raw = await readTextOrNull(glossaryJsonPath(slug));
+  if (!raw) return [];
+  const data = JSON.parse(raw);
+  return Array.isArray(data.terms) ? data.terms : [];
+}
+
+async function writeGlossaryTerms(slug, terms) {
+  const filepath = glossaryJsonPath(slug);
+  await fs.mkdir(path.dirname(filepath), { recursive: true });
+  await fs.writeFile(filepath, JSON.stringify({ terms: Array.isArray(terms) ? terms : [] }, null, 2), 'utf8');
+  chapterRepo.invalidateAll(slug);
+}
+
 adminPost('/api/novel/:slug/glossary/save', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
-  const glossaryScript = path.join(__dirname, '..', 'tools', 'glossary.py');
-  const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
-  const child = spawn(py, [glossaryScript, '--novel', slug, '--save'], {
-    cwd: path.join(__dirname, '..'), windowsHide: true, timeout: 10_000,
-    env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
-  });
-  let stdout = '', stderr = '';
-  child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
-  child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
-  child.on('error', (err) => {
-    console.error('Failed to start glossary.py:', err);
-    if (!res.headersSent) {
-      fail(res, 500, 'GLOSSARY_SPAWN_FAILED', `Failed to start glossary.py: ${err.message}`);
-    }
-  });
-  child.on('close', (code) => {
-    if (code !== 0) {
-      return fail(res, 500, 'GLOSSARY_SAVE_FAILED', `glossary.py exited ${code}: ${sanitizeOutput(stderr)}`);
-    }
-    chapterRepo.invalidateAll(slug);
-    ok(res, { saved: true });
-  });
-  child.stdin.write(JSON.stringify(req.body));
-  child.stdin.end();
+  const terms = Array.isArray(req.body?.terms) ? req.body.terms : [];
+  await writeGlossaryTerms(slug, terms);
+  ok(res, { saved: true, count: terms.length });
 });
 
 // ── Characters ─────────────────────────────────────────────────────
@@ -1050,12 +1044,11 @@ adminPost('/api/novel/:slug/glossary/add', async (req, res) => {
   }
 
   let terms = [];
-  const filepath = glossaryJsonPath(slug);
   try {
-    const raw = await fs.readFile(filepath, 'utf8');
-    const data = JSON.parse(raw);
-    terms = data.terms || [];
-  } catch {}
+    terms = await readGlossaryTerms(slug);
+  } catch (err) {
+    return fail(res, 500, 'GLOSSARY_PARSE_ERROR', 'Invalid glossary.json', err.message);
+  }
 
   const exists = terms.some(t => t.source.trim() === source.trim());
   if (exists) {
@@ -1072,34 +1065,8 @@ adminPost('/api/novel/:slug/glossary/add', async (req, res) => {
     notes: (notes || 'Added from web reader').trim()
   });
 
-  const glossaryScript = path.join(__dirname, '..', 'tools', 'glossary.py');
-  const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
-  const child = spawn(py, [glossaryScript, '--novel', slug, '--save'], {
-    cwd: path.join(__dirname, '..'), windowsHide: true, timeout: 10_000,
-    env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
-  });
-
-  let stdout = '', stderr = '';
-  child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
-  child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
-
-  child.on('error', (err) => {
-    console.error('Failed to start glossary.py:', err);
-    if (!res.headersSent) {
-      fail(res, 500, 'GLOSSARY_SPAWN_FAILED', `Failed to start glossary.py: ${err.message}`);
-    }
-  });
-
-  child.on('close', (code) => {
-    if (code !== 0) {
-      return fail(res, 500, 'GLOSSARY_SAVE_FAILED', `glossary.py exited ${code}: ${sanitizeOutput(stderr)}`);
-    }
-    chapterRepo.invalidateAll(slug);
-    ok(res, { added: true, term: { source, thai } });
-  });
-
-  child.stdin.write(JSON.stringify({ terms }));
-  child.stdin.end();
+  await writeGlossaryTerms(slug, terms);
+  ok(res, { added: true, term: { source, thai } });
 });
 
 app.get('/api/novel/:slug/chapter/:num/unknown-terms', asyncHandler(async (req, res) => {
@@ -1160,39 +1127,14 @@ app.get('/api/novel/:slug/chapter/:num/unknown-terms', asyncHandler(async (req, 
 adminPost('/api/local/translate-term', async (req, res) => {
   const { term, context } = req.body;
   if (!term) return fail(res, 400, 'MISSING_TERM', 'Term is required');
-  
-  const translateScript = path.join(__dirname, '..', 'tools', 'translate_term.py');
-  const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
-  const child = spawn(py, [translateScript], {
-    cwd: path.join(__dirname, '..'), windowsHide: true, timeout: 20_000,
-    env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
+
+  ok(res, {
+    source: String(term).trim(),
+    thai: '',
+    confidence: 'manual',
+    notes: 'LLM term suggestion is not wired yet. Enter the Thai term manually.',
+    context: context || '',
   });
-  
-  let stdout = '', stderr = '';
-  child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
-  child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
-  
-  child.on('error', (err) => {
-    console.error('Failed to start translate_term.py:', err);
-    if (!res.headersSent) {
-      fail(res, 500, 'TRANSLATE_SPAWN_FAILED', `Failed to start translate_term.py: ${err.message}`);
-    }
-  });
-  
-  child.on('close', (code) => {
-    if (code !== 0) {
-      return fail(res, 500, 'TRANSLATE_FAILED', `translate_term.py exited ${code}: ${sanitizeOutput(stderr || stdout)}`);
-    }
-    try {
-      const parsed = JSON.parse(stdout);
-      ok(res, parsed);
-    } catch (err) {
-      fail(res, 500, 'JSON_PARSE_ERROR', 'Failed to parse LLM suggestion JSON: ' + sanitizeOutput(stdout));
-    }
-  });
-  
-  child.stdin.write(JSON.stringify({ term, context }));
-  child.stdin.end();
 });
 
 adminPost('/api/novel/:slug/glossary/verify', async (req, res) => {
@@ -1220,36 +1162,8 @@ adminPost('/api/novel/:slug/glossary/verify', async (req, res) => {
   }
   
   terms[idx].verified = !!verified;
-  
-  // Save terms via glossary.py --save
-  const glossaryScript = path.join(__dirname, '..', 'tools', 'glossary.py');
-  const py = process.env.PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
-  const child = spawn(py, [glossaryScript, '--novel', slug, '--save'], {
-    cwd: path.join(__dirname, '..'), windowsHide: true, timeout: 10_000,
-    env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
-  });
-  
-  let stdout = '', stderr = '';
-  child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
-  child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
-  
-  child.on('error', (err) => {
-    console.error('Failed to start glossary.py:', err);
-    if (!res.headersSent) {
-      fail(res, 500, 'GLOSSARY_SPAWN_FAILED', `Failed to start glossary.py: ${err.message}`);
-    }
-  });
-  
-  child.on('close', (code) => {
-    if (code !== 0) {
-      return fail(res, 500, 'GLOSSARY_SAVE_FAILED', `glossary.py exited ${code}: ${sanitizeOutput(stderr)}`);
-    }
-    chapterRepo.invalidateAll(slug);
-    ok(res, { verified: terms[idx].verified });
-  });
-  
-  child.stdin.write(JSON.stringify({ terms }));
-  child.stdin.end();
+  await writeGlossaryTerms(slug, terms);
+  ok(res, { verified: terms[idx].verified });
 });
 
 app.get('/api/local/state', asyncHandler(async (req, res) => {
@@ -1400,19 +1314,23 @@ function buildNovelctlTranslateArgs(slug, range, options = {}) {
   if (workers > 1) args.push('--parallel', String(workers));
   if (options.mock) args.push('--mock');
   if (options.model) args.push('--model', options.model);
+  if (options.provider) args.push('--provider', options.provider);
+  if (options.json) args.push('--json');
   return args;
 }
 
 adminPost('/api/novel/:slug/translate/single', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
-  const { num, score, model } = req.body;
+  const { num, score, model, provider } = req.body;
   const chapterNum = parseInt(num, 10);
   if (Number.isNaN(chapterNum)) return fail(res, 400, 'INVALID_NUM', 'Invalid chapter number');
 
   const args = buildNovelctlTranslateArgs(slug, chapterNum, {
     mock: false,
     model: model || undefined,
+    provider: provider || undefined,
+    json: true,
   });
 
   const child = spawn(getPythonCommand(), args, {
@@ -1441,21 +1359,32 @@ adminPost('/api/novel/:slug/translate/single', async (req, res) => {
       return;
     }
     
+    const results = parseTranslateJsonOutput(stdout);
+    const result = results[results.length - 1] || null;
+    if (!result || result.status !== 'ok') {
+      const reason = result?.reason || sanitizeOutput(stderr || stdout) || 'Translation did not produce an ok result';
+      if (!res.headersSent) {
+        return fail(res, 500, 'TRANSLATE_FAILED', reason, result || undefined);
+      }
+      return;
+    }
+
     chapterRepo.invalidateAll(slug);
     invalidateQualityMeta(slug, chapterNum);
-    ok(res, { success: true, result: { ch: chapterNum, status: 'done' }, stdout });
+    ok(res, { success: true, result, stdout });
   });
 });
 
 adminPost('/api/novel/:slug/translate/batch', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
-  const { range, concurrent, model } = req.body;
+  const { range, concurrent, model, provider } = req.body;
   if (!range) return fail(res, 400, 'MISSING_RANGE', 'Chapter range (e.g. 5-10) is required.');
 
   const args = buildNovelctlTranslateArgs(slug, range, {
     workers: concurrent || 1,
     model: model || undefined,
+    provider: provider || undefined,
   });
 
   const child = spawn(getPythonCommand(), args, {
@@ -1484,9 +1413,16 @@ adminPost('/api/novel/:slug/translate/batch', async (req, res) => {
       return;
     }
     
+    const summary = parseBatchTranslateSummary(stdout);
     chapterRepo.invalidateAll(slug);
     invalidateQualityMeta(slug);
-    ok(res, { success: true, result: { range: String(range), status: 'done' }, stdout });
+    if (summary.failed > 0) {
+      if (!res.headersSent) {
+        return fail(res, 500, 'TRANSLATE_PARTIAL_FAILED', `Batch finished with ${summary.failed} failed chapter(s)`, { summary, stdout });
+      }
+      return;
+    }
+    ok(res, { success: true, result: { range: String(range), status: 'done', summary }, stdout });
   });
 });
 

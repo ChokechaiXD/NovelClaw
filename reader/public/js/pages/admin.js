@@ -148,7 +148,7 @@ const AdminNovelsPage = {
             '<td><span class="c-badge ' + statusClass + '">' + Ui.esc(Ui.statusMap[n.status] || 'ไม่ระบุ') + '</span><div class="c-admin-novels__health"><span class="' + healthClass + '">' + healthText + '</span></div></td>' +
             '<td class="c-admin-table__actions-cell"><div class="c-admin-novels__actions">' +
             '<a class="c-btn c-btn--xs c-btn--ghost" href="#novel/' + Ui.esc(n.slug) + '" data-nav>อ่าน</a>' +
-            '<a class="c-btn c-btn--xs c-btn--secondary" href="#admin/novels/' + Ui.esc(n.slug) + '" data-nav>แก้</a>' +
+            '<a class="c-btn c-btn--xs c-btn--secondary" href="#admin/novel-edit/' + Ui.esc(n.slug) + '" data-nav>แก้</a>' +
             '<button class="c-btn c-btn--xs c-btn--secondary repair-novel-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Repair</button>' +
             '<button class="c-btn c-btn--danger c-btn--xs c-admin-novels__delete-btn delete-novel-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">ลบ</button>' +
             '</div></td>' +
