@@ -12,6 +12,10 @@ BOILERPLATE_PATTERNS = [
     r"^\s*(chapter\s+list|back\s+to\s+top|bookmark|subscribe|share)\b",
     r"^\s*(advertisement|ads?|sponsored)\s*$",
     r"^\s*(本章未完|请收藏|最新网址|手机用户请浏览|加入书签|推荐本书)",
+    r"^\s*(閱讀底色|阅读底色|淡藍海洋|淡蓝海洋|明黃清俊|明黄清俊|綠意淡雅|绿意淡雅|紅粉世家|红粉世家|白雪天地|灰色世界)\.*\s*$",
+    r"^\s*(快捷鍵|快捷键|瀏覽記錄|浏览记录|聯系我們|联系我们|頁面執行時間|页面执行时间)[:：]?\s*$",
+    r"^\s*(更多標簽|更多标签)\.?\s*$",
+    r"^\s*hjwzw@live\.com\s*$",
     r"^\s*(次の話|前の話|目次|ブックマーク|しおり)",
     r"^\s*(作者を応援|応援コメント|レビュー|フォロー)",
     r"^\s*(login|sign\s+in|register)\s+to\b",
@@ -28,6 +32,15 @@ DIRTY_MARKERS = [
     "加入书签",
     "最新网址",
     "ブックマーク",
+    "閱讀底色",
+    "阅读底色",
+    "瀏覽記錄",
+    "浏览记录",
+    "聯系我們",
+    "联系我们",
+    "頁面執行時間",
+    "页面执行时间",
+    "hjwzw@live.com",
 ]
 
 REMOVE_BLOCK_RE = re.compile(

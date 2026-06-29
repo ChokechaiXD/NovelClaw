@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from tools import import_sources
+from tools.import_adapters.cleaning import clean_text_lines, validate_paragraphs
 from tools.import_adapters import static_sites
 from tools.import_adapters.registry import get_adapter, list_site_catalog
 from tools.import_adapters.static_sites import RoyalRoadAdapter, Shu69Adapter
@@ -66,6 +67,31 @@ def test_royalroad_adapter_strips_source_watermark():
         "The first true paragraph remained.",
         "The second true paragraph remained.",
     ]
+
+
+def test_cleaning_strips_chinese_site_shell_lines():
+    real_a = "曹星緩緩睜開雙眼，輕聲感嘆道：“果然……兩條神性之間的沖突消失了。”" * 6
+    real_b = "“雖然我現在還不知道，靠自己的力量解決這種沖突，需要耗費多大的代價。”" * 6
+    paragraphs = clean_text_lines(
+        "\n".join([
+            "閱讀底色..",
+            "淡藍海洋",
+            "明黃清俊",
+            "瀏覽記錄",
+            "聯系我們:",
+            "hjwzw@live.com",
+            real_a,
+            real_b,
+        ])
+    )
+    warnings, needs_review = validate_paragraphs("第1章 Test", paragraphs)
+
+    assert paragraphs == [
+        real_a,
+        real_b,
+    ]
+    assert not needs_review
+    assert warnings == []
 
 
 def test_import_paste_writes_canonical_source_markdown(tmp_path, monkeypatch):
