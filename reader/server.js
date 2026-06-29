@@ -618,12 +618,14 @@ app.get('/api/import/source-inspect', asyncHandler(async (req, res) => {
 }));
 
 adminPost('/api/import/repair', async (req, res) => {
-  const { slug, action } = req.body;
+  const { slug, action, dryRun } = req.body;
   if (!slug || !SLUG_RE.test(slug)) return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');
   try {
-    const result = await importHealth.repairNovelImport(slug, action || 'rebuild-index');
-    invalidateCache('/api/novel/' + slug);
-    invalidateCache('/api/novels');
+    const result = await importHealth.repairNovelImport(slug, action || 'rebuild-index', { dryRun: dryRun === true });
+    if (dryRun !== true) {
+      invalidateCache('/api/novel/' + slug);
+      invalidateCache('/api/novels');
+    }
     ok(res, { slug, action: action || 'rebuild-index', ...result });
   } catch (err) {
     fail(res, err.status || 500, 'IMPORT_REPAIR_FAILED', err.message);

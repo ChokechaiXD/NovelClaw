@@ -165,4 +165,38 @@ test('repairNovelImport replaces dirty site breadcrumb headings with chapter tit
   assert.equal(inspected.title, '第1章冰封紀元公測開啟');
   assert.match(inspected.raw, /^# 第1章冰封紀元公測開啟/);
   assert.doesNotMatch(inspected.raw, /黃金屋中文 >>/);
+  assert.doesNotMatch(inspected.raw, /作者:一條小白蛇/);
+});
+
+test('repairNovelImport dry-run reports changes without touching source files', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-repair-dry-run-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const { inspectSourceChapter, repairNovelImport } = require('../lib/import-health');
+  const slug = 'sample-repair-dry-run';
+  const sourceDir = path.join(root, slug, 'chapters', 'source');
+  await fs.mkdir(sourceDir, { recursive: true });
+  await fs.writeFile(path.join(root, slug, 'novel.json'), JSON.stringify({ slug, title: 'Dry Run' }), 'utf8');
+  const original = [
+    '# 黃金屋中文 >> Sample >> 目錄 >> 第2章乾跑',
+    '',
+    '第2章乾跑',
+    '作者:測試  分類: 奇幻',
+    '',
+    '第一段正文。',
+    '',
+    'Sample 第2章乾跑 手機網頁版',
+  ].join('\n');
+  await fs.writeFile(path.join(sourceDir, '0002.md'), original, 'utf8');
+
+  const result = await repairNovelImport(slug, 'all', { dryRun: true });
+  const inspected = await inspectSourceChapter(slug, 2);
+
+  assert.equal(result.repair.dryRun, true);
+  assert.equal(result.repair.titlesRepaired, 1);
+  assert.equal(result.repair.filesChanged, 1);
+  assert.equal(result.repair.noiseLinesRemoved, 2);
+  assert.equal(result.repair.changes[0].titleAfter, '第2章乾跑');
+  assert.equal(inspected.raw, original);
 });

@@ -220,15 +220,15 @@ const Api = {
     return data;
   },
 
-  async repairImport(slug, action = 'rebuild-index') {
+  async repairImport(slug, action = 'rebuild-index', options = {}) {
     const res = await fetch('/api/import/repair', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug, action })
+      body: JSON.stringify({ slug, action, ...options })
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error?.message || `${res.status} ${res.statusText}`);
-    this.invalidateAll(slug);
+    if (!options.dryRun) this.invalidateAll(slug);
     return data;
   },
 
