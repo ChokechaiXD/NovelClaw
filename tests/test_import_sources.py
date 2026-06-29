@@ -6,7 +6,7 @@ from pathlib import Path
 from tools import import_sources
 from tools.import_adapters import static_sites
 from tools.import_adapters.registry import list_site_catalog
-from tools.import_adapters.static_sites import Shu69Adapter
+from tools.import_adapters.static_sites import RoyalRoadAdapter, Shu69Adapter
 
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
@@ -39,6 +39,33 @@ def test_static_adapter_extracts_clean_chapter_text():
     assert "\n".join(chapter.paragraphs) == read_fixture("import_expected_69shu.txt").strip()
     assert all("Advertisement" not in paragraph for paragraph in chapter.paragraphs)
     assert all("最新网址" not in paragraph for paragraph in chapter.paragraphs)
+
+
+def test_royalroad_adapter_strips_source_watermark():
+    adapter = RoyalRoadAdapter()
+    ref = static_sites.ChapterRef(
+        1,
+        "Prologue - The End of Eternity",
+        "https://www.royalroad.com/fiction/103742/example/chapter/1",
+    )
+    raw = """
+    <html><body>
+      <h1>Prologue - The End of Eternity</h1>
+      <div class="chapter-inner">
+        <p>The first true paragraph remained.</p>
+        <p>This text was taken from Royal Road. Help the author by reading the original version there.</p>
+        <p>The second true paragraph remained.</p>
+      </div>
+    </body></html>
+    """
+
+    chapter = adapter.extract(raw, ref)
+
+    assert chapter.title == "Prologue - The End of Eternity"
+    assert chapter.paragraphs == [
+        "The first true paragraph remained.",
+        "The second true paragraph remained.",
+    ]
 
 
 def test_import_paste_writes_canonical_source_markdown(tmp_path, monkeypatch):

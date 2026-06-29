@@ -4,36 +4,62 @@
  * Extracted from server.js to avoid circular dependency with chapter-repo.
  */
 
+function parseFrontmatter(mdText) {
+  const normalized = String(mdText || '').replace(/\r\n/g, '\n').trim();
+  const match = normalized.match(/^---\n([\s\S]*?)\n---(?:\n|$)/);
+  if (!match) return { body: normalized, text: '', data: {} };
+
+  const data = {};
+  for (const rawLine of match[1].split('\n')) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const kv = line.match(/^([A-Za-z_][\w-]*):\s*(.*?)\s*$/);
+    if (!kv) continue;
+    data[kv[1]] = kv[2].replace(/^['"]|['"]$/g, '');
+  }
+
+  return {
+    body: normalized.slice(match[0].length).trim(),
+    text: match[1].trim(),
+    data,
+  };
+}
+
+function extractMarkdownTitle(mdText) {
+  const parsed = parseFrontmatter(mdText);
+  const titleMatch = parsed.body.match(/^#\s+(.+?)(?:\n|$)/);
+  return titleMatch ? titleMatch[1].trim() : '';
+}
+
 function parseMarkdownToBlocks(mdText, chapterNum) {
-  const normalized = mdText.replace(/\r\n/g, '\n').trim();
-  const parts = normalized.split(/\n-{3,}\n/);
+  const leadingMeta = parseFrontmatter(mdText);
+  const parts = leadingMeta.body.split(/\n-{3,}\n/);
 
   let body = '';
-  let metaText = '';
+  const metaSections = [];
+  if (leadingMeta.text) metaSections.push(leadingMeta.text);
 
   if (parts.length >= 3) {
     const firstPart = parts[0].trim();
     const lines = firstPart.split('\n');
     if (lines.length <= 6) {
       body = parts[1].trim();
-      metaText = parts.slice(2).join('\n\n');
+      metaSections.push(parts.slice(2).join('\n\n'));
     } else {
       body = parts.slice(0, -1).join('\n\n---\n\n');
-      metaText = parts[parts.length - 1];
+      metaSections.push(parts[parts.length - 1]);
     }
   } else if (parts.length === 2) {
     const firstPart = parts[0].trim();
     const lines = firstPart.split('\n');
     if (lines.length <= 6) {
       body = parts[1].trim();
-      metaText = '';
     } else {
       body = parts[0].trim();
-      metaText = parts[1].trim();
+      metaSections.push(parts[1].trim());
     }
   } else {
     body = parts[0].trim();
-    metaText = '';
   }
 
   let title = '';
@@ -42,13 +68,14 @@ function parseMarkdownToBlocks(mdText, chapterNum) {
     title = titleMatch[1].trim();
     body = body.slice(titleMatch[0].length).trim();
   } else {
-    const fallbackMatch = parts[0].trim().match(/^#\s+(.+)/);
+    const fallbackMatch = leadingMeta.body.match(/^#\s+(.+)/);
     if (fallbackMatch) {
       title = fallbackMatch[1].trim();
     }
   }
 
   const notes = [];
+  const metaText = metaSections.filter(Boolean).join('\n\n');
   if (metaText) {
     for (const line of metaText.split('\n')) {
       const trimmed = line.trim();
@@ -94,7 +121,7 @@ function parseMarkdownToBlocks(mdText, chapterNum) {
     blocks.push({ type: 'end', text: '(จบบท)' });
   }
 
-  return { title, blocks, notes };
+  return { title, blocks, notes, frontmatter: leadingMeta.data };
 }
 
-module.exports = { parseMarkdownToBlocks };
+module.exports = { parseMarkdownToBlocks, parseFrontmatter, extractMarkdownTitle };

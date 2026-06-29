@@ -15,6 +15,8 @@ BOILERPLATE_PATTERNS = [
     r"^\s*(次の話|前の話|目次|ブックマーク|しおり)",
     r"^\s*(作者を応援|応援コメント|レビュー|フォロー)",
     r"^\s*(login|sign\s+in|register)\s+to\b",
+    r"^\s*this\s+text\s+was\s+taken\s+from\s+royal\s+road\b",
+    r"^\s*help\s+the\s+author\s+by\s+reading\s+the\s+original\s+version\s+there\.?\s*$",
 ]
 
 DIRTY_MARKERS = [
@@ -22,6 +24,7 @@ DIRTY_MARKERS = [
     "sponsored",
     "login to",
     "please enable javascript",
+    "this text was taken from royal road",
     "加入书签",
     "最新网址",
     "ブックマーク",

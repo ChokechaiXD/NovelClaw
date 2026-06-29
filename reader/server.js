@@ -31,8 +31,9 @@ const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 
 // ── Lib modules ────────────────────────────────────────────────────
-const { pad, assertValidSlug, SLUG_RE, novelJsonPath, sourceMdPath,
-        glossaryJsonPath, glossaryMdPath, charactersMdPath, NOVELS_DIR, chapterPath } = require('./lib/paths');
+const { pad, assertValidSlug, SLUG_RE, novelDir, novelJsonPath, novelCoverPath,
+        NOVEL_COVER_EXTENSIONS, sourceMdPath, glossaryJsonPath, glossaryMdPath,
+        charactersMdPath, NOVELS_DIR, chapterPath } = require('./lib/paths');
 const chapterRepo = require('./lib/chapter-repo');
 const novelRepo = require('./lib/novel-repo');
 const searchService = require('./lib/search-service');
@@ -48,6 +49,20 @@ const PUBLIC_DIR = path.resolve(__dirname, 'public');
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const TRUSTED_LAN = process.env.TRUSTED_LAN === 'true';
 const PERF_LOG = process.env.PERF_LOG === 'true';
+const COVER_MAX_BYTES = 4 * 1024 * 1024;
+const COVER_MIME_EXT = {
+  'image/webp': 'webp',
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/gif': 'gif',
+};
+const COVER_EXT_MIME = {
+  webp: 'image/webp',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+};
 
 // ── API response helpers ──────────────────────────────────────────
 function ok(res, data = {}) {
@@ -88,7 +103,7 @@ app.use(helmet({
     },
   },
 }));
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '8mb' }));
 
 // Rate-limit admin write APIs in case ADMIN_TOKEN is leaked. The reader is
 // intended for single-user localhost or small-LAN use, so 60 req/min/IP is
@@ -231,6 +246,38 @@ async function readTextOrNull(filepath) {
   catch (err) { if (err.code === 'ENOENT') return null; throw err; }
 }
 
+function buildCoverUrl(slug, updatedAt = '') {
+  const suffix = updatedAt ? `?v=${encodeURIComponent(updatedAt)}` : '';
+  return `/api/novel/${slug}/cover${suffix}`;
+}
+
+async function findNovelCover(slug) {
+  for (const ext of NOVEL_COVER_EXTENSIONS) {
+    const filepath = novelCoverPath(slug, ext);
+    try {
+      const stat = await fs.stat(filepath);
+      return { filepath, ext, mime: COVER_EXT_MIME[ext] || 'application/octet-stream', stat };
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err;
+    }
+  }
+  return null;
+}
+
+function parseCoverImageData(imageData) {
+  const match = String(imageData || '').match(/^data:(image\/(?:webp|png|jpeg|gif));base64,([A-Za-z0-9+/=\s]+)$/);
+  if (!match) {
+    throw Object.assign(new Error('Cover must be a PNG, JPEG, WebP, or GIF data URL'), { status: 400, code: 'INVALID_COVER' });
+  }
+  const mime = match[1];
+  const ext = COVER_MIME_EXT[mime];
+  const buffer = Buffer.from(match[2].replace(/\s/g, ''), 'base64');
+  if (!buffer.length || buffer.length > COVER_MAX_BYTES) {
+    throw Object.assign(new Error('Cover image must be 1 byte to 4 MB'), { status: 400, code: 'COVER_TOO_LARGE' });
+  }
+  return { mime, ext, buffer };
+}
+
 function runPythonJson(args, options = {}) {
   const { input = null, timeout = 300_000 } = options;
   return new Promise((resolve, reject) => {
@@ -296,6 +343,8 @@ app.get('/api/novels', asyncHandler(async (_req, res) => {
         totalChapters: parseInt(meta.total_chapters, 10) || chapters.length,
         status: meta.status || 'unknown',
         description: meta.description || '',
+        coverImage: meta.coverImage || (meta.coverExt ? buildCoverUrl(slug, meta.coverUpdatedAt) : ''),
+        coverUpdatedAt: meta.coverUpdatedAt || '',
       };
     }),
   );
@@ -325,6 +374,14 @@ app.get('/api/novel/:slug/chapters', asyncHandler(async (req, res) => {
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   logTiming(`GET /api/novel/${req.params.slug}/chapters`, startedAt);
   res.json({ slug: req.params.slug, chapters });
+}));
+
+app.get('/api/novel/:slug/cover', asyncHandler(async (req, res) => {
+  const cover = await findNovelCover(req.params.slug);
+  if (!cover) return fail(res, 404, 'COVER_NOT_FOUND', 'Cover image not found');
+  const data = await fs.readFile(cover.filepath);
+  res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+  res.type(cover.mime).send(data);
 }));
 
 // ── Chapter search ─────────────────────────────────────────────────
@@ -472,6 +529,49 @@ adminPost('/api/novel/update', async (req, res) => {
   await novelRepo.saveNovelMeta(slug, { title, author, source_lang, target_lang, status, total_chapters, translatedTitle });
   invalidateCache('/api/novels');
   ok(res, { slug });
+});
+
+adminPost('/api/novel/:slug/cover', async (req, res) => {
+  const slug = req.params.slug;
+  const { imageData } = req.body;
+  let parsed;
+  try {
+    parsed = parseCoverImageData(imageData);
+  } catch (err) {
+    return fail(res, err.status || 400, err.code || 'INVALID_COVER', err.message);
+  }
+  await fs.mkdir(novelDir(slug), { recursive: true });
+
+  for (const ext of NOVEL_COVER_EXTENSIONS) {
+    if (ext !== parsed.ext) {
+      await fs.rm(novelCoverPath(slug, ext), { force: true }).catch(() => {});
+    }
+  }
+
+  await fs.writeFile(novelCoverPath(slug, parsed.ext), parsed.buffer);
+  const coverUpdatedAt = new Date().toISOString();
+  const coverImage = buildCoverUrl(slug, coverUpdatedAt);
+  await novelRepo.saveNovelMeta(slug, {
+    coverImage,
+    coverExt: parsed.ext,
+    coverUpdatedAt,
+  });
+  invalidateCache('/api/novels');
+  ok(res, { slug, coverImage, coverExt: parsed.ext, coverUpdatedAt });
+});
+
+adminPost('/api/novel/:slug/cover/delete', async (req, res) => {
+  const slug = req.params.slug;
+  for (const ext of NOVEL_COVER_EXTENSIONS) {
+    await fs.rm(novelCoverPath(slug, ext), { force: true }).catch(() => {});
+  }
+  await novelRepo.saveNovelMeta(slug, {
+    coverImage: '',
+    coverExt: '',
+    coverUpdatedAt: new Date().toISOString(),
+  });
+  invalidateCache('/api/novels');
+  ok(res, { slug, deleted: true });
 });
 
 // ── Admin delete novel ─────────────────────────────────────────────

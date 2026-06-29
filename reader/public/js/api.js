@@ -176,6 +176,28 @@ const Api = {
     return res.json();
   },
 
+  async saveNovelCover(slug, imageData) {
+    const res = await fetch(`/api/novel/${slug}/cover`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageData })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error?.message || `${res.status} ${res.statusText}`);
+    this.invalidateNovels();
+    return data;
+  },
+
+  async deleteNovelCover(slug) {
+    const res = await fetch(`/api/novel/${slug}/cover/delete`, {
+      method: 'POST'
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error?.message || `${res.status} ${res.statusText}`);
+    this.invalidateNovels();
+    return data;
+  },
+
   async getImportSites() {
     const res = await fetch('/api/import/sites');
     const data = await res.json().catch(() => ({}));

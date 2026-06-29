@@ -63,6 +63,14 @@ function novelJsonPath(slug) {
 }
 exports.novelJsonPath = novelJsonPath;
 
+const NOVEL_COVER_EXTENSIONS = ['webp', 'png', 'jpg', 'jpeg', 'gif'];
+exports.NOVEL_COVER_EXTENSIONS = NOVEL_COVER_EXTENSIONS;
+
+function novelCoverPath(slug, ext) {
+  return path.join(NOVELS_DIR, slug, `cover.${ext}`);
+}
+exports.novelCoverPath = novelCoverPath;
+
 /** Return path to meta.md (legacy, for backward compat) */
 function metaMdPath(slug) {
   return path.join(NOVELS_DIR, slug, 'meta.md');
