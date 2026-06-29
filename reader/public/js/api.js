@@ -125,11 +125,11 @@ const Api = {
     return res.json();
   },
 
-  async translateBatch(slug, range, concurrent = 1) {
+  async translateBatch(slug, range, concurrent = 1, options = {}) {
     const res = await fetch(`/api/novel/${slug}/translate/batch`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ range, concurrent })
+      body: JSON.stringify({ range, concurrent, ...options })
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));

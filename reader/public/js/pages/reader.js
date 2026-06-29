@@ -203,9 +203,15 @@ const ReaderPage = {
               const loader = document.getElementById('reader-translation-loader');
               if (loader) loader.style.display = 'flex';
               try {
-                const res = await Api.translateSingle(slug, ch.num, true);
+                const selectedModel = modelSelect?.value || '';
+                const selectedProvider = modelSelect?.selectedOptions?.[0]?.dataset?.provider || '';
+                const res = await Api.translateSingle(slug, ch.num, true, {
+                  model: selectedModel || undefined,
+                  provider: selectedProvider || undefined,
+                });
                 if (res.ok) {
                   Api.invalidateChapterContent(slug, ch.num);
+                  Store.setSetting('readerLang', 'th');
                   await loadChapter(chIdx);
                   Ui.showToast('แปลตอนนี้สำเร็จแล้ว', 'success');
                 } else {

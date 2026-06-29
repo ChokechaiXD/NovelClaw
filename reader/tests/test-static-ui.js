@@ -14,6 +14,8 @@ const path = require('node:path');
 const ROOT = path.resolve(__dirname, '..');
 const PUBLIC_JS = path.join(ROOT, 'public', 'js');
 const PACKAGE_JSON = path.join(ROOT, 'package.json');
+const SERVER_JS = path.join(ROOT, 'server.js');
+const ADMIN_JS = path.join(PUBLIC_JS, 'pages', 'admin.js');
 
 const FORBIDDEN = [
   { label: 'inline style attribute', pattern: 'style="' },
@@ -58,6 +60,18 @@ const pkg = JSON.parse(fs.readFileSync(PACKAGE_JSON, 'utf8'));
 const checkScript = pkg.scripts?.check || '';
 if (!checkScript.includes('tests/test-js-syntax.js')) {
   fail('npm run check does not run tests/test-js-syntax.js');
+}
+
+const adminText = fs.readFileSync(ADMIN_JS, 'utf8');
+if (adminText.includes('#admin/novels/')) {
+  fail('admin novels edit action must link to #admin/novel-edit/<slug>');
+}
+
+const serverText = fs.readFileSync(SERVER_JS, 'utf8');
+for (const missingScript of ['glossary.py', 'translate_term.py', 'novelctl.py']) {
+  if (serverText.includes(missingScript)) {
+    fail(`server.js references removed script ${missingScript}`);
+  }
 }
 
 if (process.exitCode) {
