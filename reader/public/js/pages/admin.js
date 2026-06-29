@@ -1485,10 +1485,17 @@ const AdminTranslatePage = {
       ]);
       const buckets = translationHealth.data?.buckets || {};
       const bucketStat = (name) => buckets[name]?.count || 0;
+      const batchLogs = translationHealth.data?.batchLogs || [];
+      const activeBatch = batchLogs[0] || null;
       const latestFailed = (buckets.failed?.latest || buckets.needs_review?.latest || [])
         .slice(0, 3)
         .map(item => Ui.esc(item.name))
         .join(', ');
+      const batchFailures = activeBatch?.failures?.slice(0, 5).map(item =>
+        '<li><span class="c-admin-translate__chapter">ตอน ' + Ui.esc(item.chapter || '-') + '</span>' +
+        '<span>' + Ui.esc(item.reason || '-') + '</span></li>'
+      ).join('') || '';
+      const batchRecent = activeBatch?.recentLines?.map(line => Ui.esc(line)).join('\n') || '';
 
       const novelOptions = novels.map(n => 
         `<option value="${Ui.esc(n.slug)}">${Ui.esc(Ui.displayTitle(n) || n.slug)}</option>`
@@ -1516,6 +1523,32 @@ const AdminTranslatePage = {
               <div class="c-stat"><span class="c-stat__num">${bucketStat('failed')}</span><span class="c-stat__label">failed</span></div>
             </div>
             <p class="u-text-muted">${latestFailed ? 'ล่าสุดที่ต้องดู: ' + latestFailed : 'ยังไม่มีรายการ failed/needs_review ล่าสุด'}</p>
+            ${activeBatch ? `
+            <div class="c-admin-translate__batch">
+              <div class="c-admin-translate__batch-head">
+                <div>
+                  <strong>${Ui.esc(activeBatch.name)}</strong>
+                  <p class="u-text-muted">ตอน ${Ui.esc(activeBatch.current || 0)} / ${Ui.esc(activeBatch.total || 0)} · active chapter ${Ui.esc(activeBatch.activeChapter || '-')}</p>
+                </div>
+                <span class="c-badge c-badge--amber">${Ui.esc(activeBatch.percent || 0)}%</span>
+              </div>
+              <progress class="c-admin-translate__progress" value="${Ui.esc(activeBatch.percent || 0)}" max="100"></progress>
+              <div class="c-admin-translate__batch-metrics">
+                <span>ผ่าน ${Ui.esc(activeBatch.passed || 0)}</span>
+                <span>ล้มเหลว ${Ui.esc(activeBatch.failed || 0)}</span>
+                <span>timeout ${Ui.esc(activeBatch.timeout || 0)}</span>
+              </div>
+              <div class="c-admin-translate__batch-grid">
+                <div>
+                  <h4 class="c-admin-translate__subhead">ปัญหาล่าสุด</h4>
+                  <ul class="c-admin-translate__failure-list">${batchFailures || '<li class="u-text-muted">ยังไม่มีปัญหาใน log นี้</li>'}</ul>
+                </div>
+                <div>
+                  <h4 class="c-admin-translate__subhead">Recent log</h4>
+                  <pre class="c-admin-translate__mini-log">${batchRecent || '—'}</pre>
+                </div>
+              </div>
+            </div>` : '<p class="u-text-muted">ยังไม่พบ batch log</p>'}
           </div>
 
           <!-- BATCH TRANSLATION PANEL (simplified) -->

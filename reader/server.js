@@ -38,6 +38,7 @@ const chapterRepo = require('./lib/chapter-repo');
 const novelRepo = require('./lib/novel-repo');
 const searchService = require('./lib/search-service');
 const importHealth = require('./lib/import-health');
+const translationHealth = require('./lib/translation-health');
 const { parseMarkdownToBlocks } = require('./lib/blocks');
 
 // Re-export for tests
@@ -870,7 +871,8 @@ app.get('/api/admin/translation-health', requireAdmin, asyncHandler(async (req, 
       })),
     };
   }
-  ok(res, { buckets: result });
+  const batchLogs = await translationHealth.readBatchLogs(path.resolve(__dirname, '..'));
+  ok(res, { buckets: result, batchLogs });
 }));
 
 app.get('/api/admin/logs/:slug/:num', requireAdmin, asyncHandler(async (req, res) => {
