@@ -74,12 +74,12 @@
     {
       "num": 15,
       "title": "ตอนที่ 15",
-      "isTranslated": true
+      "isTranslated": false
     },
     {
       "num": 16,
       "title": "ตอนที่ 16",
-      "isTranslated": true
+      "isTranslated": false
     },
     {
       "num": 17,
@@ -89,12 +89,12 @@
     {
       "num": 18,
       "title": "ตอนที่ 18",
-      "isTranslated": true
+      "isTranslated": false
     },
     {
       "num": 19,
       "title": "ตอนที่ 19",
-      "isTranslated": true
+      "isTranslated": false
     },
     {
       "num": 20,
@@ -184,7 +184,7 @@
     {
       "num": 37,
       "title": "ตอนที่ 37",
-      "isTranslated": true
+      "isTranslated": false
     },
     {
       "num": 38,
@@ -378,7 +378,7 @@
     },
     {
       "num": 76,
-      "title": "ตอนที่ 76",
+      "title": "ตอนที่ 76 斬殺頭目級生物！",
       "isTranslated": true
     },
     {
@@ -398,7 +398,7 @@
     },
     {
       "num": 80,
-      "title": "ตอนที่ 80",
+      "title": "ตอนที่ 80 祭壇，閃亮寶石！",
       "isTranslated": true
     },
     {
@@ -413,7 +413,7 @@
     },
     {
       "num": 83,
-      "title": "ตอนที่ 83",
+      "title": "ตอนที่ 83 恐怖的山谷！",
       "isTranslated": true
     },
     {
@@ -473,7 +473,7 @@
     },
     {
       "num": 95,
-      "title": "ตอนที่ 95",
+      "title": "ตอนที่ 95 倖存者們的騷操作",
       "isTranslated": true
     },
     {
@@ -483,8 +483,8 @@
     },
     {
       "num": 97,
-      "title": "ตอนที่ 97",
-      "isTranslated": true
+      "title": "第97章",
+      "isTranslated": false
     },
     {
       "num": 98,
@@ -543,7 +543,7 @@
     },
     {
       "num": 109,
-      "title": "ตอนที่ 109",
+      "title": "ตอนที่ 109 變故，強大的曹星！（5000）",
       "isTranslated": true
     },
     {
@@ -563,7 +563,7 @@
     },
     {
       "num": 113,
-      "title": "ตอนที่ 113",
+      "title": "ตอนที่ 113 踏平領地，搶走他們的極地人！",
       "isTranslated": true
     },
     {
@@ -593,12 +593,12 @@
     },
     {
       "num": 119,
-      "title": "ตอนที่ 119",
-      "isTranslated": true
+      "title": "第119章",
+      "isTranslated": false
     },
     {
       "num": 120,
-      "title": "ตอนที่ 120",
+      "title": "ตอนที่ 120 心臟，是最強大的肌肉！",
       "isTranslated": true
     },
     {
@@ -628,7 +628,7 @@
     },
     {
       "num": 126,
-      "title": "ตอนที่ 126",
+      "title": "ตอนที่ 126 亡靈的陪葬品，發財了！",
       "isTranslated": true
     },
     {
@@ -703,7 +703,7 @@
     },
     {
       "num": 141,
-      "title": "ตอนที่ 141",
+      "title": "ตอนที่ 141 酒館開啟，招募流浪英雄",
       "isTranslated": true
     },
     {
@@ -728,7 +728,7 @@
     },
     {
       "num": 146,
-      "title": "ตอนที่ 146",
+      "title": "ตอนที่ 146 搭建鐵軌系統，領地外的新人",
       "isTranslated": true
     },
     {
@@ -763,7 +763,7 @@
     },
     {
       "num": 153,
-      "title": "ตอนที่ 153",
+      "title": "ตอนที่ 153 特殊裝備，陰影斗篷！",
       "isTranslated": true
     },
     {
@@ -818,7 +818,7 @@
     },
     {
       "num": 164,
-      "title": "ตอนที่ 164",
+      "title": "ตอนที่ 164 召喚亡靈大軍，粉碎一切！",
       "isTranslated": true
     },
     {
@@ -849,7 +849,7 @@
     {
       "num": 170,
       "title": "ตอนที่ 170",
-      "isTranslated": true
+      "isTranslated": false
     },
     {
       "num": 171,
@@ -949,7 +949,7 @@
     {
       "num": 190,
       "title": "ตอนที่ 190",
-      "isTranslated": true
+      "isTranslated": false
     },
     {
       "num": 191,
@@ -959,7 +959,7 @@
     {
       "num": 192,
       "title": "ตอนที่ 192",
-      "isTranslated": true
+      "isTranslated": false
     },
     {
       "num": 193,
@@ -1004,22 +1004,22 @@
     {
       "num": 201,
       "title": "ตอนที่ 201",
-      "isTranslated": false
+      "isTranslated": true
     },
     {
       "num": 202,
       "title": "ตอนที่ 202",
-      "isTranslated": false
+      "isTranslated": true
     },
     {
       "num": 203,
       "title": "ตอนที่ 203",
-      "isTranslated": false
+      "isTranslated": true
     },
     {
       "num": 204,
       "title": "ตอนที่ 204",
-      "isTranslated": false
+      "isTranslated": true
     },
     {
       "num": 205,
@@ -1034,17 +1034,17 @@
     {
       "num": 207,
       "title": "ตอนที่ 207",
-      "isTranslated": false
+      "isTranslated": true
     },
     {
       "num": 208,
       "title": "ตอนที่ 208",
-      "isTranslated": false
+      "isTranslated": true
     },
     {
       "num": 209,
       "title": "ตอนที่ 209",
-      "isTranslated": false
+      "isTranslated": true
     },
     {
       "num": 210,

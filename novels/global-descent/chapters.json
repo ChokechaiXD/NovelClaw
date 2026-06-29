@@ -104,15 +104,15 @@
       "num": 15,
       "title": "ตอนที่ 15",
       "hasCn": true,
-      "hasTh": true,
-      "status": "translated"
+      "hasTh": false,
+      "status": "source_only"
     },
     {
       "num": 16,
       "title": "ตอนที่ 16",
       "hasCn": true,
-      "hasTh": true,
-      "status": "translated"
+      "hasTh": false,
+      "status": "source_only"
     },
     {
       "num": 17,
@@ -125,15 +125,15 @@
       "num": 18,
       "title": "ตอนที่ 18",
       "hasCn": true,
-      "hasTh": true,
-      "status": "translated"
+      "hasTh": false,
+      "status": "source_only"
     },
     {
       "num": 19,
       "title": "ตอนที่ 19",
       "hasCn": true,
-      "hasTh": true,
-      "status": "translated"
+      "hasTh": false,
+      "status": "source_only"
     },
     {
       "num": 20,
@@ -258,8 +258,8 @@
       "num": 37,
       "title": "ตอนที่ 37",
       "hasCn": true,
-      "hasTh": true,
-      "status": "translated"
+      "hasTh": false,
+      "status": "source_only"
     },
     {
       "num": 38,
@@ -529,7 +529,7 @@
     },
     {
       "num": 76,
-      "title": "ตอนที่ 76",
+      "title": "ตอนที่ 76 斬殺頭目級生物！",
       "hasCn": true,
       "hasTh": true,
       "status": "translated"
@@ -557,7 +557,7 @@
     },
     {
       "num": 80,
-      "title": "ตอนที่ 80",
+      "title": "ตอนที่ 80 祭壇，閃亮寶石！",
       "hasCn": true,
       "hasTh": true,
       "status": "translated"
@@ -578,7 +578,7 @@
     },
     {
       "num": 83,
-      "title": "ตอนที่ 83",
+      "title": "ตอนที่ 83 恐怖的山谷！",
       "hasCn": true,
       "hasTh": true,
       "status": "translated"
@@ -662,7 +662,7 @@
     },
     {
       "num": 95,
-      "title": "ตอนที่ 95",
+      "title": "ตอนที่ 95 倖存者們的騷操作",
       "hasCn": true,
       "hasTh": true,
       "status": "translated"
@@ -676,10 +676,10 @@
     },
     {
       "num": 97,
-      "title": "ตอนที่ 97",
+      "title": "第97章",
       "hasCn": true,
-      "hasTh": true,
-      "status": "translated"
+      "hasTh": false,
+      "status": "source_only"
     },
     {
       "num": 98,
@@ -760,7 +760,7 @@
     },
     {
       "num": 109,
-      "title": "ตอนที่ 109",
+      "title": "ตอนที่ 109 變故，強大的曹星！（5000）",
       "hasCn": true,
       "hasTh": true,
       "status": "translated"
@@ -788,7 +788,7 @@
     },
     {
       "num": 113,
-      "title": "ตอนที่ 113",
+      "title": "ตอนที่ 113 踏平領地，搶走他們的極地人！",
       "hasCn": true,
       "hasTh": true,
       "status": "translated"
@@ -830,14 +830,14 @@
     },
     {
       "num": 119,
-      "title": "ตอนที่ 119",
+      "title": "第119章",
       "hasCn": true,
-      "hasTh": true,
-      "status": "translated"
+      "hasTh": false,
+      "status": "source_only"
     },
     {
       "num": 120,
-      "title": "ตอนที่ 120",
+      "title": "ตอนที่ 120 心臟，是最強大的肌肉！",
       "hasCn": true,
       "hasTh": true,
       "status": "translated"
@@ -879,7 +879,7 @@
     },
     {
       "num": 126,
-      "title": "ตอนที่ 126",
+      "title": "ตอนที่ 126 亡靈的陪葬品，發財了！",
       "hasCn": true,
       "hasTh": true,
       "status": "translated"
@@ -984,7 +984,7 @@
     },
     {
       "num": 141,
-      "title": "ตอนที่ 141",
+      "title": "ตอนที่ 141 酒館開啟，招募流浪英雄",
       "hasCn": true,
       "hasTh": true,
       "status": "translated"
@@ -1019,7 +1019,7 @@
     },
     {
       "num": 146,
-      "title": "ตอนที่ 146",
+      "title": "ตอนที่ 146 搭建鐵軌系統，領地外的新人",
       "hasCn": true,
       "hasTh": true,
       "status": "translated"
@@ -1068,7 +1068,7 @@
     },
     {
       "num": 153,
-      "title": "ตอนที่ 153",
+      "title": "ตอนที่ 153 特殊裝備，陰影斗篷！",
       "hasCn": true,
       "hasTh": true,
       "status": "translated"
@@ -1145,7 +1145,7 @@
     },
     {
       "num": 164,
-      "title": "ตอนที่ 164",
+      "title": "ตอนที่ 164 召喚亡靈大軍，粉碎一切！",
       "hasCn": true,
       "hasTh": true,
       "status": "translated"
@@ -1189,8 +1189,8 @@
       "num": 170,
       "title": "ตอนที่ 170",
       "hasCn": true,
-      "hasTh": true,
-      "status": "translated"
+      "hasTh": false,
+      "status": "source_only"
     },
     {
       "num": 171,
@@ -1329,8 +1329,8 @@
       "num": 190,
       "title": "ตอนที่ 190",
       "hasCn": true,
-      "hasTh": true,
-      "status": "translated"
+      "hasTh": false,
+      "status": "source_only"
     },
     {
       "num": 191,
@@ -1343,8 +1343,8 @@
       "num": 192,
       "title": "ตอนที่ 192",
       "hasCn": true,
-      "hasTh": true,
-      "status": "translated"
+      "hasTh": false,
+      "status": "source_only"
     },
     {
       "num": 193,
@@ -1406,29 +1406,29 @@
       "num": 201,
       "title": "ตอนที่ 201",
       "hasCn": true,
-      "hasTh": false,
-      "status": "source_only"
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 202,
       "title": "ตอนที่ 202",
       "hasCn": true,
-      "hasTh": false,
-      "status": "source_only"
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 203,
       "title": "ตอนที่ 203",
       "hasCn": true,
-      "hasTh": false,
-      "status": "source_only"
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 204,
       "title": "ตอนที่ 204",
       "hasCn": true,
-      "hasTh": false,
-      "status": "source_only"
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 205,
@@ -1448,22 +1448,22 @@
       "num": 207,
       "title": "ตอนที่ 207",
       "hasCn": true,
-      "hasTh": false,
-      "status": "source_only"
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 208,
       "title": "ตอนที่ 208",
       "hasCn": true,
-      "hasTh": false,
-      "status": "source_only"
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 209,
       "title": "ตอนที่ 209",
       "hasCn": true,
-      "hasTh": false,
-      "status": "source_only"
+      "hasTh": true,
+      "status": "translated"
     },
     {
       "num": 210,

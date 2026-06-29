@@ -13022,6 +13022,546 @@
       "verified": false,
       "explanation": "句子不完整，推測為「感謝領主大人的饋贈」的意思，故譯為「ขอบคุณของประทานจากเจ้าเมือง」.",
       "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "來自其他區的針對",
+      "thai": "การโจมตีจากเขตอื่น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal meaning “target/attack from other zone”",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "首次合區",
+      "thai": "การรวมเขตครั้งแรก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“first time merging zones”",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "號角",
+      "thai": "แตร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "common word for “horn”",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "的笑意",
+      "thai": "รอยยิ้ม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“smile”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "受冰巢的襲擊",
+      "thai": "ถูกโจมตีโดยรังน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "白銀鮭魚肉",
+      "thai": "เนื้อแซลมอนเงิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“silver salmon meat”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "區域通告",
+      "thai": "ประกาศพื้นที่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“area notice”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "倖存者領主",
+      "thai": "ผู้ปกครองผู้รอดชีวิต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "接下來六小時",
+      "thai": "ในหกชั่วโมงต่อไป",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "請這部分領主",
+      "thai": "โปรดผู้ปกครองส่วนนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“please the leaders of this part”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "道發言",
+      "thai": "การแสดงความคิดเห็น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“speech/comment”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "人做不到",
+      "thai": "คนทำไม่ได้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "黃金鮭魚肉",
+      "thai": "เนื้อแซลมอนทอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal translation of the item name",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "恒金錠",
+      "thai": "เหล็กทองคงที่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“恒金” interpreted as a special alloy; best guess",
+      "notes": "auto_discovered (freq=3, confidence=medium)"
+    },
+    {
+      "source": "你好",
+      "thai": "สวัสดี",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "common greeting",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "白銀鮭魚肉的效果",
+      "thai": "ผลของเนื้อแซลมอนเงิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "descriptive translation",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "技能效果",
+      "thai": "ผลของสกิล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "generic term for “skill effect”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "想到這里",
+      "thai": "คิดถึงที่นี่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal; context unclear",
+      "notes": "auto_discovered (freq=2, confidence=low)"
+    },
+    {
+      "source": "的移動速度",
+      "thai": "ความเร็วการเคลื่อนที่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "phrase fragment completed",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "建造所需",
+      "thai": "สิ่งที่ต้องใช้ในการสร้าง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "straightforward",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "高級元素結晶",
+      "thai": "ผลึกธาตุระดับสูง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal translation",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "私聊信息",
+      "thai": "ข้อความส่วนตัว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“private chat message”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "領主府",
+      "thai": "พระราชวังเจ้าเมือง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal meaning of “Lord’s residence”",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "釣魚時",
+      "thai": "ขณะตกปลา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "simple adverbial phrase",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "每小時增加",
+      "thai": "เพิ่มต่อชั่วโมง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "concise phrase",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "剩餘食用次數",
+      "thai": "จำนวนครั้งที่เหลือ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal meaning",
+      "notes": "auto_discovered (freq=5, confidence=high)"
+    },
+    {
+      "source": "猩紅鯛魚肉",
+      "thai": "เนื้อปลากะพงสีแดง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“猩紅”=crimson, “鯛魚”=sea bream",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "冰霜駝鹿後腿肉",
+      "thai": "เนื้อขาหลังกวางเรนเดียร์แช่เยือก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "descriptive translation",
+      "notes": "auto_discovered (freq=3, confidence=medium)"
+    },
+    {
+      "source": "艾蓮娜輕笑道",
+      "thai": "เอลีน่า ยิ้มเบา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "phonetic transliteration for proper name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "強者",
+      "thai": "ผู้แข็งแกร่ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "generic term “strong one”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "沒有",
+      "thai": "ไม่มี",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "simple negation",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "要不了多久",
+      "thai": "ไม่กี่นาทีต่อจากนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "idiomatic “soon”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "雲彩氂牛毛絨大衣",
+      "thai": "เสื้อโค้ทขนแกะเมฆ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal description of the item",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "而曹星和柳慕雪",
+      "thai": "และเซาเซิงกับหลิวมู่ซิเอ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "phonetic transliteration of names",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星讚嘆道",
+      "thai": "เซาเซิง กล่าวชม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“讚嘆道” → “กล่าวชม”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "讚美偉大的領主大",
+      "thai": "สรรเสริญเจ้าเมืองผู้ยิ่งใหญ่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "natural Thai phrasing",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "成功食用白銀鮭魚",
+      "thai": "รับประทานปลาแซลมอนเงินสำเร็จ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“白銀鮭魚” → “ปลาแซลมอนเงิน”",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "以及",
+      "thai": "และ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "conjunction",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "隊長",
+      "thai": "หัวหน้าทีม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "generic rank term",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "你做不到不代表別",
+      "thai": "คุณทำไม่ได้ไม่ได้หมายความว่าคนอื่นทำไม่ได้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "คำพูดเต็มคือ “คุณทำไม่ได้ไม่ได้หมายความว่าคนอื่นทำไม่ได้”",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "將會有部位領地不",
+      "thai": "จะมีบางส่วนของดินแดนไม่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "ประโยคไม่สมบูรณ์ จึงแปลตามความหมายโดยประมาณ",
+      "notes": "auto_discovered (freq=2, confidence=low)"
+    },
+    {
+      "source": "江少",
+      "thai": "จางเสี่ยว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“江少” likely a nickname meaning “young master Jiang”; keep as transliteration.",
+      "notes": "auto_discovered (freq=4, confidence=medium)"
+    },
+    {
+      "source": "排行榜之爭",
+      "thai": "การต่อสู้เพื่ออันดับ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal meaning “rankings battle”.",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "迎接冰龍號角挑戰",
+      "thai": "รับมือการท้าทายเข็มศิลาภูเขียว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“迎接”=รับมือ, “冰龍號角”=เข็มศิลาภู (ice‑dragon horn), “挑戰”=ท้าทาย.",
+      "notes": "auto_discovered (freq=3, confidence=medium)"
+    },
+    {
+      "source": "說的沒錯",
+      "thai": "พูดถูกแล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "common phrase “you’re right”.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的戰鬥",
+      "thai": "การต่อสู้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "generic “battle”.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "極冰之源",
+      "thai": "แหล่งพลังน้ำแข็งสุดขั้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal translation of “source of extreme ice”.",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "積分排行榜",
+      "thai": "ตารางคะแนนอันดับ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "“points ranking”.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "龍號角",
+      "thai": "ศิลาภู",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "short form of “冰龍號角”.",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "合力安排發展時間",
+      "thai": "จัดสรรเวลาเพื่อพัฒนาอย่างร่วมมือ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "meaning “co‑ordinated development time”.",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "分起步",
+      "thai": "เริ่มต้นด้วยคะแนน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "guessed from “起步”=start, “分”=points.",
+      "notes": "auto_discovered (freq=2, confidence=low)"
+    },
+    {
+      "source": "級冰巢怪",
+      "thai": "สัตว์ประหลาดระดับน้ำแข็งรัง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "literal “level ice‑nest monster”.",
+      "notes": "auto_discovered (freq=2, confidence=low)"
+    },
+    {
+      "source": "劉老",
+      "thai": "หลิวเหล่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "transliteration of proper name.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的人",
+      "thai": "ผู้ที่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "generic “person”.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
     }
   ]
 }
