@@ -38,6 +38,7 @@ const chapterRepo = require('./lib/chapter-repo');
 const novelRepo = require('./lib/novel-repo');
 const searchService = require('./lib/search-service');
 const importHealth = require('./lib/import-health');
+const providerConfigService = require('./lib/provider-config-service');
 const translationHealth = require('./lib/translation-health');
 const { parseMarkdownToBlocks } = require('./lib/blocks');
 
@@ -1351,87 +1352,10 @@ adminPost('/api/local/llm-config', async (req, res) => {
   ok(res, { saved: true, config: buildLlmConfigResponse(data) });
 });
 
-// ── PROVIDER CONFIG (from providers.yaml) ──────────────────────────
-// Reads/writes tools/config/providers.yaml via Python helper.
-// Admin UI uses this to switch active provider and model.
-
-const providerConfigCache = { time: 0, data: null, inFlight: null };
-const PROVIDER_CONFIG_TTL_MS = 5 * 1000;
-
-function runProviderConfigScript(code, input = null) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(getPythonCommand(), ['-c', code], {
-      cwd: path.join(__dirname, '..'),
-      windowsHide: true,
-      timeout: 15_000,
-      env: { ...process.env, PYTHONIOENCODING: 'utf-8' },
-    });
-    let stdout = '', stderr = '';
-    child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
-    child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
-    child.on('error', reject);
-    child.on('close', (code) => {
-      if (code !== 0) {
-        reject(new Error(sanitizeOutput(stderr || stdout) || `Python exited ${code}`));
-        return;
-      }
-      resolve(stdout);
-    });
-    if (input !== null) child.stdin.write(input);
-    child.stdin.end();
-  });
-}
-
-async function readProviderConfig(options = {}) {
-  const refreshModels = options.refreshModels === true;
-  const now = Date.now();
-  if (!refreshModels && providerConfigCache.data && now - providerConfigCache.time < PROVIDER_CONFIG_TTL_MS) {
-    return providerConfigCache.data;
-  }
-  if (!refreshModels && providerConfigCache.inFlight) return providerConfigCache.inFlight;
-
-  const load = (async () => {
-    const stdout = await runProviderConfigScript(`
-import sys; sys.path.insert(0, 'tools')
-from llm_router.config_providers import get_provider_config, get_providers_list
-import json
-refresh = ${refreshModels ? 'True' : 'False'}
-cfg = get_provider_config()
-plist = get_providers_list(refresh=refresh)
-print(json.dumps({
-  "active": cfg.get("active", ""),
-  "default_model": cfg.get("default_model", ""),
-  "discovery_model": cfg.get("discovery_model", ""),
-  "providers": plist,
-  "profiles": cfg.get("profiles", []),
-}, ensure_ascii=False))
-    `);
-    const data = JSON.parse(stdout.trim());
-    if (!refreshModels) {
-      providerConfigCache.time = Date.now();
-      providerConfigCache.data = data;
-      providerConfigCache.inFlight = null;
-    }
-    return data;
-  })().catch((err) => {
-    if (!refreshModels) providerConfigCache.inFlight = null;
-    throw err;
-  });
-  if (refreshModels) return load;
-  providerConfigCache.inFlight = load;
-  return providerConfigCache.inFlight;
-}
-
-function invalidateProviderConfig() {
-  providerConfigCache.time = 0;
-  providerConfigCache.data = null;
-  providerConfigCache.inFlight = null;
-}
-
 app.get('/api/admin/provider-config', asyncHandler(async (req, res) => {
   const startedAt = Date.now();
   try {
-    const data = await readProviderConfig({
+    const data = await providerConfigService.readProviderConfig({
       refreshModels: req.query.refreshModels === '1' || req.query.refreshModels === 'true',
     });
     logTiming('GET /api/admin/provider-config', startedAt);
@@ -1447,24 +1371,13 @@ adminPost('/api/admin/provider-config', async (req, res) => {
     return fail(res, 400, 'INVALID_INPUT', 'Provide at least active, default_model, discovery_model, or custom endpoint settings');
   }
   try {
-    const payload = JSON.stringify({
+    await providerConfigService.saveProviderConfig({
       active: active || null,
       default_model: default_model || null,
       discovery_model: discovery_model || null,
       custom_base_url: custom_base_url || null,
       custom_api_key: custom_api_key || null,
     });
-    await runProviderConfigScript(`
-import json, sys
-sys.path.insert(0, 'tools')
-from llm_router.config_providers import save_provider_config
-payload = json.load(sys.stdin)
-saved = save_provider_config(**payload)
-if not saved:
-    raise SystemExit(2)
-print(json.dumps({"saved": True}))
-    `, payload);
-    invalidateProviderConfig();
     ok(res, { saved: true, active, default_model, discovery_model, custom_base_url: custom_base_url || null });
   } catch (err) {
     fail(res, 500, 'SERVER_ERROR', err.message);
