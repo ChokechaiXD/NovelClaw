@@ -136,3 +136,33 @@ test('repairMissingSourceTitles infers embedded Chinese chapter titles from the 
   assert.match(inspected.raw, /^# 第563章 占星法杖,古精靈部落\(5600\),一條小白蛇/);
   assert.match(inspected.cleanedText, /第一段正文/);
 });
+
+test('repairNovelImport replaces dirty site breadcrumb headings with chapter titles', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-repair-dirty-title-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const { inspectSourceChapter, repairNovelImport } = require('../lib/import-health');
+  const slug = 'sample-repair-dirty-title';
+  const sourceDir = path.join(root, slug, 'chapters', 'source');
+  await fs.mkdir(sourceDir, { recursive: true });
+  await fs.writeFile(path.join(root, slug, 'novel.json'), JSON.stringify({ slug, title: 'Dirty Title' }), 'utf8');
+  await fs.writeFile(path.join(sourceDir, '0001.md'), [
+    '# 黃金屋中文 >> 全球降臨：帶著嫂嫂末世種田 >> 目錄 >> 第1章冰封紀元公測開啟',
+    '',
+    '第1章冰封紀元公測開啟',
+    '作者:一條小白蛇  分類: 遊戲',
+    '',
+    '第一段正文。',
+    '',
+    '第二段正文。',
+  ].join('\n'), 'utf8');
+
+  const result = await repairNovelImport(slug, 'all');
+  const inspected = await inspectSourceChapter(slug, 1);
+
+  assert.equal(result.repair.titlesRepaired, 1);
+  assert.equal(inspected.title, '第1章冰封紀元公測開啟');
+  assert.match(inspected.raw, /^# 第1章冰封紀元公測開啟/);
+  assert.doesNotMatch(inspected.raw, /黃金屋中文 >>/);
+});

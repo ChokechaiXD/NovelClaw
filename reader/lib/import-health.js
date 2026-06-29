@@ -25,6 +25,16 @@ const DIRTY_MARKERS = [
   'ブックマーク',
 ];
 
+const DIRTY_TITLE_MARKERS = [
+  '>>',
+  '黃金屋',
+  '黄金屋',
+  '目錄',
+  '目录',
+  '手機網頁版',
+  '手机网页版',
+];
+
 function parseFrontmatterValue(value) {
   const text = String(value ?? '').trim();
   if (!text) return '';
@@ -52,6 +62,44 @@ function looksLinkOnly(text) {
   return /^https?:\/\/\S+$/i.test(compact);
 }
 
+function normalizeTextLine(line) {
+  return String(line || '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractChapterTitleSegment(text) {
+  const line = normalizeTextLine(text).replace(/^#+\s*/, '').trim();
+  if (!line || /^https?:\/\//i.test(line)) return '';
+
+  const parts = line.split(/\s*(?:>>|»|›)\s*/).map(normalizeTextLine).filter(Boolean);
+  if (parts.length > 1) {
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const title = extractChapterTitleSegment(parts[i]);
+      if (title) return title;
+    }
+  }
+
+  const cn = line.match(/(第\s*\d+\s*(?:章|节|節|話|话|回)\s*[^<>|]*)$/);
+  if (cn) return normalizeTextLine(cn[1]);
+  const western = line.match(/\b(Chapter\s+\d+[^<>|]*)$/i);
+  if (western) return normalizeTextLine(western[1]);
+  const thai = line.match(/(ตอนที่\s*\d+[^<>|]*)$/i);
+  if (thai) return normalizeTextLine(thai[1]);
+  return '';
+}
+
+function isDirtySourceTitle(title) {
+  const text = normalizeTextLine(title).toLowerCase();
+  if (!text) return false;
+  return DIRTY_TITLE_MARKERS.some((marker) => text.includes(marker.toLowerCase()));
+}
+
+function titleNeedsRepair(title) {
+  return !normalizeTextLine(title) || isDirtySourceTitle(title);
+}
+
 function analyzeSourceMarkdown(raw, num, filename = '') {
   const parsed = parseMarkdownToBlocks(raw, num);
   const frontmatter = normalizeFrontmatter(parsed.frontmatter);
@@ -62,6 +110,9 @@ function analyzeSourceMarkdown(raw, num, filename = '') {
   const issues = [];
 
   if (!parsed.title) issues.push({ code: 'missing_title', severity: 'warn', message: 'Missing chapter title' });
+  else if (isDirtySourceTitle(parsed.title)) {
+    issues.push({ code: 'dirty_title', severity: 'warn', message: 'Chapter title contains site breadcrumb text' });
+  }
   if (!contentBlocks.length || contentText.length < 30) {
     issues.push({ code: 'empty_content', severity: 'error', message: 'No usable chapter content' });
   } else if (contentText.length < 300) {
@@ -102,8 +153,16 @@ function inferTitleFromBody(body) {
     .filter(Boolean);
   for (let i = 0; i < Math.min(lines.length, 40); i++) {
     const line = lines[i];
-    const title = line.trim();
-    if (title.startsWith('#')) return title.replace(/^#+\s*/, '').trim();
+    const title = normalizeTextLine(line);
+    const extracted = extractChapterTitleSegment(title);
+    if (extracted) {
+      const bareChapter = /^第\s*\d+\s*(?:章|节|節|話|话|回)\s*$/.test(extracted);
+      const next = normalizeTextLine(lines[i + 1] || '');
+      if (bareChapter && next && next.length <= 120 && !/[<>]/.test(next)) {
+        return (extracted + ' ' + next).trim();
+      }
+      return extracted;
+    }
     if (title.length > 140) return '';
     const embeddedCn = title.match(/第\s*\d+\s*[章节章]\s*(.*)$/);
     if (embeddedCn) {
@@ -126,6 +185,7 @@ function addMarkdownTitle(raw, title) {
   const frontmatter = frontmatterMatch ? frontmatterMatch[0] : '';
   const body = frontmatterMatch ? normalized.slice(frontmatter.length).trimStart() : normalized;
   const lines = body.split('\n');
+  if (lines[0]?.trim().startsWith('#')) lines.shift();
   if (lines[0]?.trim() === title) lines.shift();
   return frontmatter + `# ${title}\n\n` + lines.join('\n').replace(/^\n+/, '');
 }
@@ -176,7 +236,7 @@ async function repairMissingSourceTitles(slug) {
     const filepath = path.join(dir, entry.name);
     const raw = await fs.readFile(filepath, 'utf8');
     const parsed = parseMarkdownToBlocks(raw, parseInt(entry.name, 10));
-    if (parsed.title) continue;
+    if (!titleNeedsRepair(parsed.title)) continue;
     const frontmatterMatch = String(raw).replace(/\r\n/g, '\n').trimStart().match(/^---\n[\s\S]*?\n---(?:\n|$)/);
     const body = frontmatterMatch ? String(raw).replace(/\r\n/g, '\n').trimStart().slice(frontmatterMatch[0].length) : raw;
     const title = inferTitleFromBody(body);
