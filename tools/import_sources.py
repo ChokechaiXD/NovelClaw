@@ -71,6 +71,11 @@ def source_toc_path(slug: str) -> Path:
     return source_dir(slug) / "toc.json"
 
 
+def source_toc_path_no_create(slug: str) -> Path:
+    assert_slug(slug)
+    return NOVELS_DIR / slug / "chapters" / "source" / "toc.json"
+
+
 def frontmatter_value(value: str) -> str:
     return json.dumps(value or "", ensure_ascii=False)
 
@@ -153,6 +158,67 @@ def write_toc_manifest(slug: str, toc, adapter_id: str) -> Path:
     path = source_toc_path(slug)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path
+
+
+def read_novel_json(slug: str) -> dict:
+    assert_slug(slug)
+    path = NOVELS_DIR / slug / "novel.json"
+    if not path.exists():
+        raise ValueError(f"novel.json not found for slug: {slug}")
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid novel.json for {slug}: {exc}") from exc
+
+
+def infer_toc_source(slug: str, url: str | None = None, site: str = "auto") -> tuple[str, str]:
+    if url:
+        return url, site or "auto"
+
+    meta = read_novel_json(slug)
+    source_urls = meta.get("sourceUrls")
+    if isinstance(source_urls, dict):
+        for key, value in source_urls.items():
+            if value and str(value).startswith(("http://", "https://")):
+                return str(value), key if site == "auto" else site
+
+    refs = meta.get("sourceRefs")
+    if isinstance(refs, list):
+        for ref in refs:
+            if not isinstance(ref, dict):
+                continue
+            ref_url = str(ref.get("url") or "")
+            if ref_url.startswith(("http://", "https://")):
+                ref_site = str(ref.get("site") or "auto")
+                return ref_url, ref_site if site == "auto" else site
+
+    original_url = str(meta.get("originalUrl") or "")
+    if original_url.startswith(("http://", "https://")):
+        source_site = str(meta.get("sourceSite") or "auto")
+        return original_url, source_site if site == "auto" else site
+
+    raise ValueError("No recoverable TOC URL found in novel.json")
+
+
+def recover_toc(slug: str, site: str = "auto", url: str | None = None, dry_run: bool = True) -> dict:
+    assert_slug(slug)
+    toc_url, toc_site = infer_toc_source(slug, url, site)
+    adapter = get_adapter(toc_url, toc_site)
+    toc = adapter.fetch_toc(toc_url)
+    toc_path = source_toc_path_no_create(slug)
+    if not dry_run:
+        toc_path = write_toc_manifest(slug, toc, adapter.id)
+    return {
+        "slug": slug,
+        "dryRun": dry_run,
+        "site": adapter.id,
+        "url": toc_url,
+        "title": toc.title,
+        "sourceLang": toc.source_lang,
+        "chapterCount": len(toc.chapters),
+        "tocPath": str(toc_path),
+        "sampleChapters": [asdict(ch) for ch in toc.chapters[:20]],
+    }
 
 
 def preview_url(url: str, site: str = "auto") -> dict:
@@ -370,6 +436,12 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--range", dest="range_text", default=None)
     run.add_argument("--force", action="store_true")
 
+    recover = sub.add_parser("recover-toc")
+    recover.add_argument("--slug", required=True)
+    recover.add_argument("--site", default="auto")
+    recover.add_argument("--url", default=None)
+    recover.add_argument("--dry-run", action="store_true")
+
     paste = sub.add_parser("paste")
     paste.add_argument("--slug", required=True)
     paste.add_argument("--title", required=True)
@@ -387,6 +459,8 @@ def main(argv: list[str] | None = None) -> int:
             payload = preview_url(args.url, args.site)
         elif args.command == "run":
             payload = import_url(args.url, args.slug, args.site, args.range_text, args.force)
+        elif args.command == "recover-toc":
+            payload = recover_toc(args.slug, args.site, args.url, args.dry_run)
         else:
             content = args.content if args.content is not None else sys.stdin.read()
             payload = import_paste(

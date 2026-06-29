@@ -208,3 +208,78 @@ def test_import_url_writes_toc_manifest_for_later_repairs(tmp_path, monkeypatch)
     assert toc["site"] == "fake-site"
     assert toc["chapterCount"] == 2
     assert toc["chapters"][1]["title"] == "第2章 Signal"
+
+
+def test_recover_toc_uses_legacy_source_urls_without_writing_on_dry_run(tmp_path, monkeypatch):
+    class FakeAdapter:
+        id = "69shu"
+        display_name = "Fake 69shu"
+        source_lang = "cn"
+
+        def fetch_toc(self, url):
+            return static_sites.TocResult(
+                site=self.id,
+                url=url,
+                title="Recovered Novel",
+                source_lang="cn",
+                chapters=[
+                    static_sites.ChapterRef(1, "第1章 Recovered", "https://fixture.test/1"),
+                ],
+            )
+
+    monkeypatch.setattr(import_sources, "NOVELS_DIR", tmp_path / "novels")
+    monkeypatch.setattr(import_sources, "get_adapter", lambda *_args, **_kwargs: FakeAdapter())
+    novel_dir = tmp_path / "novels" / "legacy-novel"
+    novel_dir.mkdir(parents=True)
+    (novel_dir / "novel.json").write_text(json.dumps({
+        "slug": "legacy-novel",
+        "title": "Legacy Novel",
+        "sourceUrls": {"69shu": "https://www.69shu.com/30190/"},
+    }), encoding="utf-8")
+
+    result = import_sources.recover_toc("legacy-novel", dry_run=True)
+    toc_path = tmp_path / "novels" / "legacy-novel" / "chapters" / "source" / "toc.json"
+
+    assert result["dryRun"] is True
+    assert result["site"] == "69shu"
+    assert result["chapterCount"] == 1
+    assert result["sampleChapters"][0]["title"] == "第1章 Recovered"
+    assert not toc_path.exists()
+
+
+def test_recover_toc_apply_writes_manifest(tmp_path, monkeypatch):
+    class FakeAdapter:
+        id = "fixture"
+        display_name = "Fixture"
+        source_lang = "en"
+
+        def fetch_toc(self, url):
+            return static_sites.TocResult(
+                site=self.id,
+                url=url,
+                title="Recovered Apply",
+                source_lang="en",
+                chapters=[
+                    static_sites.ChapterRef(7, "Chapter 7 - Return", "https://fixture.test/7"),
+                ],
+            )
+
+    monkeypatch.setattr(import_sources, "NOVELS_DIR", tmp_path / "novels")
+    monkeypatch.setattr(import_sources, "get_adapter", lambda *_args, **_kwargs: FakeAdapter())
+    novel_dir = tmp_path / "novels" / "apply-novel"
+    novel_dir.mkdir(parents=True)
+    (novel_dir / "novel.json").write_text(json.dumps({
+        "slug": "apply-novel",
+        "title": "Apply Novel",
+        "originalUrl": "https://fixture.test/toc",
+        "sourceSite": "fixture",
+    }), encoding="utf-8")
+
+    result = import_sources.recover_toc("apply-novel", dry_run=False)
+    toc_path = tmp_path / "novels" / "apply-novel" / "chapters" / "source" / "toc.json"
+    toc = json.loads(toc_path.read_text(encoding="utf-8"))
+
+    assert result["dryRun"] is False
+    assert result["tocPath"] == str(toc_path)
+    assert toc["chapters"][0]["num"] == 7
+    assert toc["chapters"][0]["title"] == "Chapter 7 - Return"
