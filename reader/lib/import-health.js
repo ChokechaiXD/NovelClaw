@@ -105,6 +105,15 @@ function isGenericChapterTitle(title) {
   return /^(?:第\s*\d+\s*(?:章|节|節|話|话|回)|Chapter\s+\d+|ตอนที่\s*\d+)$/i.test(text);
 }
 
+function normalizeChapterNum(value) {
+  const num = parseInt(value, 10);
+  return Number.isFinite(num) && num > 0 ? num : null;
+}
+
+function sourceTocPath(slug) {
+  return path.join(chapterDir(slug), 'source', 'toc.json');
+}
+
 function splitMarkdownSource(raw) {
   const normalized = String(raw || '').replace(/\r\n/g, '\n').trimStart();
   const frontmatterMatch = normalized.match(/^---\n[\s\S]*?\n---(?:\n|$)/);
@@ -237,7 +246,7 @@ function removeSourceNoise(raw, title) {
   };
 }
 
-function repairSourceMarkdown(raw, num) {
+function repairSourceMarkdown(raw, num, tocTitle = '') {
   const parsed = parseMarkdownToBlocks(raw, num);
   let nextRaw = String(raw || '');
   let titleBefore = parsed.title || '';
@@ -252,6 +261,10 @@ function repairSourceMarkdown(raw, num) {
       titleAfter = inferred;
       titleChanged = titleBefore !== inferred;
     }
+  } else if (isGenericChapterTitle(titleBefore) && tocTitle && !isGenericChapterTitle(tocTitle)) {
+    nextRaw = addMarkdownTitle(nextRaw, tocTitle);
+    titleAfter = tocTitle;
+    titleChanged = titleBefore !== tocTitle;
   }
 
   const cleaned = removeSourceNoise(nextRaw, titleAfter);
@@ -267,6 +280,23 @@ function repairSourceMarkdown(raw, num) {
     noiseLinesRemoved: cleaned.removed.length,
     removedLines: cleaned.removed.slice(0, 5),
   };
+}
+
+async function readSourceTocTitles(slug) {
+  const titles = new Map();
+  let raw;
+  try { raw = await fs.readFile(sourceTocPath(slug), 'utf8'); }
+  catch (err) { if (err.code === 'ENOENT') return titles; throw err; }
+
+  const data = JSON.parse(raw);
+  const chapters = Array.isArray(data.chapters) ? data.chapters : [];
+  for (const chapter of chapters) {
+    if (!chapter || typeof chapter !== 'object') continue;
+    const num = normalizeChapterNum(chapter.num);
+    const title = normalizeTextLine(chapter.title);
+    if (num && title) titles.set(num, title);
+  }
+  return titles;
 }
 
 function summarizeIssues(chapters) {
@@ -313,12 +343,13 @@ async function repairMissingSourceTitles(slug, options = {}) {
   let noiseLinesRemoved = 0;
   let filesChanged = 0;
   const changes = [];
+  const tocTitles = await readSourceTocTitles(slug);
   for (const entry of entries) {
     if (!entry.isFile() || !/^\d{4}\.md$/.test(entry.name)) continue;
     const filepath = path.join(dir, entry.name);
     const num = parseInt(entry.name, 10);
     const raw = await fs.readFile(filepath, 'utf8');
-    const repairedFile = repairSourceMarkdown(raw, num);
+    const repairedFile = repairSourceMarkdown(raw, num, tocTitles.get(num) || '');
     if (!repairedFile.changed) continue;
     if (!repairedFile.titleAfter) {
       unchanged += 1;
