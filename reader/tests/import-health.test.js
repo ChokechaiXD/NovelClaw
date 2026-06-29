@@ -108,3 +108,31 @@ test('repairMissingSourceTitles adds a markdown title from the first chapter lin
   assert.match(inspected.cleanedText, /Real content paragraph\./);
   assert.match(inspected.cleanedText, /Second paragraph\./);
 });
+
+test('repairMissingSourceTitles infers embedded Chinese chapter titles from the next line', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-repair-embedded-title-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const { inspectSourceChapter, repairNovelImport } = require('../lib/import-health');
+  const slug = 'sample-repair-embedded-title';
+  const sourceDir = path.join(root, slug, 'chapters', 'source');
+  await fs.mkdir(sourceDir, { recursive: true });
+  await fs.writeFile(path.join(root, slug, 'novel.json'), JSON.stringify({ slug, title: 'Embedded Title' }), 'utf8');
+  await fs.writeFile(path.join(sourceDir, '0563.md'), [
+    '全球降臨：帶著嫂嫂末世種田第563章',
+    '占星法杖,古精靈部落(5600),一條小白蛇',
+    '',
+    '第一段正文，這裡才是小說內容。',
+    '',
+    '第二段正文。',
+  ].join('\n'), 'utf8');
+
+  const result = await repairNovelImport(slug, 'all');
+  const inspected = await inspectSourceChapter(slug, 563);
+
+  assert.equal(result.repair.titlesRepaired, 1);
+  assert.equal(inspected.title, '第563章 占星法杖,古精靈部落(5600),一條小白蛇');
+  assert.match(inspected.raw, /^# 第563章 占星法杖,古精靈部落\(5600\),一條小白蛇/);
+  assert.match(inspected.cleanedText, /第一段正文/);
+});

@@ -97,14 +97,25 @@ function analyzeSourceMarkdown(raw, num, filename = '') {
 }
 
 function inferTitleFromBody(body) {
-  const lines = String(body || '').replace(/\r\n/g, '\n').split('\n');
-  for (const line of lines) {
+  const lines = String(body || '').replace(/\r\n/g, '\n').split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+  for (let i = 0; i < Math.min(lines.length, 40); i++) {
+    const line = lines[i];
     const title = line.trim();
-    if (!title) continue;
     if (title.startsWith('#')) return title.replace(/^#+\s*/, '').trim();
     if (title.length > 140) return '';
-    if (/^(第\s*\d+\s*[章节章]|Chapter\s+\d+|ตอนที่\s*\d+)/i.test(title)) return title;
-    return '';
+    const embeddedCn = title.match(/第\s*\d+\s*[章节章]\s*(.*)$/);
+    if (embeddedCn) {
+      const rest = (embeddedCn[1] || '').trim();
+      if (rest) return title.slice(title.indexOf(embeddedCn[0])).trim();
+      const next = (lines[i + 1] || '').trim();
+      if (next && next.length <= 100 && !/[<>]/.test(next)) {
+        return (embeddedCn[0].trim() + ' ' + next).trim();
+      }
+      return embeddedCn[0].trim();
+    }
+    if (/^(Chapter\s+\d+|ตอนที่\s*\d+)/i.test(title)) return title;
   }
   return '';
 }

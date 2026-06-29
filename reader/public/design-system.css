@@ -1647,6 +1647,18 @@ pre code {
   color: #888;
 }
 
+.c-admin-provider__custom-panel {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-bg-soft);
+  padding: var(--space-md);
+  margin: var(--space-md) 0;
+}
+
+.c-admin-provider__manual-model {
+  margin-top: var(--space-xs);
+}
+
 .c-form__help-text {
   font-size: 0.8rem;
   color: #888;
@@ -1948,6 +1960,13 @@ pre code {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-sm);
   align-items: end;
+}
+.c-admin-translate__health-stats {
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+.c-admin-translate__health-stats .c-stat {
+  padding: var(--space-sm);
 }
 .c-admin-translate__grid--wide { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .c-admin-translate__split-label,

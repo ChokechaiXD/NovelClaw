@@ -1479,7 +1479,16 @@ const AdminTranslatePage = {
     Ui.showSkeleton('page-admin-translate');
 
     try {
-      const novels = await Api.getNovels();
+      const [novels, translationHealth] = await Promise.all([
+        Api.getNovels(),
+        Api.getTranslationHealth().catch(() => ({ data: { buckets: {} } })),
+      ]);
+      const buckets = translationHealth.data?.buckets || {};
+      const bucketStat = (name) => buckets[name]?.count || 0;
+      const latestFailed = (buckets.failed?.latest || buckets.needs_review?.latest || [])
+        .slice(0, 3)
+        .map(item => Ui.esc(item.name))
+        .join(', ');
 
       const novelOptions = novels.map(n => 
         `<option value="${Ui.esc(n.slug)}">${Ui.esc(Ui.displayTitle(n) || n.slug)}</option>`
@@ -1493,6 +1502,20 @@ const AdminTranslatePage = {
           <!-- INFO: setting up AI → go to Provider wizard -->
           <div class="c-card c-admin-translate__provider-note">
             <p class="c-admin-translate__provider-note-text">🤖 ตั้งค่า Provider / Model ที่ <a href="#admin/provider" data-nav><strong>หน้า Provider</strong></a></p>
+          </div>
+
+          <div class="c-card c-admin-translate__panel">
+            <div class="c-admin-translate__console-head">
+              <h3 class="c-admin-translate__title">Translation Health</h3>
+              <button class="c-btn c-btn--xs c-btn--secondary" id="translate-health-refresh" type="button">Refresh</button>
+            </div>
+            <div class="c-stats c-admin-translate__health-stats">
+              <div class="c-stat"><span class="c-stat__num">${bucketStat('active')}</span><span class="c-stat__label">active</span></div>
+              <div class="c-stat"><span class="c-stat__num c-stat__num--success">${bucketStat('done')}</span><span class="c-stat__label">done</span></div>
+              <div class="c-stat"><span class="c-stat__num c-stat__num--warning">${bucketStat('needs_review')}</span><span class="c-stat__label">needs review</span></div>
+              <div class="c-stat"><span class="c-stat__num">${bucketStat('failed')}</span><span class="c-stat__label">failed</span></div>
+            </div>
+            <p class="u-text-muted">${latestFailed ? 'ล่าสุดที่ต้องดู: ' + latestFailed : 'ยังไม่มีรายการ failed/needs_review ล่าสุด'}</p>
           </div>
 
           <!-- BATCH TRANSLATION PANEL (simplified) -->
@@ -1538,6 +1561,7 @@ const AdminTranslatePage = {
       </div>`;
 
       page.innerHTML = html;
+      document.getElementById('translate-health-refresh')?.addEventListener('click', () => this.render(params));
 
       // ── Bind Batch Translation Event
       const runBtn = document.getElementById('translate-batch-run-btn');
@@ -1621,6 +1645,7 @@ const AdminProviderPage = {
         selected_provider: cfg.active || '',
         selected_model: cfg.default_model || '',
         selected_discovery: cfg.discovery_model || '',
+        selected_custom_base_url: (cfg.providers || []).find(p => p.name === 'custom')?.base_url || '',
       };
       this._renderStep(page);
     } catch (err) {
@@ -1656,25 +1681,36 @@ const AdminProviderPage = {
   // ── Step 1: เลือก Provider ──
   _renderStep1(page) {
     const { providers, selected_provider } = this._state;
+    const selectedProvider = providers.find(p => p.name === selected_provider) || {};
+    const showCustom = selected_provider === 'custom';
     page.innerHTML = '<div class="c-container">' +
       Ui.adminNav('provider') +
       '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">🤖 ตั้งค่าระบบ AI</h3></div>' +
       this._stepIndicator(page, 1) +
       '<div class="c-admin-wizard__body">' +
       '<h4>ขั้นตอนที่ 1: เลือกผู้ให้บริการ AI</h4>' +
-      '<p class="u-text-muted">เลือก Provider ที่ต้องการใช้ แล้วกด "ต่อไป"</p>' +
+      '<p class="u-text-muted">เลือก Provider ที่ต้องการใช้ หรือกด refresh เพื่อดึงรายชื่อโมเดลล่าสุดจาก endpoint ที่รองรับ</p>' +
       '<div class="c-admin-provider__cards">' +
       providers.map(p => {
         const act = p.name === selected_provider ? ' c-admin-provider__card--active' : '';
         const modelCount = (p.models || []).length;
+        const sourceText = p.model_source === 'live' ? 'live' : 'static';
+        const errorText = p.model_error ? ' · fallback' : '';
         return '<div class="c-card c-admin-provider__card' + act + '" data-provider="' + Ui.esc(p.name) + '">' +
           '<div class="c-admin-provider__card-name">' + Ui.esc(p.display_name || p.name) + '</div>' +
-          '<div class="c-admin-provider__card-meta">' + modelCount + ' โมเดล</div>' +
+          '<div class="c-admin-provider__card-meta">' + modelCount + ' โมเดล · ' + Ui.esc(sourceText + errorText) + '</div>' +
           '</div>';
       }).join('') +
+      '</div>' +
+      '<div class="c-admin-provider__custom-panel"' + (showCustom ? '' : ' hidden') + '>' +
+      '<div class="c-form__group">' +
+      '<label class="c-form__label" for="provider-custom-base-url">Custom endpoint</label>' +
+      '<input class="c-form__input" id="provider-custom-base-url" value="' + Ui.esc(this._state.selected_custom_base_url || selectedProvider.base_url || '') + '" placeholder="http://localhost:8000/v1" />' +
+      '<p class="c-form__help-text">รองรับ OpenAI-compatible /v1 endpoint เช่น LM Studio, Ollama proxy หรือ server ส่วนตัว</p>' +
       '</div></div>' +
       '<div class="c-admin-wizard__actions">' +
-      '<button class="c-btn c-btn--primary" id="wizard-next-1" type="button" disabled>ต่อไป →</button>' +
+      '<button class="c-btn c-btn--secondary" id="provider-refresh-models" type="button">Refresh models</button>' +
+      '<button class="c-btn c-btn--primary" id="wizard-next-1" type="button"' + (selected_provider ? '' : ' disabled') + '>ต่อไป →</button>' +
       '</div></div>';
 
     // Card click handler
@@ -1684,12 +1720,33 @@ const AdminProviderPage = {
         card.classList.add('c-admin-provider__card--active');
         this._state.selected_provider = card.dataset.provider;
         document.getElementById('wizard-next-1').disabled = false;
+        this._renderStep(page);
       });
     });
 
     document.getElementById('wizard-next-1').addEventListener('click', () => {
+      const customInput = document.getElementById('provider-custom-base-url');
+      if (customInput) this._state.selected_custom_base_url = customInput.value.trim();
       this._state.step = 2;
       this._renderStep(page);
+    });
+
+    document.getElementById('provider-refresh-models').addEventListener('click', async () => {
+      const btn = document.getElementById('provider-refresh-models');
+      const customInput = document.getElementById('provider-custom-base-url');
+      if (customInput) this._state.selected_custom_base_url = customInput.value.trim();
+      btn.disabled = true;
+      btn.textContent = 'Refreshing...';
+      try {
+        const cfg = await Api.getProviderConfig({ refreshModels: true });
+        this._state.providers = cfg.providers || [];
+        Ui.showToast('อัปเดตรายชื่อโมเดลแล้ว');
+        this._renderStep(page);
+      } catch (err) {
+        Ui.showToast('Refresh models ไม่สำเร็จ: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Refresh models';
+      }
     });
   },
 
@@ -1721,11 +1778,13 @@ const AdminProviderPage = {
       '<div class="c-form__group">' +
       '<label class="c-form__label">โมเดลสำหรับแปล (Translate)</label>' +
       '<select class="c-form__select" id="wiz-model-select">' + translateOpts + '</select>' +
+      '<input class="c-form__input c-admin-provider__manual-model" id="wiz-model-manual" placeholder="หรือพิมพ์ model id เอง" />' +
       '</div>' +
       '<div class="c-form__group">' +
       '<label class="c-form__label">โมเดลค้นหาคำศัพท์ (Discovery)</label>' +
       '<p class="c-form__help-text">ใช้ LLM อีกตัวเพื่อค้นหา + เสนอคำแปลคำศัพท์ใหม่</p>' +
       '<select class="c-form__select" id="wiz-discovery-select">' + discOpts + '</select>' +
+      '<input class="c-form__input c-admin-provider__manual-model" id="wiz-discovery-manual" placeholder="หรือพิมพ์ discovery model id เอง" />' +
       '</div>' +
       '</div>' +
       '<div class="c-admin-wizard__actions">' +
@@ -1738,8 +1797,10 @@ const AdminProviderPage = {
       this._renderStep(page);
     });
     document.getElementById('wizard-next-2').addEventListener('click', () => {
-      this._state.selected_model = document.getElementById('wiz-model-select').value;
-      this._state.selected_discovery = document.getElementById('wiz-discovery-select').value;
+      const manualModel = document.getElementById('wiz-model-manual')?.value.trim();
+      const manualDiscovery = document.getElementById('wiz-discovery-manual')?.value.trim();
+      this._state.selected_model = manualModel || document.getElementById('wiz-model-select').value;
+      this._state.selected_discovery = manualDiscovery || document.getElementById('wiz-discovery-select').value;
       this._state.step = 3;
       this._renderStep(page);
     });
@@ -1750,6 +1811,7 @@ const AdminProviderPage = {
     const { selected_provider, selected_model, selected_discovery, providers } = this._state;
     const p = providers.find(x => x.name === selected_provider) || {};
     const pName = p.display_name || selected_provider;
+    const isCustom = selected_provider === 'custom';
 
     page.innerHTML = '<div class="c-container">' +
       Ui.adminNav('provider') +
@@ -1764,6 +1826,12 @@ const AdminProviderPage = {
       '<tr><td>โมเดลค้นหาคำศัพท์</td><td><strong>' + Ui.esc(selected_discovery) + '</strong></td></tr>' +
       '</tbody></table>' +
       '</div>' +
+      (isCustom ? '<div class="c-admin-provider__custom-panel">' +
+      '<div class="c-form__group"><label class="c-form__label" for="provider-custom-base-url-final">Custom endpoint</label>' +
+      '<input class="c-form__input" id="provider-custom-base-url-final" value="' + Ui.esc(this._state.selected_custom_base_url || p.base_url || '') + '" placeholder="http://localhost:8000/v1" /></div>' +
+      '<div class="c-form__group"><label class="c-form__label" for="provider-custom-api-key">Custom API key (optional)</label>' +
+      '<input class="c-form__input" id="provider-custom-api-key" type="password" autocomplete="off" placeholder="ปล่อยว่างได้ถ้า endpoint local ไม่ใช้ key" /></div>' +
+      '</div>' : '') +
       '<div id="wizard-status"></div>' +
       '<div class="c-admin-wizard__actions">' +
       '<button class="c-btn c-btn--ghost" id="wizard-prev-3" type="button">← ย้อนกลับ</button>' +
@@ -1786,6 +1854,8 @@ const AdminProviderPage = {
           active: this._state.selected_provider,
           default_model: this._state.selected_model,
           discovery_model: this._state.selected_discovery,
+          custom_base_url: document.getElementById('provider-custom-base-url-final')?.value.trim() || null,
+          custom_api_key: document.getElementById('provider-custom-api-key')?.value.trim() || null,
         });
         statusEl.innerHTML = '<span class="c-badge c-badge--teal">✅ บันทึกสำเร็จ!</span>';
         btn.textContent = '✅ บันทึกแล้ว';

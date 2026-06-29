@@ -138,6 +138,13 @@ const Api = {
     return res.json();
   },
 
+  async getTranslationHealth() {
+    const res = await fetch('/api/admin/translation-health');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error?.message || `${res.status} ${res.statusText}`);
+    return data;
+  },
+
   async getUnknownTerms(slug, num) {
     const res = await fetch(`/api/novel/${slug}/chapter/${num}/unknown-terms`);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
@@ -271,8 +278,9 @@ const Api = {
   },
 
   // ── Provider Config API (YAML-based) ──────────────────────────
-  async getProviderConfig() {
-    const res = await fetch('/api/admin/provider-config');
+  async getProviderConfig(options = {}) {
+    const suffix = options.refreshModels ? '?refreshModels=1' : '';
+    const res = await fetch('/api/admin/provider-config' + suffix);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     return res.json();
   },
