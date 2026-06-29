@@ -50,14 +50,21 @@ const ReaderPage = {
           <div class="reader-body">
             <h1 class="reader-title" id="reader-title"></h1>
             <div id="reader-translator-info" class="c-reader__translator-info"></div>
+            <div class="c-reader-actions c-reader-actions--top" aria-label="เปลี่ยนตอนด้านบน">
+              <div class="c-reader-actions__nav" aria-label="เปลี่ยนตอน">
+                <button class="c-reader__nav-btn c-reader__nav-btn--prev" id="reader-prev-top" type="button">ก่อนหน้า</button>
+                <span class="c-reader__position" id="reader-position-top"></span>
+                <button class="c-reader__nav-btn c-reader__nav-btn--primary" id="reader-next-top" type="button">ถัดไป</button>
+              </div>
+            </div>
             <div id="reader-content"></div>
           </div>
           <div class="c-reader-actions" aria-label="เครื่องมือท้ายบท">
             <div class="c-reader-actions__nav" aria-label="เปลี่ยนตอน">
-              <button class="c-reader__nav-btn c-reader__nav-btn--prev" id="reader-prev-2" type="button">ก่อนหน้า</button>
+              <button class="c-reader__nav-btn c-reader__nav-btn--prev" id="reader-prev-bottom" type="button">ก่อนหน้า</button>
               <span class="c-reader__position" id="reader-position"></span>
               <button class="c-reader__nav-btn" id="reader-back-top" type="button">กลับบน</button>
-              <button class="c-reader__nav-btn c-reader__nav-btn--primary" id="reader-next-2" type="button">ถัดไป</button>
+              <button class="c-reader__nav-btn c-reader__nav-btn--primary" id="reader-next-bottom" type="button">ถัดไป</button>
             </div>
             <div class="c-reader-actions__tools" aria-label="ปรับการอ่าน">
               <div class="c-reader-tool-group" aria-label="ขนาดตัวอักษร">
@@ -71,10 +78,6 @@ const ReaderPage = {
                 <button class="c-reader-tool" id="reader-leading-lg" type="button" title="เพิ่มช่องว่าง">+</button>
               </div>
               <button class="c-reader-tool c-reader-tool--wide" id="reader-theme-toggle" type="button" title="เปลี่ยนธีม"></button>
-              <button class="c-reader-tool c-reader-tool--wide" id="reader-distraction-toggle" type="button" title="โหมดอ่านหนังสือ">
-                <svg class="c-icon c-icon--sm"><use xlink:href="#icon-fullscreen"/></svg>
-                <span>โหมดอ่าน</span>
-              </button>
             </div>
           </div>
         </div>
@@ -160,7 +163,9 @@ const ReaderPage = {
           const data = await Api.getChapterContent(slug, ch.num, Store.getSettings().readerLang || 'th');
 
           Ui.$('reader-title').textContent = data.title || ch.title || `ตอนที่ ${ch.num}`;
-          Ui.$('reader-position').textContent = `${chIdx + 1} / ${chapters.length}`;
+          const positionText = `${chIdx + 1} / ${chapters.length}`;
+          Ui.$('reader-position').textContent = positionText;
+          Ui.$('reader-position-top').textContent = positionText;
 
           // Update translator info
           const infoEl = document.getElementById('reader-translator-info');
@@ -219,8 +224,14 @@ const ReaderPage = {
           Store.setLastPosition(slug, ch.num);
 
           // Update nav buttons
-          Ui.$('reader-prev-2').disabled = chIdx <= 0;
-          Ui.$('reader-next-2').disabled = chIdx >= chapters.length - 1;
+          ['reader-prev-top', 'reader-prev-bottom'].forEach((id) => {
+            const btn = Ui.$(id);
+            if (btn) btn.disabled = chIdx <= 0;
+          });
+          ['reader-next-top', 'reader-next-bottom'].forEach((id) => {
+            const btn = Ui.$(id);
+            if (btn) btn.disabled = chIdx >= chapters.length - 1;
+          });
 
           // Scroll top
           const scrollContainer = document.querySelector('.c-content');
@@ -257,8 +268,14 @@ const ReaderPage = {
           if (next) window.location.hash = `#novel/${slug}/${next.num}`;
         }
       };
-      Ui.$('reader-prev-2').onclick = goPrev;
-      Ui.$('reader-next-2').onclick = goNext;
+      ['reader-prev-top', 'reader-prev-bottom'].forEach((id) => {
+        const btn = Ui.$(id);
+        if (btn) btn.onclick = goPrev;
+      });
+      ['reader-next-top', 'reader-next-bottom'].forEach((id) => {
+        const btn = Ui.$(id);
+        if (btn) btn.onclick = goNext;
+      });
       Ui.$('reader-back-top').onclick = () => {
         const sc = document.querySelector('.c-content');
         if (sc) sc.scrollTo({ top: 0, behavior: 'smooth' });
@@ -336,17 +353,6 @@ const ReaderPage = {
         applyTheme(currentTheme);
       };
 
-      // ── Distraction-free / book mode ───────────────────────────────
-      Ui.$('reader-distraction-toggle').onclick = () => {
-        const app = document.querySelector('.c-app');
-        if (!app) return;
-        app.classList.toggle('c-app--book-mode');
-        const isActive = app.classList.contains('c-app--book-mode');
-        Ui.$('reader-distraction-toggle')?.classList.toggle('is-active', isActive);
-        Ui.showToast(isActive ? 'โหมดอ่านหนังสือ' : 'ออกจากโหมดอ่านหนังสือ');
-      };
-
-
       // ── Bind events with AbortController for cleanup ──────────────────
       this._bindReaderEvents();
 
@@ -387,13 +393,8 @@ const ReaderPage = {
       if (e.target.matches('input, textarea')) return;
       
       // Page navigation
-      if (e.key === 'ArrowLeft') Ui.$('reader-prev-2')?.click();
-      if (e.key === 'ArrowRight') Ui.$('reader-next-2')?.click();
-      
-      // Toggle Book Mode
-      if (e.key === 'b' || e.key === 'B' || e.key === 'd' || e.key === 'D') {
-        Ui.$('reader-distraction-toggle')?.click();
-      }
+      if (e.key === 'ArrowLeft') Ui.$('reader-prev-bottom')?.click();
+      if (e.key === 'ArrowRight') Ui.$('reader-next-bottom')?.click();
       
       // Toggle Themes
       if (e.key === 't' || e.key === 'T') {
@@ -416,14 +417,6 @@ const ReaderPage = {
         Ui.$('reader-leading-lg')?.click();
       }
       
-      // Exit Book Mode
-      if (e.key === 'Escape') {
-        const app = document.querySelector('.c-app');
-        if (app && app.classList.contains('c-app--book-mode')) {
-          app.classList.remove('c-app--book-mode');
-          Ui.showToast('ออกจากโหมดอ่านหนังสือ');
-        }
-      }
     };
     document.addEventListener('keydown', keyHandler, { signal });
 
