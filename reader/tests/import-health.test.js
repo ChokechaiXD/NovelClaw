@@ -152,6 +152,36 @@ test('repairNovelImport uses source toc manifest to replace generic titles', asy
   assert.equal(health.sourceToc.title, 'TOC Title');
 });
 
+test('repairNovelImport infers generic title from body heading when toc is missing', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-repair-body-title-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const { inspectSourceChapter, repairNovelImport } = require('../lib/import-health');
+  const slug = 'sample-repair-body-title';
+  const sourceDir = path.join(root, slug, 'chapters', 'source');
+  await fs.mkdir(sourceDir, { recursive: true });
+  await fs.writeFile(path.join(root, slug, 'novel.json'), JSON.stringify({ slug, title: 'Body Title' }), 'utf8');
+  await fs.writeFile(path.join(sourceDir, '0010.md'), [
+    '# 第10章',
+    '',
+    '第10章 砍價，冰甲術技能書',
+    'First real paragraph has prose.',
+    '',
+    'Second real paragraph has more prose.',
+  ].join('\n'), 'utf8');
+
+  const preview = await repairNovelImport(slug, 'all', { dryRun: true });
+  const applied = await repairNovelImport(slug, 'all');
+  const inspected = await inspectSourceChapter(slug, 10);
+
+  assert.equal(preview.repair.titlesRepaired, 1);
+  assert.equal(preview.repair.changes[0].titleAfter, '第10章 砍價，冰甲術技能書');
+  assert.equal(applied.repair.titlesRepaired, 1);
+  assert.equal(inspected.title, '第10章 砍價，冰甲術技能書');
+  assert.match(inspected.raw, /^# 第10章 砍價，冰甲術技能書/);
+});
+
 test('repairMissingSourceTitles adds a markdown title from the first chapter line', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-repair-title-'));
   process.env.NOVELCLAW_ROOT = root;
