@@ -87,6 +87,31 @@ Second paragraph.
   assert.equal(inspected.diagnostic.charCount, inspected.cleanedText.length);
 });
 
+test('import health flags generic chapter-number-only titles', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-generic-title-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const { getNovelImportHealth } = require('../lib/import-health');
+  const slug = 'sample-generic-title';
+  const sourceDir = path.join(root, slug, 'chapters', 'source');
+  await fs.mkdir(sourceDir, { recursive: true });
+  await fs.writeFile(path.join(root, slug, 'novel.json'), JSON.stringify({ slug, title: 'Generic Title' }), 'utf8');
+  await fs.writeFile(path.join(sourceDir, '0010.md'), [
+    '# 第10章',
+    '',
+    'First real paragraph has prose.',
+    '',
+    'Second real paragraph has more prose.',
+  ].join('\n'), 'utf8');
+
+  const health = await getNovelImportHealth(slug);
+
+  assert.equal(health.status, 'warn');
+  assert.equal(health.issueSummary.byCode.generic_title, 1);
+  assert.equal(health.sampleIssues[0].issues[0].code, 'generic_title');
+});
+
 test('repairMissingSourceTitles adds a markdown title from the first chapter line', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-repair-title-'));
   process.env.NOVELCLAW_ROOT = root;

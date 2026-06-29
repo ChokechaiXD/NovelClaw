@@ -100,6 +100,11 @@ function titleNeedsRepair(title) {
   return !normalizeTextLine(title) || isDirtySourceTitle(title);
 }
 
+function isGenericChapterTitle(title) {
+  const text = normalizeTextLine(title).replace(/^#+\s*/, '');
+  return /^(?:第\s*\d+\s*(?:章|节|節|話|话|回)|Chapter\s+\d+|ตอนที่\s*\d+)$/i.test(text);
+}
+
 function splitMarkdownSource(raw) {
   const normalized = String(raw || '').replace(/\r\n/g, '\n').trimStart();
   const frontmatterMatch = normalized.match(/^---\n[\s\S]*?\n---(?:\n|$)/);
@@ -120,6 +125,8 @@ function analyzeSourceMarkdown(raw, num, filename = '') {
   if (!parsed.title) issues.push({ code: 'missing_title', severity: 'warn', message: 'Missing chapter title' });
   else if (isDirtySourceTitle(parsed.title)) {
     issues.push({ code: 'dirty_title', severity: 'warn', message: 'Chapter title contains site breadcrumb text' });
+  } else if (isGenericChapterTitle(parsed.title)) {
+    issues.push({ code: 'generic_title', severity: 'warn', message: 'Chapter title only contains the chapter number' });
   }
   if (!contentBlocks.length || contentText.length < 30) {
     issues.push({ code: 'empty_content', severity: 'error', message: 'No usable chapter content' });
