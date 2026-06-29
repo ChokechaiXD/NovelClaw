@@ -34,6 +34,31 @@ async function readTextOrNull(filepath) {
   catch (err) { if (err.code === 'ENOENT') return null; throw err; }
 }
 
+function isGenericChapterTitle(title, num) {
+  const text = String(title || '').trim();
+  if (!text) return true;
+  const escapedNum = String(num).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^(?:ตอนที่\\s*${escapedNum}(?:\\s*\\[ยังไม่แปล\\])?|第\\s*${escapedNum}\\s*[章节章]|Chapter\\s+${escapedNum})$`, 'i').test(text);
+}
+
+function sourceTitleForList(title, num) {
+  const text = String(title || '').trim();
+  const chinese = text.match(/^第\s*\d+\s*[章节章]\s*(.+)$/);
+  if (chinese?.[1]?.trim()) return `ตอนที่ ${num} ${chinese[1].trim()}`;
+  return text;
+}
+
+async function readSourceTitle(dir, files, num) {
+  if (!files.source) return '';
+  try {
+    const raw = await fs.readFile(path.join(dir, 'source', files.source), 'utf8');
+    const title = extractMarkdownTitle(raw);
+    return isGenericChapterTitle(title, num) ? '' : sourceTitleForList(title, num);
+  } catch {
+    return '';
+  }
+}
+
 // ── Private: force-scan directory for real file state ──────────────
 // Always reads from disk. No cache, no fast-path index.
 // Returns: { chapters: [{ num, title, hasTh, hasCn, isTranslated, status }] }
@@ -70,9 +95,7 @@ async function scanChapters(slug) {
       if (!m) continue;
       const num = parseInt(m[1], 10);
       if (!chapterFiles[num]) chapterFiles[num] = {};
-      if (!chapterFiles[num].th && !chapterFiles[num].cn && !chapterFiles[num].legacy && !chapterFiles[num].md) {
-        chapterFiles[num].source = e.name;
-      }
+      chapterFiles[num].source = e.name;
     }
   } catch {}
 
@@ -97,14 +120,23 @@ async function scanChapters(slug) {
           if (titleFile.endsWith('.json')) {
             const j = JSON.parse(raw);
             if (j.title && typeof j.title === 'object') {
-              title = j.title.translated || j.title.source || '';
+              const translatedTitle = (j.title.translated || '').toString();
+              const sourceTitle = (j.title.source || '').toString();
+              title = translatedTitle || sourceTitle || '';
+              if (isGenericChapterTitle(title, num) && !isGenericChapterTitle(sourceTitle, num)) {
+                title = sourceTitleForList(sourceTitle, num);
+              }
             } else {
               title = (j.title || '').toString();
             }
           } else if (titleFile.endsWith('.md')) {
-            title = extractMarkdownTitle(raw);
+            title = sourceTitleForList(extractMarkdownTitle(raw), num);
           }
         } catch {}
+      }
+      if (isGenericChapterTitle(title, num)) {
+        const sourceTitle = await readSourceTitle(dir, files, num);
+        if (sourceTitle) title = sourceTitle;
       }
       if (!title) {
         title = isTranslated ? `ตอนที่ ${num}` : `ตอนที่ ${num} [ยังไม่แปล]`;
@@ -345,11 +377,7 @@ async function listChapters(slug, options = {}) {
         isTranslated: c.status !== 'source_only',
         status: c.status || 'translated',
       }));
-      const hasStaleSourceTitles = out.some(c =>
-        c.status === 'source_only'
-        && typeof c.title === 'string'
-        && /^ตอนที่ \d+ \[ยังไม่แปล\]$/.test(c.title)
-      );
+      const hasStaleSourceTitles = out.some(c => isGenericChapterTitle(c.title, c.num));
       if (hasStaleSourceTitles) {
         const scanned = await scanChapters(slug);
         cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: scanned });

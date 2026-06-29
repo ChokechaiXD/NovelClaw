@@ -295,3 +295,36 @@ test('repairNovelImport dry-run reports changes without touching source files', 
   assert.equal(result.repair.changes[0].titleAfter, '第2章乾跑');
   assert.equal(inspected.raw, original);
 });
+
+test('import health flags Chinese site shell contamination as blocking source error', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-site-shell-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const { getNovelImportHealth, inspectSourceChapter } = require('../lib/import-health');
+  const slug = 'sample-site-shell';
+  const sourceDir = path.join(root, slug, 'chapters', 'source');
+  await fs.mkdir(sourceDir, { recursive: true });
+  await fs.writeFile(path.join(root, slug, 'novel.json'), JSON.stringify({ slug, title: 'Site Shell' }), 'utf8');
+  await fs.writeFile(path.join(sourceDir, '1132.md'), [
+    '# 第1132章 游戲·競技',
+    '',
+    '全球降臨：帶著嫂嫂末世種田第1132章',
+    '閱讀底色..',
+    '淡藍海洋',
+    '明黃清俊',
+    '瀏覽記錄',
+    '聯系我們:',
+    'hjwzw@live.com',
+    '曹星緩緩睜開雙眼，輕聲感嘆道：“果然……兩條神性之間的沖突消失了。”',
+    '“雖然我現在還不知道，靠自己的力量解決這種沖突，需要耗費多大的代價。”',
+  ].join('\n'), 'utf8');
+
+  const health = await getNovelImportHealth(slug);
+  const inspected = await inspectSourceChapter(slug, 1132);
+
+  assert.equal(health.status, 'error');
+  assert.equal(health.translationReady, false);
+  assert.equal(health.issueSummary.byCode.site_shell, 1);
+  assert.equal(inspected.diagnostic.issues.some(issue => issue.code === 'dirty_title'), true);
+});
