@@ -211,6 +211,13 @@ function addMarkdownTitle(raw, title) {
   return frontmatter + `# ${title}\n\n` + lines.join('\n').replace(/^\n+/, '');
 }
 
+function bodyWithoutLeadingHeading(raw) {
+  const { body } = splitMarkdownSource(raw);
+  const lines = body.split('\n');
+  if (lines[0]?.trim().startsWith('#')) lines.shift();
+  return lines.join('\n').replace(/^\n+/, '');
+}
+
 function isSourceNoiseLine(line, title) {
   const text = normalizeTextLine(line);
   if (!text) return false;
@@ -261,10 +268,15 @@ function repairSourceMarkdown(raw, num, tocTitle = '') {
       titleAfter = inferred;
       titleChanged = titleBefore !== inferred;
     }
-  } else if (isGenericChapterTitle(titleBefore) && tocTitle && !isGenericChapterTitle(tocTitle)) {
-    nextRaw = addMarkdownTitle(nextRaw, tocTitle);
-    titleAfter = tocTitle;
-    titleChanged = titleBefore !== tocTitle;
+  } else if (isGenericChapterTitle(titleBefore)) {
+    const inferred = tocTitle && !isGenericChapterTitle(tocTitle)
+      ? tocTitle
+      : inferTitleFromBody(bodyWithoutLeadingHeading(nextRaw));
+    if (inferred && !isGenericChapterTitle(inferred)) {
+      nextRaw = addMarkdownTitle(nextRaw, inferred);
+      titleAfter = inferred;
+      titleChanged = titleBefore !== inferred;
+    }
   }
 
   const cleaned = removeSourceNoise(nextRaw, titleAfter);
