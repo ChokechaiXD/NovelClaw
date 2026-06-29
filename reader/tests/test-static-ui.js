@@ -5,7 +5,7 @@
  *   - no inline style attributes in public JS
  *   - no inline onclick attributes in public JS
  *   - no blocking alert() calls in public JS
- *   - npm run check covers every public/js file
+ *   - npm run check runs the recursive JS syntax gate
  */
 
 const fs = require('node:fs');
@@ -56,11 +56,8 @@ for (const file of jsFiles) {
 
 const pkg = JSON.parse(fs.readFileSync(PACKAGE_JSON, 'utf8'));
 const checkScript = pkg.scripts?.check || '';
-for (const file of jsFiles) {
-  const normalized = rel(file);
-  if (!checkScript.includes(normalized)) {
-    fail(`npm run check does not cover ${normalized}`);
-  }
+if (!checkScript.includes('tests/test-js-syntax.js')) {
+  fail('npm run check does not run tests/test-js-syntax.js');
 }
 
 if (process.exitCode) {
