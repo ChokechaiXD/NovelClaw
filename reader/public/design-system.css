@@ -1794,38 +1794,6 @@ pre code {
   font-size: var(--text-sm);
   color: var(--c-text-muted);
 }
-.c-admin-jobs__filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-md);
-  font-size: var(--text-sm);
-}
-.c-job-filter--active {
-  background: var(--c-accent);
-  color: #fff;
-}
-.c-admin-jobs__chapter-cell,
-.c-admin-jobs__actions {
-  white-space: nowrap;
-}
-.c-admin-jobs__mode-badge,
-.c-admin-jobs__reason,
-.c-admin-jobs__created-at,
-.c-admin-jobs__command {
-  font-size: 10px;
-}
-.c-admin-jobs__reason {
-  margin-top: 2px;
-  color: var(--c-text-muted);
-}
-.c-admin-jobs__created-at {
-  margin-top: 1px;
-  color: var(--c-text-soft);
-}
-.c-admin-jobs__command {
-  white-space: pre-wrap;
-}
 .c-admin-edit__actions {
   display: flex;
   align-items: center;
