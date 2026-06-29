@@ -70,3 +70,25 @@ test('listChapters bypasses stale generic index titles and scans source titles',
   assert.equal(chapters[0].title, 'ตอนที่ 12 Clean Source Title');
   assert.equal(chapters[0].status, 'source_only');
 });
+
+test('listChapters does not promote dirty category source titles', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-chapter-repo-dirty-title-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const slug = 'dirty-source-title';
+  const sourceDir = path.join(root, slug, 'chapters', 'source');
+  await fs.mkdir(sourceDir, { recursive: true });
+  await fs.writeFile(path.join(sourceDir, '1132.md'), [
+    '# 第1132章 游戲·競技',
+    '',
+    '閱讀底色..',
+    '曹星緩緩睜開雙眼，輕聲感嘆道：“果然……”',
+  ].join('\n'), 'utf8');
+
+  const { listChapters } = require('../lib/chapter-repo');
+  const chapters = await listChapters(slug, { forceScan: true });
+
+  assert.equal(chapters[0].title, 'ตอนที่ 1132 [ยังไม่แปล]');
+  assert.equal(chapters[0].status, 'source_only');
+});

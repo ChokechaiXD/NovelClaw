@@ -41,8 +41,16 @@ function isGenericChapterTitle(title, num) {
   return new RegExp(`^(?:ตอนที่\\s*${escapedNum}(?:\\s*\\[ยังไม่แปล\\])?|第\\s*${escapedNum}\\s*[章节章]|Chapter\\s+${escapedNum})$`, 'i').test(text);
 }
 
+function isDirtySourceTitle(title) {
+  const text = String(title || '').trim().toLowerCase();
+  if (!text) return false;
+  return ['>>', '黃金屋', '黄金屋', '目錄', '目录', '手機網頁版', '手机网页版', '游戲·競技', '游戏·竞技']
+    .some(marker => text.includes(marker.toLowerCase()));
+}
+
 function sourceTitleForList(title, num) {
   const text = String(title || '').trim();
+  if (isDirtySourceTitle(text)) return '';
   const chinese = text.match(/^第\s*\d+\s*[章节章]\s*(.+)$/);
   if (chinese?.[1]?.trim()) return `ตอนที่ ${num} ${chinese[1].trim()}`;
   return text;
@@ -53,7 +61,7 @@ async function readSourceTitle(dir, files, num) {
   try {
     const raw = await fs.readFile(path.join(dir, 'source', files.source), 'utf8');
     const title = extractMarkdownTitle(raw);
-    return isGenericChapterTitle(title, num) ? '' : sourceTitleForList(title, num);
+    return isGenericChapterTitle(title, num) || isDirtySourceTitle(title) ? '' : sourceTitleForList(title, num);
   } catch {
     return '';
   }
