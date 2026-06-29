@@ -1826,6 +1826,13 @@ pre code {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  padding: var(--space-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+.c-admin-cover-panel.is-dragging {
+  border-color: var(--c-accent);
+  background: var(--c-surface);
 }
 .c-admin-cover-preview {
   width: 100%;
@@ -1870,11 +1877,47 @@ pre code {
 .c-admin-novels__actions-col {
   text-align: center;
 }
-.c-admin-novels__actions-col { width: 80px; }
+.c-admin-novels__filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) minmax(140px, 180px);
+  gap: var(--space-sm);
+  align-items: end;
+  margin-bottom: var(--space-md);
+}
+.c-admin-novel-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 220px;
+}
+.c-admin-novel-cover {
+  width: 42px;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex: 0 0 auto;
+  background: var(--c-bg-secondary);
+}
+.c-admin-novels__health {
+  margin-top: 4px;
+}
+.c-admin-novels__actions {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-width: 180px;
+}
+.c-admin-novels__actions-col { width: 210px; }
 .c-admin-novels__delete-btn {
   min-height: 24px;
   padding: 2px 8px;
   font-size: 11px;
+}
+@media (max-width: 760px) {
+  .c-admin-novels__filters {
+    grid-template-columns: 1fr;
+  }
 }
 .c-admin-translate {
   display: grid;
@@ -2333,6 +2376,45 @@ pre code {
   margin: var(--space-xs) 0 0;
 }
 
+.c-admin-source-inspector__form {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(100px, 140px) auto;
+  gap: var(--space-sm);
+  align-items: end;
+}
+
+.c-admin-source-inspector__output {
+  margin-top: var(--space-md);
+}
+
+.c-admin-source-inspector__summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-sm);
+  color: var(--c-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.c-admin-source-inspector__summary strong {
+  color: var(--c-text-primary);
+}
+
+.c-admin-source-inspector__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.c-admin-source-inspector__pre {
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
 .c-admin-import__sites {
   margin-top: var(--space-md);
   max-height: 260px;
@@ -2348,6 +2430,10 @@ pre code {
   }
   .c-admin-import__health-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .c-admin-source-inspector__form,
+  .c-admin-source-inspector__grid {
+    grid-template-columns: 1fr;
   }
 }
 

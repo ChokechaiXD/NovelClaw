@@ -7,7 +7,7 @@
 
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { chapterDir, SLUG_RE } = require('./paths');
+const { chapterDir, sourceMdPath, SLUG_RE } = require('./paths');
 const { parseMarkdownToBlocks } = require('./blocks');
 const chapterRepo = require('./chapter-repo');
 const novelRepo = require('./novel-repo');
@@ -195,9 +195,46 @@ async function repairNovelImport(slug, action = 'rebuild-index') {
   return getNovelImportHealth(slug);
 }
 
+async function inspectSourceChapter(slug, num) {
+  if (!SLUG_RE.test(slug)) {
+    throw Object.assign(new Error('Invalid slug format'), { status: 400 });
+  }
+  const chapterNum = parseInt(num, 10);
+  if (Number.isNaN(chapterNum)) {
+    throw Object.assign(new Error('Invalid chapter number'), { status: 400 });
+  }
+  let raw;
+  try {
+    raw = await fs.readFile(sourceMdPath(slug, chapterNum), 'utf8');
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      throw Object.assign(new Error('Source chapter not found'), { status: 404 });
+    }
+    throw err;
+  }
+  const parsed = parseMarkdownToBlocks(raw, chapterNum);
+  const diagnostic = analyzeSourceMarkdown(raw, chapterNum, `${String(chapterNum).padStart(4, '0')}.md`);
+  const paragraphs = (parsed.blocks || [])
+    .filter((block) => block.type !== 'end')
+    .map((block) => block.text || '')
+    .filter(Boolean);
+
+  return {
+    slug,
+    num: chapterNum,
+    raw,
+    title: parsed.title || '',
+    frontmatter: normalizeFrontmatter(parsed.frontmatter),
+    paragraphs,
+    cleanedText: paragraphs.join('\n\n'),
+    diagnostic,
+  };
+}
+
 module.exports = {
   analyzeSourceMarkdown,
   getAllImportHealth,
   getNovelImportHealth,
+  inspectSourceChapter,
   repairNovelImport,
 };

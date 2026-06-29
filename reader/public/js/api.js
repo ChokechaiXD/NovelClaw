@@ -225,6 +225,14 @@ const Api = {
     return data;
   },
 
+  async inspectSource(slug, num) {
+    const qs = new URLSearchParams({ slug, num: String(num) });
+    const res = await fetch('/api/import/source-inspect?' + qs.toString());
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error?.message || `${res.status} ${res.statusText}`);
+    return data;
+  },
+
   async importPreview(payload) {
     const res = await fetch('/api/import/preview', {
       method: 'POST',
