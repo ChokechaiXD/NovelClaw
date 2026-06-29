@@ -846,6 +846,7 @@ const AdminLogsPage = {
 // ── ADMIN IMPORT SOURCE ──────────────────────────────────────────────────
 const AdminImportPage = {
   _preview: null,
+  _sites: [],
 
   setConsole(state, title, message) {
     AdminUi.setConsole('import', state, title, message);
@@ -872,6 +873,29 @@ const AdminImportPage = {
       'failed: ' + (data.failed || 0),
       'warnings: ' + warningCount,
     ].join('\n');
+  },
+
+  _siteOptions() {
+    const sites = this._sites || [];
+    return '<option value="auto">auto</option>' + sites.map(site => {
+      const label = `${site.displayName || site.id} (${site.sourceLang || '?'}, ${site.quality || 'beta'})`;
+      return '<option value="' + Ui.esc(site.id) + '">' + Ui.esc(label) + '</option>';
+    }).join('');
+  },
+
+  _siteCatalogHtml() {
+    const sites = this._sites || [];
+    if (!sites.length) return '';
+    const rows = sites.map(site =>
+      '<tr>' +
+      '<td><strong>' + Ui.esc(site.displayName || site.id) + '</strong><div class="u-text-muted">' + Ui.esc((site.domains || []).join(', ')) + '</div></td>' +
+      '<td>' + Ui.esc(site.sourceLang || '') + '</td>' +
+      '<td>' + Ui.esc(site.adapterType || '') + '</td>' +
+      '<td><span class="c-badge c-badge--gray">' + Ui.esc(site.quality || '') + '</span></td>' +
+      '<td>' + (site.access?.requiresJs ? '<span class="c-badge c-badge--amber">JS</span>' : '<span class="c-badge c-badge--teal">HTML</span>') + '</td>' +
+      '</tr>'
+    ).join('');
+    return '<div class="c-table-wrap c-admin-import__sites"><table class="c-table"><thead><tr><th>เว็บ</th><th>ภาษา</th><th>ชนิด</th><th>คุณภาพ</th><th>โหมด</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
   },
 
   _renderPreview(data) {
@@ -934,6 +958,13 @@ const AdminImportPage = {
   async render(params) {
     const page = Ui.$('page-admin-import');
     if (!page) return;
+    let sitesPayload = {};
+    try {
+      sitesPayload = this._data(await Api.getImportSites());
+      this._sites = sitesPayload.sites || [];
+    } catch (err) {
+      this._sites = [];
+    }
 
     page.innerHTML = `
       <div class="c-container">
@@ -950,16 +981,12 @@ const AdminImportPage = {
               <div class="c-form__group">
                 <label class="c-form__label" for="import-site">Adapter</label>
                 <select class="c-form__select" id="import-site">
-                  <option value="auto">auto</option>
-                  <option value="69shu">69shu</option>
-                  <option value="uukanshu">uukanshu</option>
-                  <option value="syosetu">syosetu</option>
-                  <option value="kakuyomu">kakuyomu</option>
-                  <option value="royalroad">royalroad</option>
+                  ${this._siteOptions()}
                 </select>
               </div>
               <button class="c-btn c-btn--secondary c-admin-import__preview-btn" id="import-preview-btn" type="button">Preview</button>
             </div>
+            ${this._siteCatalogHtml()}
             <div id="import-preview" hidden></div>
           </div>
 

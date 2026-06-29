@@ -417,6 +417,13 @@ def cmd_import_url(args: list[str]) -> None:
     raise SystemExit(import_sources_main(delegated))
 
 
+def cmd_import_sites(args: list[str]) -> None:
+    """novelclaw import-sites — list supported source import adapters."""
+    from import_sources import main as import_sources_main
+
+    raise SystemExit(import_sources_main(["sites", *args]))
+
+
 # ── Main ──────────────────────────────────────────────────────────────
 
 
@@ -444,11 +451,13 @@ def main() -> None:
         cmd_scrape(args)
     elif command == "import-url":
         cmd_import_url(args)
+    elif command == "import-sites":
+        cmd_import_sites(args)
     elif command in ("-h", "--help"):
         print(__doc__)
     else:
         print(f"❌ ไม่รู้จักคำสั่ง '{command}'")
-        print("คำสั่งที่มี: translate, judge, status, config, scrape, import-url")
+        print("คำสั่งที่มี: translate, judge, status, config, scrape, import-url, import-sites")
         sys.exit(1)
 
 

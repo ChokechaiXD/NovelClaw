@@ -21,10 +21,12 @@ try:
     from import_adapters import get_adapter, list_adapters
     from import_adapters.base import ChapterRef, ExtractedChapter
     from import_adapters.cleaning import clean_text_lines, validate_paragraphs
+    from import_adapters.registry import list_site_catalog
 except ModuleNotFoundError:
     from tools.import_adapters import get_adapter, list_adapters
     from tools.import_adapters.base import ChapterRef, ExtractedChapter
     from tools.import_adapters.cleaning import clean_text_lines, validate_paragraphs
+    from tools.import_adapters.registry import list_site_catalog
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 NOVELS_DIR = PROJECT_ROOT / "novels"
@@ -147,6 +149,10 @@ def preview_url(url: str, site: str = "auto") -> dict:
         "chapters": [asdict(ch) for ch in toc.chapters[:200]],
         "supportedAdapters": [adapter.id for adapter in list_adapters()],
     }
+
+
+def import_sites() -> dict:
+    return list_site_catalog()
 
 
 def import_url(url: str, slug: str, site: str = "auto", range_text: str | None = None, force: bool = False) -> dict:
@@ -298,6 +304,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="import_sources")
     sub = parser.add_subparsers(dest="command", required=True)
 
+    sub.add_parser("sites")
+
     preview = sub.add_parser("preview")
     preview.add_argument("url")
     preview.add_argument("--site", default="auto")
@@ -320,7 +328,9 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     try:
-        if args.command == "preview":
+        if args.command == "sites":
+            payload = import_sites()
+        elif args.command == "preview":
             payload = preview_url(args.url, args.site)
         elif args.command == "run":
             payload = import_url(args.url, args.slug, args.site, args.range_text, args.force)

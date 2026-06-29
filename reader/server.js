@@ -483,6 +483,18 @@ adminPost('/api/novel/:slug/delete', async (req, res) => {
 
 // ── Admin source import ──────────────────────────────────────────────
 
+app.get('/api/import/sites', asyncHandler(async (_req, res) => {
+  try {
+    const data = await runPythonJson([
+      path.join(__dirname, '..', 'novelclaw.py'),
+      'import-sites',
+    ], { timeout: 30_000 });
+    ok(res, data);
+  } catch (err) {
+    fail(res, 500, 'IMPORT_SITES_FAILED', err.message);
+  }
+}));
+
 adminPost('/api/import/preview', async (req, res) => {
   const { url, site } = req.body;
   if (!url) return fail(res, 400, 'MISSING_URL', 'Source URL is required');
