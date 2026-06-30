@@ -48,7 +48,7 @@ const NovelPage = {
             <span class="c-hero__tag">แปลไป ${enriched.translatedCount} / ${enriched.totalCount} ตอน (${enriched.translationPct}%)</span>
           </div>
           <p class="c-detail__synopsis">กำลังโหลดคำอธิบาย...</p>
-          <a href="#novel/${slug}/${chapters[0]?.num||1}" class="c-hero__cta" data-nav>เริ่มอ่านตอนแรก</a>
+          <a href="#novel/${slug}/${chapters[0]?.num||1}" class="c-hero__cta" data-nav>${Ui.icon('book', 'xs')}<span>เริ่มอ่านตอนแรก</span>${Ui.icon('arrow-right', 'xs')}</a>
         </div>
       </div>`;
 

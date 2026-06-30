@@ -6,6 +6,11 @@
 const AdminProviderWizardPage = {
   _state: {},
 
+  _setButton(btn, icon, label) {
+    if (!btn) return;
+    btn.innerHTML = (icon ? Ui.icon(icon, 'xs') : '') + '<span>' + Ui.esc(label || '') + '</span>';
+  },
+
   async render(params) {
     const page = Ui.$('page-admin-provider');
     if (!page) {
@@ -65,7 +70,7 @@ const AdminProviderWizardPage = {
     const showCustom = selected_provider === 'custom';
     page.innerHTML = '<div class="c-container">' +
       Ui.adminNav('provider') +
-      '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">🤖 ตั้งค่าระบบ AI</h3></div>' +
+      '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">' + Ui.icon('settings', 'sm') + 'ตั้งค่าระบบ AI</h3></div>' +
       this._stepIndicator(page, 1) +
       '<div class="c-admin-wizard__body">' +
       '<h4>ขั้นตอนที่ 1: เลือกผู้ให้บริการ AI</h4>' +
@@ -89,8 +94,8 @@ const AdminProviderWizardPage = {
       '<p class="c-form__help-text">รองรับ OpenAI-compatible /v1 endpoint เช่น LM Studio, Ollama proxy หรือ server ส่วนตัว</p>' +
       '</div></div>' +
       '<div class="c-admin-wizard__actions">' +
-      '<button class="c-btn c-btn--secondary" id="provider-refresh-models" type="button">Refresh models</button>' +
-      '<button class="c-btn c-btn--primary" id="wizard-next-1" type="button"' + (selected_provider ? '' : ' disabled') + '>ต่อไป →</button>' +
+      '<button class="c-btn c-btn--secondary" id="provider-refresh-models" type="button">' + Ui.icon('search', 'xs') + '<span>รีเฟรชโมเดล</span></button>' +
+      '<button class="c-btn c-btn--primary" id="wizard-next-1" type="button"' + (selected_provider ? '' : ' disabled') + '><span>ต่อไป</span>' + Ui.icon('arrow-right', 'xs') + '</button>' +
       '</div></div>';
 
     page.querySelectorAll('.c-admin-provider__card').forEach(card => {
@@ -115,7 +120,7 @@ const AdminProviderWizardPage = {
       const customInput = document.getElementById('provider-custom-base-url');
       if (customInput) this._state.selected_custom_base_url = customInput.value.trim();
       btn.disabled = true;
-      btn.textContent = 'Refreshing...';
+      this._setButton(btn, 'search', 'Refreshing...');
       try {
         const cfg = await Api.getProviderConfig({ refreshModels: true });
         this._state.providers = cfg.providers || [];
@@ -124,7 +129,7 @@ const AdminProviderWizardPage = {
       } catch (err) {
         Ui.showToast('Refresh models ไม่สำเร็จ: ' + err.message, 'error');
         btn.disabled = false;
-        btn.textContent = 'Refresh models';
+        this._setButton(btn, 'search', 'รีเฟรชโมเดล');
       }
     });
   },
@@ -148,7 +153,7 @@ const AdminProviderWizardPage = {
 
     page.innerHTML = '<div class="c-container">' +
       Ui.adminNav('provider') +
-      '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">🤖 ตั้งค่าระบบ AI</h3></div>' +
+      '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">' + Ui.icon('settings', 'sm') + 'ตั้งค่าระบบ AI</h3></div>' +
       this._stepIndicator(page, 2) +
       '<div class="c-admin-wizard__body">' +
       '<h4>ขั้นตอนที่ 2: เลือกโมเดล</h4>' +
@@ -166,8 +171,8 @@ const AdminProviderWizardPage = {
       '</div>' +
       '</div>' +
       '<div class="c-admin-wizard__actions">' +
-      '<button class="c-btn c-btn--ghost" id="wizard-prev-2" type="button">← ย้อนกลับ</button>' +
-      '<button class="c-btn c-btn--primary" id="wizard-next-2" type="button">ต่อไป →</button>' +
+      '<button class="c-btn c-btn--ghost" id="wizard-prev-2" type="button">' + Ui.icon('arrow-left', 'xs') + '<span>ย้อนกลับ</span></button>' +
+      '<button class="c-btn c-btn--primary" id="wizard-next-2" type="button"><span>ต่อไป</span>' + Ui.icon('arrow-right', 'xs') + '</button>' +
       '</div></div>';
 
     document.getElementById('wizard-prev-2').addEventListener('click', () => {
@@ -192,7 +197,7 @@ const AdminProviderWizardPage = {
 
     page.innerHTML = '<div class="c-container">' +
       Ui.adminNav('provider') +
-      '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">🤖 ตั้งค่าระบบ AI</h3></div>' +
+      '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">' + Ui.icon('settings', 'sm') + 'ตั้งค่าระบบ AI</h3></div>' +
       this._stepIndicator(page, 3) +
       '<div class="c-admin-wizard__body">' +
       '<h4>ขั้นตอนที่ 3: ตรวจสอบและบันทึก</h4>' +
@@ -211,8 +216,8 @@ const AdminProviderWizardPage = {
       '</div>' : '') +
       '<div id="wizard-status"></div>' +
       '<div class="c-admin-wizard__actions">' +
-      '<button class="c-btn c-btn--ghost" id="wizard-prev-3" type="button">← ย้อนกลับ</button>' +
-      '<button class="c-btn c-btn--primary" id="wizard-save" type="button">💾 บันทึก</button>' +
+      '<button class="c-btn c-btn--ghost" id="wizard-prev-3" type="button">' + Ui.icon('arrow-left', 'xs') + '<span>ย้อนกลับ</span></button>' +
+      '<button class="c-btn c-btn--primary" id="wizard-save" type="button">' + Ui.icon('settings', 'xs') + '<span>บันทึก</span></button>' +
       '</div></div></div>';
 
     document.getElementById('wizard-prev-3').addEventListener('click', () => {
@@ -224,8 +229,8 @@ const AdminProviderWizardPage = {
       const btn = document.getElementById('wizard-save');
       const statusEl = document.getElementById('wizard-status');
       btn.disabled = true;
-      btn.textContent = '⏳ กำลังบันทึก...';
-      statusEl.innerHTML = '<span class="c-badge c-badge--amber">⏳ กำลังบันทึก...</span>';
+      this._setButton(btn, 'settings', 'กำลังบันทึก...');
+      statusEl.innerHTML = '<span class="c-badge c-badge--amber">กำลังบันทึก...</span>';
       try {
         await Api.saveProviderConfig({
           active: this._state.selected_provider,
@@ -234,15 +239,15 @@ const AdminProviderWizardPage = {
           custom_base_url: document.getElementById('provider-custom-base-url-final')?.value.trim() || null,
           custom_api_key: document.getElementById('provider-custom-api-key')?.value.trim() || null,
         });
-        statusEl.innerHTML = '<span class="c-badge c-badge--teal">✅ บันทึกสำเร็จ!</span>';
-        btn.textContent = '✅ บันทึกแล้ว';
+        statusEl.innerHTML = '<span class="c-badge c-badge--teal">บันทึกสำเร็จ</span>';
+        this._setButton(btn, 'settings', 'บันทึกแล้ว');
         Ui.showToast('บันทึกการตั้งค่าเรียบร้อย');
         this._state.step = 4;
         setTimeout(() => this._renderStep(page), 1000);
       } catch (err) {
-        statusEl.innerHTML = '<span class="c-badge c-badge--red">❌ ' + Ui.esc(err.message) + '</span>';
+        statusEl.innerHTML = '<span class="c-badge c-badge--red">' + Ui.esc(err.message) + '</span>';
         btn.disabled = false;
-        btn.textContent = '💾 ลองอีกครั้ง';
+        this._setButton(btn, 'settings', 'ลองอีกครั้ง');
       }
     });
   },
@@ -250,12 +255,12 @@ const AdminProviderWizardPage = {
   _renderDone(page) {
     page.innerHTML = '<div class="c-container">' +
       Ui.adminNav('provider') +
-      '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">🤖 ตั้งค่าระบบ AI</h3></div>' +
+      '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">' + Ui.icon('settings', 'sm') + 'ตั้งค่าระบบ AI</h3></div>' +
       '<div class="c-admin-wizard__body c-admin-wizard__done">' +
       '<div class="c-admin-wizard__done-icon">🎉</div>' +
       '<h4>ตั้งค่าเสร็จสมบูรณ์!</h4>' +
       '<p class="u-text-muted">ระบบ AI พร้อมทำงานแล้ว ต่อไปก็แค่กดแปล!</p>' +
-      '<a href="#admin/translate" class="c-btn c-btn--primary c-btn--lg" data-nav>ไปหน้าแปล →</a>' +
+      '<a href="#admin/translate" class="c-btn c-btn--primary c-btn--lg" data-nav>' + Ui.icon('book', 'xs') + '<span>ไปหน้าแปล</span>' + Ui.icon('arrow-right', 'xs') + '</a>' +
       '</div></div>';
   },
 };

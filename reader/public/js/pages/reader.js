@@ -32,7 +32,7 @@ const ReaderPage = {
         <div class="c-toolbar reader-toolbar">
           <a href="#novel/${slug}" class="c-toolbar__back" data-nav>
             <svg class="c-icon c-icon--sm"><use xlink:href="#icon-arrow-left"/></svg>
-            <span>กลับ</span>
+            <span>กลับหน้ารายเรื่อง</span>
           </a>
           <span class="c-toolbar__title">${novel ? Ui.esc(Ui.displayTitle(novel)) : slug}</span>
           <span class="c-toolbar__divider"></span>
@@ -51,19 +51,19 @@ const ReaderPage = {
             <div id="reader-translator-info" class="c-reader__translator-info"></div>
             <div class="c-reader-actions c-reader-actions--top" aria-label="เปลี่ยนตอนด้านบน">
               <div class="c-reader-actions__nav" aria-label="เปลี่ยนตอน">
-                <button class="c-reader__nav-btn c-reader__nav-btn--prev" id="reader-prev-top" type="button">ก่อนหน้า</button>
+                <button class="c-reader__nav-btn c-reader__nav-btn--prev" id="reader-prev-top" type="button">${Ui.icon('arrow-left', 'xs')}<span>ก่อนหน้า</span></button>
                 <span class="c-reader__position" id="reader-position-top"></span>
-                <button class="c-reader__nav-btn c-reader__nav-btn--primary" id="reader-next-top" type="button">ถัดไป</button>
+                <button class="c-reader__nav-btn c-reader__nav-btn--primary" id="reader-next-top" type="button"><span>ถัดไป</span>${Ui.icon('arrow-right', 'xs')}</button>
               </div>
             </div>
             <div id="reader-content"></div>
           </div>
           <div class="c-reader-actions" aria-label="เครื่องมือท้ายบท">
             <div class="c-reader-actions__nav" aria-label="เปลี่ยนตอน">
-              <button class="c-reader__nav-btn c-reader__nav-btn--prev" id="reader-prev-bottom" type="button">ก่อนหน้า</button>
+              <button class="c-reader__nav-btn c-reader__nav-btn--prev" id="reader-prev-bottom" type="button">${Ui.icon('arrow-left', 'xs')}<span>ก่อนหน้า</span></button>
               <span class="c-reader__position" id="reader-position"></span>
-              <button class="c-reader__nav-btn" id="reader-back-top" type="button">กลับบน</button>
-              <button class="c-reader__nav-btn c-reader__nav-btn--primary" id="reader-next-bottom" type="button">ถัดไป</button>
+              <button class="c-reader__nav-btn" id="reader-back-top" type="button">${Ui.icon('arrow-left', 'xs')}<span>กลับบน</span></button>
+              <button class="c-reader__nav-btn c-reader__nav-btn--primary" id="reader-next-bottom" type="button"><span>ถัดไป</span>${Ui.icon('arrow-right', 'xs')}</button>
             </div>
             <div class="c-reader-actions__tools" aria-label="ปรับการอ่าน">
               <div class="c-reader-tool-group" aria-label="ขนาดตัวอักษร">
@@ -107,8 +107,8 @@ const ReaderPage = {
               </div>
               
               <div class="c-reader-glossary-modal__actions">
-                <button type="button" class="c-btn c-btn--secondary c-reader-glossary-modal__button" id="modal-glossary-cancel">ยกเลิก</button>
-                <button type="button" class="c-btn c-btn--primary c-reader-glossary-modal__button" id="modal-glossary-save">บันทึก</button>
+                <button type="button" class="c-btn c-btn--secondary c-reader-glossary-modal__button" id="modal-glossary-cancel">${Ui.icon('close', 'xs')}<span>ยกเลิก</span></button>
+                <button type="button" class="c-btn c-btn--primary c-reader-glossary-modal__button" id="modal-glossary-save">${Ui.icon('bookmarks', 'xs')}<span>บันทึก</span></button>
               </div>
             </div>
           </div>
@@ -188,7 +188,7 @@ const ReaderPage = {
             contentHtml += `
             <div id="inline-translate-banner" class="c-inline-translate">
               <p class="c-inline-translate__text">ตอนนี้ยังเป็นต้นฉบับ ยังไม่ได้แปลไทย</p>
-              <button id="inline-translate-btn" class="c-btn c-btn--primary c-inline-translate__button">แปลไทยด้วย AI</button>
+              <button id="inline-translate-btn" class="c-btn c-btn--primary c-inline-translate__button">${Ui.icon('book', 'xs')}<span>แปลไทยด้วย AI</span></button>
             </div>`;
           }
 
@@ -389,8 +389,8 @@ const ReaderPage = {
         <span>${Ui.esc(issueText)} · ตอน ${Ui.esc(first.num || num)}</span>
       </div>
       <div class="c-inline-translate__actions">
-        <a class="c-btn c-btn--secondary c-inline-translate__button" href="#admin/import/${Ui.esc(slug)}/${Ui.esc(first.num || num)}" data-nav>Inspect source</a>
-        <a class="c-btn c-btn--ghost c-inline-translate__button" href="#admin/chapters/${Ui.esc(slug)}" data-nav>จัดการตอน</a>
+        <a class="c-btn c-btn--secondary c-inline-translate__button" href="#admin/import/${Ui.esc(slug)}/${Ui.esc(first.num || num)}" data-nav>${Ui.icon('search', 'xs')}<span>ตรวจ source</span></a>
+        <a class="c-btn c-btn--ghost c-inline-translate__button" href="#admin/chapters/${Ui.esc(slug)}" data-nav>${Ui.icon('book', 'xs')}<span>จัดการตอน</span></a>
       </div>`;
   },
 
@@ -506,7 +506,7 @@ const ReaderPage = {
               
               try {
                 saveBtn.disabled = true;
-                saveBtn.textContent = 'กำลังบันทึก...';
+                saveBtn.innerHTML = `${Ui.icon('bookmarks', 'xs')}<span>กำลังบันทึก...</span>`;
                 
                 const res = await fetch(`/api/novel/${currentReaderSlug}/glossary/add`, {
                   method: 'POST',
@@ -533,7 +533,7 @@ const ReaderPage = {
                 Ui.showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
               } finally {
                 saveBtn.disabled = false;
-                saveBtn.textContent = 'บันทึก';
+                saveBtn.innerHTML = `${Ui.icon('bookmarks', 'xs')}<span>บันทึก</span>`;
               }
             };
           };
