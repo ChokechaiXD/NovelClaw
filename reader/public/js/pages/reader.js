@@ -160,11 +160,11 @@ const ReaderPage = {
       Ui.$('reader-content').innerHTML = '<div class="c-skel c-reader-skel__block"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line c-reader-skel__line--medium"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line c-reader-skel__line--short"></div>';
 
       // ── Load chapter ─────────────────────────────────────────────────
-      const loadChapter = async (chIdx) => {
+      const loadChapter = async (chIdx, options = {}) => {
         const ch = chapters[chIdx];
         if (!ch) return;
         try {
-          const data = await Api.getChapterContent(slug, ch.num, Store.getSettings().readerLang || 'th');
+          const data = await Api.getChapterContent(slug, ch.num, Store.getSettings().readerLang || 'th', { fresh: options.fresh === true });
 
           Ui.$('reader-title').textContent = data.title || ch.title || `ตอนที่ ${ch.num}`;
           const positionText = `${chIdx + 1} / ${chapters.length}`;
@@ -214,9 +214,11 @@ const ReaderPage = {
                   provider: selectedProvider || undefined,
                 });
                 if (res.ok) {
-                  Api.invalidateAll(slug);
                   Store.setSetting('readerLang', 'th');
-                  await loadChapter(chIdx);
+                  Api.invalidateAll(slug);
+                  ch.isTranslated = true;
+                  ch.status = 'translated';
+                  await loadChapter(chIdx, { fresh: true });
                   Ui.showToast('แปลตอนนี้สำเร็จแล้ว', 'success');
                 } else {
                   Ui.showToast('การแปลขัดข้อง: ' + (res.error?.message || 'ข้อผิดพลาดระบบ'), 'error');

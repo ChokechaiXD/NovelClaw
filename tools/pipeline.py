@@ -370,6 +370,7 @@ def save_chapter(
     provider_name: str = "unknown",
     model_name: str = "unknown",
     prompt_profile: str = "",
+    quality_record: dict[str, Any] | None = None,
 ) -> Path:
     """Station 7: Save classified paragraphs to .th.json."""
     chapter_dir = _PROJECT_ROOT / "novels" / slug / "chapters"
@@ -393,6 +394,7 @@ def save_chapter(
             "model": model_name,
             "promptProfile": prompt_profile or "faithful_default",
         },
+        "qualityRecord": quality_record or {},
         "updatedAt": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -576,6 +578,7 @@ def translate_one(
             else:
                 discovery_result = {"discovered": 0, "saved": 0, "terms": []}
 
+        quality_record = _quality_summary(score_result, attempts if not mock else [])
         out_path = save_chapter(
             classified=classified,
             ch_num=ch_num,
@@ -586,6 +589,7 @@ def translate_one(
             provider_name=provider_name,
             model_name=model_name,
             prompt_profile=prompt_profile,
+            quality_record=quality_record,
         )
 
         return {
@@ -598,7 +602,7 @@ def translate_one(
             "model": model_name,
             "promptProfile": prompt_profile or "faithful_default",
             "score": score_result["score"],
-            "quality": _quality_summary(score_result, attempts if not mock else []),
+            "quality": quality_record,
             "judge": judge_result["feedback"][:200] if judge_result.get("ok") else "judge_error",
             "discovery": f"{discovery_result['discovered']} found, {discovery_result['saved']} saved" if discovery_result['discovered'] > 0 else "none",
         }

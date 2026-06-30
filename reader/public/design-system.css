@@ -2361,6 +2361,87 @@ pre code {
   color: var(--c-text-secondary);
   font-size: var(--text-sm);
 }
+.c-admin-translate__chapter-panel {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--c-border);
+}
+.c-admin-translate__chapter-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+.c-admin-translate__chapter-head p {
+  margin: var(--space-2xs) 0 0;
+  font-size: var(--text-sm);
+}
+.c-admin-translate__chapter-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+.c-admin-translate__chapter-empty {
+  padding: var(--space-md);
+  border: 1px dashed var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-bg-secondary);
+  color: var(--c-text-muted);
+  font-size: var(--text-sm);
+}
+.c-admin-translate__table-wrap {
+  max-height: 460px;
+  overflow: auto;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-surface);
+}
+.c-admin-translate__table {
+  width: 100%;
+  min-width: 860px;
+}
+.c-admin-translate__table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--c-bg-secondary);
+}
+.c-admin-translate__table th,
+.c-admin-translate__table td {
+  padding: var(--space-xs) var(--space-sm);
+  vertical-align: top;
+  font-size: var(--text-sm);
+}
+.c-admin-translate__chapter-num {
+  width: 64px;
+  color: var(--c-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.c-admin-translate__chapter-title {
+  min-width: 240px;
+  max-width: 420px;
+  color: var(--c-text-primary);
+}
+.c-admin-translate__quality,
+.c-admin-translate__model,
+.c-admin-translate__issue {
+  color: var(--c-text-muted);
+  font-size: var(--text-xs);
+}
+.c-admin-translate__model {
+  max-width: 220px;
+  word-break: break-word;
+}
+@media (max-width: 720px) {
+  .c-admin-translate__chapter-head {
+    display: grid;
+  }
+  .c-admin-translate__chapter-actions {
+    justify-content: flex-start;
+  }
+}
 .c-admin-translate__console-head { margin-bottom: var(--space-sm); }
 .c-admin-translate__console-title {
   margin: 0;

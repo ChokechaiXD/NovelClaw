@@ -43,7 +43,13 @@ def test_translate_one_retries_with_quality_repair_notes(monkeypatch, tmp_path):
         "discover_and_save",
         lambda **_kwargs: {"discovered": 0, "saved": 0, "terms": []},
     )
-    monkeypatch.setattr(pipeline, "save_chapter", lambda **_kwargs: tmp_path / "0001.th.json")
+    saved_kwargs = {}
+
+    def fake_save_chapter(**kwargs):
+        saved_kwargs.update(kwargs)
+        return tmp_path / "0001.th.json"
+
+    monkeypatch.setattr(pipeline, "save_chapter", fake_save_chapter)
 
     result = pipeline.translate_one(1)
 
@@ -53,6 +59,8 @@ def test_translate_one_retries_with_quality_repair_notes(monkeypatch, tmp_path):
     assert "<repair>" in calls[1]["prompt"]
     assert "Expand missing content" in calls[1]["prompt"]
     assert "Remove untranslated foreign-script leaks" in calls[1]["prompt"]
+    assert saved_kwargs["quality_record"]["score"] == 90
+    assert saved_kwargs["quality_record"]["passed"] is True
 
 
 def test_translate_one_uses_discovery_model_as_fallback_after_empty_output(monkeypatch, tmp_path):
