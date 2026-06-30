@@ -1795,6 +1795,23 @@ const AdminTranslatePage = {
     AdminUi.setConsole('translate', state, title, message);
   },
 
+  _formatBatchResult(result = {}) {
+    const summary = result.summary || {};
+    const chapters = result.chapters || summary.chapters || [];
+    const lines = [
+      `[SUMMARY] translated=${summary.passed || 0} needs_review/failed=${summary.failed || 0} total=${summary.total || 0}`,
+    ];
+    for (const ch of chapters.slice(0, 80)) {
+      const label = ch.status === 'ok' ? 'translated' : ch.status;
+      const score = ch.score != null ? ` score=${ch.score}` : '';
+      const issues = (ch.hardFailures || []).slice(0, 2).join('; ');
+      const reason = ch.reason || issues || 'ok';
+      lines.push(`- ch ${ch.ch || '-'}: ${label}${score} · ${reason}`);
+    }
+    if (chapters.length > 80) lines.push(`...and ${chapters.length - 80} more chapter results`);
+    return lines.join('\n');
+  },
+
   async render(params) {
     const page = Ui.$('page-admin-translate');
     if (!page) return;
@@ -1902,6 +1919,18 @@ const AdminTranslatePage = {
                     <option value="3">3 ตอน</option>
                   </select>
                 </div>
+                <div class="c-form__group">
+                  <label class="c-form__label">Prompt preset</label>
+                  <select class="c-form__select c-form__select--compact" id="translate-prompt-profile">
+                    <option value="faithful_default">Faithful default</option>
+                    <option value="flowing_thai">Flowing Thai</option>
+                    <option value="strict_literal">Strict literal</option>
+                  </select>
+                </div>
+                <div class="c-form__group">
+                  <label class="c-form__label">Model override</label>
+                  <input type="text" class="c-form__input c-form__input--compact" id="translate-model-override" placeholder="เว้นว่างเพื่อใช้ Provider default" />
+                </div>
               </div>
               <div id="translate-source-health" class="c-admin-translate__source-health"></div>
               <div class="c-admin-translate__actions">
@@ -1952,6 +1981,8 @@ const AdminTranslatePage = {
           const slugVal = document.getElementById('translate-batch-novel').value;
           const rangeVal = document.getElementById('translate-batch-range').value;
           const concurrentVal = parseInt(document.getElementById('translate-batch-concurrent').value, 10);
+          const promptProfile = document.getElementById('translate-prompt-profile')?.value || 'faithful_default';
+          const modelOverride = document.getElementById('translate-model-override')?.value.trim() || '';
           const forceSource = document.getElementById('translate-force-source')?.checked === true;
           const selectedHealth = importHealthBySlug[slugVal] || {};
 
@@ -1977,14 +2008,16 @@ const AdminTranslatePage = {
             runBtn.disabled = true;
             AdminUi.setButton(runBtn, 'book', 'กำลังดำเนินการแปล...');
 
-            const res = await Api.translateBatch(slugVal, rangeVal, concurrentVal, { force: forceSource });
+            const options = { force: forceSource, promptProfile };
+            if (modelOverride) options.model = modelOverride;
+            const res = await Api.translateBatch(slugVal, rangeVal, concurrentVal, options);
             const result = res.data || res;
 
             if (res.ok && result.success) {
               AdminTranslatePage.setConsole(
                 'success',
                 `แปลเสร็จสิ้น: ${rangeVal}`,
-                `[SUCCESS] แปลภาษาสำเร็จเรียบร้อยแล้ว\\n\\nผลลัพธ์:\\n${result.stdout || '—'}`
+                AdminTranslatePage._formatBatchResult(result.result || result)
               );
               Api.invalidateAll(slugVal);
               Ui.showToast('แปลกลุ่มช่วงตอนสำเร็จแล้ว');

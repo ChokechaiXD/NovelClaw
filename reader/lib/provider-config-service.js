@@ -65,7 +65,7 @@ print(json.dumps({
 }, ensure_ascii=False))
     `);
     const data = JSON.parse(stdout.trim());
-    if (!refreshModels) {
+    if (!refreshModels || data.providers?.some(provider => provider.model_source === 'live')) {
       providerConfigCache.time = Date.now();
       providerConfigCache.data = data;
       providerConfigCache.inFlight = null;

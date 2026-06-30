@@ -86,3 +86,21 @@ def test_quality_gate_fails_when_dimension_fails_even_if_weighted_total_is_high(
     result = quality_gate.evaluate_translation_quality([], "source", threshold=85.0)
 
     assert result["passed"] is False
+
+
+def test_scorer_allows_narration_only_when_source_has_no_dialogue():
+    result = scorer.score_chapter(
+        [
+            {"type": "narration", "text": "เฉาซิงลืมตาขึ้นกลางซากเมืองที่เงียบงัน"},
+            {"type": "narration", "text": "ฝุ่นควันลอยคลุ้งอยู่เหนือถนนร้างและไม่มีใครตอบสนอง"},
+            {"type": "narration", "text": "เขาก้าวไปข้างหน้าอย่างระมัดระวัง"},
+            {"type": "end", "text": "(จบบท)"},
+        ],
+        source_char_count=110,
+        target_lang="th",
+        source_text="阿星睜開眼時，城市已經變成廢墟。灰塵漂浮在空中。他小心地向前走去。",
+    )
+
+    assert result.passed is True
+    assert not any(error.startswith("Dialogue Ratio") for error in result.errors)
+    assert result.metrics["source_has_dialogue"] is False

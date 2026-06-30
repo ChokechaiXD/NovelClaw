@@ -102,8 +102,9 @@ const Api = {
     return res.json();
   },
 
-  async getLlmConfig() {
-    const res = await fetch('/api/local/llm-config');
+  async getLlmConfig(options = {}) {
+    const suffix = options.refreshModels ? '?refreshModels=1' : '';
+    const res = await fetch('/api/local/llm-config' + suffix);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     return res.json();
   },

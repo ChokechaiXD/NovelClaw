@@ -1210,43 +1210,46 @@ adminPost('/api/local/state', async (req, res) => {
 // ── LOCAL LLM CONFIG & TRANSLATION APIS ─────────────────────────────
 const LLM_JSON_PATH = path.join(__dirname, '..', 'llm.json');
 
-function buildLlmConfigResponse(data = {}) {
-  const defaultProvider = data.default_provider || 'openrouter';
-  const defaultModel = data.default_model || 'google/gemma-4-26b-a4b-it:free';
-  const providers = [
-    {
-      id: 'openrouter',
-      label: 'OpenRouter',
-      description: 'OpenRouter-compatible hosted models',
-      keyField: 'openrouter_api_key',
-      hasKey: !!(data.openrouter_api_key || process.env.OPENROUTER_API_KEY),
-      models: [
-        { id: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B (Free)' },
-        { id: 'google/gemma-4-31b-it:free', label: 'Gemma 4 31B (Free)' },
-        { id: 'google/gemma-2-9b-it:free', label: 'Gemma 2 9B (Free)' },
-        { id: 'google/gemma-2-27b-it:free', label: 'Gemma 2 27B (Free)' },
-        { id: 'openai/gpt-oss-120b:free', label: 'GPT OSS 120B (Free)' },
-        { id: 'nvidia/nemotron-3-ultra-550b-a55b:free', label: 'Nemotron 3 Ultra (Free)' },
-        { id: 'openrouter/free', label: 'OpenRouter Auto Free' },
-        { id: 'deepseek/deepseek-chat', label: 'DeepSeek Chat' },
-        { id: 'meta-llama/llama-3.1-70b-instruct', label: 'Llama 3.1 70B' },
-        { id: 'meta-llama/llama-3.1-405b-instruct', label: 'Llama 3.1 405B' },
-      ],
-    },
-    {
-      id: 'openmodel',
-      label: 'OpenModel',
-      description: 'OpenModel API using the project translator backend',
-      keyField: 'api_key',
-      hasKey: !!(data.openmodel_api_key || process.env.LLM_API_KEY || (data.default_provider === 'openmodel' && data.api_key)),
-      models: [
-        { id: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash' },
-      ],
-    },
-  ];
+function providerKeyField(providerId) {
+  if (providerId === 'openmodel') return 'openmodel_api_key';
+  if (providerId === 'openrouter') return 'openrouter_api_key';
+  if (providerId === 'custom') return 'custom_api_key';
+  return `${providerId}_api_key`;
+}
+
+function providerHasKey(providerId, localKeys = {}) {
+  const envName = `${providerId.toUpperCase()}_API_KEY`;
+  return !!(
+    localKeys[providerKeyField(providerId)]
+    || localKeys.api_key && providerId === 'openmodel'
+    || process.env[envName]
+    || process.env.LLM_API_KEY && providerId === 'openmodel'
+  );
+}
+
+function buildLlmConfigResponse(providerConfig = {}, localKeys = {}) {
+  const defaultProvider = providerConfig.active || localKeys.default_provider || 'openrouter';
+  const defaultModel = providerConfig.default_model || localKeys.default_model || 'google/gemma-4-26b-a4b-it:free';
+  const providers = (providerConfig.providers || []).map(provider => {
+    const providerId = provider.name || provider.id;
+    return {
+      id: providerId,
+      label: provider.display_name || provider.label || providerId,
+      description: provider.base_url || '',
+      keyField: providerKeyField(providerId),
+      hasKey: providerHasKey(providerId, localKeys),
+      modelSource: provider.model_source || 'static',
+      modelError: provider.model_error || '',
+      models: (provider.models || []).map(model => ({
+        id: model.id,
+        label: model.name || model.label || model.id,
+        tier: model.tier || provider.model_source || 'static',
+      })),
+    };
+  });
 
   const activeProvider = providers.find(p => p.id === defaultProvider) || providers[0];
-  if (!activeProvider.models.some(m => m.id === defaultModel)) {
+  if (activeProvider && !activeProvider.models.some(m => m.id === defaultModel)) {
     activeProvider.models.unshift({ id: defaultModel, label: defaultModel });
   }
 
@@ -1260,13 +1263,14 @@ function buildLlmConfigResponse(data = {}) {
 }
 
 app.get('/api/local/llm-config', asyncHandler(async (req, res) => {
+  const refreshModels = req.query.refreshModels === '1' || req.query.refreshModels === 'true';
+  let localKeys = {};
   try {
     const raw = await fs.readFile(LLM_JSON_PATH, 'utf8');
-    const data = JSON.parse(raw);
-    res.json(buildLlmConfigResponse(data));
-  } catch (err) {
-    res.json(buildLlmConfigResponse());
-  }
+    localKeys = JSON.parse(raw);
+  } catch (err) {}
+  const providerConfig = await providerConfigService.readProviderConfig({ refreshModels });
+  res.json(buildLlmConfigResponse(providerConfig, localKeys));
 }));
 
 adminPost('/api/local/llm-config', async (req, res) => {
@@ -1287,8 +1291,20 @@ adminPost('/api/local/llm-config', async (req, res) => {
     data.api_key = data.openmodel_api_key;
   }
 
-  await fs.writeFile(LLM_JSON_PATH, JSON.stringify(data, null, 2), 'utf8');
-  ok(res, { saved: true, config: buildLlmConfigResponse(data) });
+  if (openrouter_api_key || openmodel_api_key || api_key) {
+    await fs.writeFile(LLM_JSON_PATH, JSON.stringify(data, null, 2), 'utf8');
+  }
+  if (default_model || default_provider) {
+    await providerConfigService.saveProviderConfig({
+      active: default_provider || null,
+      default_model: default_model || null,
+      discovery_model: null,
+      custom_base_url: null,
+      custom_api_key: null,
+    });
+  }
+  const providerConfig = await providerConfigService.readProviderConfig();
+  ok(res, { saved: true, config: buildLlmConfigResponse(providerConfig, data) });
 });
 
 app.get('/api/admin/provider-config', asyncHandler(async (req, res) => {
@@ -1340,6 +1356,7 @@ function buildNovelctlTranslateArgs(slug, range, options = {}) {
   if (options.mock) args.push('--mock');
   if (options.model) args.push('--model', options.model);
   if (options.provider) args.push('--provider', options.provider);
+  if (options.promptProfile) args.push('--profile', options.promptProfile);
   if (options.json) args.push('--json');
   return args;
 }
@@ -1381,7 +1398,7 @@ async function assertSourceReadyForTranslate(slug, nums, options = {}) {
 adminPost('/api/novel/:slug/translate/single', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
-  const { num, score, model, provider, force } = req.body;
+  const { num, score, model, provider, promptProfile, force } = req.body;
   const chapterNum = parseInt(num, 10);
   if (Number.isNaN(chapterNum)) return fail(res, 400, 'INVALID_NUM', 'Invalid chapter number');
   try {
@@ -1394,6 +1411,7 @@ adminPost('/api/novel/:slug/translate/single', async (req, res) => {
     mock: false,
     model: model || undefined,
     provider: provider || undefined,
+    promptProfile: promptProfile || undefined,
     json: true,
   });
 
@@ -1442,7 +1460,7 @@ adminPost('/api/novel/:slug/translate/single', async (req, res) => {
 adminPost('/api/novel/:slug/translate/batch', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
-  const { range, concurrent, model, provider, force } = req.body;
+  const { range, concurrent, model, provider, promptProfile, force } = req.body;
   if (!range) return fail(res, 400, 'MISSING_RANGE', 'Chapter range (e.g. 5-10) is required.');
   const nums = parseChapterRangeSpec(range);
   if (!nums.length) return fail(res, 400, 'INVALID_RANGE', 'Invalid chapter range. Use examples like 5, 5-10, or 1,3-5.');
@@ -1456,6 +1474,8 @@ adminPost('/api/novel/:slug/translate/batch', async (req, res) => {
     workers: concurrent || 1,
     model: model || undefined,
     provider: provider || undefined,
+    promptProfile: promptProfile || undefined,
+    json: true,
   });
 
   const child = spawn(getPythonCommand(), args, {
@@ -1493,7 +1513,7 @@ adminPost('/api/novel/:slug/translate/batch', async (req, res) => {
       }
       return;
     }
-    ok(res, { success: true, result: { range: String(range), status: 'done', summary }, stdout });
+    ok(res, { success: true, result: { range: String(range), status: 'done', summary, chapters: summary.chapters || [] }, stdout });
   });
 });
 

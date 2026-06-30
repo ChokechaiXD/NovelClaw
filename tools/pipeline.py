@@ -46,8 +46,6 @@ from glossary_discovery import discover_and_save  # noqa: E402
 
 _SOURCE_DIR = _PROJECT_ROOT / "novels" / "global-descent" / "chapters" / "source"
 _CHAPTER_DIR = _PROJECT_ROOT / "novels" / "global-descent" / "chapters"
-_MAX_REPAIR_RETRIES = 1
-_FALLBACK_MODEL = "google/gemma-4-31b-it:free"
 
 def read_source(ch_num: int, slug: str = "global-descent") -> str | None:
     """Station 1: Read source file. Supports .md and .cn.json."""
@@ -75,6 +73,7 @@ def build_translate_prompt(
     slug: str = "global-descent",
     glossary_text: str = "",
     continuity_text: str = "",
+    prompt_profile: str = "",
 ) -> str:
     """Station 3: Build prompt using prompt_builder + glossary_pre (char names)."""
     # Inject character voice map from glossary_pre
@@ -93,6 +92,7 @@ def build_translate_prompt(
         novel_title=slug,
         glossary_text=glossary_text,
         continuity_text=continuity_text,
+        profile=prompt_profile,
     )
 
 
@@ -293,6 +293,20 @@ def _build_repair_instruction(score_result: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _quality_summary(score_result: dict[str, Any], attempts: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "passed": bool(score_result.get("passed")),
+        "score": score_result.get("score", 0),
+        "threshold": score_result.get("threshold", PASS_THRESHOLD),
+        "hardFailures": score_result.get("hardFailures", score_result.get("errors", [])),
+        "warnings": score_result.get("warnings", []),
+        "repairNotes": score_result.get("repairNotes", score_result.get("repair_notes", [])),
+        "lengthRatio": score_result.get("lengthRatio", 0.0),
+        "scriptLeaks": score_result.get("scriptLeaks", 0),
+        "attempts": attempts,
+    }
+
+
 # ── Station 6.75: LLM Judge ────────────────────────────────────────────
 
 _JUDGE_SYSTEM = """You are a translation quality judge. Review a Thai novel translation.
@@ -355,6 +369,7 @@ def save_chapter(
     target_lang: str = "th",
     provider_name: str = "unknown",
     model_name: str = "unknown",
+    prompt_profile: str = "",
 ) -> Path:
     """Station 7: Save classified paragraphs to .th.json."""
     chapter_dir = _PROJECT_ROOT / "novels" / slug / "chapters"
@@ -376,6 +391,7 @@ def save_chapter(
         "meta": {
             "provider": provider_name,
             "model": model_name,
+            "promptProfile": prompt_profile or "faithful_default",
         },
         "updatedAt": datetime.now(timezone.utc).isoformat(),
     }
@@ -394,6 +410,7 @@ def translate_one(
     target_lang: str = "th",
     model_override: str | None = None,
     provider_override: str | None = None,
+    prompt_profile: str = "",
     dry_run: bool = False,
     mock: bool = False,
 ) -> dict[str, Any]:
@@ -426,6 +443,7 @@ def translate_one(
             source_lang=source_lang,
             target_lang=target_lang,
             slug=slug,
+            prompt_profile=prompt_profile,
         )
 
         if mock:
@@ -440,20 +458,25 @@ def translate_one(
             judge_result = {"ok": True, "feedback": "(mock)"}
             discovery_result = {"discovered": 0, "saved": 0, "terms": []}
         else:
-            # ── Retry logic: one repair attempt, then fallback model if available ──
-            all_models = []
-            if model_override:
-                all_models = [(model_override, provider_override)] * (_MAX_REPAIR_RETRIES + 1)
-            else:
-                cfg = _get_active_config(provider_override)
-                primary_model = cfg.get("model", "google/gemma-4-26b-a4b-it:free")
-                primary_provider = cfg.get("provider_name", provider_override or "openrouter")
-                all_models = [(primary_model, primary_provider)]
-                all_models.append((_FALLBACK_MODEL, primary_provider))
+            # ── Retry policy: translate once, repair once on quality fail,
+            #    fallback to discovery model only on provider/empty failures. ──
+            cfg = _get_active_config(provider_override)
+            primary_model = model_override or cfg.get("model", "google/gemma-4-26b-a4b-it:free")
+            discovery_model = cfg.get("discovery_model") or primary_model
+            primary_provider = cfg.get("provider_name", provider_override or "openrouter")
 
-            last_error = None
+            attempts: list[dict[str, Any]] = []
+            last_error = "unknown"
             repair_instruction = ""
-            for attempt, (retry_model, retry_provider) in enumerate(all_models):
+            attempt_plan = [
+                {"kind": "translate", "model": primary_model, "provider": primary_provider},
+                {"kind": "repair", "model": primary_model, "provider": primary_provider},
+                {"kind": "fallback", "model": discovery_model, "provider": primary_provider},
+            ]
+            allow_repair = True
+            for attempt_cfg in attempt_plan:
+                if attempt_cfg["kind"] == "repair" and not allow_repair:
+                    continue
                 try:
                     # ── Station 4: Call LLM ──
                     split_point = prompt.find("<continuity>")
@@ -471,12 +494,19 @@ def translate_one(
                     response, provider_name, model_name = call_llm(
                         prompt=user_text,
                         system=system_text,
-                        model=retry_model,
-                        provider=retry_provider,
+                        model=attempt_cfg["model"],
+                        provider=attempt_cfg["provider"],
                     )
 
                     if not response or len(response.strip()) < 10:
                         last_error = "Empty LLM output"
+                        attempts.append({
+                            "kind": attempt_cfg["kind"],
+                            "model": attempt_cfg["model"],
+                            "provider": provider_name,
+                            "status": "empty_output",
+                        })
+                        allow_repair = False
                         continue
 
                     # ── Station 5: Parse ──
@@ -492,6 +522,14 @@ def translate_one(
 
                     # ── Station 6.5: Scorer ──
                     score_result = _score_and_report(classified, source, target_lang)
+                    attempts.append({
+                        "kind": attempt_cfg["kind"],
+                        "model": model_name,
+                        "provider": provider_name,
+                        "status": "passed" if score_result["passed"] else "quality_failed",
+                        "score": score_result.get("score", 0),
+                        "hardFailures": score_result.get("hardFailures", score_result.get("errors", [])),
+                    })
 
                     if score_result["passed"]:
                         break  # success!
@@ -499,19 +537,27 @@ def translate_one(
                     last_error = f"scorer: {score_result['score']}/100 < {PASS_THRESHOLD}"
                     repair_instruction = _build_repair_instruction(score_result)
 
-                    if attempt < len(all_models) - 1:
-                        continue  # retry with next model/attempt
+                    if attempt_cfg["kind"] == "translate" and repair_instruction:
+                        continue  # one targeted repair retry
 
-                    # Ran out of retries
                     return {
-                        "status": "failed", "ch": ch_num,
-                        "reason": last_error,
-                        "score": score_result,
+                        "status": "needs_review", "ch": ch_num,
+                        "reason": f"quality gate failed after retry: {last_error}",
+                        "score": score_result.get("score", 0),
+                        "quality": _quality_summary(score_result, attempts),
                     }
 
                 except Exception as e:
                     last_error = str(e)[:100]
-                    if attempt < len(all_models) - 1:
+                    attempts.append({
+                        "kind": attempt_cfg["kind"],
+                        "model": attempt_cfg["model"],
+                        "provider": attempt_cfg["provider"],
+                        "status": "error",
+                        "reason": last_error,
+                    })
+                    allow_repair = False
+                    if attempt_cfg["kind"] != "fallback":
                         continue
                     return {"status": "failed", "ch": ch_num, "reason": str(e)[:300]}
 
@@ -539,6 +585,7 @@ def translate_one(
             target_lang=target_lang,
             provider_name=provider_name,
             model_name=model_name,
+            prompt_profile=prompt_profile,
         )
 
         return {
@@ -549,7 +596,9 @@ def translate_one(
             "path": str(out_path),
             "provider": provider_name,
             "model": model_name,
+            "promptProfile": prompt_profile or "faithful_default",
             "score": score_result["score"],
+            "quality": _quality_summary(score_result, attempts if not mock else []),
             "judge": judge_result["feedback"][:200] if judge_result.get("ok") else "judge_error",
             "discovery": f"{discovery_result['discovered']} found, {discovery_result['saved']} saved" if discovery_result['discovered'] > 0 else "none",
         }

@@ -126,15 +126,9 @@ profiles:
       timeout_sec: 120
       max_tokens: 8192
       temperature: 0.28
-  validate:
-    - provider: openrouter
-      model: "google/gemma-4-31b-it:free"
-      timeout_sec: 100
+  judge:
+    - provider: ${active}
+      model: ${discovery_model}
+      timeout_sec: 120
       max_tokens: 2048
       temperature: 0.05
-  polish:
-    - provider: openrouter
-      model: "google/gemma-4-31b-it:free"
-      timeout_sec: 100
-      max_tokens: 4096
-      temperature: 0.35

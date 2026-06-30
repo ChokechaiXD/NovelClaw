@@ -59,6 +59,7 @@ def cmd_translate(args: list[str]) -> None:
     ap.add_argument("--from", dest="source_lang", default="cn", help="Source language")
     ap.add_argument("--model", default=None, help="Override model")
     ap.add_argument("--provider", default=None, help="Override provider")
+    ap.add_argument("--profile", default="", help="Prompt profile preset")
     ap.add_argument("--sequential", action="store_true", help="Sequential batch (default for single)")
     ap.add_argument("--parallel", type=int, default=0, const=3, nargs="?",
                     help="Parallel batch with N workers (default 3)")
@@ -75,6 +76,7 @@ def cmd_translate(args: list[str]) -> None:
                 ch_num=ch, source_lang=parsed.source_lang,
                 dry_run=parsed.dry_run, mock=parsed.mock,
                 model_override=parsed.model, provider_override=parsed.provider,
+                prompt_profile=parsed.profile,
             )
             print(json.dumps(result, ensure_ascii=False))
         return
@@ -101,6 +103,7 @@ def cmd_translate(args: list[str]) -> None:
                 ch_num=ch, source_lang=parsed.source_lang,
                 dry_run=parsed.dry_run, mock=parsed.mock,
                 model_override=parsed.model, provider_override=parsed.provider,
+                prompt_profile=parsed.profile,
             )
 
             if result["status"] == "ok":
@@ -146,6 +149,7 @@ def _cmd_translate_parallel(ch_nums: list[int], parsed) -> None:
                 source_lang=parsed.source_lang,
                 model_override=parsed.model,
                 provider_override=parsed.provider,
+                prompt_profile=parsed.profile,
             ): ch
             for ch in ch_nums
         }

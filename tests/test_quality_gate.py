@@ -29,3 +29,18 @@ def test_quality_gate_returns_repair_notes_for_failed_translation():
     assert result["passed"] is False
     assert result["errors"]
     assert result["repair_notes"]
+
+
+def test_quality_gate_returns_structured_quality_fields():
+    classified = [
+        {"type": "narration", "text": "เฉาซิงเดินไปข้างหน้า"},
+        {"type": "end", "text": "(จบบท)"},
+    ]
+
+    result = evaluate_translation_quality(classified, "原" * 2000)
+
+    assert "hardFailures" in result
+    assert "warnings" in result
+    assert "repairNotes" in result
+    assert "lengthRatio" in result
+    assert "scriptLeaks" in result

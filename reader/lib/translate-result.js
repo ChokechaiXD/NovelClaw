@@ -10,6 +10,24 @@ function parseTranslateJsonOutput(stdout) {
 
 function parseBatchTranslateSummary(stdout) {
   const text = String(stdout || '');
+  const chapters = parseTranslateJsonOutput(text);
+  if (chapters.length) {
+    const passed = chapters.filter(ch => ch.status === 'ok').length;
+    const failed = chapters.filter(ch => ch.status === 'failed' || ch.status === 'needs_review').length;
+    return {
+      passed,
+      failed,
+      total: chapters.length,
+      chapters: chapters.map(ch => ({
+        ch: ch.ch,
+        status: ch.status,
+        score: ch.quality?.score ?? ch.score ?? null,
+        reason: ch.reason || '',
+        hardFailures: ch.quality?.hardFailures || ch.score?.hardFailures || [],
+        warnings: ch.quality?.warnings || [],
+      })),
+    };
+  }
   const summary = text.match(/(\d+)\s+ผ่าน,\s+(\d+)\s+ล้มเหลว\s+จาก\s+(\d+)\s+ตอน/);
   if (summary) {
     return {
