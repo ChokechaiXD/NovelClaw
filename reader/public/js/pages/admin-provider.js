@@ -11,6 +11,12 @@ const AdminProviderWizardPage = {
     btn.innerHTML = (icon ? Ui.icon(icon, 'xs') : '') + '<span>' + Ui.esc(label || '') + '</span>';
   },
 
+  _modelDatalist(id, models) {
+    return '<datalist id="' + Ui.esc(id) + '">' + (models || []).map(model =>
+      '<option value="' + Ui.esc(model.id) + '" label="' + Ui.esc(model.name || model.label || model.id) + '"></option>'
+    ).join('') + '</datalist>';
+  },
+
   async render(params) {
     const page = Ui.$('page-admin-provider');
     if (!page) {
@@ -138,18 +144,11 @@ const AdminProviderWizardPage = {
     const { providers, selected_provider, selected_model, selected_discovery } = this._state;
     const activeProvider = providers.find(p => p.name === selected_provider) || {};
     const models = activeProvider.models || [];
-
-    let translateOpts = models.map(m =>
-      `<option value="${Ui.esc(m.id)}" ${m.id === selected_model ? 'selected' : ''}>${Ui.esc(m.name || m.id)}</option>`
-    ).join('');
-    if (!models.some(m => m.id === selected_model) && selected_model) {
-      translateOpts = `<option value="${Ui.esc(selected_model)}" selected>${Ui.esc(selected_model)}</option>` + translateOpts;
-    }
-
-    let discOpts = models.map(m =>
-      `<option value="${Ui.esc(m.id)}" ${m.id === selected_discovery ? 'selected' : ''}>${Ui.esc(m.name || m.id)}</option>`
-    ).join('');
-    discOpts += '<option value="openai/gpt-oss-120b:free"' + (selected_discovery === 'openai/gpt-oss-120b:free' ? ' selected' : '') + '>openai/gpt-oss-120b:free</option>';
+    const translateValue = selected_model || models[0]?.id || '';
+    const discoveryModels = models.some(m => m.id === 'openai/gpt-oss-120b:free')
+      ? models
+      : models.concat([{ id: 'openai/gpt-oss-120b:free', name: 'openai/gpt-oss-120b:free' }]);
+    const discoveryValue = selected_discovery || discoveryModels[0]?.id || '';
 
     page.innerHTML = '<div class="c-container">' +
       Ui.adminNav('provider') +
@@ -160,14 +159,14 @@ const AdminProviderWizardPage = {
       '<p class="u-text-muted">Provider: <strong>' + Ui.esc(activeProvider.display_name || selected_provider) + '</strong></p>' +
       '<div class="c-form__group">' +
       '<label class="c-form__label">โมเดลสำหรับแปล (Translate)</label>' +
-      '<select class="c-form__select" id="wiz-model-select">' + translateOpts + '</select>' +
-      '<input class="c-form__input c-admin-provider__manual-model" id="wiz-model-manual" placeholder="หรือพิมพ์ model id เอง" />' +
+      '<input class="c-form__input c-admin-provider__manual-model" id="wiz-model-input" list="wiz-model-list" value="' + Ui.esc(translateValue) + '" placeholder="ค้นหาหรือพิมพ์ model id" />' +
+      this._modelDatalist('wiz-model-list', models) +
       '</div>' +
       '<div class="c-form__group">' +
       '<label class="c-form__label">โมเดลค้นหาคำศัพท์ (Discovery)</label>' +
       '<p class="c-form__help-text">ใช้ LLM อีกตัวเพื่อค้นหา + เสนอคำแปลคำศัพท์ใหม่</p>' +
-      '<select class="c-form__select" id="wiz-discovery-select">' + discOpts + '</select>' +
-      '<input class="c-form__input c-admin-provider__manual-model" id="wiz-discovery-manual" placeholder="หรือพิมพ์ discovery model id เอง" />' +
+      '<input class="c-form__input c-admin-provider__manual-model" id="wiz-discovery-input" list="wiz-discovery-list" value="' + Ui.esc(discoveryValue) + '" placeholder="ค้นหาหรือพิมพ์ discovery model id" />' +
+      this._modelDatalist('wiz-discovery-list', discoveryModels) +
       '</div>' +
       '</div>' +
       '<div class="c-admin-wizard__actions">' +
@@ -180,10 +179,8 @@ const AdminProviderWizardPage = {
       this._renderStep(page);
     });
     document.getElementById('wizard-next-2').addEventListener('click', () => {
-      const manualModel = document.getElementById('wiz-model-manual')?.value.trim();
-      const manualDiscovery = document.getElementById('wiz-discovery-manual')?.value.trim();
-      this._state.selected_model = manualModel || document.getElementById('wiz-model-select').value;
-      this._state.selected_discovery = manualDiscovery || document.getElementById('wiz-discovery-select').value;
+      this._state.selected_model = document.getElementById('wiz-model-input')?.value.trim() || translateValue;
+      this._state.selected_discovery = document.getElementById('wiz-discovery-input')?.value.trim() || discoveryValue;
       this._state.step = 3;
       this._renderStep(page);
     });
