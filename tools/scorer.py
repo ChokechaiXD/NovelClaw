@@ -35,6 +35,8 @@ class ScorerResult:
     dimensions: list[DimensionScore] = field(default_factory=list)
     passed: bool = True
     errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    metrics: dict[str, Any] = field(default_factory=dict)
 
 
 # ── Thresholds ─────────────────────────────────────────────────────────
@@ -153,7 +155,9 @@ def _score_end_marker(paragraphs: list[dict[str, str]]) -> DimensionScore:
     return DimensionScore("End Marker", 0.10, 0.0, f"no end marker (last: '{last}')", False)
 
 
-def _score_type_diversity(paragraphs: list[dict[str, str]]) -> DimensionScore:
+def _score_type_diversity(
+    paragraphs: list[dict[str, str]], source_has_dialogue: bool = True
+) -> DimensionScore:
     """Must have narration and at least some dialogue/system."""
     types = [p["type"] for p in paragraphs
              if p["type"] != "end" and p["text"] not in ("(จบบท)", "(End)", "（終）", "(끝)")]
@@ -165,13 +169,17 @@ def _score_type_diversity(paragraphs: list[dict[str, str]]) -> DimensionScore:
 
     if "narration" in unique and "dialogue" in unique:
         return DimensionScore("Type Diversity", 0.15, 1.0, f"{detail} ✅")
+    if "narration" in unique and not source_has_dialogue:
+        return DimensionScore("Type Diversity", 0.15, 1.0, f"{detail} — narration-only source ✅")
     if "narration" in unique:
         return DimensionScore("Type Diversity", 0.15, 0.5, f"{detail} — no dialogue", False)
 
     return DimensionScore("Type Diversity", 0.15, 0.3, f"{detail} — all {list(unique)}", False)
 
 
-def _score_dialogue_ratio(paragraphs: list[dict[str, str]]) -> DimensionScore:
+def _score_dialogue_ratio(
+    paragraphs: list[dict[str, str]], source_has_dialogue: bool = True
+) -> DimensionScore:
     """% dialogue paragraphs vs total."""
     non_end = [p for p in paragraphs
                if p["type"] != "end" and p["text"] not in ("(จบบท)", "(End)", "（終）", "(끝)")]
@@ -181,6 +189,9 @@ def _score_dialogue_ratio(paragraphs: list[dict[str, str]]) -> DimensionScore:
     dialogue = sum(1 for p in non_end if p["type"] == "dialogue")
     ratio = dialogue / len(non_end)
     detail = f"{dialogue}/{len(non_end)} = {ratio*100:.0f}% dialogue"
+
+    if dialogue == 0 and not source_has_dialogue:
+        return DimensionScore("Dialogue Ratio", 0.15, 1.0, f"{detail} — narration-only source ✅")
 
     if ratio < DIALOGUE_RATIO_MIN:
         return DimensionScore("Dialogue Ratio", 0.15, max(0, ratio / DIALOGUE_RATIO_MIN * 0.6),
@@ -286,17 +297,30 @@ def score_chapter(
     source_text: str = "",
 ) -> ScorerResult:
     """Score one chapter across 6 dimensions. No LLM calls."""
+    source_has_dialogue = bool(re.search(r'[「」"“”]', source_text or ""))
+    texts = [
+        p["text"] for p in paragraphs
+        if p["text"] not in ("(จบบท)", "(End)", "（終）", "(끝)")
+    ]
+    output_chars = sum(len(t) for t in texts)
+    length_ratio = round(output_chars / source_char_count, 3) if source_char_count else 0.0
+
     dims = [
         _score_completeness(paragraphs, source_char_count),
         _score_script_purity(paragraphs, target_lang),
         _score_end_marker(paragraphs),
-        _score_type_diversity(paragraphs),
-        _score_dialogue_ratio(paragraphs),
+        _score_type_diversity(paragraphs, source_has_dialogue),
+        _score_dialogue_ratio(paragraphs, source_has_dialogue),
         _score_term_compliance(paragraphs, target_lang, source_text),
     ]
 
     weighted = sum(d.score * d.weight for d in dims) * 100
     errors = [f"{d.name}: {d.detail[:80]}" for d in dims if not d.passed]
+    warnings = [
+        f"{d.name}: {d.detail[:80]}"
+        for d in dims
+        if d.passed and d.score < 1.0 and d.name in {"Type Diversity", "Dialogue Ratio"}
+    ]
     passed = weighted >= PASS_THRESHOLD and not errors
 
     return ScorerResult(
@@ -304,6 +328,16 @@ def score_chapter(
         dimensions=dims,
         passed=passed,
         errors=errors,
+        warnings=warnings,
+        metrics={
+            "lengthRatio": length_ratio,
+            "sourceHasDialogue": source_has_dialogue,
+            "source_has_dialogue": source_has_dialogue,
+            "scriptLeaks": next(
+                (0 if d.passed else 1 for d in dims if d.name == "Script Purity"),
+                0,
+            ),
+        },
     )
 
 

@@ -22,3 +22,19 @@ test('parseBatchTranslateSummary flags failed chapters from CLI summary', () => 
 
   assert.deepEqual(parsed, { passed: 8, failed: 2, total: 10 });
 });
+
+test('parseBatchTranslateSummary prefers structured JSON chapter statuses', () => {
+  const parsed = parseBatchTranslateSummary([
+    '{"status":"ok","ch":1,"quality":{"score":91}}',
+    '{"status":"needs_review","ch":2,"reason":"quality gate failed","quality":{"hardFailures":["Completeness: too short"]}}',
+    '{"status":"failed","ch":3,"reason":"source_not_found"}',
+    '完毕! 1 ผ่าน, 2 ล้มเหลว จาก 3 ตอน',
+  ].join('\n'));
+
+  assert.equal(parsed.passed, 1);
+  assert.equal(parsed.failed, 2);
+  assert.equal(parsed.total, 3);
+  assert.equal(parsed.chapters.length, 3);
+  assert.equal(parsed.chapters[1].status, 'needs_review');
+  assert.equal(parsed.chapters[1].reason, 'quality gate failed');
+});

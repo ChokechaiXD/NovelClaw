@@ -29,6 +29,11 @@ def build_repair_notes(errors: list[str]) -> list[str]:
     return notes
 
 
+def _hard_failures(errors: list[str]) -> list[str]:
+    advisory = ("Type Diversity", "Dialogue Ratio")
+    return [error for error in errors if not error.startswith(advisory)]
+
+
 def evaluate_translation_quality(
     classified: list[dict[str, str]],
     source_text: str,
@@ -37,13 +42,23 @@ def evaluate_translation_quality(
 ) -> dict[str, Any]:
     """Score a classified translation and apply the caller's threshold."""
     result = score_chapter(classified, len(source_text), target_lang, source_text)
-    passed = result.weighted_total >= threshold and not result.errors
+    errors = list(getattr(result, "errors", []))
+    hard_failures = _hard_failures(errors)
+    warnings = list(getattr(result, "warnings", []))
+    metrics = dict(getattr(result, "metrics", {}) or {})
+    passed = result.weighted_total >= threshold and not hard_failures
+    repair_notes = build_repair_notes(hard_failures or errors)
     return {
         "score": result.weighted_total,
         "passed": passed,
         "threshold": threshold,
         "report": score_report(result),
         "dimensions": {d.name: round(d.score * 100) for d in result.dimensions},
-        "errors": result.errors,
-        "repair_notes": build_repair_notes(result.errors),
+        "errors": errors,
+        "hardFailures": hard_failures,
+        "warnings": warnings,
+        "repair_notes": repair_notes,
+        "repairNotes": repair_notes,
+        "lengthRatio": metrics.get("lengthRatio", metrics.get("length_ratio", 0.0)),
+        "scriptLeaks": metrics.get("scriptLeaks", metrics.get("script_leaks", 0)),
     }

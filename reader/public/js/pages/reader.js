@@ -121,7 +121,7 @@ const ReaderPage = {
       // โหลดและซิงค์การตั้งค่าโมเดล AI ล่าสุดจากเซิร์ฟเวอร์
       const modelSelect = document.getElementById('reader-model-select');
       try {
-        Api.getLlmConfig().then(cfg => {
+        Api.getLlmConfig({ refreshModels: true }).then(cfg => {
           if (modelSelect) {
             const providers = Array.isArray(cfg.providers) ? cfg.providers : [];
             const optionHtml = providers.map(provider => {

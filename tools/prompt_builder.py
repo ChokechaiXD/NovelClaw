@@ -211,6 +211,26 @@ TARGET_CONFIG: dict[str, dict[str, Any]] = {
 
 DEFAULT_TGT = "th"
 
+PROMPT_PROFILES: dict[str, str] = {
+    "faithful_default": (
+        "- Profile: faithful_default\n"
+        "- Translate as a faithful Thai novel edition: complete, natural, and close to the source.\n"
+        "- Preserve all events, names, numbers, order, and scene beats without adding explanations."
+    ),
+    "flowing_thai": (
+        "- Profile: flowing_thai\n"
+        "- Keep every source beat, but smooth sentence flow so it reads like published Thai web fiction.\n"
+        "- Do not rewrite characterization, power-system logic, or factual details."
+    ),
+    "strict_literal": (
+        "- Profile: strict_literal\n"
+        "- Stay very close to source wording and paragraph order.\n"
+        "- Prefer accuracy over elegance when the two conflict."
+    ),
+}
+
+DEFAULT_PROFILE = "faithful_default"
+
 
 def get_lang_config(source_lang: str) -> dict[str, Any]:
     """Get source language config, with fallback."""
@@ -333,17 +353,18 @@ scene order, sentence rhythm, and intentional flatness.
 - **Preserve the author's voice.** Do NOT improve the author into a different writer.
 - **Completeness:** translate every source beat. Do NOT omit, summarize,
   merge, or silently skip repeated lines.
-|- **Output format:** Plain paragraphs separated by blank lines. One paragraph
+- **Output format:** Plain paragraphs separated by blank lines. One paragraph
   = one logical unit (scene beat, spoken line, or action).
-|- **CRITICAL: Narration and dialogue MUST be separate paragraphs.**
+- **Preserve source paragraph structure.** Keep source order and paragraph rhythm.
+  Split only when needed for Thai readability or when a system notification must stand alone.
+- **CRITICAL: Narration and dialogue SHOULD be separate paragraphs when the source clearly separates them.**
   If a source paragraph has 「..."他说道」→ split into TWO paragraphs:
   nar: "เขาพูดเช่นนั้น"
   dia: "...."
   NEVER mix narration text with dialogue quotes in the same paragraph.
 - **No JSON, XML, markdown fences, or any wrapper.**
 - **End with end marker.** The last paragraph must be the end marker.
-- **CRITICAL: Match source paragraph count exactly.** Each source paragraph = one output paragraph.
-- **CRITICAL: Output length must be ≥70% of source.** Do NOT condense or summarize.
+- **CRITICAL: Output length must be >=85% of source.** Do NOT condense or summarize.
 - Keep character names consistent with glossary.
 - Character voices / pronoun usage should match the glossary's character voice map if provided.
 
@@ -354,6 +375,14 @@ scene order, sentence rhythm, and intentional flatness.
 - Do NOT change a deadpan scene into an emotional one.
 - Remove web novel footer/site artifacts (donations, thanks, author notes, next-chapter links).
 </rules>"""
+
+    profile_key = profile if profile in PROMPT_PROFILES else DEFAULT_PROFILE
+    profile_section = (
+        "<prompt_profile>\n"
+        f"id: {profile_key}\n"
+        f"{PROMPT_PROFILES[profile_key]}\n"
+        "</prompt_profile>"
+    )
 
     # Per-source-lang rules
     src_specific = f"""<source_language_rules>
@@ -398,6 +427,8 @@ Before finishing, silently check:
         identity,
         "",
         chapter_meta,
+        "",
+        profile_section,
         "",
         universal_rules,
         "",
