@@ -1818,10 +1818,11 @@ const AdminTranslatePage = {
     Ui.showSkeleton('page-admin-translate');
 
     try {
-      const [novels, translationHealth, importHealth] = await Promise.all([
+      const [novels, translationHealth, importHealth, llmConfig] = await Promise.all([
         Api.getNovels(),
         Api.getTranslationHealth().catch(() => ({ data: { buckets: {} } })),
         Api.getImportHealth().catch(() => ({ data: { novels: [] } })),
+        Api.getLlmConfig().catch(() => ({ providers: [] })),
       ]);
       const buckets = translationHealth.data?.buckets || {};
       const importHealthBySlug = {};
@@ -1838,6 +1839,13 @@ const AdminTranslatePage = {
         '<span>' + Ui.esc(item.reason || '-') + '</span></li>'
       ).join('') || '';
       const batchRecent = activeBatch?.recentLines?.map(line => Ui.esc(line)).join('\n') || '';
+      const modelProviderById = {};
+      const modelOptions = (llmConfig.providers || []).flatMap(provider =>
+        (provider.models || []).map(model => {
+          modelProviderById[model.id] = provider.id;
+          return '<option value="' + Ui.esc(model.id) + '" label="' + Ui.esc((provider.label || provider.id) + ' · ' + (model.label || model.id)) + '"></option>';
+        })
+      ).join('');
 
       const novelOptions = novels.map(n => {
         const h = importHealthBySlug[n.slug] || {};
@@ -1929,7 +1937,8 @@ const AdminTranslatePage = {
                 </div>
                 <div class="c-form__group">
                   <label class="c-form__label">Model override</label>
-                  <input type="text" class="c-form__input c-form__input--compact" id="translate-model-override" placeholder="เว้นว่างเพื่อใช้ Provider default" />
+                  <input type="text" class="c-form__input c-form__input--compact" id="translate-model-override" list="translate-model-list" placeholder="ค้นหา model หรือเว้นว่างเพื่อใช้ Provider default" />
+                  <datalist id="translate-model-list">${modelOptions}</datalist>
                 </div>
               </div>
               <div id="translate-source-health" class="c-admin-translate__source-health"></div>
@@ -2009,7 +2018,10 @@ const AdminTranslatePage = {
             AdminUi.setButton(runBtn, 'book', 'กำลังดำเนินการแปล...');
 
             const options = { force: forceSource, promptProfile };
-            if (modelOverride) options.model = modelOverride;
+            if (modelOverride) {
+              options.model = modelOverride;
+              if (modelProviderById[modelOverride]) options.provider = modelProviderById[modelOverride];
+            }
             const res = await Api.translateBatch(slugVal, rangeVal, concurrentVal, options);
             const result = res.data || res;
 

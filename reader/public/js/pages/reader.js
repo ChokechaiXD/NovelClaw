@@ -41,7 +41,8 @@ const ReaderPage = {
               <svg class="c-icon c-icon--xs c-icon--stroke"><use xlink:href="#icon-settings"/></svg>
               <span>แก้ไข</span>
             </button>
-            <select id="reader-model-select" class="c-reader-toolbar__model-select" title="เลือกโมเดลแปล AI"></select>
+            <input id="reader-model-select" class="c-reader-toolbar__model-select" list="reader-model-list" title="เลือกโมเดลแปล AI" placeholder="ค้นหาโมเดล" />
+            <datalist id="reader-model-list"></datalist>
           </div>
         </div>
 
@@ -120,18 +121,22 @@ const ReaderPage = {
 
       // โหลดและซิงค์การตั้งค่าโมเดล AI ล่าสุดจากเซิร์ฟเวอร์
       const modelSelect = document.getElementById('reader-model-select');
+      const modelProviderById = {};
+      let defaultModelProvider = '';
       try {
         Api.getLlmConfig({ refreshModels: true }).then(cfg => {
           if (modelSelect) {
             const providers = Array.isArray(cfg.providers) ? cfg.providers : [];
-            const optionHtml = providers.map(provider => {
+            const optionHtml = providers.flatMap(provider => {
               const models = Array.isArray(provider.models) ? provider.models : [];
-              return `<optgroup label="${Ui.esc(provider.label || provider.id)}">` +
-                models.map(model => `<option value="${Ui.esc(model.id)}" data-provider="${Ui.esc(provider.id)}">${Ui.esc(model.label || model.id)}</option>`).join('') +
-                '</optgroup>';
+              return models.map(model => {
+                modelProviderById[model.id] = provider.id;
+                return `<option value="${Ui.esc(model.id)}" label="${Ui.esc((provider.label || provider.id) + ' · ' + (model.label || model.id))}"></option>`;
+              });
             }).join('');
-            modelSelect.innerHTML = optionHtml || `<option value="${Ui.esc(cfg.default_model || '')}" data-provider="${Ui.esc(cfg.default_provider || '')}">${Ui.esc(cfg.default_model || 'เลือกโมเดล')}</option>`;
+            document.getElementById('reader-model-list').innerHTML = optionHtml || `<option value="${Ui.esc(cfg.default_model || '')}" label="${Ui.esc(cfg.default_provider || '')}"></option>`;
             modelSelect.value = cfg.default_model;
+            defaultModelProvider = cfg.default_provider || '';
           }
         });
       } catch (err) {
@@ -141,7 +146,7 @@ const ReaderPage = {
       if (modelSelect) {
         modelSelect.addEventListener('change', async function() {
           const val = this.value;
-          const provider = this.selectedOptions[0]?.dataset?.provider || 'openrouter';
+          const provider = modelProviderById[val] || defaultModelProvider || 'openrouter';
           try {
             await Api.saveLlmConfig({ default_model: val, default_provider: provider });
             console.log(`Saved default model to llm.json: ${val} (${provider})`);
@@ -203,7 +208,7 @@ const ReaderPage = {
               if (loader) loader.style.display = 'flex';
               try {
                 const selectedModel = modelSelect?.value || '';
-                const selectedProvider = modelSelect?.selectedOptions?.[0]?.dataset?.provider || '';
+                const selectedProvider = modelProviderById[selectedModel] || defaultModelProvider || '';
                 const res = await Api.translateSingle(slug, ch.num, true, {
                   model: selectedModel || undefined,
                   provider: selectedProvider || undefined,
