@@ -115,7 +115,7 @@ const HistoryPage = {
         const dateStr = (e.ts && !isNaN(new Date(e.ts)))
           ? new Date(e.ts).toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })
           : 'ไม่ระบุวันที่';
-        html += '<a href="#novel/' + e.slug + '/' + e.num + '" class="c-list__item" data-nav><div class="c-list__info"><span class="c-list__title">' + Ui.esc(title) + '</span><span class="c-list__meta">ตอนที่ ' + e.num + ' · ' + dateStr + '</span></div><span class="c-list__action">อ่านต่อ →</span></a>';
+        html += '<a href="#novel/' + e.slug + '/' + e.num + '" class="c-list__item" data-nav><div class="c-list__info"><span class="c-list__title">' + Ui.esc(title) + '</span><span class="c-list__meta">ตอนที่ ' + e.num + ' · ' + dateStr + '</span></div><span class="c-list__action">อ่านต่อ ' + Ui.icon('arrow-right', 'xs') + '</span></a>';
       }
     }
     html += '</div></section></div>';
@@ -159,7 +159,7 @@ const SettingsPage = {
       '<div class="c-form__group"><label for="settings-theme">ธีม</label><select class="c-form__select" id="settings-theme"><option value="sepia"' + (settings.theme === 'sepia' ? ' selected' : '') + '>คลาสสิก (Sepia) ★</option><option value="night"' + (settings.theme === 'night' ? ' selected' : '') + '>กลางคืน (Night)</option><option value="paper"' + (settings.theme === 'paper' ? ' selected' : '') + '>สว่าง (Paper)</option><option value="amoled"' + (settings.theme === 'amoled' ? ' selected' : '') + '>AMOLED Black</option></select></div></div>' +
       '<div class="c-settings-card"><div class="c-settings-card__title"><svg class="c-icon c-icon--md"><use xlink:href="#icon-book"/></svg> การอ่าน</div>' +
       '<div class="c-form__group"><label for="settings-reader-lang">ภาษาใน Reader</label><select class="c-form__select" id="settings-reader-lang"><option value="th"' + (settings.readerLang === 'th' ? ' selected' : '') + '>ไทย (แปลแล้ว)</option><option value="cn"' + (settings.readerLang === 'cn' ? ' selected' : '') + '>จีนต้นฉบับ</option></select></div>' +
-      '<div class="c-form__group"><label>ขนาดตัวอักษร</label><div class="c-settings-font-row"><button class="c-btn c-btn--ghost c-settings-font-btn" id="settings-font-sm" type="button" aria-label="ลดขนาดตัวอักษร">A−</button><span id="settings-font-label" class="c-settings-font-label">18px</span><button class="c-btn c-btn--ghost c-settings-font-btn" id="settings-font-lg" type="button" aria-label="เพิ่มขนาดตัวอักษร">A+</button></div></div></div>' +
+      '<div class="c-form__group"><label>ขนาดตัวอักษร</label><div class="c-settings-font-row"><button class="c-btn c-btn--ghost c-settings-font-btn" id="settings-font-sm" type="button" aria-label="ลดขนาดตัวอักษร"><span>A−</span></button><span id="settings-font-label" class="c-settings-font-label">18px</span><button class="c-btn c-btn--ghost c-settings-font-btn" id="settings-font-lg" type="button" aria-label="เพิ่มขนาดตัวอักษร"><span>A+</span></button></div></div></div>' +
       '<div class="c-settings-card"><div class="c-settings-card__title"><svg class="c-icon c-icon--md"><use xlink:href="#icon-settings"/></svg> การพัฒนาและแก้ไข (Local)</div>' +
       '<div class="c-form__group"><label for="settings-editor-type">โปรแกรมแก้ไขไฟล์บทแปล</label><select class="c-form__select" id="settings-editor-type"><option value="notepad"' + (settings.editorType === 'notepad' ? ' selected' : '') + '>Notepad (รวดเร็ว, มีทุกเครื่อง)</option><option value="vscode"' + (settings.editorType === 'vscode' ? ' selected' : '') + '>VS Code (หากติดตั้งไว้ในเครื่อง)</option><option value="system_default"' + (settings.editorType === 'system_default' ? ' selected' : '') + '>โปรแกรมเริ่มต้นของระบบ (System Default)</option></select></div></div>' +
       '<div class="c-settings-card"><div class="c-settings-card__title"><svg class="c-icon c-icon--md"><use xlink:href="#icon-info"/></svg> เกี่ยวกับ</div>' +
@@ -232,7 +232,7 @@ const ProfilePage = {
       html += '<button class="c-btn profile-gradient-btn u-avatar-gradient-' + idx + (idx === (prof.avatarColorIndex || 0) ? ' is-active' : '') + '" data-idx="' + idx + '" type="button" title="' + g.name + '" aria-label="เลือกสี Avatar ' + Ui.esc(g.name) + '"></button>';
     });
 
-    html += '</div></div><button class="c-btn c-btn--primary c-btn--full" id="profile-save-btn" type="button">บันทึกโปรไฟล์</button></div></div></section></div>';
+    html += '</div></div><button class="c-btn c-btn--primary c-btn--full" id="profile-save-btn" type="button">' + Ui.icon('settings', 'xs') + '<span>บันทึกโปรไฟล์</span></button></div></div></section></div>';
     page.innerHTML = html;
 
     document.getElementById('profile-save-btn')?.addEventListener('click', () => {

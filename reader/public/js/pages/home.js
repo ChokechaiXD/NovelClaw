@@ -38,7 +38,7 @@ const HomePage = {
               <div class="c-progress__bar"><div class="c-progress__fill js-progress-fill" data-progress="${featured.translationPct}"></div></div>
             </div>
             <div class="c-hero__actions">
-              <a href="#novel/${Ui.esc(featured.slug)}" class="c-hero__cta" data-nav>อ่านต่อ →</a>
+              <a href="#novel/${Ui.esc(featured.slug)}" class="c-hero__cta" data-nav>${Ui.icon('book', 'xs')}<span>อ่านต่อ</span>${Ui.icon('arrow-right', 'xs')}</a>
               <div class="c-hero__info">
                 <span class="c-hero__info-label">อ่านล่าสุด</span>
                 <span class="c-hero__info-value">${featured.lastRead ? 'ตอนที่ ' + featured.lastRead : 'ยังไม่ได้อ่าน'}</span>
@@ -53,7 +53,7 @@ const HomePage = {
       <section class="c-section">
         <div class="c-section__header">
           <h3 class="c-section__title"><svg class="c-icon c-icon--sm c-title-icon"><use xlink:href="#icon-book"/></svg>อ่านต่อ</h3>
-          <a href="#library" class="c-section__link" data-nav>ดูทั้งหมด ❯</a>
+          <a href="#library" class="c-section__link" data-nav><span>ดูทั้งหมด</span>${Ui.icon('arrow-right', 'xs')}</a>
         </div>
         <div class="c-card-grid">`;
 

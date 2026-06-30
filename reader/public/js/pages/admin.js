@@ -36,6 +36,11 @@ const AdminUi = {
     statusEl.textContent = message || '';
     statusEl.className = `${baseClass} ${baseClass}--${type}`;
   },
+
+  setButton(btn, icon, label) {
+    if (!btn) return;
+    btn.innerHTML = (icon ? Ui.icon(icon, 'xs') : '') + '<span>' + Ui.esc(label || '') + '</span>';
+  },
 };
 
 function formatImportRepairSummary(slug, repair = {}) {
@@ -98,9 +103,9 @@ const AdminDashboardPage = {
         '</div>' +
         // ── Health Summary ──
         '<div class="c-health-row">' +
-        '<span class="c-badge c-badge--teal">✅ ระบบปกติ</span>' +
-        '<span class="c-badge' + (translatedChapters > 0 ? ' c-badge--teal' : ' c-badge--gray') + '">📖 แปลแล้ว ' + translatedChapters + ' ตอน</span>' +
-        '<span class="c-badge' + (untranslated > 0 ? ' c-badge--amber' : ' c-badge--gray') + '">📄 รอแปล ' + untranslated + ' ตอน</span>' +
+        '<span class="c-badge c-badge--teal">ระบบปกติ</span>' +
+        '<span class="c-badge' + (translatedChapters > 0 ? ' c-badge--teal' : ' c-badge--gray') + '">แปลแล้ว ' + translatedChapters + ' ตอน</span>' +
+        '<span class="c-badge' + (untranslated > 0 ? ' c-badge--amber' : ' c-badge--gray') + '">รอแปล ' + untranslated + ' ตอน</span>' +
         '' +
         '</div>' +
         '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">จัดการระบบ</h3></div>' +
@@ -182,10 +187,10 @@ const AdminNovelsPage = {
             '<td class="c-admin-table__mono-accent">' + translated + ' (' + pct + '%)</td>' +
             '<td><span class="c-badge ' + statusClass + '">' + Ui.esc(Ui.statusMap[n.status] || 'ไม่ระบุ') + '</span><div class="c-admin-novels__health"><span class="' + healthClass + '">' + healthText + '</span></div></td>' +
             '<td class="c-admin-table__actions-cell"><div class="c-admin-novels__actions">' +
-            '<a class="c-btn c-btn--xs c-btn--ghost" href="#novel/' + Ui.esc(n.slug) + '" data-nav>อ่าน</a>' +
-            '<a class="c-btn c-btn--xs c-btn--secondary" href="#admin/novel-edit/' + Ui.esc(n.slug) + '" data-nav>แก้</a>' +
-            '<button class="c-btn c-btn--xs c-btn--secondary repair-novel-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Repair</button>' +
-            '<button class="c-btn c-btn--danger c-btn--xs c-admin-novels__delete-btn delete-novel-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">ลบ</button>' +
+            '<a class="c-btn c-btn--xs c-btn--ghost" href="#novel/' + Ui.esc(n.slug) + '" data-nav>' + Ui.icon('book', 'xs') + '<span>อ่าน</span></a>' +
+            '<a class="c-btn c-btn--xs c-btn--secondary" href="#admin/novel-edit/' + Ui.esc(n.slug) + '" data-nav>' + Ui.icon('settings', 'xs') + '<span>แก้</span></a>' +
+            '<button class="c-btn c-btn--xs c-btn--secondary repair-novel-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">' + Ui.icon('settings', 'xs') + '<span>ซ่อม</span></button>' +
+            '<button class="c-btn c-btn--danger c-btn--xs c-admin-novels__delete-btn delete-novel-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">' + Ui.icon('close', 'xs') + '<span>ลบ</span></button>' +
             '</div></td>' +
             '</tr>';
         }).join('');
@@ -203,26 +208,26 @@ const AdminNovelsPage = {
             const slug = btn.dataset.slug;
             if (!slug) return;
             btn.disabled = true;
-            btn.textContent = 'Checking...';
+            AdminUi.setButton(btn, 'search', 'Checking...');
             try {
               const preview = await Api.repairImport(slug, 'all', { dryRun: true });
               const previewRepair = preview.data?.repair || {};
               const summary = formatImportRepairSummary(slug, previewRepair);
               if (!confirm('Repair preview\n\n' + summary + '\n\nApply these changes?')) {
                 btn.disabled = false;
-                btn.textContent = 'Repair';
+                AdminUi.setButton(btn, 'settings', 'ซ่อม');
                 return;
               }
-              btn.textContent = 'Repairing...';
+              AdminUi.setButton(btn, 'settings', 'Repairing...');
               const result = await Api.repairImport(slug, 'all');
               const repair = result.data?.repair || {};
               Ui.showToast('ซ่อมแล้ว: title ' + (repair.titlesRepaired || 0) + ', index rebuilt');
-              btn.textContent = 'Done';
+              AdminUi.setButton(btn, 'settings', 'Done');
               setTimeout(() => AdminNovelsPage.render(params), 900);
             } catch (err) {
               Ui.showToast('ซ่อมไม่สำเร็จ: ' + err.message, 'error');
               btn.disabled = false;
-              btn.textContent = 'Repair';
+              AdminUi.setButton(btn, 'settings', 'ซ่อม');
             }
           };
         });
@@ -233,7 +238,7 @@ const AdminNovelsPage = {
           if (confirm('⚠️ คำเตือน: คุณต้องการลบนิยาย "' + slug + '" ใช่หรือไม่?\nการลบนี้จะทำลายโฟลเดอร์นิยาย บทแปล และศัพท์เฉพาะทั้งหมดอย่างถาวรและไม่สามารถเรียกคืนได้!')) {
             try {
               btn.disabled = true;
-              btn.textContent = 'กำลังลบ...';
+              AdminUi.setButton(btn, 'close', 'กำลังลบ...');
               await Api.deleteNovel(slug);
               Ui.showToast('ลบนิยาย "' + slug + '" เรียบร้อยแล้วค่ะ');
               // Reload page to refresh table
@@ -241,7 +246,7 @@ const AdminNovelsPage = {
             } catch (err) {
               Ui.showToast('ลบไม่สำเร็จ: ' + err.message, 'error');
               btn.disabled = false;
-              btn.textContent = 'ลบ';
+              AdminUi.setButton(btn, 'close', 'ลบ');
             }
           }
           };
@@ -350,7 +355,7 @@ const AdminChaptersPage = {
           '<input id="ch-filter-search" type="text" placeholder="ค้นหาเลขตอน หรือชื่อ..." class="c-form__input c-admin-chapters__search" value="' + Ui.esc(searchQuery) + '" />' +
           '<select id="ch-filter-status" class="c-form__select c-admin-chapters__status-filter">' +
           '<option value="all"' + (filterStatus === 'all' ? ' selected' : '') + '>ทั้งหมด</option>' +
-          '<option value="translated"' + (filterStatus === 'translated' ? ' selected' : '') + '>✅ แปลแล้ว</option>' +
+          '<option value="translated"' + (filterStatus === 'translated' ? ' selected' : '') + '>แปลแล้ว</option>' +
           '<option value="source_only"' + (filterStatus === 'source_only' ? ' selected' : '') + '>📄 ต้นฉบับ</option>' +
           '<option value="source_error"' + (filterStatus === 'source_error' ? ' selected' : '') + '>⛔ source error</option>' +
           '<option value="source_dirty"' + (filterStatus === 'source_dirty' ? ' selected' : '') + '>⚠️ source issue</option>' +
@@ -358,30 +363,30 @@ const AdminChaptersPage = {
           '<option value="unread"' + (filterStatus === 'unread' ? ' selected' : '') + '>📕 ยังไม่อ่าน</option>' +
           '</select>' +
           '<input id="ch-jump-num" type="number" min="1" max="' + chapters.length + '" placeholder="ไปตอน..." class="c-form__input c-admin-chapters__jump-input" />' +
-          '<button id="ch-jump-btn" class="c-btn c-btn--sm" type="button">ไป</button>' +
+          '<button id="ch-jump-btn" class="c-btn c-btn--sm" type="button">' + Ui.icon('search', 'xs') + '<span>ไป</span></button>' +
           '</div>' +
 
           '<div class="c-admin-chapters__bulk">' +
-          '<button class="c-btn c-btn--xs c-btn--secondary" id="ch-select-visible" type="button">เลือกหน้านี้</button>' +
-          '<button class="c-btn c-btn--xs c-btn--ghost" id="ch-clear-selected" type="button">ล้างเลือก</button>' +
-          '<button class="c-btn c-btn--xs c-btn--primary" id="ch-translate-selected" type="button"' + (selectedNums.size ? '' : ' disabled') + '>แปลที่เลือก</button>' +
-          '<button class="c-btn c-btn--xs c-btn--secondary" id="ch-reimport-selected" type="button"' + (selectedNums.size ? '' : ' disabled') + '>Re-import ที่เลือก</button>' +
-          '<button class="c-btn c-btn--xs c-btn--ghost" id="ch-inspect-first" type="button"' + (selectedNums.size ? '' : ' disabled') + '>Inspect แรก</button>' +
+          '<button class="c-btn c-btn--xs c-btn--secondary" id="ch-select-visible" type="button">' + Ui.icon('bookmarks', 'xs') + '<span>เลือกหน้านี้</span></button>' +
+          '<button class="c-btn c-btn--xs c-btn--ghost" id="ch-clear-selected" type="button">' + Ui.icon('close', 'xs') + '<span>ล้างเลือก</span></button>' +
+          '<button class="c-btn c-btn--xs c-btn--primary" id="ch-translate-selected" type="button"' + (selectedNums.size ? '' : ' disabled') + '>' + Ui.icon('book', 'xs') + '<span>แปลที่เลือก</span></button>' +
+          '<button class="c-btn c-btn--xs c-btn--secondary" id="ch-reimport-selected" type="button"' + (selectedNums.size ? '' : ' disabled') + '>' + Ui.icon('library', 'xs') + '<span>นำเข้าใหม่</span></button>' +
+          '<button class="c-btn c-btn--xs c-btn--ghost" id="ch-inspect-first" type="button"' + (selectedNums.size ? '' : ' disabled') + '>' + Ui.icon('search', 'xs') + '<span>ตรวจตอนแรก</span></button>' +
           '<span class="c-admin-chapters__selected-range">' + Ui.esc(selectedRange() || 'ยังไม่ได้เลือกตอน') + '</span>' +
           '</div>' +
 
           // ── Pagination ──
           '<div class="c-admin-chapters__pagination">' +
-          '<button class="c-btn c-btn--xs" id="ch-page-prev" type="button"' + (currentPage <= 0 ? ' disabled' : '') + '>◀ ก่อนหน้า</button>' +
+          '<button class="c-btn c-btn--xs" id="ch-page-prev" type="button"' + (currentPage <= 0 ? ' disabled' : '') + '>' + Ui.icon('arrow-left', 'xs') + '<span>ก่อนหน้า</span></button>' +
           '<span>หน้า ' + (currentPage + 1) + ' / ' + (maxPage + 1) + '</span>' +
-          '<button class="c-btn c-btn--xs" id="ch-page-next" type="button"' + (currentPage >= maxPage ? ' disabled' : '') + '>ถัดไป ▶</button>' +
+          '<button class="c-btn c-btn--xs" id="ch-page-next" type="button"' + (currentPage >= maxPage ? ' disabled' : '') + '><span>ถัดไป</span>' + Ui.icon('arrow-right', 'xs') + '</button>' +
           '</div>' +
 
           // ── Table ──
           '<div class="c-table-wrap"><table class="c-table"><thead><tr><th><span class="u-sr-only">เลือก</span></th><th>#</th><th>ชื่อตอน</th><th>แปล</th><th>source</th><th>คำสั่ง</th></tr></thead><tbody>';
 
         for (const ch of pageList) {
-          const statusLabel = ch.status === 'translated' ? '✅ แปลแล้ว' : (ch.status === 'source_only' ? '📄 ต้นฉบับ' : '⬜');
+          const statusLabel = ch.status === 'translated' ? 'แปลแล้ว' : (ch.status === 'source_only' ? 'ต้นฉบับ' : 'รอจัดการ');
           const statusClass = ch.status === 'translated' ? 'c-badge--teal' : (ch.status === 'source_only' ? 'c-badge--amber' : 'c-badge--gray');
           html += '<tr><td><input class="ch-row-check" type="checkbox" data-num="' + Ui.esc(ch.num) + '"' + (selectedNums.has(ch.num) ? ' checked' : '') + '></td>' +
             '<td class="c-admin-table__mono-strong">' + ch.num + '</td>' +
@@ -389,8 +394,8 @@ const AdminChaptersPage = {
             '<td><span class="c-badge ' + statusClass + '">' + statusLabel + '</span></td>' +
             '<td>' + issueBadgeHtml(ch) + '</td>' +
             '<td><div class="c-admin-chapters__row-actions">' +
-            '<button class="c-btn c-btn--xs c-btn--ghost ch-inspect-one" data-num="' + Ui.esc(ch.num) + '" type="button">Inspect</button>' +
-            '<button class="c-btn c-btn--xs c-btn--secondary ch-translate-one" data-num="' + Ui.esc(ch.num) + '" type="button">แปล</button>' +
+            '<button class="c-btn c-btn--xs c-btn--ghost ch-inspect-one" data-num="' + Ui.esc(ch.num) + '" type="button">' + Ui.icon('search', 'xs') + '<span>ตรวจ</span></button>' +
+            '<button class="c-btn c-btn--xs c-btn--secondary ch-translate-one" data-num="' + Ui.esc(ch.num) + '" type="button">' + Ui.icon('book', 'xs') + '<span>แปล</span></button>' +
             '</div></td></tr>';
         }
 
@@ -461,7 +466,7 @@ const AdminChaptersPage = {
             const num = parseInt(btn.dataset.num, 10);
             if (!num) return;
             btn.disabled = true;
-            btn.textContent = 'กำลังแปล...';
+            AdminUi.setButton(btn, 'book', 'กำลังแปล...');
             try {
               await Api.translateSingle(slug, num, true);
               Api.invalidateAll(slug);
@@ -470,7 +475,7 @@ const AdminChaptersPage = {
             } catch (err) {
               Ui.showToast(err.message, 'error');
               btn.disabled = false;
-              btn.textContent = 'แปล';
+              AdminUi.setButton(btn, 'book', 'แปล');
             }
           };
         });
@@ -600,8 +605,8 @@ const AdminGlossaryPage = {
               '</div>' +
             '</div>' +
             '<div class="c-glossary-admin__actions">' +
-              '<button class="c-btn c-btn--primary" id="glossary-save-btn" type="button">บันทึก</button>' +
-              '<button class="c-btn c-btn--secondary" id="glossary-cancel-btn" type="button" hidden>ยกเลิก</button>' +
+              '<button class="c-btn c-btn--primary" id="glossary-save-btn" type="button">' + Ui.icon('bookmarks', 'xs') + '<span>บันทึกคำศัพท์</span></button>' +
+              '<button class="c-btn c-btn--secondary" id="glossary-cancel-btn" type="button" hidden>' + Ui.icon('close', 'xs') + '<span>ยกเลิก</span></button>' +
             '</div>' +
           '</div>' +
           '<div id="glossary-status" class="c-glossary-admin__status" aria-live="polite"></div>' +
@@ -615,7 +620,7 @@ const AdminGlossaryPage = {
               '<label class="c-form__label">ตอนที่ต้องการสแกน</label>' +
               '<input type="number" min="1" class="c-form__input" id="ai-glossary-ch" placeholder="เช่น 1" />' +
             '</div>' +
-            '<button class="c-btn c-btn--secondary" id="ai-glossary-scan-btn" type="button">สแกน</button>' +
+            '<button class="c-btn c-btn--secondary" id="ai-glossary-scan-btn" type="button">' + Ui.icon('search', 'xs') + '<span>สแกน</span></button>' +
           '</div>' +
           '<div id="ai-glossary-loading" class="c-glossary-admin__loading" hidden>' +
             'กำลังสแกนหาศัพท์จีนที่ยังไม่ได้แปล...' +
@@ -649,8 +654,8 @@ const AdminGlossaryPage = {
             '</span>' +
           '</td>' +
           '<td><div class="c-glossary-admin__table-actions">' +
-            '<button class="c-btn c-btn--xs c-btn--secondary glossary-edit-btn" data-index="' + index + '" type="button">แก้ไข</button>' +
-            '<button class="c-btn c-btn--xs c-btn--danger glossary-del-btn" data-index="' + index + '" type="button">ลบ</button>' +
+            '<button class="c-btn c-btn--xs c-btn--secondary glossary-edit-btn" data-index="' + index + '" type="button">' + Ui.icon('settings', 'xs') + '<span>แก้ไข</span></button>' +
+            '<button class="c-btn c-btn--xs c-btn--danger glossary-del-btn" data-index="' + index + '" type="button">' + Ui.icon('close', 'xs') + '<span>ลบ</span></button>' +
           '</div></td>' +
         '</tr>';
       });
@@ -731,7 +736,7 @@ const AdminGlossaryPage = {
       // Save to server
       try {
         saveBtn.disabled = true;
-        saveBtn.textContent = 'กำลังบันทึก...';
+        AdminUi.setButton(saveBtn, 'bookmarks', 'กำลังบันทึก...');
         await this._saveTerms();
         Ui.showToast('บันทึกคำศัพท์แล้ว');
         this._renderUI(page);
@@ -740,7 +745,7 @@ const AdminGlossaryPage = {
         Ui.showToast('บันทึกคำศัพท์ไม่สำเร็จ', 'error');
       } finally {
         saveBtn.disabled = false;
-        saveBtn.textContent = 'บันทึก';
+        AdminUi.setButton(saveBtn, 'bookmarks', 'บันทึกคำศัพท์');
       }
     };
 
@@ -827,7 +832,7 @@ const AdminGlossaryPage = {
 
         try {
           aiScanBtn.disabled = true;
-          aiScanBtn.textContent = 'กำลังสแกน...';
+          AdminUi.setButton(aiScanBtn, 'search', 'กำลังสแกน...');
           aiLoading.hidden = false;
           aiResultsBox.hidden = true;
           aiResultsList.innerHTML = '';
@@ -849,8 +854,8 @@ const AdminGlossaryPage = {
                 <span class="c-glossary-admin__term">${Ui.esc(term)}</span>
                 <div class="c-glossary-admin__result-actions">
                   <span id="${resultId}" class="c-glossary-admin__suggestion"></span>
-                  <button class="c-btn c-btn--xs c-btn--secondary ai-suggest-btn c-glossary-admin__mini-btn" data-term="${Ui.esc(term)}" data-result-id="${resultId}" type="button">ขอไอเดียแปล</button>
-                  <button class="c-btn c-btn--xs c-btn--primary ai-add-btn c-glossary-admin__mini-btn" data-term="${Ui.esc(term)}" type="button" hidden>ย้ายเข้าฟอร์ม</button>
+                  <button class="c-btn c-btn--xs c-btn--secondary ai-suggest-btn c-glossary-admin__mini-btn" data-term="${Ui.esc(term)}" data-result-id="${resultId}" type="button">${Ui.icon('search', 'xs')}<span>ขอไอเดีย</span></button>
+                  <button class="c-btn c-btn--xs c-btn--primary ai-add-btn c-glossary-admin__mini-btn" data-term="${Ui.esc(term)}" type="button" hidden>${Ui.icon('arrow-right', 'xs')}<span>ย้ายเข้าฟอร์ม</span></button>
                 </div>
               `;
               aiResultsList.appendChild(item);
@@ -866,7 +871,7 @@ const AdminGlossaryPage = {
 
                 try {
                   btn.disabled = true;
-                  btn.textContent = 'กำลังแปล...';
+                  AdminUi.setButton(btn, 'search', 'กำลังแปล...');
                   resSpan.textContent = 'กำลังแปล...';
 
                   // Fetch context from source chapter
@@ -900,7 +905,7 @@ const AdminGlossaryPage = {
                 } catch (errSuggest) {
                   resSpan.textContent = 'ขัดข้อง';
                   btn.disabled = false;
-                  btn.textContent = 'ขอไอเดียแปล';
+                  AdminUi.setButton(btn, 'search', 'ขอไอเดีย');
                   Ui.showToast('แนะนำคำศัพท์ไม่สำเร็จ: ' + errSuggest.message, 'error');
                 }
               };
@@ -931,7 +936,7 @@ const AdminGlossaryPage = {
           Ui.showToast('สแกนคำศัพท์ไม่สำเร็จ: ' + errScan.message, 'error');
         } finally {
           aiScanBtn.disabled = false;
-          aiScanBtn.textContent = 'สแกน';
+          AdminUi.setButton(aiScanBtn, 'search', 'สแกน');
           aiLoading.hidden = true;
         }
       };
@@ -953,21 +958,21 @@ const AdminNovelEditPage = {
         '<div class="c-section__header c-admin-page__header c-admin-edit__header">' +
         '<div><h3 class="c-section__title">แก้ไขนิยาย: ' + Ui.esc(slug || '') + '</h3><p class="u-text-muted">แก้ metadata และปก จากนั้นไปจัดตอนหรือนำเข้าต้นฉบับต่อได้ทันที</p></div>' +
         '<div class="c-admin-edit__quick-actions">' +
-        '<a class="c-btn c-btn--sm c-btn--ghost" href="#admin/novels" data-nav>รายการนิยาย</a>' +
-        '<a class="c-btn c-btn--sm c-btn--secondary" href="#novel/' + Ui.esc(slug || '') + '" data-nav>อ่าน</a>' +
-        '<a class="c-btn c-btn--sm c-btn--secondary" href="#admin/chapters/' + Ui.esc(slug || '') + '" data-nav>จัดตอน</a>' +
-        '<a class="c-btn c-btn--sm c-btn--secondary" href="#admin/import/' + Ui.esc(slug || '') + '" data-nav>Import Health</a>' +
+        '<a class="c-btn c-btn--sm c-btn--ghost" href="#admin/novels" data-nav>' + Ui.icon('library', 'xs') + '<span>รายการนิยาย</span></a>' +
+        '<a class="c-btn c-btn--sm c-btn--secondary" href="#novel/' + Ui.esc(slug || '') + '" data-nav>' + Ui.icon('book', 'xs') + '<span>อ่าน</span></a>' +
+        '<a class="c-btn c-btn--sm c-btn--secondary" href="#admin/chapters/' + Ui.esc(slug || '') + '" data-nav>' + Ui.icon('bookmarks', 'xs') + '<span>จัดตอน</span></a>' +
+        '<a class="c-btn c-btn--sm c-btn--secondary" href="#admin/import/' + Ui.esc(slug || '') + '" data-nav>' + Ui.icon('info', 'xs') + '<span>สุขภาพนำเข้า</span></a>' +
         '</div></div>' +
         '<div class="c-admin-edit-layout">' +
         '<div class="c-admin-cover-panel"><div class="c-admin-cover-preview" id="edit-cover-preview">' + Ui.coverHtml(novel || { slug }) + '</div>' +
         '<input class="c-admin-cover-input" id="edit-cover-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif">' +
-        '<div class="c-admin-cover-actions"><button class="c-btn c-btn--primary" id="edit-cover-save" type="button">บันทึกปก</button><button class="c-btn c-btn--ghost" id="edit-cover-delete" type="button">ลบปก</button></div>' +
+        '<div class="c-admin-cover-actions"><button class="c-btn c-btn--primary" id="edit-cover-save" type="button">' + Ui.icon('book', 'xs') + '<span>บันทึกปก</span></button><button class="c-btn c-btn--ghost" id="edit-cover-delete" type="button">' + Ui.icon('close', 'xs') + '<span>ลบปก</span></button></div>' +
         '<span id="edit-cover-status" class="c-admin-edit__status"></span></div>' +
         '<div class="c-settings-form c-admin-edit-form"><div class="c-form">' +
         '<div class="c-form__group"><label class="c-form__label" for="edit-translated-title">ชื่อไทย</label><input class="c-form__input" id="edit-translated-title" value="' + Ui.esc(novel?.translatedTitle || '') + '" /></div>' +
         '<div class="c-form__group"><label class="c-form__label" for="edit-title">ชื่อต้นฉบับ</label><input class="c-form__input" id="edit-title" value="' + Ui.esc(novel?.title || '') + '" /></div>' +
         '<div class="c-form__group"><label class="c-form__label" for="edit-author">ผู้แต่ง</label><input class="c-form__input" id="edit-author" value="' + Ui.esc(novel?.author || '') + '" /></div>' +
-        '<div class="c-form__group c-admin-edit__actions"><button class="c-btn c-btn--primary" id="edit-save" type="button">บันทึก metadata</button><span id="edit-status" class="c-admin-edit__status"></span></div>' +
+        '<div class="c-form__group c-admin-edit__actions"><button class="c-btn c-btn--primary" id="edit-save" type="button">' + Ui.icon('settings', 'xs') + '<span>บันทึก metadata</span></button><span id="edit-status" class="c-admin-edit__status"></span></div>' +
         '</div></div></div></div>';
     } catch(_) { Ui.showError(page, 'เกิดข้อผิดพลาด'); }
 
@@ -1061,7 +1066,7 @@ const AdminNovelEditPage = {
           AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', 'พร้อมบันทึกปกใหม่', 'muted');
         } catch (err) {
           selectedCoverData = '';
-          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', '❌ ' + err.message, 'error');
+          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', err.message, 'error');
         }
       });
     }
@@ -1092,7 +1097,7 @@ const AdminNovelEditPage = {
           AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', 'พร้อมบันทึกปกใหม่', 'muted');
         } catch (err) {
           selectedCoverData = '';
-          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', '❌ ' + err.message, 'error');
+          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', err.message, 'error');
         }
       });
     }
@@ -1109,9 +1114,9 @@ const AdminNovelEditPage = {
             coverPreview.innerHTML = '<img class="c-cover-img" src="' + Ui.esc(res.data.coverImage) + '" alt="Cover preview">';
           }
           if (coverInput) coverInput.value = '';
-          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', '✅ บันทึกปกสำเร็จ', 'success');
+          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', 'บันทึกปกสำเร็จ', 'success');
         } catch (err) {
-          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', '❌ ' + err.message, 'error');
+          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', err.message, 'error');
         } finally {
           coverSaveBtn.disabled = false;
         }
@@ -1129,7 +1134,7 @@ const AdminNovelEditPage = {
           if (coverPreview) coverPreview.innerHTML = Ui.coverHtml({ slug, title: novel?.title || slug });
           AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', 'ลบปกแล้ว', 'success');
         } catch (err) {
-          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', '❌ ' + err.message, 'error');
+          AdminUi.setStatus('edit-cover-status', 'c-admin-edit__status', err.message, 'error');
         } finally {
           coverDeleteBtn.disabled = false;
         }
@@ -1195,7 +1200,7 @@ const AdminLogsPage = {
           '</div>' +
           '</div>' +
           '<div id="logs-query-status" class="c-admin-logs__status" aria-live="polite"></div>' +
-          '<button class="c-btn c-btn--primary c-admin-logs__submit" id="logs-query-btn" type="button">ตรวจสอบ Audit Log</button>' +
+          '<button class="c-btn c-btn--primary c-admin-logs__submit" id="logs-query-btn" type="button">' + Ui.icon('search', 'xs') + '<span>ตรวจ Audit Log</span></button>' +
           '</div>' +
           '</div>' +
           '</div>';
@@ -1222,7 +1227,7 @@ const AdminLogsPage = {
         Ui.adminNav('logs') +
         '<div class="c-section__header c-admin-logs__header"><h3 class="c-section__title">📂 Audit Log: ' + Ui.esc(slug) + ' / ตอน ' + Ui.esc(num) + '</h3>' +
         '<div class="c-admin-logs__actions">' +
-        '<a href="#admin/logs" class="c-btn c-btn--sm c-btn--secondary c-admin-logs__link" data-nav>ค้นหาใหม่</a>' +
+        '<a href="#admin/logs" class="c-btn c-btn--sm c-btn--secondary c-admin-logs__link" data-nav>' + Ui.icon('search', 'xs') + '<span>ค้นหาใหม่</span></a>' +
         '' +
         '</div></div>';
 
@@ -1335,7 +1340,7 @@ const AdminImportPage = {
         ? 'toc: ' + (toc.chapterCount || 0) + (toc.site ? ' · ' + toc.site : '')
         : 'toc: missing';
       const recoverButton = genericCount > 0
-        ? '<button class="c-btn c-btn--sm c-btn--ghost import-recover-toc-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Recover TOC</button>'
+        ? '<button class="c-btn c-btn--sm c-btn--ghost import-recover-toc-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">' + Ui.icon('library', 'xs') + '<span>กู้ TOC</span></button>'
         : '';
       const issueRange = this._issueRange(n);
       return '<tr>' +
@@ -1345,16 +1350,16 @@ const AdminImportPage = {
         '<td><span class="' + this._healthBadge(n.status) + '">' + badgeText + '</span></td>' +
         '<td>' + Ui.esc(this._issueText(n.issueSummary)) + (n.staleIndexTitleCount ? '<div class="u-text-muted">stale title × ' + n.staleIndexTitleCount + '</div>' : '') + (n.blockingSourceCount ? '<div class="u-text-muted">blocked × ' + n.blockingSourceCount + '</div>' : '') + '</td>' +
         '<td><div class="c-admin-import__row-actions">' +
-        '<button class="c-btn c-btn--sm c-btn--secondary import-repair-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Repair</button>' +
-        '<button class="c-btn c-btn--sm c-btn--ghost import-view-issues-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">Issues</button>' +
-        '<button class="c-btn c-btn--sm c-btn--ghost import-inspect-btn" data-slug="' + Ui.esc(n.slug) + '" data-num="' + Ui.esc(issueRange.split(',')[0] || '1') + '" type="button">Inspect</button>' +
-        '<button class="c-btn c-btn--sm c-btn--secondary import-reimport-range-btn" data-slug="' + Ui.esc(n.slug) + '" data-range="' + Ui.esc(issueRange) + '" type="button">Re-import</button>' +
+        '<button class="c-btn c-btn--sm c-btn--secondary import-repair-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">' + Ui.icon('settings', 'xs') + '<span>ซ่อม</span></button>' +
+        '<button class="c-btn c-btn--sm c-btn--ghost import-view-issues-btn" data-slug="' + Ui.esc(n.slug) + '" type="button">' + Ui.icon('info', 'xs') + '<span>ปัญหา</span></button>' +
+        '<button class="c-btn c-btn--sm c-btn--ghost import-inspect-btn" data-slug="' + Ui.esc(n.slug) + '" data-num="' + Ui.esc(issueRange.split(',')[0] || '1') + '" type="button">' + Ui.icon('search', 'xs') + '<span>ตรวจ</span></button>' +
+        '<button class="c-btn c-btn--sm c-btn--secondary import-reimport-range-btn" data-slug="' + Ui.esc(n.slug) + '" data-range="' + Ui.esc(issueRange) + '" type="button">' + Ui.icon('library', 'xs') + '<span>นำเข้าใหม่</span></button>' +
         recoverButton + '</div></td>' +
         '</tr>';
     }).join('');
 
     return '<div class="c-card c-admin-import__panel c-admin-import__health">' +
-      '<div class="c-admin-import__health-head"><h3 class="c-admin-import__title">Import Health</h3><button class="c-btn c-btn--sm c-btn--ghost" id="import-health-refresh" type="button">Refresh</button></div>' +
+      '<div class="c-admin-import__health-head"><h3 class="c-admin-import__title">Import Health</h3><button class="c-btn c-btn--sm c-btn--ghost" id="import-health-refresh" type="button">' + Ui.icon('search', 'xs') + '<span>รีเฟรช</span></button></div>' +
       '<div class="c-admin-import__health-stats">' +
       Ui.stat('นิยาย', summary.novels || 0, { tone: 'accent' }) +
       Ui.stat('source files', summary.sourceFiles || 0, { tone: 'accent' }) +
@@ -1398,7 +1403,7 @@ const AdminImportPage = {
       '<div class="c-admin-source-inspector__form">' +
       '<div class="c-form__group"><label class="c-form__label" for="inspect-slug">นิยาย</label><select class="c-form__select" id="inspect-slug">' + options + '</select></div>' +
       '<div class="c-form__group"><label class="c-form__label" for="inspect-num">ตอน</label><input class="c-form__input" id="inspect-num" type="number" min="1" value="1"></div>' +
-      '<button class="c-btn c-btn--secondary" id="inspect-run" type="button">Inspect</button>' +
+      '<button class="c-btn c-btn--secondary" id="inspect-run" type="button">' + Ui.icon('search', 'xs') + '<span>ตรวจ source</span></button>' +
       '</div>' +
       '<div id="inspect-output" class="c-admin-source-inspector__output" hidden></div>' +
       '</div>';
@@ -1445,7 +1450,7 @@ const AdminImportPage = {
       '<div class="c-form__group"><label class="c-form__label" for="import-slug">Slug</label><input class="c-form__input" id="import-slug" value="' + Ui.esc(document.getElementById('import-target-slug')?.value || this._slugFromTitle(data.title)) + '" /></div>' +
       '<div class="c-form__group"><label class="c-form__label" for="import-range">ช่วงตอน</label><input class="c-form__input" id="import-range" placeholder="1-20" value="' + Ui.esc(document.getElementById('import-target-range')?.value || '') + '" /></div>' +
       '<label class="c-admin-import__check"><input type="checkbox" id="import-force" /> overwrite</label>' +
-      '<button class="c-btn c-btn--primary" id="import-run" type="button">นำเข้า source</button>' +
+      '<button class="c-btn c-btn--primary" id="import-run" type="button">' + Ui.icon('library', 'xs') + '<span>นำเข้า source</span></button>' +
       '</div>' +
       '<div class="c-table-wrap c-admin-import__sample"><table class="c-table"><thead><tr><th>ตอน</th><th>ชื่อ</th></tr></thead><tbody>' + sampleRows + '</tbody></table></div>' +
       '</div>';
@@ -1460,7 +1465,7 @@ const AdminImportPage = {
         return;
       }
       btn.disabled = true;
-      btn.textContent = 'กำลังนำเข้า...';
+      AdminUi.setButton(btn, 'library', 'กำลังนำเข้า...');
       this.setConsole('running', 'Import running', 'Fetching and cleaning source chapters...');
       try {
         const result = this._data(await Api.importRun({
@@ -1477,7 +1482,7 @@ const AdminImportPage = {
         Ui.showToast(err.message, 'error');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'นำเข้า source';
+        AdminUi.setButton(btn, 'library', 'นำเข้า source');
       }
     });
   },
@@ -1525,7 +1530,7 @@ const AdminImportPage = {
                 <label class="c-form__label" for="import-target-range">ช่วง</label>
                 <input class="c-form__input" id="import-target-range" value="${Ui.esc(params?.num || '')}" placeholder="เช่น 563,598 หรือ 800-900" />
               </div>
-              <button class="c-btn c-btn--secondary c-admin-import__preview-btn" id="import-preview-btn" type="button">Preview</button>
+              <button class="c-btn c-btn--secondary c-admin-import__preview-btn" id="import-preview-btn" type="button">${Ui.icon('search', 'xs')}<span>ดูตัวอย่าง</span></button>
             </div>
             ${this._siteCatalogHtml()}
             <div id="import-preview" hidden></div>
@@ -1540,7 +1545,7 @@ const AdminImportPage = {
               <div class="c-form__group"><label class="c-form__label" for="paste-rule">Split rule</label><input class="c-form__input" id="paste-rule" placeholder="(?:ตอนที่|第|Chapter)\\s*(\\d+)" /></div>
               <div class="c-form__group c-admin-import__textarea-group"><label class="c-form__label" for="paste-content">ข้อความ</label><textarea class="c-form__textarea" id="paste-content"></textarea></div>
               <label class="c-admin-import__check"><input type="checkbox" id="paste-force" /> overwrite</label>
-              <button class="c-btn c-btn--primary" id="paste-run" type="button">บันทึก source</button>
+              <button class="c-btn c-btn--primary" id="paste-run" type="button">${Ui.icon('library', 'xs')}<span>บันทึก source</span></button>
             </div>
           </div>
 
@@ -1580,7 +1585,7 @@ const AdminImportPage = {
         const slug = btn.dataset.slug;
         if (!slug) return;
         btn.disabled = true;
-        btn.textContent = 'Loading...';
+        AdminUi.setButton(btn, 'search', 'Loading...');
         try {
           const health = this._data(await Api.getImportHealth(slug, { includeChapters: true }));
           const lines = (health.chapters || []).slice(0, 80).map(ch => {
@@ -1602,7 +1607,7 @@ const AdminImportPage = {
           this.setConsole('error', 'Issue load failed', err.message);
         } finally {
           btn.disabled = false;
-          btn.textContent = 'Issues';
+          AdminUi.setButton(btn, 'info', 'ปัญหา');
         }
       });
     });
@@ -1637,7 +1642,7 @@ const AdminImportPage = {
         const slug = btn.dataset.slug;
         if (!slug) return;
         btn.disabled = true;
-        btn.textContent = 'Checking...';
+        AdminUi.setButton(btn, 'search', 'Checking...');
         this.setConsole('running', 'Repair preview', 'Checking source titles, noise lines, and chapter index for ' + slug + '...');
         try {
           const preview = await Api.repairImport(slug, 'all', { dryRun: true });
@@ -1646,11 +1651,11 @@ const AdminImportPage = {
           this.setConsole('idle', 'Repair preview', previewMessage);
           if (!confirm('Repair preview\n\n' + previewMessage + '\n\nApply these changes?')) {
             btn.disabled = false;
-            btn.textContent = 'Repair';
+            AdminUi.setButton(btn, 'settings', 'ซ่อม');
             return;
           }
 
-          btn.textContent = 'Repairing...';
+          AdminUi.setButton(btn, 'settings', 'Repairing...');
           this.setConsole('running', 'Repair running', 'Applying source title/noise repairs and rebuilding chapter index for ' + slug + '...');
           const result = await Api.repairImport(slug, 'all');
           const repair = result.data?.repair || {};
@@ -1658,12 +1663,12 @@ const AdminImportPage = {
           this.setConsole('success', 'Repair complete', message);
           Ui.showToast('ซ่อมแล้ว: title ' + (repair.titlesRepaired || 0) + ', index rebuilt');
           btn.disabled = false;
-          btn.textContent = 'Done';
+          AdminUi.setButton(btn, 'settings', 'Done');
         } catch (err) {
           this.setConsole('error', 'Repair failed', err.message);
           Ui.showToast(err.message, 'error');
           btn.disabled = false;
-          btn.textContent = 'Repair';
+          AdminUi.setButton(btn, 'settings', 'ซ่อม');
         }
       });
     });
@@ -1673,7 +1678,7 @@ const AdminImportPage = {
         const slug = btn.dataset.slug;
         if (!slug) return;
         btn.disabled = true;
-        btn.textContent = 'Checking...';
+        AdminUi.setButton(btn, 'search', 'Checking...');
         this.setConsole('running', 'TOC recovery preview', 'Fetching source table of contents for ' + slug + '...');
         try {
           const preview = this._data(await Api.recoverImportToc(slug, { dryRun: true }));
@@ -1682,27 +1687,27 @@ const AdminImportPage = {
           if (!preview.chapterCount) {
             Ui.showToast('ไม่พบตอนจากสารบัญต้นทาง', 'error');
             btn.disabled = false;
-            btn.textContent = 'Recover TOC';
+            AdminUi.setButton(btn, 'library', 'กู้ TOC');
             return;
           }
           if (!confirm('TOC recovery preview\n\n' + previewMessage + '\n\nSave this toc.json?')) {
             btn.disabled = false;
-            btn.textContent = 'Recover TOC';
+            AdminUi.setButton(btn, 'library', 'กู้ TOC');
             return;
           }
 
-          btn.textContent = 'Saving...';
+          AdminUi.setButton(btn, 'library', 'Saving...');
           this.setConsole('running', 'TOC recovery running', 'Saving toc.json for ' + slug + '...');
           const result = this._data(await Api.recoverImportToc(slug, { dryRun: false }));
           this.setConsole('success', 'TOC recovery complete', formatTocRecoverySummary(slug, result));
           Ui.showToast('สร้าง toc.json แล้ว กด Repair เพื่อซ่อม generic title ต่อ');
           btn.disabled = false;
-          btn.textContent = 'Done';
+          AdminUi.setButton(btn, 'library', 'Done');
         } catch (err) {
           this.setConsole('error', 'TOC recovery failed', err.message);
           Ui.showToast(err.message, 'error');
           btn.disabled = false;
-          btn.textContent = 'Recover TOC';
+          AdminUi.setButton(btn, 'library', 'กู้ TOC');
         }
       });
     });
@@ -1716,7 +1721,7 @@ const AdminImportPage = {
         return;
       }
       btn.disabled = true;
-      btn.textContent = 'Inspecting...';
+      AdminUi.setButton(btn, 'search', 'Inspecting...');
       try {
         const data = this._data(await Api.inspectSource(slug, num));
         this._renderInspection(data);
@@ -1724,7 +1729,7 @@ const AdminImportPage = {
         Ui.showToast(err.message, 'error');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Inspect';
+        AdminUi.setButton(btn, 'search', 'ตรวจ source');
       }
     });
 
@@ -1737,7 +1742,7 @@ const AdminImportPage = {
         return;
       }
       btn.disabled = true;
-      btn.textContent = 'Loading...';
+      AdminUi.setButton(btn, 'search', 'Loading...');
       this.setConsole('running', 'Preview running', 'Fetching table of contents and sample chapter...');
       try {
         const data = this._data(await Api.importPreview({ url, site }));
@@ -1750,7 +1755,7 @@ const AdminImportPage = {
         Ui.showToast(err.message, 'error');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Preview';
+        AdminUi.setButton(btn, 'search', 'ดูตัวอย่าง');
       }
     });
 
@@ -1767,7 +1772,7 @@ const AdminImportPage = {
         return;
       }
       btn.disabled = true;
-      btn.textContent = 'กำลังบันทึก...';
+      AdminUi.setButton(btn, 'library', 'กำลังบันทึก...');
       this.setConsole('running', 'Paste import running', 'Cleaning pasted source...');
       try {
         const result = this._data(await Api.importPaste({ slug, title, sourceLang, splitRule, content, force }));
@@ -1778,7 +1783,7 @@ const AdminImportPage = {
         Ui.showToast(err.message, 'error');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'บันทึก source';
+        AdminUi.setButton(btn, 'library', 'บันทึก source');
       }
     });
   }
@@ -1837,7 +1842,7 @@ const AdminTranslatePage = {
           <div class="c-card c-admin-translate__panel">
             <div class="c-admin-translate__console-head">
               <h3 class="c-admin-translate__title">Translation Health</h3>
-              <button class="c-btn c-btn--xs c-btn--secondary" id="translate-health-refresh" type="button">Refresh</button>
+              <button class="c-btn c-btn--xs c-btn--secondary" id="translate-health-refresh" type="button">${Ui.icon('search', 'xs')}<span>รีเฟรช</span></button>
             </div>
             <div class="c-stats c-admin-translate__health-stats">
               <div class="c-stat"><span class="c-stat__num">${bucketStat('active')}</span><span class="c-stat__label">active</span></div>
@@ -1900,7 +1905,7 @@ const AdminTranslatePage = {
               </div>
               <div id="translate-source-health" class="c-admin-translate__source-health"></div>
               <div class="c-admin-translate__actions">
-                <button class="c-btn c-btn--primary" id="translate-batch-run-btn" type="button">🚀 เริ่มแปล</button>
+                <button class="c-btn c-btn--primary" id="translate-batch-run-btn" type="button">${Ui.icon('book', 'xs')}<span>เริ่มแปล</span></button>
                 <label class="c-admin-import__check"><input id="translate-force-source" type="checkbox"> force แปลแม้ source error</label>
               </div>
             </div>
@@ -1931,7 +1936,7 @@ const AdminTranslatePage = {
         const issueText = this._sourceIssueText ? this._sourceIssueText(h) : '';
         box.innerHTML = '<span class="' + cls + '">' + Ui.esc(status === 'error' ? 'source error' : (status === 'warn' ? 'source warning' : 'source ready')) + '</span>' +
           '<span>' + Ui.esc(issueText || 'พร้อมแปล') + '</span>' +
-          (status !== 'ok' ? '<a class="c-btn c-btn--xs c-btn--ghost" href="#admin/import/' + Ui.esc(slugVal) + '" data-nav>ดู Import Health</a>' : '');
+          (status !== 'ok' ? '<a class="c-btn c-btn--xs c-btn--ghost" href="#admin/import/' + Ui.esc(slugVal) + '" data-nav>' + Ui.icon('info', 'xs') + '<span>ดูสุขภาพนำเข้า</span></a>' : '');
       };
       this._sourceIssueText = (h = {}) => {
         const byCode = h.issueSummary?.byCode || {};
@@ -1970,7 +1975,7 @@ const AdminTranslatePage = {
 
           try {
             runBtn.disabled = true;
-            runBtn.textContent = 'กำลังดำเนินการแปล...';
+            AdminUi.setButton(runBtn, 'book', 'กำลังดำเนินการแปล...');
 
             const res = await Api.translateBatch(slugVal, rangeVal, concurrentVal, { force: forceSource });
             const result = res.data || res;
@@ -1995,7 +2000,7 @@ const AdminTranslatePage = {
             Ui.showToast('การแปลเกิดข้อผิดพลาด: ' + err.message, 'error');
           } finally {
             runBtn.disabled = false;
-            runBtn.textContent = '🚀 เริ่มแปล';
+            AdminUi.setButton(runBtn, 'book', 'เริ่มแปล');
           }
         });
       }

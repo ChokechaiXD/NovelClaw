@@ -25,6 +25,10 @@ const Ui = {
 
   $(id) { return document.getElementById(id); },
 
+  icon(id, size = 'sm') {
+    return `<svg class="c-icon c-icon--${size} c-icon--stroke" aria-hidden="true"><use xlink:href="#icon-${Ui.esc(id)}"/></svg>`;
+  },
+
   esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -135,17 +139,17 @@ const Ui = {
   // ── Shared Admin Nav ─────────────────────────────────────────────────────
   adminNav(active) {
     const links = [
-      { name: 'dashboard', label: 'ภาพรวม', page: 'admin' },
-      { name: 'import', label: 'นำเข้า', page: 'admin/import' },
-      { name: 'translate', label: 'สั่งแปล & AI', page: 'admin/translate' },
-      { name: 'novels', label: 'นิยาย', page: 'admin/novels' },
-      { name: 'chapters', label: 'ตอน', page: 'admin/chapters' },
-      { name: 'glossary', label: 'คำศัพท์', page: 'admin/glossary' },
-      { name: 'provider', label: 'ระบบ AI', page: 'admin/provider' },
-      { name: 'logs', label: 'ล็อก', page: 'admin/logs' },
+      { name: 'dashboard', label: 'ภาพรวม', page: 'admin', icon: 'home' },
+      { name: 'import', label: 'นำเข้า', page: 'admin/import', icon: 'library' },
+      { name: 'translate', label: 'สั่งแปล', page: 'admin/translate', icon: 'book' },
+      { name: 'novels', label: 'นิยาย', page: 'admin/novels', icon: 'library' },
+      { name: 'chapters', label: 'ตอน', page: 'admin/chapters', icon: 'book' },
+      { name: 'glossary', label: 'คำศัพท์', page: 'admin/glossary', icon: 'bookmarks' },
+      { name: 'provider', label: 'ระบบ AI', page: 'admin/provider', icon: 'settings' },
+      { name: 'logs', label: 'ล็อก', page: 'admin/logs', icon: 'info' },
     ];
     return '<div class="c-admin-nav">' + links.map(l =>
-      '<a href="#' + l.page + '" class="c-admin-nav__link' + (l.name === active ? ' c-admin-nav__link--active' : '') + '" data-nav>' + l.label + '</a>'
+      '<a href="#' + l.page + '" class="c-admin-nav__link' + (l.name === active ? ' c-admin-nav__link--active' : '') + '" data-nav>' + Ui.icon(l.icon, 'xs') + '<span>' + l.label + '</span></a>'
     ).join('') + '</div>';
   },
   statusMap: {
@@ -237,7 +241,7 @@ const Ui = {
    */
   copyButton(text) {
     const encoded = this.esc(encodeURIComponent(text || ''));
-    return `<button class="c-btn c-btn--sm c-btn--ghost c-copy-btn" data-copy-text="${encoded}" title="คัดลอก">📋</button>`;
+    return `<button class="c-btn c-btn--sm c-btn--ghost c-copy-btn" data-copy-text="${encoded}" title="คัดลอก">${this.icon('book', 'xs')}<span>คัดลอก</span></button>`;
   },
 };
 
