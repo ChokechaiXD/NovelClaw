@@ -48,28 +48,37 @@ const Api = {
     this._novelsInFlight = null;
   },
 
-  async getChapters(slug) {
+  async getChapters(slug, options = {}) {
+    const cacheKey = `${slug}:${options.withQuality ? 'quality' : 'basic'}`;
     const now = Date.now();
-    const cached = this._chaptersCache[slug];
-    if (cached && (now - (this._chaptersCacheTime[slug] || 0)) < this._CACHE_TTL) return cached;
-    const res = await fetch(`/api/novel/${slug}/chapters`);
+    const cached = this._chaptersCache[cacheKey];
+    if (cached && (now - (this._chaptersCacheTime[cacheKey] || 0)) < this._CACHE_TTL) return cached;
+    const suffix = options.withQuality ? '?withQuality=1' : '';
+    const res = await fetch(`/api/novel/${slug}/chapters${suffix}`);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     const data = await res.json();
-    this._chaptersCache[slug] = data.chapters || [];
-    this._chaptersCacheTime[slug] = now;
-    return this._chaptersCache[slug];
+    this._chaptersCache[cacheKey] = data.chapters || [];
+    this._chaptersCacheTime[cacheKey] = now;
+    return this._chaptersCache[cacheKey];
   },
 
-  invalidateChapters(slug) { delete this._chaptersCache[slug]; delete this._chaptersCacheTime[slug]; },
+  invalidateChapters(slug) {
+    delete this._chaptersCache[`${slug}:basic`];
+    delete this._chaptersCache[`${slug}:quality`];
+    delete this._chaptersCacheTime[`${slug}:basic`];
+    delete this._chaptersCacheTime[`${slug}:quality`];
+  },
 
-  async getChapterContent(slug, num, lang) {
+  async getChapterContent(slug, num, lang, options = {}) {
     lang = lang || 'th';
     const key = `${slug}:${num}:${lang}`;
     const now = Date.now();
     const cached = this._chapterContentCache[key];
-    if (cached && (now - cached.time) < this._CONTENT_TTL) return cached.data;
+    if (!options.fresh && cached && (now - cached.time) < this._CONTENT_TTL) return cached.data;
 
-    const res = await fetch(`/api/novel/${slug}/chapter/${num}?lang=${lang}`, { cache: 'no-store' });
+    const qs = new URLSearchParams({ lang });
+    if (options.fresh) qs.set('_', String(now));
+    const res = await fetch(`/api/novel/${slug}/chapter/${num}?${qs.toString()}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     const data = await res.json();
     this._chapterContentCache[key] = { data, time: now };
@@ -106,11 +115,9 @@ const Api = {
     const suffix = options.refreshModels ? '?refreshModels=1' : '';
     const res = await fetch('/api/local/llm-config' + suffix);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return res.json();
-  },
-
-  async getLlmOptions() {
-    return this.getLlmConfig();
+    const data = await res.json();
+    if (data.ok) this.invalidateAll(slug);
+    return data;
   },
 
   async saveLlmConfig(config) {

@@ -1812,6 +1812,55 @@ const AdminTranslatePage = {
     return lines.join('\n');
   },
 
+  _rangeFromNums(nums = []) {
+    const sorted = [...new Set(nums.map(n => parseInt(n, 10)).filter(Number.isFinite))].sort((a, b) => a - b);
+    const ranges = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const start = sorted[i];
+      let end = start;
+      while (i + 1 < sorted.length && sorted[i + 1] === end + 1) {
+        end = sorted[++i];
+      }
+      ranges.push(start === end ? String(start) : `${start}-${end}`);
+    }
+    return ranges.join(',');
+  },
+
+  _chapterStatus(ch = {}, sourceIssue = null, resultIssue = null) {
+    const resultStatus = resultIssue?.status;
+    if (resultStatus && resultStatus !== 'ok') return resultStatus === 'failed' ? 'failed' : 'needs_review';
+    const blockingIssue = sourceIssue?.issues?.some(issue => issue.severity === 'error');
+    if (blockingIssue) return 'source_not_ready';
+    const quality = ch.qualityRecord || ch.quality;
+    if (quality && quality.passed === false) return 'needs_review';
+    if (ch.isTranslated || ch.status === 'translated') return 'translated';
+    return 'untranslated';
+  },
+
+  _statusBadge(status) {
+    const map = {
+      translated: ['แปลแล้ว', 'c-badge c-badge--teal'],
+      untranslated: ['ยังไม่แปล', 'c-badge c-badge--gray'],
+      needs_review: ['ควรดู', 'c-badge c-badge--amber'],
+      failed: ['ล้มเหลว', 'c-badge c-badge--red'],
+      source_not_ready: ['source error', 'c-badge c-badge--red'],
+    };
+    return map[status] || [status || '-', 'c-badge c-badge--gray'];
+  },
+
+  _qualityText(ch = {}, resultIssue = null) {
+    const quality = ch.qualityRecord || ch.quality || {};
+    const hardFailures = resultIssue?.hardFailures || quality.hardFailures || [];
+    const warnings = resultIssue?.warnings || quality.warnings || [];
+    const score = resultIssue?.score ?? quality.score ?? ch.score;
+    const parts = [];
+    if (score !== null && score !== undefined) parts.push(`score ${score}`);
+    if (quality.lengthRatio) parts.push(`len ${Math.round(quality.lengthRatio * 100)}%`);
+    if (hardFailures.length) parts.push(hardFailures.slice(0, 2).join(', '));
+    else if (warnings.length) parts.push('warn: ' + warnings.slice(0, 2).join(', '));
+    return parts.join(' · ') || '-';
+  },
+
   async render(params) {
     const page = Ui.$('page-admin-translate');
     if (!page) return;
@@ -1946,6 +1995,23 @@ const AdminTranslatePage = {
                 <button class="c-btn c-btn--primary" id="translate-batch-run-btn" type="button">${Ui.icon('book', 'xs')}<span>เริ่มแปล</span></button>
                 <label class="c-admin-import__check"><input id="translate-force-source" type="checkbox"> force แปลแม้ source error</label>
               </div>
+              <div class="c-admin-translate__chapter-panel">
+                <div class="c-admin-translate__chapter-head">
+                  <div>
+                    <h4 class="c-admin-translate__subhead">เลือกตอนที่จะแปล</h4>
+                    <p class="u-text-muted" id="translate-chapter-summary">กำลังโหลดรายการตอน...</p>
+                  </div>
+                  <div class="c-admin-translate__chapter-actions">
+                    <button class="c-btn c-btn--xs c-btn--secondary" id="translate-select-untranslated" type="button">${Ui.icon('search', 'xs')}<span>ยังไม่แปล</span></button>
+                    <button class="c-btn c-btn--xs c-btn--secondary" id="translate-select-review" type="button">${Ui.icon('search', 'xs')}<span>ควรดู/ล้มเหลว</span></button>
+                    <button class="c-btn c-btn--xs c-btn--ghost" id="translate-clear-selection" type="button">${Ui.icon('info', 'xs')}<span>ล้าง</span></button>
+                    <button class="c-btn c-btn--xs c-btn--primary" id="translate-run-selected" type="button">${Ui.icon('book', 'xs')}<span>แปลที่เลือก</span></button>
+                  </div>
+                </div>
+                <div id="translate-chapter-table" class="c-admin-translate__chapter-table" aria-live="polite">
+                  <div class="c-admin-translate__chapter-empty">กำลังโหลด...</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1983,12 +2049,145 @@ const AdminTranslatePage = {
       document.getElementById('translate-batch-novel')?.addEventListener('change', updateSourceHealth);
       updateSourceHealth();
 
+      let tableChapters = [];
+      let sourceIssueByNum = {};
+      let lastResultByNum = {};
+      const selectedNums = new Set();
+
+      const renderChapterTable = () => {
+        const table = document.getElementById('translate-chapter-table');
+        const summaryEl = document.getElementById('translate-chapter-summary');
+        if (!table || !summaryEl) return;
+        if (!tableChapters.length) {
+          summaryEl.textContent = 'ยังไม่มีตอนในนิยายนี้';
+          table.innerHTML = '<div class="c-admin-translate__chapter-empty">ไม่มีตอนให้แสดง</div>';
+          return;
+        }
+        const counts = { translated: 0, untranslated: 0, needs_review: 0, failed: 0, source_not_ready: 0 };
+        for (const ch of tableChapters) {
+          const status = AdminTranslatePage._chapterStatus(ch, sourceIssueByNum[ch.num], lastResultByNum[ch.num]);
+          counts[status] = (counts[status] || 0) + 1;
+        }
+        summaryEl.textContent = `ทั้งหมด ${tableChapters.length} ตอน · แปลแล้ว ${counts.translated || 0} · ยังไม่แปล ${counts.untranslated || 0} · ควรดู ${counts.needs_review || 0} · source error ${counts.source_not_ready || 0} · เลือก ${selectedNums.size}`;
+
+        const rows = tableChapters.map(ch => {
+          const resultIssue = lastResultByNum[ch.num];
+          const status = AdminTranslatePage._chapterStatus(ch, sourceIssueByNum[ch.num], resultIssue);
+          const [label, badgeClass] = AdminTranslatePage._statusBadge(status);
+          const checked = selectedNums.has(ch.num) ? ' checked' : '';
+          const sourceIssue = sourceIssueByNum[ch.num];
+          const issueText = resultIssue?.reason
+            || (sourceIssue?.issues || []).map(issue => issue.code).slice(0, 2).join(', ');
+          const qualityText = AdminTranslatePage._qualityText(ch, resultIssue);
+          const modelText = ch.model && ch.model !== 'unknown' ? ch.model : '';
+          return `<tr data-status="${Ui.esc(status)}">
+            <td><input class="translate-chapter-check" type="checkbox" data-num="${Ui.esc(ch.num)}"${checked} aria-label="เลือกตอน ${Ui.esc(ch.num)}"></td>
+            <td class="c-admin-translate__chapter-num">${Ui.esc(ch.num)}</td>
+            <td class="c-admin-translate__chapter-title">${Ui.esc(ch.title || ('ตอนที่ ' + ch.num))}</td>
+            <td><span class="${badgeClass}">${Ui.esc(label)}</span></td>
+            <td class="c-admin-translate__quality">${Ui.esc(qualityText)}</td>
+            <td class="c-admin-translate__model">${Ui.esc(modelText || '-')}</td>
+            <td class="c-admin-translate__issue">${Ui.esc(issueText || '-')}</td>
+          </tr>`;
+        }).join('');
+        const allChecked = tableChapters.length > 0 && tableChapters.every(ch => selectedNums.has(ch.num)) ? ' checked' : '';
+        table.innerHTML = `<div class="c-admin-translate__table-wrap">
+          <table class="c-table c-admin-translate__table">
+            <thead>
+              <tr>
+                <th><input id="translate-select-all" type="checkbox"${allChecked} aria-label="เลือกทุกตอน"></th>
+                <th>ตอน</th>
+                <th>ชื่อ</th>
+                <th>สถานะ</th>
+                <th>คุณภาพ</th>
+                <th>model</th>
+                <th>ปัญหา</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+      };
+
+      const syncRangeFromSelection = () => {
+        const range = AdminTranslatePage._rangeFromNums([...selectedNums]);
+        const input = document.getElementById('translate-batch-range');
+        if (input) input.value = range;
+        renderChapterTable();
+        return range;
+      };
+
+      const loadChapterTable = async (preserveResults = false) => {
+        const slugVal = document.getElementById('translate-batch-novel')?.value || '';
+        const table = document.getElementById('translate-chapter-table');
+        const summaryEl = document.getElementById('translate-chapter-summary');
+        if (!slugVal || !table || !summaryEl) return;
+        summaryEl.textContent = 'กำลังโหลดรายการตอน...';
+        table.innerHTML = '<div class="c-admin-translate__chapter-empty">กำลังโหลด...</div>';
+        try {
+          const [chapters, healthResp] = await Promise.all([
+            Api.getChapters(slugVal, { withQuality: true }),
+            Api.getImportHealth(slugVal, { includeChapters: true }).catch(() => ({ data: { chapters: [] } })),
+          ]);
+          tableChapters = chapters || [];
+          sourceIssueByNum = {};
+          for (const ch of healthResp.data?.chapters || []) sourceIssueByNum[ch.num] = ch;
+          selectedNums.clear();
+          if (!preserveResults) lastResultByNum = {};
+          renderChapterTable();
+        } catch (err) {
+          summaryEl.textContent = 'โหลดรายการตอนไม่สำเร็จ';
+          table.innerHTML = '<div class="c-admin-translate__chapter-empty">โหลดไม่สำเร็จ: ' + Ui.esc(err.message) + '</div>';
+        }
+      };
+
+      const selectMatching = (predicate) => {
+        selectedNums.clear();
+        for (const ch of tableChapters) {
+          const status = AdminTranslatePage._chapterStatus(ch, sourceIssueByNum[ch.num], lastResultByNum[ch.num]);
+          if (predicate(status, ch)) selectedNums.add(ch.num);
+        }
+        syncRangeFromSelection();
+      };
+
+      document.getElementById('translate-chapter-table')?.addEventListener('change', (event) => {
+        const checkbox = event.target.closest('input[type="checkbox"]');
+        if (!checkbox) return;
+        if (checkbox.id === 'translate-select-all') {
+          selectedNums.clear();
+          if (checkbox.checked) for (const ch of tableChapters) selectedNums.add(ch.num);
+        } else if (checkbox.classList.contains('translate-chapter-check')) {
+          const num = parseInt(checkbox.dataset.num, 10);
+          if (Number.isFinite(num)) {
+            if (checkbox.checked) selectedNums.add(num);
+            else selectedNums.delete(num);
+          }
+        }
+        syncRangeFromSelection();
+      });
+
+      document.getElementById('translate-select-untranslated')?.addEventListener('click', () => {
+        selectMatching(status => status === 'untranslated');
+      });
+      document.getElementById('translate-select-review')?.addEventListener('click', () => {
+        selectMatching(status => status === 'needs_review' || status === 'failed');
+      });
+      document.getElementById('translate-clear-selection')?.addEventListener('click', () => {
+        selectedNums.clear();
+        syncRangeFromSelection();
+      });
+
+      document.getElementById('translate-batch-novel')?.addEventListener('change', () => {
+        updateSourceHealth();
+        loadChapterTable();
+      });
+      loadChapterTable();
+
       // ── Bind Batch Translation Event
       const runBtn = document.getElementById('translate-batch-run-btn');
-      if (runBtn) {
-        runBtn.addEventListener('click', async () => {
+      const runBatch = async (rangeOverride = '') => {
           const slugVal = document.getElementById('translate-batch-novel').value;
-          const rangeVal = document.getElementById('translate-batch-range').value;
+          const rangeVal = rangeOverride || document.getElementById('translate-batch-range').value;
           const concurrentVal = parseInt(document.getElementById('translate-batch-concurrent').value, 10);
           const promptProfile = document.getElementById('translate-prompt-profile')?.value || 'faithful_default';
           const modelOverride = document.getElementById('translate-model-override')?.value.trim() || '';
@@ -2014,8 +2213,10 @@ const AdminTranslatePage = {
           );
 
           try {
-            runBtn.disabled = true;
-            AdminUi.setButton(runBtn, 'book', 'กำลังดำเนินการแปล...');
+            if (runBtn) {
+              runBtn.disabled = true;
+              AdminUi.setButton(runBtn, 'book', 'กำลังดำเนินการแปล...');
+            }
 
             const options = { force: forceSource, promptProfile };
             if (modelOverride) {
@@ -2026,29 +2227,54 @@ const AdminTranslatePage = {
             const result = res.data || res;
 
             if (res.ok && result.success) {
+              const batchResult = result.result || result;
+              for (const ch of batchResult.chapters || []) {
+                const num = parseInt(ch.ch || ch.num, 10);
+                if (Number.isFinite(num)) lastResultByNum[num] = ch;
+              }
               AdminTranslatePage.setConsole(
                 'success',
                 `แปลเสร็จสิ้น: ${rangeVal}`,
-                AdminTranslatePage._formatBatchResult(result.result || result)
+                AdminTranslatePage._formatBatchResult(batchResult)
               );
               Api.invalidateAll(slugVal);
+              await loadChapterTable(true);
               Ui.showToast('แปลกลุ่มช่วงตอนสำเร็จแล้ว');
             } else {
               throw new Error(res.error?.message || 'แปลไม่สำเร็จ');
             }
           } catch (err) {
+            const failedSummary = err.details?.summary || err.payload?.error?.details?.summary || {};
+            const failedChapters = failedSummary.chapters || err.details?.chapters || [];
+            for (const ch of failedChapters) {
+              const num = parseInt(ch.ch || ch.num, 10);
+              if (Number.isFinite(num)) lastResultByNum[num] = ch;
+            }
+            if (failedChapters.length) renderChapterTable();
             AdminTranslatePage.setConsole(
               'error',
               `แปลไม่สำเร็จ: ${rangeVal}`,
-              `[ERROR] การแปลเกิดข้อผิดพลาด:\\n\\n${err.message}`
+              failedChapters.length
+                ? AdminTranslatePage._formatBatchResult({ summary: failedSummary, chapters: failedChapters })
+                : `[ERROR] การแปลเกิดข้อผิดพลาด:\\n\\n${err.message}`
             );
             Ui.showToast('การแปลเกิดข้อผิดพลาด: ' + err.message, 'error');
           } finally {
-            runBtn.disabled = false;
-            AdminUi.setButton(runBtn, 'book', 'เริ่มแปล');
+            if (runBtn) {
+              runBtn.disabled = false;
+              AdminUi.setButton(runBtn, 'book', 'เริ่มแปล');
+            }
           }
-        });
-      }
+      };
+      if (runBtn) runBtn.addEventListener('click', () => runBatch());
+      document.getElementById('translate-run-selected')?.addEventListener('click', () => {
+        const range = AdminTranslatePage._rangeFromNums([...selectedNums]);
+        if (!range) {
+          Ui.showToast('เลือกตอนก่อนสั่งแปล', 'error');
+          return;
+        }
+        runBatch(range);
+      });
 
     } catch (err) {
       Ui.showError(page, 'โหลดหน้าแปลล้มเหลว', err.message);

@@ -92,3 +92,36 @@ test('listChapters does not promote dirty category source titles', async () => {
   assert.equal(chapters[0].title, 'ตอนที่ 1132 [ยังไม่แปล]');
   assert.equal(chapters[0].status, 'source_only');
 });
+
+test('listChapters includes translation quality only when requested', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-chapter-repo-quality-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const slug = 'quality-list';
+  const chaptersDir = path.join(root, slug, 'chapters');
+  await fs.mkdir(chaptersDir, { recursive: true });
+  await fs.writeFile(path.join(chaptersDir, '0003.th.json'), JSON.stringify({
+    chapterNo: 3,
+    title: { translated: 'ตอนที่ 3 Quality Check', source: '' },
+    status: 'translated',
+    paragraphs: [{ type: 'narration', text: 'ทดสอบคุณภาพ' }],
+    meta: { provider: 'openrouter', model: 'test-model', promptProfile: 'faithful_default' },
+    qualityRecord: {
+      passed: false,
+      score: 72,
+      hardFailures: ['Completeness: too short'],
+      warnings: [],
+      lengthRatio: 0.7,
+    },
+  }), 'utf8');
+
+  const { listChapters } = require('../lib/chapter-repo');
+  const basic = await listChapters(slug, { forceScan: true });
+  const withQuality = await listChapters(slug, { forceScan: true, includeQuality: true });
+
+  assert.equal(basic[0].qualityRecord, undefined);
+  assert.equal(withQuality[0].score, 72);
+  assert.equal(withQuality[0].qualityStatus, 'needs_review');
+  assert.equal(withQuality[0].model, 'test-model');
+});

@@ -212,7 +212,22 @@ async function readChapterQualityMeta(slug, num) {
 
   const paddedNum = String(num).padStart(4, '0');
   const qualityPath = path.join(__dirname, '..', 'jobs', 'quality', slug, `${paddedNum}.json`);
-  const meta = { score: null, model: 'unknown', provider: 'unknown' };
+  const meta = { score: null, model: 'unknown', provider: 'unknown', promptProfile: '', quality: null };
+
+  try {
+    const rawChapter = await fs.readFile(chapterPath(slug, num, 'th'), 'utf8');
+    const chapterData = JSON.parse(rawChapter);
+    const chapterMeta = chapterData.meta || {};
+    const qualityRecord = chapterData.qualityRecord && typeof chapterData.qualityRecord === 'object'
+      ? chapterData.qualityRecord
+      : null;
+    meta.model = chapterMeta.model || chapterData.model || meta.model;
+    meta.provider = chapterMeta.provider || chapterData.provider || meta.provider;
+    meta.promptProfile = chapterMeta.promptProfile || '';
+    meta.quality = qualityRecord;
+    if (qualityRecord && qualityRecord.score !== undefined) meta.score = qualityRecord.score;
+    else if (chapterData.score !== undefined) meta.score = chapterData.score;
+  } catch {}
 
   try {
     const rawQuality = await fs.readFile(qualityPath, 'utf8');
@@ -374,7 +389,8 @@ app.get('/api/novel/:slug/meta', asyncHandler(async (req, res) => {
 
 app.get('/api/novel/:slug/chapters', asyncHandler(async (req, res) => {
   const startedAt = Date.now();
-  const chapters = await chapterRepo.listChapters(req.params.slug);
+  const withQuality = req.query.withQuality === '1' || req.query.withQuality === 'true';
+  const chapters = await chapterRepo.listChapters(req.params.slug, { includeQuality: withQuality });
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   logTiming(`GET /api/novel/${req.params.slug}/chapters`, startedAt);
   res.json({ slug: req.params.slug, chapters });
@@ -448,6 +464,8 @@ app.get('/api/novel/:slug/chapter/:num', asyncHandler(async (req, res) => {
     score: qualityMeta.score,
     model: qualityMeta.model,
     provider: qualityMeta.provider,
+    promptProfile: qualityMeta.promptProfile,
+    quality: qualityMeta.quality,
     isTranslated: result.isTranslated !== false,
     validation: { valid: true, errors: [], warnings: [], info: [] },
   });
@@ -1262,6 +1280,8 @@ function buildLlmConfigResponse(providerConfig = {}, localKeys = {}) {
   };
 }
 
+// Compatibility wrapper for older Reader controls. The provider catalog and
+// model selection still come from providerConfigService as the single source.
 app.get('/api/local/llm-config', asyncHandler(async (req, res) => {
   const refreshModels = req.query.refreshModels === '1' || req.query.refreshModels === 'true';
   let localKeys = {};

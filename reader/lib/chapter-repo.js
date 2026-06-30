@@ -17,10 +17,10 @@ const cache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 function invalidateList(slug) {
-  if (slug) cache.delete('list:' + slug);
+  if (slug) { cache.delete('list:' + slug); cache.delete('listq:' + slug); }
 }
 function invalidateAll(slug) {
-  if (slug) { cache.delete('list:' + slug); cache.delete('meta:' + slug); }
+  if (slug) { cache.delete('list:' + slug); cache.delete('listq:' + slug); cache.delete('meta:' + slug); }
   else cache.clear();
 }
 exports.invalidateList = invalidateList;
@@ -67,11 +67,36 @@ async function readSourceTitle(dir, files, num) {
   }
 }
 
+function summarizeTranslationMeta(data) {
+  if (!data || typeof data !== 'object') return {};
+  const meta = data.meta && typeof data.meta === 'object' ? data.meta : {};
+  const qualityRecord = data.qualityRecord && typeof data.qualityRecord === 'object'
+    ? data.qualityRecord
+    : null;
+  return {
+    provider: meta.provider || data.provider || 'unknown',
+    model: meta.model || data.model || 'unknown',
+    promptProfile: meta.promptProfile || '',
+    score: qualityRecord?.score ?? meta.score ?? data.score ?? null,
+    qualityRecord,
+    qualityStatus: qualityRecord && qualityRecord.passed === false ? 'needs_review' : 'translated',
+  };
+}
+
+async function readTranslationMeta(slug, num) {
+  try {
+    const raw = await fs.readFile(chapterPath(slug, num, 'th'), 'utf8');
+    return summarizeTranslationMeta(JSON.parse(raw));
+  } catch {
+    return {};
+  }
+}
+
 // ── Private: force-scan directory for real file state ──────────────
 // Always reads from disk. No cache, no fast-path index.
 // Returns: { chapters: [{ num, title, hasTh, hasCn, isTranslated, status }] }
 
-async function scanChapters(slug) {
+async function scanChapters(slug, options = {}) {
   if (!/^[a-zA-Z0-9_-]+$/.test(slug)) return [];
   const dir = chapterDir(slug);
   let dirStat;
@@ -115,6 +140,7 @@ async function scanChapters(slug) {
       const hasCn = !!files.cn;
       const isTranslated = hasTh; // .th.json = translated
       let status;
+      let translationMeta = {};
       if (hasTh) status = 'translated';
       else if (hasCn || files.source) status = 'source_only';
       else status = 'legacy';
@@ -123,10 +149,12 @@ async function scanChapters(slug) {
       if (titleFile) {
         try {
           // Source files live under chapters/source/, not chapters/
-          const readDir = files.source ? path.join(dir, 'source') : dir;
+          const titleIsSource = titleFile === files.source;
+          const readDir = titleIsSource ? path.join(dir, 'source') : dir;
           const raw = await fs.readFile(path.join(readDir, titleFile), 'utf8');
           if (titleFile.endsWith('.json')) {
             const j = JSON.parse(raw);
+            if (titleFile === files.th) translationMeta = summarizeTranslationMeta(j);
             if (j.title && typeof j.title === 'object') {
               const translatedTitle = (j.title.translated || '').toString();
               const sourceTitle = (j.title.source || '').toString();
@@ -149,7 +177,10 @@ async function scanChapters(slug) {
       if (!title) {
         title = isTranslated ? `ตอนที่ ${num}` : `ตอนที่ ${num} [ยังไม่แปล]`;
       }
-      return { num, title, hasTh, hasCn, isTranslated, status };
+      if (options.includeQuality && hasTh && !translationMeta.qualityRecord && translationMeta.score == null) {
+        translationMeta = await readTranslationMeta(slug, num);
+      }
+      return { num, title, hasTh, hasCn, isTranslated, status, ...(options.includeQuality ? translationMeta : {}) };
     }),
   );
 
@@ -354,7 +385,7 @@ async function listChapters(slug, options = {}) {
 
   // Force scan bypasses cache and chapters.json fast path
   if (options.forceScan) {
-    return await scanChapters(slug);
+    return await scanChapters(slug, options);
   }
 
   const dir = chapterDir(slug);
@@ -368,8 +399,9 @@ async function listChapters(slug, options = {}) {
     sourceDirMtimeMs = sourceStat.mtimeMs;
   } catch {}
   const cacheKeyMtime = dirStat.mtimeMs + sourceDirMtimeMs;
+  const listCacheKey = (options.includeQuality ? 'listq:' : 'list:') + slug;
 
-  const cached = cache.get('list:' + slug);
+  const cached = cache.get(listCacheKey);
   if (cached && cached.mtimeMs === cacheKeyMtime && Date.now() - cached.ts < CACHE_TTL_MS) {
     return cached.list;
   }
@@ -387,11 +419,18 @@ async function listChapters(slug, options = {}) {
       }));
       const hasStaleSourceTitles = out.some(c => isGenericChapterTitle(c.title, c.num));
       if (hasStaleSourceTitles) {
-        const scanned = await scanChapters(slug);
-        cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: scanned });
+        const scanned = await scanChapters(slug, options);
+        cache.set(listCacheKey, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: scanned });
         return scanned;
       }
-      cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: out });
+      if (options.includeQuality) {
+        const withQuality = await Promise.all(out.map(async c => (
+          c.hasTh ? { ...c, ...(await readTranslationMeta(slug, c.num)) } : c
+        )));
+        cache.set(listCacheKey, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: withQuality });
+        return withQuality;
+      }
+      cache.set(listCacheKey, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: out });
       return out;
     }
   } catch {}
@@ -401,14 +440,19 @@ async function listChapters(slug, options = {}) {
     const idxRaw = await fs.readFile(legacyIndexPath(slug), 'utf8');
     const idx = JSON.parse(idxRaw);
     if (idx && idx.chapters && idx.chapters.length > 0) {
-      cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: idx.chapters });
-      return idx.chapters;
+      const out = options.includeQuality
+        ? await Promise.all(idx.chapters.map(async c => (
+          c.isTranslated ? { ...c, ...(await readTranslationMeta(slug, c.num)) } : c
+        )))
+        : idx.chapters;
+      cache.set(listCacheKey, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: out });
+      return out;
     }
   } catch {}
 
   // Fallback: actually scan
-  const scanned = await scanChapters(slug);
-  cache.set('list:' + slug, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: scanned });
+  const scanned = await scanChapters(slug, options);
+  cache.set(listCacheKey, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: scanned });
   return scanned;
 }
 exports.listChapters = listChapters;
