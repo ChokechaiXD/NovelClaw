@@ -36,14 +36,13 @@ const ReaderPage = {
           </a>
           <span class="c-toolbar__title">${novel ? Ui.esc(Ui.displayTitle(novel)) : slug}</span>
           <span class="c-toolbar__divider"></span>
-          
-          <button class="c-btn c-reader-toolbar__editor" id="reader-open-editor" title="แก้ไข">
-            <svg class="c-icon c-icon--xs c-icon--stroke"><use xlink:href="#icon-settings"/></svg>
-            <span>แก้ไข</span>
-          </button>
-          <span class="c-toolbar__divider"></span>
-          
-          <select id="reader-model-select" class="c-reader-toolbar__model-select" title="เลือกโมเดลแปล AI"></select>
+          <div class="c-toolbar__actions">
+            <button class="c-btn c-btn--sm c-btn--secondary c-reader-toolbar__editor" id="reader-open-editor" title="แก้ไข">
+              <svg class="c-icon c-icon--xs c-icon--stroke"><use xlink:href="#icon-settings"/></svg>
+              <span>แก้ไข</span>
+            </button>
+            <select id="reader-model-select" class="c-reader-toolbar__model-select" title="เลือกโมเดลแปล AI"></select>
+          </div>
         </div>
 
         <div class="reader-shell">
@@ -188,8 +187,8 @@ const ReaderPage = {
           if (!data.isTranslated) {
             contentHtml += `
             <div id="inline-translate-banner" class="c-inline-translate">
-              <p class="c-inline-translate__text">📖 ตอนศึกษานี้ยังไม่ได้แปลเป็นภาษาไทย</p>
-              <button id="inline-translate-btn" class="c-btn c-btn--primary c-inline-translate__button">⚡ แปลไทยด้วย AI ทันที</button>
+              <p class="c-inline-translate__text">ตอนนี้ยังเป็นต้นฉบับ ยังไม่ได้แปลไทย</p>
+              <button id="inline-translate-btn" class="c-btn c-btn--primary c-inline-translate__button">แปลไทยด้วย AI</button>
             </div>`;
           }
 
@@ -218,7 +217,11 @@ const ReaderPage = {
                   Ui.showToast('การแปลขัดข้อง: ' + (res.error?.message || 'ข้อผิดพลาดระบบ'), 'error');
                 }
               } catch (err) {
-                Ui.showToast('เกิดข้อผิดพลาดในการแปล: ' + err.message, 'error');
+                const banner = document.getElementById('inline-translate-banner');
+                if (err.code === 'SOURCE_NOT_READY' && banner) {
+                  banner.innerHTML = ReaderPage._sourceNotReadyHtml(slug, ch.num, err);
+                }
+                Ui.showToast((err.code === 'SOURCE_NOT_READY' ? 'Source ยังไม่พร้อมแปล: ' : 'เกิดข้อผิดพลาดในการแปล: ') + err.message, 'error');
               } finally {
                 if (loader) loader.style.display = 'none';
               }
@@ -375,6 +378,20 @@ const ReaderPage = {
     } catch (err) {
       Ui.showError(page, 'โหลดไม่สำเร็จ', err.message);
     }
+  },
+
+  _sourceNotReadyHtml(slug, num, err) {
+    const first = err.details?.blocking?.[0] || {};
+    const issueText = (first.issues || []).map(issue => issue.code).slice(0, 4).join(', ') || 'source error';
+    return `
+      <div class="c-inline-translate__blocked">
+        <strong>Source ยังไม่พร้อมแปล</strong>
+        <span>${Ui.esc(issueText)} · ตอน ${Ui.esc(first.num || num)}</span>
+      </div>
+      <div class="c-inline-translate__actions">
+        <a class="c-btn c-btn--secondary c-inline-translate__button" href="#admin/import/${Ui.esc(slug)}/${Ui.esc(first.num || num)}" data-nav>Inspect source</a>
+        <a class="c-btn c-btn--ghost c-inline-translate__button" href="#admin/chapters/${Ui.esc(slug)}" data-nav>จัดการตอน</a>
+      </div>`;
   },
 
   /* ── Bind persistent events with AbortController cleanup ────────── */

@@ -13,6 +13,16 @@ const Api = {
   _CACHE_TTL: 5 * 60 * 1000,     // 5 min standard TTL
   _CONTENT_TTL: 10 * 60 * 1000,  // 10 min for chapter content (changes less often)
 
+  _buildError(res, payload = {}) {
+    const errInfo = payload.error || {};
+    const err = new Error(errInfo.message || `${res.status} ${res.statusText}`);
+    err.status = res.status;
+    err.code = errInfo.code || '';
+    err.details = errInfo.details;
+    err.payload = payload;
+    return err;
+  },
+
   async getNovels() {
     const now = Date.now();
     if (this._novelsCache && (now - this._novelsCacheTime) < this._CACHE_TTL) return this._novelsCache;
@@ -120,7 +130,7 @@ const Api = {
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error?.message || `${res.status} ${res.statusText}`);
+      throw this._buildError(res, errData);
     }
     const data = await res.json();
     if (data.ok) this.invalidateAll(slug);
@@ -135,7 +145,7 @@ const Api = {
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error?.message || `${res.status} ${res.statusText}`);
+      throw this._buildError(res, errData);
     }
     return res.json();
   },

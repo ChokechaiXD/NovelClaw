@@ -948,7 +948,27 @@ const AdminNovelEditPage = {
     try {
       const novels = await Api.getNovels();
       const novel = novels.find(n => n.slug === slug);
-      page.innerHTML = '<div class="c-container"><div class="c-section__header c-admin-page__header"><h3 class="c-section__title">แก้ไขนิยาย: ' + Ui.esc(slug||'') + '</h3></div><div class="c-admin-edit-layout"><div class="c-admin-cover-panel"><div class="c-admin-cover-preview" id="edit-cover-preview">' + Ui.coverHtml(novel || { slug }) + '</div><input class="c-admin-cover-input" id="edit-cover-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"><div class="c-admin-cover-actions"><button class="c-btn c-btn--primary" id="edit-cover-save" type="button">บันทึกปก</button><button class="c-btn c-btn--ghost" id="edit-cover-delete" type="button">ลบปก</button></div><span id="edit-cover-status" class="c-admin-edit__status"></span></div><div class="c-settings-form c-admin-edit-form"><div class="c-form"><div class="c-form__group"><label class="c-form__label" for="edit-translated-title">ชื่อไทย</label><input class="c-form__input" id="edit-translated-title" value="' + Ui.esc(novel?.translatedTitle||'') + '" /></div><div class="c-form__group"><label class="c-form__label" for="edit-title">ชื่อต้นฉบับ</label><input class="c-form__input" id="edit-title" value="' + Ui.esc(novel?.title||'') + '" /></div><div class="c-form__group"><label class="c-form__label" for="edit-author">ผู้แต่ง</label><input class="c-form__input" id="edit-author" value="' + Ui.esc(novel?.author||'') + '" /></div><div class="c-form__group c-admin-edit__actions"><button class="c-btn c-btn--primary" id="edit-save" type="button">บันทึก</button><span id="edit-status" class="c-admin-edit__status"></span></div></div></div></div></div>';
+      page.innerHTML =
+        '<div class="c-container">' + Ui.adminNav('novels') +
+        '<div class="c-section__header c-admin-page__header c-admin-edit__header">' +
+        '<div><h3 class="c-section__title">แก้ไขนิยาย: ' + Ui.esc(slug || '') + '</h3><p class="u-text-muted">แก้ metadata และปก จากนั้นไปจัดตอนหรือนำเข้าต้นฉบับต่อได้ทันที</p></div>' +
+        '<div class="c-admin-edit__quick-actions">' +
+        '<a class="c-btn c-btn--sm c-btn--ghost" href="#admin/novels" data-nav>รายการนิยาย</a>' +
+        '<a class="c-btn c-btn--sm c-btn--secondary" href="#novel/' + Ui.esc(slug || '') + '" data-nav>อ่าน</a>' +
+        '<a class="c-btn c-btn--sm c-btn--secondary" href="#admin/chapters/' + Ui.esc(slug || '') + '" data-nav>จัดตอน</a>' +
+        '<a class="c-btn c-btn--sm c-btn--secondary" href="#admin/import/' + Ui.esc(slug || '') + '" data-nav>Import Health</a>' +
+        '</div></div>' +
+        '<div class="c-admin-edit-layout">' +
+        '<div class="c-admin-cover-panel"><div class="c-admin-cover-preview" id="edit-cover-preview">' + Ui.coverHtml(novel || { slug }) + '</div>' +
+        '<input class="c-admin-cover-input" id="edit-cover-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif">' +
+        '<div class="c-admin-cover-actions"><button class="c-btn c-btn--primary" id="edit-cover-save" type="button">บันทึกปก</button><button class="c-btn c-btn--ghost" id="edit-cover-delete" type="button">ลบปก</button></div>' +
+        '<span id="edit-cover-status" class="c-admin-edit__status"></span></div>' +
+        '<div class="c-settings-form c-admin-edit-form"><div class="c-form">' +
+        '<div class="c-form__group"><label class="c-form__label" for="edit-translated-title">ชื่อไทย</label><input class="c-form__input" id="edit-translated-title" value="' + Ui.esc(novel?.translatedTitle || '') + '" /></div>' +
+        '<div class="c-form__group"><label class="c-form__label" for="edit-title">ชื่อต้นฉบับ</label><input class="c-form__input" id="edit-title" value="' + Ui.esc(novel?.title || '') + '" /></div>' +
+        '<div class="c-form__group"><label class="c-form__label" for="edit-author">ผู้แต่ง</label><input class="c-form__input" id="edit-author" value="' + Ui.esc(novel?.author || '') + '" /></div>' +
+        '<div class="c-form__group c-admin-edit__actions"><button class="c-btn c-btn--primary" id="edit-save" type="button">บันทึก metadata</button><span id="edit-status" class="c-admin-edit__status"></span></div>' +
+        '</div></div></div></div>';
     } catch(_) { Ui.showError(page, 'เกิดข้อผิดพลาด'); }
 
     // ── Save handler ────────────────────────────────────────────────
@@ -968,13 +988,14 @@ const AdminNovelEditPage = {
           });
           const data = await res.json();
           if (res.ok) {
-            Api.invalidateNovels();
-            AdminUi.setStatus('edit-status', 'c-admin-edit__status', '✅ บันทึกสำเร็จ', 'success');
+            Api.invalidateAll(slug);
+            AdminUi.setStatus('edit-status', 'c-admin-edit__status', 'บันทึกสำเร็จ', 'success');
+            Ui.showToast('บันทึกข้อมูลนิยายแล้ว');
           } else {
-            AdminUi.setStatus('edit-status', 'c-admin-edit__status', '❌ ' + (data.error?.message || 'เกิดข้อผิดพลาด'), 'error');
+            AdminUi.setStatus('edit-status', 'c-admin-edit__status', data.error?.message || 'เกิดข้อผิดพลาด', 'error');
           }
         } catch (e) {
-          AdminUi.setStatus('edit-status', 'c-admin-edit__status', '❌ ' + e.message, 'error');
+          AdminUi.setStatus('edit-status', 'c-admin-edit__status', e.message, 'error');
         }
       };
     }

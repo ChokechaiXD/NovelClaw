@@ -82,9 +82,12 @@ const NovelPage = {
               ${read ? '<br><span class="c-detail__read-mark">✔ อ่านแล้ว</span>' : ''}
             </a>
             ${sourceOnly ? `
-              <button class="ch-quick-translate-btn" data-slug="${Ui.esc(slug)}" data-num="${Ui.esc(ch.num)}" type="button" title="แปลไทยด้วย AI ทันที" aria-label="แปลตอนที่ ${Ui.esc(ch.num)}">
-                ⚡
-              </button>
+              <div class="c-detail__ch-actions">
+                <button class="ch-quick-translate-btn" data-slug="${Ui.esc(slug)}" data-num="${Ui.esc(ch.num)}" type="button" title="แปลไทยด้วย AI ทันที" aria-label="แปลตอนที่ ${Ui.esc(ch.num)}">
+                  <svg class="c-icon c-icon--xs c-icon--stroke"><use xlink:href="#icon-book"/></svg>
+                  <span>แปล</span>
+                </button>
+              </div>
             ` : ''}
           </div>`;
       };
@@ -115,7 +118,19 @@ const NovelPage = {
                 Ui.showToast('การแปลขัดข้อง: ' + (res.error?.message || 'ข้อผิดพลาดระบบ'), 'error');
               }
             } catch (err) {
-              Ui.showToast('เกิดข้อผิดพลาดในการแปล: ' + err.message, 'error');
+              if (err.code === 'SOURCE_NOT_READY') {
+                const wrapper = btn.closest('.c-detail__ch-wrapper');
+                if (wrapper && !wrapper.querySelector('.ch-source-inspect-link')) {
+                  const actionRow = wrapper.querySelector('.c-detail__ch-actions') || wrapper;
+                  actionRow.insertAdjacentHTML('beforeend',
+                    '<a class="c-btn c-btn--xs c-btn--ghost ch-source-inspect-link" href="#admin/import/' +
+                    Ui.esc(chSlug) + '/' + Ui.esc(chNum) + '" data-nav>ตรวจ source</a>'
+                  );
+                }
+                btn.classList.add('ch-quick-translate-btn--blocked');
+                btn.title = 'Source ยังไม่พร้อมแปล';
+              }
+              Ui.showToast((err.code === 'SOURCE_NOT_READY' ? 'Source ยังไม่พร้อมแปล: ' : 'เกิดข้อผิดพลาดในการแปล: ') + err.message, 'error');
             } finally {
               if (loader) loader.style.display = 'none';
             }
