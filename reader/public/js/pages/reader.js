@@ -186,7 +186,7 @@ const ReaderPage = {
 
           // Update topbar title with novel + chapter info
           const titleEl = document.getElementById('page-title');
-          if (titleEl) titleEl.textContent = Ui.esc(Ui.displayTitle(novel) || slug) + ' — ตอนที่ ' + ch.num;
+          if (titleEl) titleEl.textContent = (Ui.displayTitle(novel) || slug) + ' — ตอนที่ ' + ch.num;
 
           let contentHtml = '';
           if (!data.isTranslated) {
@@ -215,7 +215,6 @@ const ReaderPage = {
                 });
                 if (res.ok) {
                   Store.setSetting('readerLang', 'th');
-                  Api.invalidateAll(slug);
                   ch.isTranslated = true;
                   ch.status = 'translated';
                   await loadChapter(chIdx, { fresh: true });

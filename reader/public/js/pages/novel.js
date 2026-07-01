@@ -19,7 +19,7 @@ const NovelPage = {
 
       // Update topbar title with novel name
       const titleEl = document.getElementById('page-title');
-      if (titleEl) titleEl.textContent = Ui.esc(Ui.displayTitle(novel));
+      if (titleEl) titleEl.textContent = Ui.displayTitle(novel);
 
       const chapters = await Api.getChapters(slug);
       const enriched = Ui.enrichNovel(novel);
@@ -110,7 +110,6 @@ const NovelPage = {
             try {
               const res = await Api.translateSingle(chSlug, chNum, true);
               if (res.ok) {
-                Api.invalidateAll(chSlug);
                 Ui.showToast(`แปลตอนที่ ${chNum} สำเร็จเรียบร้อยแล้วค่ะ`, 'success');
                 // โหลดหน้านี้ใหม่เพื่ออัปเดตสถานะปุ่ม
                 await NovelPage.render(params);

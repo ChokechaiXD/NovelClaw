@@ -21,7 +21,6 @@ Output: novels/<slug>/chapters/source/<ch:04d>.md
 from __future__ import annotations
 
 import json
-import os
 import re
 import time
 import urllib.error

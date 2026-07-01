@@ -153,7 +153,9 @@ const Api = {
       const errData = await res.json().catch(() => ({}));
       throw this._buildError(res, errData);
     }
-    return res.json();
+    const data = await res.json();
+    if (data.ok) this.invalidateAll(slug);
+    return data;
   },
 
   async getTranslationHealth() {

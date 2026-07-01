@@ -448,7 +448,6 @@ const AdminChaptersPage = {
           if (!confirm('เริ่มแปลตอนที่เลือก?\n\n' + range)) return;
           try {
             await Api.translateBatch(slug, range, 1);
-            Api.invalidateAll(slug);
             Ui.showToast('ส่งงานแปลแล้ว');
             selectedNums.clear();
             await AdminChaptersPage.render({ slug });
@@ -469,7 +468,6 @@ const AdminChaptersPage = {
             AdminUi.setButton(btn, 'book', 'กำลังแปล...');
             try {
               await Api.translateSingle(slug, num, true);
-              Api.invalidateAll(slug);
               Ui.showToast('แปลตอน ' + num + ' สำเร็จ');
               await AdminChaptersPage.render({ slug });
             } catch (err) {
@@ -2583,7 +2581,6 @@ const AdminTranslatePage = {
                 `แปลเสร็จสิ้น: ${rangeVal}`,
                 AdminTranslatePage._formatBatchResult(batchResult)
               );
-              Api.invalidateAll(slugVal);
               await loadChapterTable(true);
               Ui.showToast('แปลกลุ่มช่วงตอนสำเร็จแล้ว');
             } else {
