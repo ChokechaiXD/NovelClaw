@@ -115,9 +115,7 @@ const Api = {
     const suffix = options.refreshModels ? '?refreshModels=1' : '';
     const res = await fetch('/api/local/llm-config' + suffix);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    const data = await res.json();
-    if (data.ok) this.invalidateAll(slug);
-    return data;
+    return res.json();
   },
 
   async saveLlmConfig(config) {
