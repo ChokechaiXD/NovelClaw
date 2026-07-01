@@ -2361,6 +2361,15 @@ pre code {
   color: var(--c-text-secondary);
   font-size: var(--text-sm);
 }
+.c-admin-translate__model-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  margin-top: var(--space-2xs);
+  font-size: var(--text-xs);
+}
 .c-admin-translate__chapter-panel {
   margin-top: var(--space-md);
   padding-top: var(--space-md);

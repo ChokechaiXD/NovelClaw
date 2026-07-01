@@ -1826,8 +1826,27 @@ const AdminTranslatePage = {
     return ranges.join(',');
   },
 
+  _numsFromRange(range = '') {
+    const nums = new Set();
+    for (const part of String(range).split(',')) {
+      const token = part.trim();
+      if (!token) continue;
+      const match = token.match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+      if (!match) continue;
+      const start = parseInt(match[1], 10);
+      const end = parseInt(match[2] || match[1], 10);
+      if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+      const lo = Math.max(1, Math.min(start, end));
+      const hi = Math.max(start, end);
+      for (let n = lo; n <= hi && nums.size < 5000; n++) nums.add(n);
+    }
+    return [...nums].sort((a, b) => a - b);
+  },
+
   _chapterStatus(ch = {}, sourceIssue = null, resultIssue = null) {
     const resultStatus = resultIssue?.status;
+    if (resultStatus === 'ok') return 'translated';
+    if (resultStatus === 'queued' || resultStatus === 'running') return resultStatus;
     if (resultStatus && resultStatus !== 'ok') return resultStatus === 'failed' ? 'failed' : 'needs_review';
     const blockingIssue = sourceIssue?.issues?.some(issue => issue.severity === 'error');
     if (blockingIssue) return 'source_not_ready';
@@ -1844,8 +1863,19 @@ const AdminTranslatePage = {
       needs_review: ['ควรดู', 'c-badge c-badge--amber'],
       failed: ['ล้มเหลว', 'c-badge c-badge--red'],
       source_not_ready: ['source error', 'c-badge c-badge--red'],
+      queued: ['รอแปล', 'c-badge c-badge--gray'],
+      running: ['กำลังแปล', 'c-badge c-badge--amber'],
     };
     return map[status] || [status || '-', 'c-badge c-badge--gray'];
+  },
+
+  _modelCatalogSummary(cfg = {}) {
+    const providers = cfg.providers || [];
+    const modelCount = providers.reduce((sum, provider) => sum + ((provider.models || []).length), 0);
+    const liveCount = providers.filter(provider => provider.modelSource === 'live' || provider.model_source === 'live').length;
+    const fallbackCount = providers.filter(provider => provider.modelError || provider.model_error).length;
+    const source = liveCount ? `${liveCount} live provider` : 'static fallback';
+    return `${modelCount} models · ${source}${fallbackCount ? ` · ${fallbackCount} fallback` : ''}`;
   },
 
   _qualityText(ch = {}, resultIssue = null) {
@@ -1889,12 +1919,17 @@ const AdminTranslatePage = {
       ).join('') || '';
       const batchRecent = activeBatch?.recentLines?.map(line => Ui.esc(line)).join('\n') || '';
       const modelProviderById = {};
-      const modelOptions = (llmConfig.providers || []).flatMap(provider =>
-        (provider.models || []).map(model => {
-          modelProviderById[model.id] = provider.id;
-          return '<option value="' + Ui.esc(model.id) + '" label="' + Ui.esc((provider.label || provider.id) + ' · ' + (model.label || model.id)) + '"></option>';
-        })
-      ).join('');
+      let currentLlmConfig = llmConfig;
+      const buildModelOptions = (cfg = {}) => {
+        for (const key of Object.keys(modelProviderById)) delete modelProviderById[key];
+        return (cfg.providers || []).flatMap(provider =>
+          (provider.models || []).map(model => {
+            modelProviderById[model.id] = provider.id;
+            return '<option value="' + Ui.esc(model.id) + '" label="' + Ui.esc((provider.label || provider.id) + ' · ' + (model.label || model.id)) + '"></option>';
+          })
+        ).join('');
+      };
+      const modelOptions = buildModelOptions(currentLlmConfig);
 
       const novelOptions = novels.map(n => {
         const h = importHealthBySlug[n.slug] || {};
@@ -1988,6 +2023,10 @@ const AdminTranslatePage = {
                   <label class="c-form__label">Model override</label>
                   <input type="text" class="c-form__input c-form__input--compact" id="translate-model-override" list="translate-model-list" placeholder="ค้นหา model หรือเว้นว่างเพื่อใช้ Provider default" />
                   <datalist id="translate-model-list">${modelOptions}</datalist>
+                  <div class="c-admin-translate__model-tools">
+                    <span id="translate-model-catalog-note" class="u-text-muted">${Ui.esc(AdminTranslatePage._modelCatalogSummary(currentLlmConfig))}</span>
+                    <button class="c-btn c-btn--xs c-btn--ghost" id="translate-refresh-models" type="button">${Ui.icon('search', 'xs')}<span>รีเฟรชโมเดล</span></button>
+                  </div>
                 </div>
               </div>
               <div id="translate-source-health" class="c-admin-translate__source-health"></div>
@@ -2004,8 +2043,13 @@ const AdminTranslatePage = {
                   <div class="c-admin-translate__chapter-actions">
                     <button class="c-btn c-btn--xs c-btn--secondary" id="translate-select-untranslated" type="button">${Ui.icon('search', 'xs')}<span>ยังไม่แปล</span></button>
                     <button class="c-btn c-btn--xs c-btn--secondary" id="translate-select-review" type="button">${Ui.icon('search', 'xs')}<span>ควรดู/ล้มเหลว</span></button>
+                    <button class="c-btn c-btn--xs c-btn--secondary" id="translate-select-source-errors" type="button">${Ui.icon('info', 'xs')}<span>source error</span></button>
                     <button class="c-btn c-btn--xs c-btn--ghost" id="translate-clear-selection" type="button">${Ui.icon('info', 'xs')}<span>ล้าง</span></button>
                     <button class="c-btn c-btn--xs c-btn--primary" id="translate-run-selected" type="button">${Ui.icon('book', 'xs')}<span>แปลที่เลือก</span></button>
+                    <button class="c-btn c-btn--xs c-btn--secondary" id="translate-run-untranslated" type="button">${Ui.icon('book', 'xs')}<span>แปลที่ยังไม่แปล</span></button>
+                    <button class="c-btn c-btn--xs c-btn--secondary" id="translate-retry-review" type="button">${Ui.icon('book', 'xs')}<span>Retry ควรดู</span></button>
+                    <button class="c-btn c-btn--xs c-btn--secondary" id="translate-force-selected" type="button">${Ui.icon('book', 'xs')}<span>Force selected</span></button>
+                    <button class="c-btn c-btn--xs c-btn--ghost" id="translate-repair-source" type="button">${Ui.icon('settings', 'xs')}<span>ซ่อม source/index</span></button>
                   </div>
                 </div>
                 <div id="translate-chapter-table" class="c-admin-translate__chapter-table" aria-live="polite">
@@ -2029,6 +2073,33 @@ const AdminTranslatePage = {
 
       page.innerHTML = html;
       document.getElementById('translate-health-refresh')?.addEventListener('click', () => this.render(params));
+
+      const updateModelCatalogNote = () => {
+        const note = document.getElementById('translate-model-catalog-note');
+        if (note) note.textContent = AdminTranslatePage._modelCatalogSummary(currentLlmConfig);
+      };
+      const refreshModelCatalog = async (silent = false) => {
+        const btn = document.getElementById('translate-refresh-models');
+        if (btn && !silent) {
+          btn.disabled = true;
+          AdminUi.setButton(btn, 'search', 'Refreshing...');
+        }
+        try {
+          currentLlmConfig = await Api.getLlmConfig({ refreshModels: true });
+          const list = document.getElementById('translate-model-list');
+          if (list) list.innerHTML = buildModelOptions(currentLlmConfig);
+          updateModelCatalogNote();
+          if (!silent) Ui.showToast('อัปเดตรายชื่อโมเดลแล้ว');
+        } catch (err) {
+          if (!silent) Ui.showToast('Refresh models ไม่สำเร็จ: ' + err.message, 'error');
+        } finally {
+          if (btn && !silent) {
+            btn.disabled = false;
+            AdminUi.setButton(btn, 'search', 'รีเฟรชโมเดล');
+          }
+        }
+      };
+      document.getElementById('translate-refresh-models')?.addEventListener('click', () => refreshModelCatalog(false));
 
       const updateSourceHealth = () => {
         const slugVal = document.getElementById('translate-batch-novel')?.value || '';
@@ -2063,7 +2134,7 @@ const AdminTranslatePage = {
           table.innerHTML = '<div class="c-admin-translate__chapter-empty">ไม่มีตอนให้แสดง</div>';
           return;
         }
-        const counts = { translated: 0, untranslated: 0, needs_review: 0, failed: 0, source_not_ready: 0 };
+        const counts = { translated: 0, untranslated: 0, needs_review: 0, failed: 0, source_not_ready: 0, queued: 0, running: 0 };
         for (const ch of tableChapters) {
           const status = AdminTranslatePage._chapterStatus(ch, sourceIssueByNum[ch.num], lastResultByNum[ch.num]);
           counts[status] = (counts[status] || 0) + 1;
@@ -2147,7 +2218,7 @@ const AdminTranslatePage = {
           const status = AdminTranslatePage._chapterStatus(ch, sourceIssueByNum[ch.num], lastResultByNum[ch.num]);
           if (predicate(status, ch)) selectedNums.add(ch.num);
         }
-        syncRangeFromSelection();
+        return syncRangeFromSelection();
       };
 
       document.getElementById('translate-chapter-table')?.addEventListener('change', (event) => {
@@ -2172,6 +2243,9 @@ const AdminTranslatePage = {
       document.getElementById('translate-select-review')?.addEventListener('click', () => {
         selectMatching(status => status === 'needs_review' || status === 'failed');
       });
+      document.getElementById('translate-select-source-errors')?.addEventListener('click', () => {
+        selectMatching(status => status === 'source_not_ready');
+      });
       document.getElementById('translate-clear-selection')?.addEventListener('click', () => {
         selectedNums.clear();
         syncRangeFromSelection();
@@ -2181,35 +2255,45 @@ const AdminTranslatePage = {
         updateSourceHealth();
         loadChapterTable();
       });
-      loadChapterTable();
+      loadChapterTable().finally(() => {
+        setTimeout(() => { refreshModelCatalog(true); }, 1000);
+      });
 
       // ── Bind Batch Translation Event
       const runBtn = document.getElementById('translate-batch-run-btn');
-      const runBatch = async (rangeOverride = '') => {
+      const runBatch = async (rangeOverride = '', runOptions = {}) => {
           const slugVal = document.getElementById('translate-batch-novel').value;
           const rangeVal = rangeOverride || document.getElementById('translate-batch-range').value;
           const concurrentVal = parseInt(document.getElementById('translate-batch-concurrent').value, 10);
           const promptProfile = document.getElementById('translate-prompt-profile')?.value || 'faithful_default';
           const modelOverride = document.getElementById('translate-model-override')?.value.trim() || '';
-          const forceSource = document.getElementById('translate-force-source')?.checked === true;
-          const selectedHealth = importHealthBySlug[slugVal] || {};
+          const forceSource = runOptions.force === true || document.getElementById('translate-force-source')?.checked === true;
+          const requestedNums = AdminTranslatePage._numsFromRange(rangeVal);
+          const blockingNums = requestedNums.filter(num =>
+            sourceIssueByNum[num]?.issues?.some(issue => issue.severity === 'error')
+          );
 
           if (!rangeVal.trim()) {
             AdminTranslatePage.setConsole('error', 'ยังไม่ได้ระบุช่วงตอน', 'กรุณากรอกช่วงตอนที่ต้องการสั่งแปล เช่น 5-10 หรือ 5');
             Ui.showToast('กรุณากรอกช่วงตอนที่ต้องการสั่งแปล', 'error');
             return;
           }
-          if (selectedHealth.status === 'error' && !forceSource) {
-            const issueText = this._sourceIssueText(selectedHealth);
-            AdminTranslatePage.setConsole('error', 'Source ยังไม่พร้อมแปล', issueText || 'พบ source error ในเรื่องนี้');
-            Ui.showToast('Source มี error ต้องซ่อมหรือกด force ก่อนแปล', 'error');
+          if (blockingNums.length && !forceSource) {
+            const sample = blockingNums.slice(0, 10).join(', ');
+            AdminTranslatePage.setConsole('error', 'Source ยังไม่พร้อมแปล', `พบ source error ในตอนที่เลือก ${blockingNums.length} ตอน: ${sample}`);
+            Ui.showToast('ตอนที่เลือกมี source error ต้องซ่อมหรือกด force ก่อนแปล', 'error');
             return;
           }
+
+          for (const num of requestedNums) {
+            lastResultByNum[num] = { status: 'queued', reason: 'queued' };
+          }
+          renderChapterTable();
 
           AdminTranslatePage.setConsole(
             'running',
             `รันการแปลช่วงตอน: ${rangeVal}`,
-            `กำลังส่งคำสั่งแปล\\nนิยาย: ${slugVal}`
+            `กำลังส่งคำสั่งแปล\\nนิยาย: ${slugVal}\\nforce source: ${forceSource ? 'yes' : 'no'}`
           );
 
           try {
@@ -2250,7 +2334,12 @@ const AdminTranslatePage = {
               const num = parseInt(ch.ch || ch.num, 10);
               if (Number.isFinite(num)) lastResultByNum[num] = ch;
             }
-            if (failedChapters.length) renderChapterTable();
+            if (!failedChapters.length) {
+              for (const num of requestedNums) {
+                lastResultByNum[num] = { status: 'failed', reason: err.message };
+              }
+            }
+            renderChapterTable();
             AdminTranslatePage.setConsole(
               'error',
               `แปลไม่สำเร็จ: ${rangeVal}`,
@@ -2267,13 +2356,68 @@ const AdminTranslatePage = {
           }
       };
       if (runBtn) runBtn.addEventListener('click', () => runBatch());
-      document.getElementById('translate-run-selected')?.addEventListener('click', () => {
+      const runSelected = (options = {}) => {
         const range = AdminTranslatePage._rangeFromNums([...selectedNums]);
         if (!range) {
           Ui.showToast('เลือกตอนก่อนสั่งแปล', 'error');
           return;
         }
+        runBatch(range, options);
+      };
+      document.getElementById('translate-run-selected')?.addEventListener('click', () => {
+        runSelected();
+      });
+      document.getElementById('translate-run-untranslated')?.addEventListener('click', () => {
+        const range = selectMatching(status => status === 'untranslated');
+        if (!range) {
+          Ui.showToast('ไม่มีตอนที่ยังไม่แปลและ source พร้อมในหน้านี้', 'error');
+          return;
+        }
         runBatch(range);
+      });
+      document.getElementById('translate-retry-review')?.addEventListener('click', () => {
+        const range = selectMatching(status => status === 'needs_review' || status === 'failed');
+        if (!range) {
+          Ui.showToast('ยังไม่มีตอนที่ควร retry', 'error');
+          return;
+        }
+        runBatch(range);
+      });
+      document.getElementById('translate-force-selected')?.addEventListener('click', () => {
+        runSelected({ force: true });
+      });
+      document.getElementById('translate-repair-source')?.addEventListener('click', async () => {
+        const slugVal = document.getElementById('translate-batch-novel')?.value || '';
+        const btn = document.getElementById('translate-repair-source');
+        if (!slugVal || !btn) return;
+        btn.disabled = true;
+        AdminUi.setButton(btn, 'settings', 'Checking...');
+        AdminTranslatePage.setConsole('running', 'Repair preview', 'Checking source titles/noise and rebuilding index for ' + slugVal + '...');
+        try {
+          const preview = await Api.repairImport(slugVal, 'all', { dryRun: true });
+          const previewRepair = preview.data?.repair || {};
+          const previewMessage = formatImportRepairSummary(slugVal, previewRepair);
+          AdminTranslatePage.setConsole('idle', 'Repair preview', previewMessage);
+          if (!confirm('Repair preview\n\n' + previewMessage + '\n\nApply these source/index repairs?')) {
+            return;
+          }
+          AdminUi.setButton(btn, 'settings', 'Repairing...');
+          AdminTranslatePage.setConsole('running', 'Repair running', 'Applying source/index repairs for ' + slugVal + '...');
+          const result = await Api.repairImport(slugVal, 'all');
+          const repair = result.data?.repair || {};
+          AdminTranslatePage.setConsole('success', 'Repair complete', formatImportRepairSummary(slugVal, repair));
+          const health = await Api.getImportHealth(slugVal).catch(() => null);
+          if (health?.data) importHealthBySlug[slugVal] = health.data;
+          updateSourceHealth();
+          await loadChapterTable();
+          Ui.showToast('ซ่อม source/index แล้ว');
+        } catch (err) {
+          AdminTranslatePage.setConsole('error', 'Repair failed', err.message);
+          Ui.showToast('ซ่อมไม่สำเร็จ: ' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          AdminUi.setButton(btn, 'settings', 'ซ่อม source/index');
+        }
       });
 
     } catch (err) {
