@@ -1878,6 +1878,12 @@ const AdminTranslatePage = {
     return `${modelCount} models · ${source}${fallbackCount ? ` · ${fallbackCount} fallback` : ''}`;
   },
 
+  _modelLabel(provider = {}, model = {}) {
+    const parts = [provider.label || provider.id, model.label || model.id];
+    const tags = [model.tier, provider.modelSource || provider.model_source].filter(Boolean);
+    return parts.filter(Boolean).join(' · ') + (tags.length ? ' · ' + tags.join(' · ') : '');
+  },
+
   _qualityText(ch = {}, resultIssue = null) {
     const quality = ch.qualityRecord || ch.quality || {};
     const hardFailures = resultIssue?.hardFailures || quality.hardFailures || [];
@@ -1889,6 +1895,42 @@ const AdminTranslatePage = {
     if (hardFailures.length) parts.push(hardFailures.slice(0, 2).join(', '));
     else if (warnings.length) parts.push('warn: ' + warnings.slice(0, 2).join(', '));
     return parts.join(' · ') || '-';
+  },
+
+  _chapterMatches(ch = {}, status = '', sourceIssue = null, resultIssue = null, filter = 'all', query = '') {
+    if (filter !== 'all') {
+      const wanted = filter === 'review' ? ['needs_review', 'failed'] : [filter];
+      if (!wanted.includes(status)) return false;
+    }
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    const issueText = (resultIssue?.reason || (sourceIssue?.issues || []).map(issue => issue.code).join(' ')).toLowerCase();
+    return String(ch.num).includes(q)
+      || String(ch.title || '').toLowerCase().includes(q)
+      || String(ch.model || '').toLowerCase().includes(q)
+      || issueText.includes(q);
+  },
+
+  _queuePreview(chapters = [], sourceIssueByNum = {}, resultByNum = {}, nums = [], force = false) {
+    const wanted = new Set(nums);
+    const counts = { total: 0, ready: 0, translated: 0, untranslated: 0, review: 0, sourceBlocked: 0, forced: 0 };
+    for (const ch of chapters) {
+      if (wanted.size && !wanted.has(ch.num)) continue;
+      const sourceIssue = sourceIssueByNum[ch.num];
+      const status = this._chapterStatus(ch, sourceIssue, resultByNum[ch.num]);
+      counts.total += 1;
+      if (status === 'translated') counts.translated += 1;
+      if (status === 'untranslated') counts.untranslated += 1;
+      if (status === 'needs_review' || status === 'failed') counts.review += 1;
+      if (status === 'source_not_ready') counts.sourceBlocked += 1;
+      if (status !== 'source_not_ready' || force) counts.ready += 1;
+      if (status === 'source_not_ready' && force) counts.forced += 1;
+    }
+    const warnings = [];
+    if (counts.total > 250) warnings.push('batch ใหญ่มาก ควรแบ่งเป็นช่วงย่อยถ้าต้องการติดตามง่าย');
+    if (counts.sourceBlocked && !force) warnings.push('มี source error ในช่วงนี้ ต้องซ่อมหรือ force ก่อนแปล');
+    if (counts.forced) warnings.push('force จะข้าม source gate เฉพาะตอนที่เลือก');
+    return { counts, warnings };
   },
 
   async render(params) {
@@ -1925,7 +1967,7 @@ const AdminTranslatePage = {
         return (cfg.providers || []).flatMap(provider =>
           (provider.models || []).map(model => {
             modelProviderById[model.id] = provider.id;
-            return '<option value="' + Ui.esc(model.id) + '" label="' + Ui.esc((provider.label || provider.id) + ' · ' + (model.label || model.id)) + '"></option>';
+            return '<option value="' + Ui.esc(model.id) + '" label="' + Ui.esc(AdminTranslatePage._modelLabel(provider, model)) + '"></option>';
           })
         ).join('');
       };
@@ -2026,6 +2068,7 @@ const AdminTranslatePage = {
                   <div class="c-admin-translate__model-tools">
                     <span id="translate-model-catalog-note" class="u-text-muted">${Ui.esc(AdminTranslatePage._modelCatalogSummary(currentLlmConfig))}</span>
                     <button class="c-btn c-btn--xs c-btn--ghost" id="translate-refresh-models" type="button">${Ui.icon('search', 'xs')}<span>รีเฟรชโมเดล</span></button>
+                    <button class="c-btn c-btn--xs c-btn--ghost" id="translate-provider-check" type="button">${Ui.icon('info', 'xs')}<span>เช็ค model</span></button>
                   </div>
                 </div>
               </div>
@@ -2052,6 +2095,25 @@ const AdminTranslatePage = {
                     <button class="c-btn c-btn--xs c-btn--ghost" id="translate-repair-source" type="button">${Ui.icon('settings', 'xs')}<span>ซ่อม source/index</span></button>
                   </div>
                 </div>
+                <div class="c-admin-translate__tools">
+                  <div class="c-admin-translate__filters" role="group" aria-label="กรองสถานะตอน">
+                    <button class="c-btn c-btn--xs c-btn--secondary translate-filter-btn" data-filter="all" type="button">ทั้งหมด</button>
+                    <button class="c-btn c-btn--xs c-btn--ghost translate-filter-btn" data-filter="untranslated" type="button">ยังไม่แปล</button>
+                    <button class="c-btn c-btn--xs c-btn--ghost translate-filter-btn" data-filter="translated" type="button">แปลแล้ว</button>
+                    <button class="c-btn c-btn--xs c-btn--ghost translate-filter-btn" data-filter="review" type="button">ควรดู</button>
+                    <button class="c-btn c-btn--xs c-btn--ghost translate-filter-btn" data-filter="source_not_ready" type="button">source error</button>
+                  </div>
+                  <input class="c-form__input c-form__input--compact c-admin-translate__search" id="translate-chapter-search" type="search" placeholder="ค้นเลขตอน / ชื่อตอน / model / issue" />
+                  <div class="c-admin-translate__smart">
+                    <button class="c-btn c-btn--xs c-btn--ghost" id="translate-next-20" type="button">ถัดไป 20</button>
+                    <button class="c-btn c-btn--xs c-btn--ghost" id="translate-next-50" type="button">ถัดไป 50</button>
+                    <button class="c-btn c-btn--xs c-btn--ghost" id="translate-clean-untranslated" type="button">source clean ทั้งหมด</button>
+                    <button class="c-btn c-btn--xs c-btn--ghost" id="translate-preview-queue" type="button">Preview queue</button>
+                  </div>
+                </div>
+                <div id="translate-queue-preview" class="c-admin-translate__queue-preview" hidden></div>
+                <div id="translate-repair-preview" class="c-admin-translate__repair-preview" hidden></div>
+                <div id="translate-detail-panel" class="c-admin-translate__detail-panel" hidden></div>
                 <div id="translate-chapter-table" class="c-admin-translate__chapter-table" aria-live="polite">
                   <div class="c-admin-translate__chapter-empty">กำลังโหลด...</div>
                 </div>
@@ -2100,6 +2162,43 @@ const AdminTranslatePage = {
         }
       };
       document.getElementById('translate-refresh-models')?.addEventListener('click', () => refreshModelCatalog(false));
+      document.getElementById('translate-provider-check')?.addEventListener('click', async () => {
+        const btn = document.getElementById('translate-provider-check');
+        const modelOverride = document.getElementById('translate-model-override')?.value.trim() || currentLlmConfig.default_model || '';
+        if (btn) {
+          btn.disabled = true;
+          AdminUi.setButton(btn, 'info', 'Checking...');
+        }
+        try {
+          const cfg = await Api.getLlmConfig({ refreshModels: true });
+          currentLlmConfig = cfg;
+          const list = document.getElementById('translate-model-list');
+          if (list) list.innerHTML = buildModelOptions(currentLlmConfig);
+          updateModelCatalogNote();
+          const provider = (cfg.providers || []).find(p => (p.models || []).some(m => m.id === modelOverride))
+            || (cfg.providers || []).find(p => p.id === cfg.default_provider)
+            || (cfg.providers || [])[0];
+          const modelExists = !!provider?.models?.some(model => model.id === modelOverride);
+          const lines = [
+            'Provider/model health',
+            'provider: ' + (provider?.label || provider?.id || '-'),
+            'model: ' + (modelOverride || '-'),
+            'model exists: ' + (modelExists ? 'yes' : 'no'),
+            'key: ' + (provider?.hasKey ? 'present' : 'missing/local not required'),
+            'catalog: ' + AdminTranslatePage._modelCatalogSummary(cfg),
+            provider?.modelError ? 'fallback reason: ' + provider.modelError : '',
+          ].filter(Boolean).join('\n');
+          AdminTranslatePage.setConsole(modelExists ? 'success' : 'error', 'Provider check', lines);
+        } catch (err) {
+          AdminTranslatePage.setConsole('error', 'Provider check failed', err.message);
+          Ui.showToast('เช็ค provider ไม่สำเร็จ: ' + err.message, 'error');
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            AdminUi.setButton(btn, 'info', 'เช็ค model');
+          }
+        }
+      });
 
       const updateSourceHealth = () => {
         const slugVal = document.getElementById('translate-batch-novel')?.value || '';
@@ -2123,7 +2222,39 @@ const AdminTranslatePage = {
       let tableChapters = [];
       let sourceIssueByNum = {};
       let lastResultByNum = {};
+      let filterState = 'all';
+      let searchQuery = '';
       const selectedNums = new Set();
+
+      const visibleChapters = () => tableChapters.filter(ch => {
+        const resultIssue = lastResultByNum[ch.num];
+        const sourceIssue = sourceIssueByNum[ch.num];
+        const status = AdminTranslatePage._chapterStatus(ch, sourceIssue, resultIssue);
+        return AdminTranslatePage._chapterMatches(ch, status, sourceIssue, resultIssue, filterState, searchQuery);
+      });
+
+      const renderQueuePreview = () => {
+        const box = document.getElementById('translate-queue-preview');
+        if (!box) return null;
+        const range = document.getElementById('translate-batch-range')?.value || AdminTranslatePage._rangeFromNums([...selectedNums]);
+        const nums = AdminTranslatePage._numsFromRange(range);
+        const force = document.getElementById('translate-force-source')?.checked === true;
+        const preview = AdminTranslatePage._queuePreview(tableChapters, sourceIssueByNum, lastResultByNum, nums, force);
+        const c = preview.counts;
+        const warnings = preview.warnings.length
+          ? '<div class="c-admin-translate__preview-warnings">' + preview.warnings.map(w => '<span class="c-badge c-badge--amber">' + Ui.esc(w) + '</span>').join('') + '</div>'
+          : '';
+        box.hidden = false;
+        box.innerHTML = '<div class="c-admin-translate__preview-grid">' +
+          '<span><strong>' + Ui.esc(c.total) + '</strong><small>total</small></span>' +
+          '<span><strong>' + Ui.esc(c.ready) + '</strong><small>ready</small></span>' +
+          '<span><strong>' + Ui.esc(c.untranslated) + '</strong><small>untranslated</small></span>' +
+          '<span><strong>' + Ui.esc(c.translated) + '</strong><small>translated</small></span>' +
+          '<span><strong>' + Ui.esc(c.review) + '</strong><small>retry/review</small></span>' +
+          '<span><strong>' + Ui.esc(c.sourceBlocked) + '</strong><small>source error</small></span>' +
+          '</div>' + warnings;
+        return preview;
+      };
 
       const renderChapterTable = () => {
         const table = document.getElementById('translate-chapter-table');
@@ -2139,9 +2270,10 @@ const AdminTranslatePage = {
           const status = AdminTranslatePage._chapterStatus(ch, sourceIssueByNum[ch.num], lastResultByNum[ch.num]);
           counts[status] = (counts[status] || 0) + 1;
         }
-        summaryEl.textContent = `ทั้งหมด ${tableChapters.length} ตอน · แปลแล้ว ${counts.translated || 0} · ยังไม่แปล ${counts.untranslated || 0} · ควรดู ${counts.needs_review || 0} · source error ${counts.source_not_ready || 0} · เลือก ${selectedNums.size}`;
+        const visible = visibleChapters();
+        summaryEl.textContent = `ทั้งหมด ${tableChapters.length} ตอน · แสดง ${visible.length} · แปลแล้ว ${counts.translated || 0} · ยังไม่แปล ${counts.untranslated || 0} · ควรดู ${counts.needs_review || 0} · source error ${counts.source_not_ready || 0} · เลือก ${selectedNums.size}`;
 
-        const rows = tableChapters.map(ch => {
+        const rows = visible.map(ch => {
           const resultIssue = lastResultByNum[ch.num];
           const status = AdminTranslatePage._chapterStatus(ch, sourceIssueByNum[ch.num], resultIssue);
           const [label, badgeClass] = AdminTranslatePage._statusBadge(status);
@@ -2159,9 +2291,13 @@ const AdminTranslatePage = {
             <td class="c-admin-translate__quality">${Ui.esc(qualityText)}</td>
             <td class="c-admin-translate__model">${Ui.esc(modelText || '-')}</td>
             <td class="c-admin-translate__issue">${Ui.esc(issueText || '-')}</td>
+            <td class="c-admin-translate__row-actions">
+              <button class="c-btn c-btn--xs c-btn--ghost translate-detail-btn" data-num="${Ui.esc(ch.num)}" type="button">ดู</button>
+              ${sourceIssue ? '<button class="c-btn c-btn--xs c-btn--ghost translate-inspect-btn" data-num="' + Ui.esc(ch.num) + '" type="button">ตรวจ</button>' : ''}
+            </td>
           </tr>`;
         }).join('');
-        const allChecked = tableChapters.length > 0 && tableChapters.every(ch => selectedNums.has(ch.num)) ? ' checked' : '';
+        const allChecked = visible.length > 0 && visible.every(ch => selectedNums.has(ch.num)) ? ' checked' : '';
         table.innerHTML = `<div class="c-admin-translate__table-wrap">
           <table class="c-table c-admin-translate__table">
             <thead>
@@ -2173,6 +2309,7 @@ const AdminTranslatePage = {
                 <th>คุณภาพ</th>
                 <th>model</th>
                 <th>ปัญหา</th>
+                <th>ดู</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -2214,11 +2351,49 @@ const AdminTranslatePage = {
 
       const selectMatching = (predicate) => {
         selectedNums.clear();
-        for (const ch of tableChapters) {
+        for (const ch of visibleChapters()) {
           const status = AdminTranslatePage._chapterStatus(ch, sourceIssueByNum[ch.num], lastResultByNum[ch.num]);
           if (predicate(status, ch)) selectedNums.add(ch.num);
         }
         return syncRangeFromSelection();
+      };
+
+      const setSelectedNums = (nums) => {
+        selectedNums.clear();
+        for (const num of nums) selectedNums.add(num);
+        syncRangeFromSelection();
+        renderQueuePreview();
+        return AdminTranslatePage._rangeFromNums([...selectedNums]);
+      };
+
+      const showChapterDetail = (num) => {
+        const ch = tableChapters.find(item => item.num === num);
+        if (!ch) return;
+        const sourceIssue = sourceIssueByNum[num];
+        const resultIssue = lastResultByNum[num];
+        const quality = ch.qualityRecord || ch.quality || {};
+        const status = AdminTranslatePage._chapterStatus(ch, sourceIssue, resultIssue);
+        const [label, badgeClass] = AdminTranslatePage._statusBadge(status);
+        const issues = resultIssue?.hardFailures || quality.hardFailures || sourceIssue?.issues?.map(issue => issue.code) || [];
+        const warnings = resultIssue?.warnings || quality.warnings || [];
+        const panel = document.getElementById('translate-detail-panel');
+        if (!panel) return;
+        panel.hidden = false;
+        panel.innerHTML = '<div class="c-admin-translate__detail-head">' +
+          '<strong>ตอน ' + Ui.esc(num) + ' · ' + Ui.esc(ch.title || '') + '</strong>' +
+          '<span class="' + badgeClass + '">' + Ui.esc(label) + '</span>' +
+          '</div>' +
+          '<div class="c-admin-translate__detail-grid">' +
+          '<span>score: <strong>' + Ui.esc(resultIssue?.score ?? quality.score ?? ch.score ?? '-') + '</strong></span>' +
+          '<span>length: <strong>' + Ui.esc(quality.lengthRatio ? Math.round(quality.lengthRatio * 100) + '%' : '-') + '</strong></span>' +
+          '<span>model: <strong>' + Ui.esc(ch.model || resultIssue?.model || '-') + '</strong></span>' +
+          '<span>provider: <strong>' + Ui.esc(ch.provider || resultIssue?.provider || '-') + '</strong></span>' +
+          '</div>' +
+          '<pre class="c-admin-translate__detail-pre">' + Ui.esc([
+            issues.length ? 'issues: ' + issues.join('; ') : 'issues: -',
+            warnings.length ? 'warnings: ' + warnings.join('; ') : 'warnings: -',
+            resultIssue?.reason ? 'last result: ' + resultIssue.reason : '',
+          ].filter(Boolean).join('\n')) + '</pre>';
       };
 
       document.getElementById('translate-chapter-table')?.addEventListener('change', (event) => {
@@ -2226,7 +2401,7 @@ const AdminTranslatePage = {
         if (!checkbox) return;
         if (checkbox.id === 'translate-select-all') {
           selectedNums.clear();
-          if (checkbox.checked) for (const ch of tableChapters) selectedNums.add(ch.num);
+          if (checkbox.checked) for (const ch of visibleChapters()) selectedNums.add(ch.num);
         } else if (checkbox.classList.contains('translate-chapter-check')) {
           const num = parseInt(checkbox.dataset.num, 10);
           if (Number.isFinite(num)) {
@@ -2235,6 +2410,44 @@ const AdminTranslatePage = {
           }
         }
         syncRangeFromSelection();
+        renderQueuePreview();
+      });
+
+      document.getElementById('translate-chapter-table')?.addEventListener('click', async (event) => {
+        const detailBtn = event.target.closest('.translate-detail-btn');
+        const inspectBtn = event.target.closest('.translate-inspect-btn');
+        if (detailBtn) {
+          showChapterDetail(parseInt(detailBtn.dataset.num, 10));
+          return;
+        }
+        if (inspectBtn) {
+          const slugVal = document.getElementById('translate-batch-novel')?.value || '';
+          const num = parseInt(inspectBtn.dataset.num, 10);
+          if (!slugVal || !Number.isFinite(num)) return;
+          inspectBtn.disabled = true;
+          AdminUi.setButton(inspectBtn, 'search', '...');
+          try {
+            const data = await Api.inspectSource(slugVal, num);
+            const diagnostic = data.data?.diagnostic || data.diagnostic || {};
+            const issues = diagnostic.issues || [];
+            AdminTranslatePage.setConsole(
+              issues.some(issue => issue.severity === 'error') ? 'error' : 'idle',
+              `Source inspect: ตอน ${num}`,
+              [
+                data.data?.title || data.title || '',
+                `${diagnostic.paragraphCount || 0} paragraphs · ${diagnostic.charCount || 0} chars`,
+                issues.length ? issues.map(issue => `${issue.severity}:${issue.code}`).join(', ') : 'clean',
+                '',
+                (data.data?.cleanedText || data.cleanedText || '').slice(0, 1800),
+              ].join('\n')
+            );
+          } catch (err) {
+            Ui.showToast(err.message, 'error');
+          } finally {
+            inspectBtn.disabled = false;
+            AdminUi.setButton(inspectBtn, 'search', 'ตรวจ');
+          }
+        }
       });
 
       document.getElementById('translate-select-untranslated')?.addEventListener('click', () => {
@@ -2249,6 +2462,54 @@ const AdminTranslatePage = {
       document.getElementById('translate-clear-selection')?.addEventListener('click', () => {
         selectedNums.clear();
         syncRangeFromSelection();
+        renderQueuePreview();
+      });
+      document.querySelectorAll('.translate-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          filterState = btn.dataset.filter || 'all';
+          document.querySelectorAll('.translate-filter-btn').forEach(item => {
+            item.classList.toggle('c-btn--secondary', item === btn);
+            item.classList.toggle('c-btn--ghost', item !== btn);
+          });
+          renderChapterTable();
+          renderQueuePreview();
+        });
+      });
+      document.getElementById('translate-chapter-search')?.addEventListener('input', (event) => {
+        searchQuery = event.target.value || '';
+        renderChapterTable();
+      });
+      const nextUntranslatedAfterProgress = (limit) => {
+        const lastTranslated = tableChapters.reduce((max, ch) => {
+          const status = AdminTranslatePage._chapterStatus(ch, sourceIssueByNum[ch.num], lastResultByNum[ch.num]);
+          return status === 'translated' ? Math.max(max, ch.num) : max;
+        }, 0);
+        return tableChapters
+          .filter(ch => ch.num > lastTranslated)
+          .filter(ch => AdminTranslatePage._chapterStatus(ch, sourceIssueByNum[ch.num], lastResultByNum[ch.num]) === 'untranslated')
+          .slice(0, limit)
+          .map(ch => ch.num);
+      };
+      document.getElementById('translate-next-20')?.addEventListener('click', () => {
+        setSelectedNums(nextUntranslatedAfterProgress(20));
+      });
+      document.getElementById('translate-next-50')?.addEventListener('click', () => {
+        setSelectedNums(nextUntranslatedAfterProgress(50));
+      });
+      document.getElementById('translate-clean-untranslated')?.addEventListener('click', () => {
+        const nums = tableChapters
+          .filter(ch => AdminTranslatePage._chapterStatus(ch, sourceIssueByNum[ch.num], lastResultByNum[ch.num]) === 'untranslated')
+          .map(ch => ch.num);
+        setSelectedNums(nums);
+      });
+      document.getElementById('translate-preview-queue')?.addEventListener('click', () => {
+        renderQueuePreview();
+      });
+      document.getElementById('translate-batch-range')?.addEventListener('input', () => {
+        renderQueuePreview();
+      });
+      document.getElementById('translate-force-source')?.addEventListener('change', () => {
+        renderQueuePreview();
       });
 
       document.getElementById('translate-batch-novel')?.addEventListener('change', () => {
@@ -2278,6 +2539,7 @@ const AdminTranslatePage = {
             Ui.showToast('กรุณากรอกช่วงตอนที่ต้องการสั่งแปล', 'error');
             return;
           }
+          renderQueuePreview();
           if (blockingNums.length && !forceSource) {
             const sample = blockingNums.slice(0, 10).join(', ');
             AdminTranslatePage.setConsole('error', 'Source ยังไม่พร้อมแปล', `พบ source error ในตอนที่เลือก ${blockingNums.length} ตอน: ${sample}`);
@@ -2389,6 +2651,7 @@ const AdminTranslatePage = {
       document.getElementById('translate-repair-source')?.addEventListener('click', async () => {
         const slugVal = document.getElementById('translate-batch-novel')?.value || '';
         const btn = document.getElementById('translate-repair-source');
+        const panel = document.getElementById('translate-repair-preview');
         if (!slugVal || !btn) return;
         btn.disabled = true;
         AdminUi.setButton(btn, 'settings', 'Checking...');
@@ -2398,19 +2661,49 @@ const AdminTranslatePage = {
           const previewRepair = preview.data?.repair || {};
           const previewMessage = formatImportRepairSummary(slugVal, previewRepair);
           AdminTranslatePage.setConsole('idle', 'Repair preview', previewMessage);
-          if (!confirm('Repair preview\n\n' + previewMessage + '\n\nApply these source/index repairs?')) {
-            return;
+          if (panel) {
+            panel.hidden = false;
+            panel.innerHTML = '<div class="c-admin-translate__repair-head">' +
+              '<strong>Repair preview: ' + Ui.esc(slugVal) + '</strong>' +
+              '<span class="c-badge c-badge--amber">preview</span>' +
+              '</div>' +
+              '<pre class="c-admin-translate__detail-pre">' + Ui.esc(previewMessage) + '</pre>' +
+              '<div class="c-admin-translate__repair-actions">' +
+              '<button class="c-btn c-btn--sm c-btn--primary" id="translate-apply-repair" type="button">' + Ui.icon('settings', 'xs') + '<span>Apply repair</span></button>' +
+              '<button class="c-btn c-btn--sm c-btn--ghost" id="translate-cancel-repair" type="button">Cancel</button>' +
+              '</div>';
+            document.getElementById('translate-cancel-repair')?.addEventListener('click', () => {
+              panel.hidden = true;
+              panel.innerHTML = '';
+            });
+            document.getElementById('translate-apply-repair')?.addEventListener('click', async () => {
+              const applyBtn = document.getElementById('translate-apply-repair');
+              if (applyBtn) {
+                applyBtn.disabled = true;
+                AdminUi.setButton(applyBtn, 'settings', 'Repairing...');
+              }
+              try {
+                AdminTranslatePage.setConsole('running', 'Repair running', 'Applying source/index repairs for ' + slugVal + '...');
+                const result = await Api.repairImport(slugVal, 'all');
+                const repair = result.data?.repair || {};
+                AdminTranslatePage.setConsole('success', 'Repair complete', formatImportRepairSummary(slugVal, repair));
+                const health = await Api.getImportHealth(slugVal).catch(() => null);
+                if (health?.data) importHealthBySlug[slugVal] = health.data;
+                updateSourceHealth();
+                await loadChapterTable();
+                panel.hidden = true;
+                panel.innerHTML = '';
+                Ui.showToast('ซ่อม source/index แล้ว');
+              } catch (err) {
+                AdminTranslatePage.setConsole('error', 'Repair failed', err.message);
+                Ui.showToast('ซ่อมไม่สำเร็จ: ' + err.message, 'error');
+                if (applyBtn) {
+                  applyBtn.disabled = false;
+                  AdminUi.setButton(applyBtn, 'settings', 'Apply repair');
+                }
+              }
+            });
           }
-          AdminUi.setButton(btn, 'settings', 'Repairing...');
-          AdminTranslatePage.setConsole('running', 'Repair running', 'Applying source/index repairs for ' + slugVal + '...');
-          const result = await Api.repairImport(slugVal, 'all');
-          const repair = result.data?.repair || {};
-          AdminTranslatePage.setConsole('success', 'Repair complete', formatImportRepairSummary(slugVal, repair));
-          const health = await Api.getImportHealth(slugVal).catch(() => null);
-          if (health?.data) importHealthBySlug[slugVal] = health.data;
-          updateSourceHealth();
-          await loadChapterTable();
-          Ui.showToast('ซ่อม source/index แล้ว');
         } catch (err) {
           AdminTranslatePage.setConsole('error', 'Repair failed', err.message);
           Ui.showToast('ซ่อมไม่สำเร็จ: ' + err.message, 'error');

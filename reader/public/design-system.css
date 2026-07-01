@@ -2392,6 +2392,79 @@ pre code {
   gap: var(--space-xs);
   flex-wrap: wrap;
 }
+.c-admin-translate__tools {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 0.8fr);
+  gap: var(--space-sm);
+  align-items: center;
+  margin: var(--space-sm) 0;
+}
+.c-admin-translate__filters,
+.c-admin-translate__smart {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.c-admin-translate__search {
+  min-width: 220px;
+}
+.c-admin-translate__smart {
+  grid-column: 1 / -1;
+}
+.c-admin-translate__queue-preview,
+.c-admin-translate__repair-preview,
+.c-admin-translate__detail-panel {
+  margin: var(--space-sm) 0;
+  padding: var(--space-sm);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-bg-secondary);
+}
+.c-admin-translate__preview-grid,
+.c-admin-translate__detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--space-xs);
+}
+.c-admin-translate__preview-grid span,
+.c-admin-translate__detail-grid span {
+  display: grid;
+  gap: 2px;
+  color: var(--c-text-secondary);
+  font-size: var(--text-xs);
+}
+.c-admin-translate__preview-grid strong,
+.c-admin-translate__detail-grid strong {
+  color: var(--c-text-primary);
+  font-size: var(--text-md);
+}
+.c-admin-translate__preview-warnings,
+.c-admin-translate__repair-actions {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  margin-top: var(--space-sm);
+}
+.c-admin-translate__detail-head,
+.c-admin-translate__repair-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+.c-admin-translate__detail-pre {
+  margin: var(--space-sm) 0 0;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--c-surface);
+  color: var(--c-text-muted);
+  font-size: var(--text-xs);
+}
 .c-admin-translate__chapter-empty {
   padding: var(--space-md);
   border: 1px dashed var(--c-border);
@@ -2409,7 +2482,7 @@ pre code {
 }
 .c-admin-translate__table {
   width: 100%;
-  min-width: 860px;
+  min-width: 980px;
 }
 .c-admin-translate__table th {
   position: sticky;
@@ -2443,9 +2516,15 @@ pre code {
   max-width: 220px;
   word-break: break-word;
 }
+.c-admin-translate__row-actions {
+  white-space: nowrap;
+}
 @media (max-width: 720px) {
   .c-admin-translate__chapter-head {
     display: grid;
+  }
+  .c-admin-translate__tools {
+    grid-template-columns: 1fr;
   }
   .c-admin-translate__chapter-actions {
     justify-content: flex-start;
