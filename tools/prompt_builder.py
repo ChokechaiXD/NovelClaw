@@ -22,6 +22,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from source_profile import summarize_structure_contract
+
 # ── Source language config ─────────────────────────────────────────────
 # Each entry: bracket mapping + script rules + example for prompt
 
@@ -310,6 +312,7 @@ def build_prompt(
     continuity_text: str = "",
     extra_rules: str = "",
     profile: str = "",
+    source_profile: dict[str, Any] | None = None,
 ) -> str:
     """Build a complete translation prompt.
 
@@ -324,6 +327,7 @@ def build_prompt(
         continuity_text: Previous chapter context.
         extra_rules: Any extra rules to inject.
         profile: Translation profile name (for logging).
+        source_profile: Deterministic source structure profile.
 
     Returns:
         Complete prompt string ready for LLM.
@@ -354,13 +358,12 @@ scene order, sentence rhythm, and intentional flatness.
   merge, or silently skip repeated lines.
 - **Output format:** Plain paragraphs separated by blank lines. One paragraph
   = one logical unit (scene beat, spoken line, or action).
-- **Preserve source paragraph structure.** Keep source order and paragraph rhythm.
-  Split only when needed for Thai readability or when a system notification must stand alone.
-- **CRITICAL: Narration and dialogue SHOULD be separate paragraphs when the source clearly separates them.**
-  If a source paragraph has 「..."他说道」→ split into TWO paragraphs:
-  nar: "เขาพูดเช่นนั้น"
-  dia: "...."
-  NEVER mix narration text with dialogue quotes in the same paragraph.
+- **Source-anchored structure:** keep source order, scene beats, paragraph rhythm,
+  standalone dialogue, and standalone system/UI markers.
+- Split or join paragraphs only when Thai readability or a standalone system
+  marker requires it. Do not collapse many source beats into one paragraph.
+- If the source has standalone dialogue lines, keep them as standalone dialogue
+  lines in the translation. Do not bury speech inside narration.
 - **No JSON, XML, markdown fences, or any wrapper.**
 - **End with end marker.** The last paragraph must be the end marker.
 - **CRITICAL: Output length must be >=85% of source.** Do NOT condense or summarize.
@@ -375,6 +378,8 @@ scene order, sentence rhythm, and intentional flatness.
 - Remove web novel footer/site artifacts (donations, thanks, author notes, next-chapter links).
 </rules>"""
 
+    structure_contract = summarize_structure_contract(source_profile)
+
     profile_key = profile if profile in PROMPT_PROFILES else DEFAULT_PROFILE
     profile_section = (
         "<prompt_profile>\n"
@@ -386,7 +391,7 @@ scene order, sentence rhythm, and intentional flatness.
     # Per-source-lang rules
     src_specific = f"""<source_language_rules>
 [{src_name} → {tgt_name}]
-- Preserve {src_name} formatting and spacing patterns (e.g., narration + dialogue in one line → same structure in translation).
+- Preserve intentional {src_name} markers, sequence, and register. Follow <structure_contract> for paragraph rhythm instead of forcing exact paragraph count.
 {cfg['leak_rule']}
 """
     if cfg["gotchas"]:
@@ -400,7 +405,7 @@ scene order, sentence rhythm, and intentional flatness.
 {_latin_policy(target_lang, glossary_text)}
 
 - **Preserve numbers exactly.**
-- **Match source paragraph count — CRITICAL.**
+- **Keep paragraph rhythm source-anchored, not exact-count forced.**
 - **End marker:** `{tgt['end_marker']}` as the last paragraph.
 - **Do NOT use `「」` CJK corner brackets for dialogue.**
 </format_rules>"""
@@ -430,6 +435,8 @@ Before finishing, silently check:
         profile_section,
         "",
         universal_rules,
+        "",
+        structure_contract,
         "",
         src_specific,
         "",

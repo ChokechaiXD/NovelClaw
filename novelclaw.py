@@ -22,6 +22,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -54,9 +55,11 @@ def cmd_translate(args: list[str]) -> None:
 
     ap = argparse.ArgumentParser(prog="novelclaw translate")
     ap.add_argument("range", help="Chapter number or range (130 or 130-150)")
+    ap.add_argument("--slug", default=os.environ.get("NOVEL_SLUG", "global-descent"), help="Novel slug")
     ap.add_argument("--mock", action="store_true", help="Mock translation (no LLM)")
     ap.add_argument("--dry-run", action="store_true", help="Show source only")
-    ap.add_argument("--from", dest="source_lang", default="cn", help="Source language")
+    ap.add_argument("--from", dest="source_lang", default="auto", help="Source language or auto")
+    ap.add_argument("--to", dest="target_lang", default="th", help="Target language")
     ap.add_argument("--model", default=None, help="Override model")
     ap.add_argument("--provider", default=None, help="Override provider")
     ap.add_argument("--profile", default="", help="Prompt profile preset")
@@ -73,7 +76,8 @@ def cmd_translate(args: list[str]) -> None:
     if parsed.json:
         for ch in ch_nums:
             result = translate_one(
-                ch_num=ch, source_lang=parsed.source_lang,
+                ch_num=ch, slug=parsed.slug,
+                source_lang=parsed.source_lang, target_lang=parsed.target_lang,
                 dry_run=parsed.dry_run, mock=parsed.mock,
                 model_override=parsed.model, provider_override=parsed.provider,
                 prompt_profile=parsed.profile,
@@ -100,7 +104,8 @@ def cmd_translate(args: list[str]) -> None:
         # Retry loop
         for attempt in range(max(1, parsed.retry + 1)):
             result = translate_one(
-                ch_num=ch, source_lang=parsed.source_lang,
+                ch_num=ch, slug=parsed.slug,
+                source_lang=parsed.source_lang, target_lang=parsed.target_lang,
                 dry_run=parsed.dry_run, mock=parsed.mock,
                 model_override=parsed.model, provider_override=parsed.provider,
                 prompt_profile=parsed.profile,
@@ -146,7 +151,9 @@ def _cmd_translate_parallel(ch_nums: list[int], parsed) -> None:
             exec.submit(
                 translate_one,
                 ch_num=ch,
+                slug=parsed.slug,
                 source_lang=parsed.source_lang,
+                target_lang=parsed.target_lang,
                 model_override=parsed.model,
                 provider_override=parsed.provider,
                 prompt_profile=parsed.profile,

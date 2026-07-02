@@ -17,7 +17,8 @@ _READER_NOISE_RE = re.compile(
 
 _CHAPTER_HEADING_RE = re.compile(r"^第[一二三四五六七八九十百千零\d]+章")
 _TRAILING_CITATION_RE = re.compile(r"([！？。，；：…—])([」』”\"]?)\s*\d{1,4}(?=\s|$)")
-_SHORT_NON_STORY_LINE_RE = re.compile(r"^[^\n\u4e00-\u9fff\u0e00-\u0e7f]{1,40}$", re.MULTILINE)
+_STORY_CHAR_CLASS = r"A-Za-z0-9\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af\u0e00-\u0e7f"
+_SHORT_NON_STORY_LINE_RE = re.compile(rf"^[^\n{_STORY_CHAR_CLASS}]{{1,40}}$", re.MULTILINE)
 
 
 @dataclass(frozen=True)

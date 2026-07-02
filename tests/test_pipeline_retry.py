@@ -150,3 +150,89 @@ def test_translate_one_marks_repeated_quality_failure_needs_review(monkeypatch):
     assert result["status"] == "needs_review"
     assert "quality gate" in result["reason"]
     assert len(result["quality"]["attempts"]) == 2
+
+
+def test_translate_one_auto_detects_source_lang_for_profile(monkeypatch, tmp_path):
+    prompt_kwargs = {}
+    saved_kwargs = {}
+
+    monkeypatch.setattr(
+        pipeline,
+        "read_source",
+        lambda *_args, **_kwargs: "Lin Fan opened his eyes.\n\n\"Let's go.\"",
+    )
+
+    def fake_build_prompt(**kwargs):
+        prompt_kwargs.update(kwargs)
+        return "prompt"
+
+    def fake_save_chapter(**kwargs):
+        saved_kwargs.update(kwargs)
+        return tmp_path / "0001.th.json"
+
+    monkeypatch.setattr(pipeline, "build_translate_prompt", fake_build_prompt)
+    monkeypatch.setattr(pipeline, "save_chapter", fake_save_chapter)
+
+    result = pipeline.translate_one(1, slug="missing-test", mock=True)
+
+    assert result["status"] == "ok"
+    assert prompt_kwargs["source_lang"] == "en"
+    assert prompt_kwargs["source_profile"]["sourceLang"] == "en"
+    assert saved_kwargs["source_lang"] == "en"
+    assert saved_kwargs["source_profile"]["dialogueCount"] == 1
+
+
+def test_translate_one_marks_judge_failure_as_needs_review(monkeypatch, tmp_path):
+    saved_kwargs = {}
+
+    monkeypatch.setattr(pipeline, "read_source", lambda *_args, **_kwargs: "阿星醒來。\n\n「走吧。」")
+    monkeypatch.setattr(pipeline, "build_translate_prompt", lambda **_kwargs: "SYSTEM\n<glossary>\nTranslate.")
+    monkeypatch.setattr(
+        pipeline,
+        "_get_active_config",
+        lambda *_args, **_kwargs: {
+            "model": "primary-model",
+            "provider_name": "openrouter",
+            "discovery_model": "judge-model",
+        },
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "call_llm",
+        lambda *args, **kwargs: ('"ไปกันเถอะ"\n\nเฉาซิงลืมตาขึ้น\n\n(จบบท)', "fake", kwargs.get("model") or "fake-model"),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "_score_and_report",
+        lambda *_args, **_kwargs: {
+            "score": 92,
+            "passed": True,
+            "repair_notes": [],
+            "repairNotes": [],
+            "errors": [],
+            "hardFailures": [],
+            "warnings": [],
+        },
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "judge_translation",
+        lambda *_args, **_kwargs: {"ok": True, "passed": False, "feedback": "FAIL: tone drift"},
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "discover_and_save",
+        lambda **_kwargs: {"discovered": 0, "saved": 0, "terms": []},
+    )
+
+    def fake_save_chapter(**kwargs):
+        saved_kwargs.update(kwargs)
+        return tmp_path / "0001.th.json"
+
+    monkeypatch.setattr(pipeline, "save_chapter", fake_save_chapter)
+
+    result = pipeline.translate_one(1)
+
+    assert result["status"] == "needs_review"
+    assert saved_kwargs["quality_record"]["passed"] is False
+    assert "LLM Judge" in saved_kwargs["quality_record"]["hardFailures"][0]

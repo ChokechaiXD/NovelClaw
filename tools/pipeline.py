@@ -35,12 +35,13 @@ _TOOLS_DIR = Path(__file__).parent
 sys.path.insert(0, str(_TOOLS_DIR))
 
 from classifier import classify_and_format, estimate_type_ratios  # noqa: E402
-from prompt_builder import build_prompt  # noqa: E402
+from prompt_builder import build_prompt, get_lang_config  # noqa: E402
 from scorer import PASS_THRESHOLD  # noqa: E402
 from source_cleaner import clean_source  # noqa: E402
 from quality_gate import evaluate_translation_quality  # noqa: E402
 from glossary_pre import build_glossary_pre_chunk  # noqa: E402
 from glossary_discovery import discover_and_save  # noqa: E402
+from source_profile import build_source_profile, resolve_source_lang  # noqa: E402
 
 # ── Station 1: Source Reader ─────────────────────────────────────────
 
@@ -68,12 +69,13 @@ def read_source(ch_num: int, slug: str = "global-descent") -> str | None:
 def build_translate_prompt(
     source_text: str,
     ch_num: int,
-    source_lang: str = "cn",
+    source_lang: str = "auto",
     target_lang: str = "th",
     slug: str = "global-descent",
     glossary_text: str = "",
     continuity_text: str = "",
     prompt_profile: str = "",
+    source_profile: dict[str, Any] | None = None,
 ) -> str:
     """Station 3: Build prompt using prompt_builder + glossary_pre (char names)."""
     # Inject character voice map from glossary_pre
@@ -93,6 +95,7 @@ def build_translate_prompt(
         glossary_text=glossary_text,
         continuity_text=continuity_text,
         profile=prompt_profile,
+        source_profile=source_profile,
     )
 
 
@@ -272,9 +275,10 @@ def _score_and_report(
     source_text: str,
     target_lang: str = "th",
     threshold: float = PASS_THRESHOLD,
+    source_profile: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Score translation quality. Returns result dict with pass/fail."""
-    return evaluate_translation_quality(classified, source_text, target_lang, threshold)
+    return evaluate_translation_quality(classified, source_text, target_lang, threshold, source_profile)
 
 
 def _build_repair_instruction(score_result: dict[str, Any]) -> str:
@@ -293,7 +297,11 @@ def _build_repair_instruction(score_result: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _quality_summary(score_result: dict[str, Any], attempts: list[dict[str, Any]]) -> dict[str, Any]:
+def _quality_summary(
+    score_result: dict[str, Any],
+    attempts: list[dict[str, Any]],
+    judge_result: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     return {
         "passed": bool(score_result.get("passed")),
         "score": score_result.get("score", 0),
@@ -303,6 +311,9 @@ def _quality_summary(score_result: dict[str, Any], attempts: list[dict[str, Any]
         "repairNotes": score_result.get("repairNotes", score_result.get("repair_notes", [])),
         "lengthRatio": score_result.get("lengthRatio", 0.0),
         "scriptLeaks": score_result.get("scriptLeaks", 0),
+        "structure": score_result.get("structure", {}),
+        "judge": judge_result or {},
+        "repairHistory": attempts,
         "attempts": attempts,
     }
 
@@ -324,37 +335,64 @@ def judge_translation(
     paragraphs: list[dict[str, str]],
     source_text: str,
     model: str | None = None,
+    source_profile: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """LLM Judge — optional quality review after scoring passes."""
     try:
+        content = [p for p in paragraphs if p.get("type") != "end"]
+        sample_indexes = {0, 1, 2}
+        if content:
+            mid = len(content) // 2
+            sample_indexes.update({max(0, mid - 1), mid, min(len(content) - 1, mid + 1)})
+            sample_indexes.update({max(0, len(content) - 3), max(0, len(content) - 2), len(content) - 1})
+        risky_indexes = [
+            i for i, p in enumerate(content)
+            if p.get("type") in {"dialogue", "system"} or re.search(r"[A-Za-z\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af]", p.get("text", ""))
+        ][:4]
+        sample_indexes.update(risky_indexes)
         text_preview = "\n".join(
-            f"[{p['type']}] {p['text'][:150]}"
-            for p in paragraphs[:5]
-            if p["type"] != "end"
+            f"[{i + 1}:{content[i].get('type', 'narration')}] {content[i].get('text', '')[:180]}"
+            for i in sorted(i for i in sample_indexes if 0 <= i < len(content))
         )
-        prompt = f"""Review this Thai novel translation (first 5 paragraphs):
+        structure = source_profile or {}
+        prompt = f"""Review this Thai novel translation using sampled beginning/middle/end/risk paragraphs:
 
 {text_preview}
 
 Source (first 300 chars):
 {source_text[:300]}
 
-Rate each: Naturalness / Consistency / Clarity / Flow
-Provide 1-2 improvement suggestions if any score < 8."""
+Source structure:
+- paragraphs: {structure.get('paragraphCount', '?')}
+- dialogue: {structure.get('dialogueCount', '?')}
+- system markers: {structure.get('systemMarkerCount', '?')}
+
+Rate each: Naturalness / Consistency / Clarity / Flow / Completeness
+If any score < 8, start with FAIL: and give 1-2 specific repair suggestions.
+Otherwise start with PASS: and keep feedback brief."""
 
         response, provider, model_name = call_llm(
             prompt=prompt, system=_JUDGE_SYSTEM,
             model=model, temperature=0.1, max_tokens=500,
         )
-        return {"ok": True, "feedback": response.strip(), "model": model_name}
+        feedback = response.strip()
+        return {
+            "ok": True,
+            "passed": not feedback.upper().startswith("FAIL:"),
+            "feedback": feedback,
+            "model": model_name,
+            "sampledParagraphs": len(sample_indexes),
+        }
     except Exception as e:
-        return {"ok": False, "feedback": str(e)[:200]}
+        return {"ok": False, "passed": True, "feedback": str(e)[:200]}
 
 
-def _get_title(source_text: str, ch_num: int) -> str:
+def _get_title(source_text: str, ch_num: int, source_lang: str = "cn") -> str:
     """Extract chapter title from source."""
-    m = re.search(r"第\s*(\d+)\s*章\s*(.+)", source_text[:200])
-    title = m.group(2).strip() if m else ""
+    cfg = get_lang_config(source_lang)
+    title_regex = cfg.get("title_regex") or r"第\s*(\d+)\s*章\s*(.+)"
+    m = re.search(title_regex, source_text[:300])
+    title = m.group(2).strip() if m and m.lastindex and m.lastindex >= 2 else ""
     return f"ตอนที่ {ch_num} {title}".strip()
 
 
@@ -371,12 +409,13 @@ def save_chapter(
     model_name: str = "unknown",
     prompt_profile: str = "",
     quality_record: dict[str, Any] | None = None,
+    source_profile: dict[str, Any] | None = None,
 ) -> Path:
     """Station 7: Save classified paragraphs to .th.json."""
     chapter_dir = _PROJECT_ROOT / "novels" / slug / "chapters"
     chapter_dir.mkdir(parents=True, exist_ok=True)
 
-    title = _get_title(source_text, ch_num)
+    title = _get_title(source_text, ch_num, source_lang)
 
     data = {
         "novelId": slug,
@@ -387,12 +426,13 @@ def save_chapter(
             "source": "",
             "translated": title,
         },
-        "status": "translated",
+        "status": "needs_review" if quality_record and quality_record.get("passed") is False else "translated",
         "paragraphs": classified,
         "meta": {
             "provider": provider_name,
             "model": model_name,
             "promptProfile": prompt_profile or "faithful_default",
+            "sourceProfile": source_profile or {},
         },
         "qualityRecord": quality_record or {},
         "updatedAt": datetime.now(timezone.utc).isoformat(),
@@ -408,7 +448,7 @@ def save_chapter(
 def translate_one(
     ch_num: int,
     slug: str = "global-descent",
-    source_lang: str = "cn",
+    source_lang: str = "auto",
     target_lang: str = "th",
     model_override: str | None = None,
     provider_override: str | None = None,
@@ -427,15 +467,25 @@ def translate_one(
         raw = read_source(ch_num, slug)
         if raw is None:
             return {"status": "failed", "ch": ch_num, "reason": "source_not_found"}
+        source_lang, source_lang_source = resolve_source_lang(raw, source_lang, slug)
         source = clean_source(raw)
         if not source:
             return {"status": "failed", "ch": ch_num, "reason": "empty_after_clean"}
+        source_profile = build_source_profile(
+            source,
+            source_lang=source_lang,
+            target_lang=target_lang,
+            ch_num=ch_num,
+            lang_source=source_lang_source,
+        )
 
         if dry_run:
             return {
                 "status": "dry_run", "ch": ch_num,
                 "source_preview": source[:300],
                 "source_chars": len(source),
+                "sourceLang": source_lang,
+                "sourceProfile": source_profile,
             }
 
         # ── Station 3: Build Prompt ──
@@ -446,6 +496,7 @@ def translate_one(
             target_lang=target_lang,
             slug=slug,
             prompt_profile=prompt_profile,
+            source_profile=source_profile,
         )
 
         if mock:
@@ -476,6 +527,7 @@ def translate_one(
                 {"kind": "fallback", "model": discovery_model, "provider": primary_provider},
             ]
             allow_repair = True
+            translation_ready = False
             for attempt_cfg in attempt_plan:
                 if attempt_cfg["kind"] == "repair" and not allow_repair:
                     continue
@@ -523,7 +575,7 @@ def translate_one(
                     classified = classify_and_format(paragraph_strings)
 
                     # ── Station 6.5: Scorer ──
-                    score_result = _score_and_report(classified, source, target_lang)
+                    score_result = _score_and_report(classified, source, target_lang, source_profile=source_profile)
                     attempts.append({
                         "kind": attempt_cfg["kind"],
                         "model": model_name,
@@ -531,9 +583,11 @@ def translate_one(
                         "status": "passed" if score_result["passed"] else "quality_failed",
                         "score": score_result.get("score", 0),
                         "hardFailures": score_result.get("hardFailures", score_result.get("errors", [])),
+                        "structure": score_result.get("structure", {}),
                     })
 
                     if score_result["passed"]:
+                        translation_ready = True
                         break  # success!
 
                     last_error = f"scorer: {score_result['score']}/100 < {PASS_THRESHOLD}"
@@ -547,6 +601,8 @@ def translate_one(
                         "reason": f"quality gate failed after retry: {last_error}",
                         "score": score_result.get("score", 0),
                         "quality": _quality_summary(score_result, attempts),
+                        "sourceLang": source_lang,
+                        "sourceProfile": source_profile,
                     }
 
                 except Exception as e:
@@ -563,8 +619,37 @@ def translate_one(
                         continue
                     return {"status": "failed", "ch": ch_num, "reason": str(e)[:300]}
 
+            if not translation_ready:
+                return {
+                    "status": "failed",
+                    "ch": ch_num,
+                    "reason": last_error,
+                    "quality": {"attempts": attempts, "repairHistory": attempts},
+                    "sourceLang": source_lang,
+                    "sourceProfile": source_profile,
+                }
+
             # ── Station 6.75: LLM Judge ──
-            judge_result = judge_translation(classified, source, model_override)
+            judge_model = model_override or cfg.get("discovery_model") or primary_model
+            judge_result = judge_translation(
+                classified,
+                source,
+                judge_model,
+                source_profile=source_profile,
+            )
+            if judge_result.get("ok") and judge_result.get("passed") is False:
+                score_result = {
+                    **score_result,
+                    "passed": False,
+                    "hardFailures": [
+                        *score_result.get("hardFailures", []),
+                        "LLM Judge: sampled review flagged quality risk.",
+                    ],
+                    "repairNotes": [
+                        *score_result.get("repairNotes", score_result.get("repair_notes", [])),
+                        str(judge_result.get("feedback", ""))[:240],
+                    ],
+                }
 
             # ── Station 6.8: Auto Glossary Discovery ──
             if source:
@@ -578,7 +663,8 @@ def translate_one(
             else:
                 discovery_result = {"discovered": 0, "saved": 0, "terms": []}
 
-        quality_record = _quality_summary(score_result, attempts if not mock else [])
+        quality_record = _quality_summary(score_result, attempts if not mock else [], judge_result)
+        final_status = "needs_review" if quality_record.get("passed") is False else "ok"
         out_path = save_chapter(
             classified=classified,
             ch_num=ch_num,
@@ -590,17 +676,21 @@ def translate_one(
             model_name=model_name,
             prompt_profile=prompt_profile,
             quality_record=quality_record,
+            source_profile=source_profile,
         )
 
         return {
-            "status": "ok",
+            "status": final_status,
             "ch": ch_num,
+            "reason": "LLM judge flagged quality risk" if final_status == "needs_review" else "",
             "paragraphs": len(classified),
             "types": estimate_type_ratios(classified),
             "path": str(out_path),
             "provider": provider_name,
             "model": model_name,
             "promptProfile": prompt_profile or "faithful_default",
+            "sourceLang": source_lang,
+            "sourceProfile": source_profile,
             "score": score_result["score"],
             "quality": quality_record,
             "judge": judge_result["feedback"][:200] if judge_result.get("ok") else "judge_error",
@@ -622,11 +712,13 @@ if __name__ == "__main__":
     ap.add_argument("ch", type=int, help="Chapter number")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--mock", action="store_true")
-    ap.add_argument("--from", dest="source_lang", default="cn")
+    ap.add_argument("--from", dest="source_lang", default="auto")
+    ap.add_argument("--slug", default="global-descent")
     args = ap.parse_args()
 
     result = translate_one(
         ch_num=args.ch,
+        slug=args.slug,
         source_lang=args.source_lang,
         dry_run=args.dry_run,
         mock=args.mock,

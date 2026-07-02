@@ -1372,10 +1372,14 @@ function buildNovelctlTranslateArgs(slug, range, options = {}) {
     path.join(__dirname, '..', 'novelclaw.py'),
     'translate',
     String(range),
+    '--slug',
+    slug,
   ];
 
   if (workers > 1) args.push('--parallel', String(workers));
   if (options.mock) args.push('--mock');
+  if (options.sourceLang) args.push('--from', options.sourceLang);
+  if (options.targetLang) args.push('--to', options.targetLang);
   if (options.model) args.push('--model', options.model);
   if (options.provider) args.push('--provider', options.provider);
   if (options.promptProfile) args.push('--profile', options.promptProfile);
@@ -1428,9 +1432,12 @@ adminPost('/api/novel/:slug/translate/single', async (req, res) => {
   } catch (err) {
     return fail(res, err.status || 500, err.code || 'SOURCE_CHECK_FAILED', err.message, err.details);
   }
+  const meta = await novelRepo.getNovelMeta(slug);
 
   const args = buildNovelctlTranslateArgs(slug, chapterNum, {
     mock: false,
+    sourceLang: meta.source_lang || meta.sourceLang || 'auto',
+    targetLang: meta.target_lang || meta.targetLang || 'th',
     model: model || undefined,
     provider: provider || undefined,
     promptProfile: promptProfile || undefined,
@@ -1465,7 +1472,7 @@ adminPost('/api/novel/:slug/translate/single', async (req, res) => {
     
     const results = parseTranslateJsonOutput(stdout);
     const result = results[results.length - 1] || null;
-    if (!result || result.status !== 'ok') {
+    if (!result || !['ok', 'needs_review'].includes(result.status)) {
       const reason = result?.reason || sanitizeOutput(stderr || stdout) || 'Translation did not produce an ok result';
       if (!res.headersSent) {
         return fail(res, 500, 'TRANSLATE_FAILED', reason, result || undefined);
@@ -1475,7 +1482,7 @@ adminPost('/api/novel/:slug/translate/single', async (req, res) => {
 
     chapterRepo.invalidateAll(slug);
     invalidateQualityMeta(slug, chapterNum);
-    ok(res, { success: true, result, stdout });
+    ok(res, { success: true, needsReview: result.status === 'needs_review', result, stdout });
   });
 });
 
@@ -1491,9 +1498,12 @@ adminPost('/api/novel/:slug/translate/batch', async (req, res) => {
   } catch (err) {
     return fail(res, err.status || 500, err.code || 'SOURCE_CHECK_FAILED', err.message, err.details);
   }
+  const meta = await novelRepo.getNovelMeta(slug);
 
   const args = buildNovelctlTranslateArgs(slug, range, {
     workers: concurrent || 1,
+    sourceLang: meta.source_lang || meta.sourceLang || 'auto',
+    targetLang: meta.target_lang || meta.targetLang || 'th',
     model: model || undefined,
     provider: provider || undefined,
     promptProfile: promptProfile || undefined,

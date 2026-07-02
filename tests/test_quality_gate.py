@@ -44,3 +44,26 @@ def test_quality_gate_returns_structured_quality_fields():
     assert "repairNotes" in result
     assert "lengthRatio" in result
     assert "scriptLeaks" in result
+
+
+def test_quality_gate_fails_missing_source_structure(monkeypatch):
+    fake_result = SimpleNamespace(
+        weighted_total=95.0,
+        dimensions=[SimpleNamespace(name="Completeness", score=1.0)],
+        errors=[],
+        warnings=[],
+        metrics={"lengthRatio": 1.0, "scriptLeaks": 0},
+    )
+
+    monkeypatch.setattr(quality_gate, "score_chapter", lambda *_args, **_kwargs: fake_result)
+    monkeypatch.setattr(quality_gate, "score_report", lambda _result: "report")
+
+    result = evaluate_translation_quality(
+        [{"type": "narration", "text": "เฉาซิงเดินไปข้างหน้าอย่างเงียบงัน"}],
+        "source",
+        source_profile={"paragraphCount": 3, "dialogueCount": 1, "systemMarkerCount": 1},
+    )
+
+    assert result["passed"] is False
+    assert any("Structure Contract" in error for error in result["hardFailures"])
+    assert result["structure"]["output"]["dialogueCount"] == 0
