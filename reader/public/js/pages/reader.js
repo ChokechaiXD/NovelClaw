@@ -204,8 +204,10 @@ const ReaderPage = {
           const translateBtn = document.getElementById('inline-translate-btn');
           if (translateBtn) {
             translateBtn.addEventListener('click', async () => {
-              const loader = document.getElementById('reader-translation-loader');
-              if (loader) loader.style.display = 'flex';
+              const banner = document.getElementById('inline-translate-banner');
+              translateBtn.disabled = true;
+              translateBtn.innerHTML = `${Ui.icon('book', 'xs')}<span>กำลังแปล...</span>`;
+              banner?.classList.add('c-inline-translate--running');
               try {
                 const selectedModel = modelSelect?.value || '';
                 const selectedProvider = modelProviderById[selectedModel] || defaultModelProvider || '';
@@ -223,13 +225,17 @@ const ReaderPage = {
                   Ui.showToast('การแปลขัดข้อง: ' + (res.error?.message || 'ข้อผิดพลาดระบบ'), 'error');
                 }
               } catch (err) {
-                const banner = document.getElementById('inline-translate-banner');
                 if (err.code === 'SOURCE_NOT_READY' && banner) {
                   banner.innerHTML = ReaderPage._sourceNotReadyHtml(slug, ch.num, err);
                 }
                 Ui.showToast((err.code === 'SOURCE_NOT_READY' ? 'Source ยังไม่พร้อมแปล: ' : 'เกิดข้อผิดพลาดในการแปล: ') + err.message, 'error');
               } finally {
-                if (loader) loader.style.display = 'none';
+                const activeBtn = document.getElementById('inline-translate-btn');
+                if (activeBtn) {
+                  activeBtn.disabled = false;
+                  activeBtn.innerHTML = `${Ui.icon('book', 'xs')}<span>แปลไทยด้วย AI</span>`;
+                }
+                banner?.classList.remove('c-inline-translate--running');
               }
             });
           }

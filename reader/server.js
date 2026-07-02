@@ -1434,6 +1434,203 @@ async function assertSourceReadyForTranslate(slug, nums, options = {}) {
   throw err;
 }
 
+const activeTranslateRuns = new Map();
+
+function createTranslateRunId() {
+  return `${Date.now().toString(36)}-${crypto.randomBytes(4).toString('hex')}`;
+}
+
+function translateRunPath(bucket, runId) {
+  return path.join(JOBS_DIR, bucket, `${runId}.json`);
+}
+
+function translateRunBucket(status) {
+  if (status === 'running' || status === 'queued' || status === 'cancelling') return 'active';
+  return status === 'failed' || status === 'cancelled' ? 'failed' : 'done';
+}
+
+function publicTranslateRun(run) {
+  const chapters = Object.values(run.chapterResults || {})
+    .sort((a, b) => (a.num || 0) - (b.num || 0));
+  return {
+    runId: run.runId,
+    status: run.status,
+    slug: run.slug,
+    range: run.range,
+    total: run.total,
+    done: run.done || 0,
+    translated: run.translated || 0,
+    failed: run.failed || 0,
+    needsReview: run.needsReview || 0,
+    currentChapter: run.currentChapter || null,
+    provider: run.provider || '',
+    model: run.model || '',
+    promptProfile: run.promptProfile || '',
+    force: run.force === true,
+    startedAt: run.startedAt,
+    finishedAt: run.finishedAt || null,
+    events: (run.events || []).slice(-60),
+    chapters,
+    summary: run.summary || null,
+  };
+}
+
+async function persistTranslateRun(run) {
+  const bucket = translateRunBucket(run.status);
+  await fs.mkdir(path.join(JOBS_DIR, bucket), { recursive: true });
+  await fs.writeFile(translateRunPath(bucket, run.runId), JSON.stringify(publicTranslateRun(run), null, 2), 'utf8');
+  if (bucket !== 'active') {
+    await fs.unlink(translateRunPath('active', run.runId)).catch((err) => {
+      if (err.code !== 'ENOENT') throw err;
+    });
+  }
+}
+
+async function readTranslateRun(runId) {
+  const active = activeTranslateRuns.get(runId);
+  if (active) return publicTranslateRun(active);
+  for (const bucket of ['active', 'done', 'failed']) {
+    try {
+      return JSON.parse(await fs.readFile(translateRunPath(bucket, runId), 'utf8'));
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err;
+    }
+  }
+  return null;
+}
+
+function pushTranslateRunEvent(run, type, message, details = {}) {
+  run.events = run.events || [];
+  run.events.push({
+    at: new Date().toISOString(),
+    type,
+    message: sanitizeOutput(message || ''),
+    ...details,
+  });
+  if (run.events.length > 80) run.events = run.events.slice(-80);
+}
+
+function updateTranslateRunCounts(run) {
+  const chapters = Object.values(run.chapterResults || {});
+  run.translated = chapters.filter(ch => ch.status === 'translated' || ch.status === 'ok').length;
+  run.failed = chapters.filter(ch => ch.status === 'failed').length;
+  run.needsReview = chapters.filter(ch => ch.status === 'needs_review').length;
+  run.done = run.translated + run.failed + run.needsReview;
+}
+
+function recordTranslateRunChapter(run, item = {}) {
+  const num = parseInt(item.ch || item.num, 10);
+  if (!Number.isFinite(num)) return;
+  const rawStatus = item.status || 'running';
+  const status = rawStatus === 'ok' ? 'translated' : rawStatus;
+  run.currentChapter = num;
+  run.chapterResults[String(num)] = {
+    num,
+    status,
+    score: item.quality?.score ?? item.score ?? null,
+    reason: item.reason || '',
+    hardFailures: item.quality?.hardFailures || item.hardFailures || [],
+    warnings: item.quality?.warnings || item.warnings || [],
+  };
+  updateTranslateRunCounts(run);
+}
+
+function startTranslateRun(slug, range, args, options = {}) {
+  const run = {
+    runId: createTranslateRunId(),
+    status: 'running',
+    slug,
+    range: String(range),
+    total: options.total || 0,
+    done: 0,
+    translated: 0,
+    failed: 0,
+    needsReview: 0,
+    currentChapter: null,
+    model: options.model || '',
+    provider: options.provider || '',
+    promptProfile: options.promptProfile || '',
+    force: options.force === true,
+    startedAt: new Date().toISOString(),
+    finishedAt: null,
+    events: [],
+    chapterResults: {},
+    stdout: '',
+    stderr: '',
+    lineBuffer: '',
+  };
+
+  pushTranslateRunEvent(run, 'start', `เริ่มแปลงาน ${slug} ตอน ${range}`);
+  const child = spawn(getPythonCommand(), args, {
+    cwd: path.join(__dirname, '..'),
+    windowsHide: true,
+    env: { ...process.env, NOVEL_SLUG: slug, PYTHONIOENCODING: 'utf-8' },
+  });
+  run.child = child;
+  activeTranslateRuns.set(run.runId, run);
+  persistTranslateRun(run).catch(err => console.error('Persist translate run failed:', err));
+
+  const consumeStdoutLine = (line) => {
+    const text = line.trim();
+    if (!text) return;
+    if (text.startsWith('{')) {
+      try {
+        const item = JSON.parse(text);
+        recordTranslateRunChapter(run, item);
+        pushTranslateRunEvent(run, item.status || 'chapter', `ตอน ${item.ch || item.num || '-'}: ${item.status || 'updated'}`);
+        persistTranslateRun(run).catch(err => console.error('Persist translate run failed:', err));
+        return;
+      } catch {}
+    }
+    pushTranslateRunEvent(run, 'stdout', text);
+  };
+
+  child.stdout.on('data', (buffer) => {
+    const chunk = buffer.toString('utf8');
+    run.stdout += chunk;
+    run.lineBuffer += chunk;
+    const lines = run.lineBuffer.split(/\r?\n/);
+    run.lineBuffer = lines.pop() || '';
+    for (const line of lines) consumeStdoutLine(line);
+  });
+  child.stderr.on('data', (buffer) => {
+    const text = buffer.toString('utf8');
+    run.stderr += text;
+    const trimmed = text.trim();
+    if (trimmed) pushTranslateRunEvent(run, 'stderr', trimmed);
+  });
+  child.on('error', (err) => {
+    run.status = 'failed';
+    run.finishedAt = new Date().toISOString();
+    pushTranslateRunEvent(run, 'error', err.message);
+    activeTranslateRuns.delete(run.runId);
+    persistTranslateRun(run).catch(persistErr => console.error('Persist translate run failed:', persistErr));
+  });
+  child.on('close', (code) => {
+    if (run.lineBuffer) consumeStdoutLine(run.lineBuffer);
+    const summary = parseBatchTranslateSummary(run.stdout);
+    run.summary = summary;
+    if (!Object.keys(run.chapterResults).length && Array.isArray(summary.chapters)) {
+      for (const item of summary.chapters) recordTranslateRunChapter(run, item);
+    }
+    updateTranslateRunCounts(run);
+    run.status = run.status === 'cancelling' ? 'cancelled' : (code === 0 ? 'done' : 'failed');
+    run.finishedAt = new Date().toISOString();
+    pushTranslateRunEvent(
+      run,
+      run.status,
+      code === 0 ? 'งานแปลเสร็จแล้ว' : `novelclaw.py exited with code ${code}: ${sanitizeOutput(run.stderr || run.stdout)}`
+    );
+    chapterRepo.invalidateAll(slug);
+    invalidateQualityMeta(slug);
+    invalidateCache('/api/novels');
+    activeTranslateRuns.delete(run.runId);
+    persistTranslateRun(run).catch(err => console.error('Persist translate run failed:', err));
+  });
+
+  return publicTranslateRun(run);
+}
+
 adminPost('/api/novel/:slug/translate/single', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
@@ -1560,6 +1757,75 @@ adminPost('/api/novel/:slug/translate/batch', async (req, res) => {
     }
     ok(res, { success: true, result: { range: String(range), status: 'done', summary, chapters: summary.chapters || [] }, stdout });
   });
+});
+
+adminPost('/api/novel/:slug/translate/runs', async (req, res) => {
+  assertValidSlug(req.params.slug);
+  const slug = req.params.slug;
+  const { range, concurrent, model, provider, promptProfile, force } = req.body;
+  if (!range) return fail(res, 400, 'MISSING_RANGE', 'Chapter range (e.g. 5-10) is required.');
+  const nums = parseChapterRangeSpec(range);
+  if (!nums.length) return fail(res, 400, 'INVALID_RANGE', 'Invalid chapter range. Use examples like 5, 5-10, or 1,3-5.');
+  try {
+    await assertSourceReadyForTranslate(slug, nums, { force: force === true });
+  } catch (err) {
+    return fail(res, err.status || 500, err.code || 'SOURCE_CHECK_FAILED', err.message, err.details);
+  }
+  const meta = await novelRepo.getNovelMeta(slug);
+  const args = buildNovelctlTranslateArgs(slug, range, {
+    workers: concurrent,
+    sourceLang: meta.source_lang || 'auto',
+    targetLang: meta.target_lang || 'th',
+    force: force === true,
+    model: model || undefined,
+    provider: provider || undefined,
+    promptProfile: promptProfile || undefined,
+    json: true,
+  });
+  const run = startTranslateRun(slug, range, args, {
+    total: nums.length,
+    model,
+    provider,
+    promptProfile,
+    force: force === true,
+  });
+  ok(res, run);
+});
+
+app.get('/api/translate/runs', requireAdmin, asyncHandler(async (_req, res) => {
+  const active = [...activeTranslateRuns.values()].map(publicTranslateRun);
+  const recent = [];
+  for (const bucket of ['done', 'failed']) {
+    const files = await collectJobBucket(bucket);
+    for (const file of files.slice(0, 8)) {
+      try {
+        const data = JSON.parse(await fs.readFile(path.join(JOBS_DIR, bucket, file.name), 'utf8'));
+        recent.push({ ...data, bucket });
+      } catch {}
+    }
+  }
+  recent.sort((a, b) => String(b.finishedAt || b.startedAt || '').localeCompare(String(a.finishedAt || a.startedAt || '')));
+  ok(res, { active, recent: recent.slice(0, 12) });
+}));
+
+app.get('/api/translate/runs/:runId', requireAdmin, asyncHandler(async (req, res) => {
+  const runId = String(req.params.runId || '');
+  if (!/^[a-z0-9-]{8,40}$/i.test(runId)) return fail(res, 400, 'INVALID_RUN_ID', 'Invalid run id');
+  const run = await readTranslateRun(runId);
+  if (!run) return fail(res, 404, 'RUN_NOT_FOUND', 'Translation run not found');
+  ok(res, run);
+}));
+
+adminPost('/api/translate/runs/:runId/cancel', async (req, res) => {
+  const runId = String(req.params.runId || '');
+  if (!/^[a-z0-9-]{8,40}$/i.test(runId)) return fail(res, 400, 'INVALID_RUN_ID', 'Invalid run id');
+  const run = activeTranslateRuns.get(runId);
+  if (!run) return fail(res, 404, 'RUN_NOT_ACTIVE', 'Translation run is not active');
+  run.status = 'cancelling';
+  pushTranslateRunEvent(run, 'cancel', 'กำลังยกเลิกงานแปล');
+  run.child?.kill?.();
+  persistTranslateRun(run).catch(err => console.error('Persist translate run failed:', err));
+  ok(res, publicTranslateRun(run));
 });
 
 // ── SPA fallback — serve index.html for all non-API routes ─────────

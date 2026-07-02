@@ -1934,6 +1934,10 @@ const AdminTranslatePage = {
   async render(params) {
     const page = Ui.$('page-admin-translate');
     if (!page) return;
+    if (this._pollTimer) {
+      clearInterval(this._pollTimer);
+      this._pollTimer = null;
+    }
     Ui.showSkeleton('page-admin-translate');
 
     try {
@@ -2061,7 +2065,7 @@ const AdminTranslatePage = {
                 </div>
                 <div class="c-form__group">
                   <label class="c-form__label">Model override</label>
-                  <input type="text" class="c-form__input c-form__input--compact" id="translate-model-override" list="translate-model-list" placeholder="ค้นหา model หรือเว้นว่างเพื่อใช้ Provider default" />
+                  <input type="text" class="c-form__input c-form__input--compact" id="translate-model-override" list="translate-model-list" value="${Ui.esc(currentLlmConfig.default_model || '')}" placeholder="ค้นหา model" />
                   <datalist id="translate-model-list">${modelOptions}</datalist>
                   <div class="c-admin-translate__model-tools">
                     <span id="translate-model-catalog-note" class="u-text-muted">${Ui.esc(AdminTranslatePage._modelCatalogSummary(currentLlmConfig))}</span>
@@ -2071,6 +2075,30 @@ const AdminTranslatePage = {
                 </div>
               </div>
               <div id="translate-source-health" class="c-admin-translate__source-health"></div>
+              <div class="c-admin-translate__job-panel" id="translate-job-panel">
+                <div class="c-admin-translate__job-head">
+                  <div>
+                    <h4 class="c-admin-translate__subhead">ตัวติดตามงานแปล</h4>
+                    <p class="u-text-muted">เริ่มงานแล้วหน้านี้จะตามสถานะให้อัตโนมัติ</p>
+                  </div>
+                  <span id="translate-job-badge" class="c-badge c-badge--gray">พร้อม</span>
+                </div>
+                <div class="c-admin-translate__job-progress" aria-label="Translation progress">
+                  <div id="translate-job-progress-fill" class="c-admin-translate__job-progress-fill"></div>
+                </div>
+                <div class="c-admin-translate__preview-grid c-admin-translate__job-metrics">
+                  <span><strong id="translate-job-progress-text">0%</strong><small>progress</small></span>
+                  <span><strong id="translate-job-done">0</strong><small>done</small></span>
+                  <span><strong id="translate-job-review">0</strong><small>needs review</small></span>
+                  <span><strong id="translate-job-failed">0</strong><small>failed</small></span>
+                </div>
+                <div id="translate-job-current" class="c-admin-translate__job-current">ยังไม่มีงานที่กำลังรัน</div>
+                <pre id="translate-job-events" class="c-admin-translate__mini-log"></pre>
+                <div class="c-admin-translate__job-actions">
+                  <button class="c-btn c-btn--sm c-btn--ghost" id="translate-job-refresh" type="button">${Ui.icon('info', 'xs')}<span>Refresh</span></button>
+                  <button class="c-btn c-btn--sm c-btn--danger" id="translate-job-cancel" type="button" hidden>${Ui.icon('close', 'xs')}<span>Cancel</span></button>
+                </div>
+              </div>
               <div class="c-admin-translate__actions">
                 <button class="c-btn c-btn--primary" id="translate-batch-run-btn" type="button">${Ui.icon('book', 'xs')}<span>เริ่มแปล</span></button>
                 <label class="c-admin-import__check"><input id="translate-force-source" type="checkbox"> force แปลแม้ source error</label>
@@ -2225,6 +2253,112 @@ const AdminTranslatePage = {
       let filterState = 'all';
       let searchQuery = '';
       const selectedNums = new Set();
+      let activeRunId = '';
+
+      const syncResultsFromRun = (run = {}) => {
+        for (const item of run.chapters || []) {
+          const num = parseInt(item.num || item.ch, 10);
+          if (!Number.isFinite(num)) continue;
+          lastResultByNum[num] = {
+            ...item,
+            status: item.status === 'translated' ? 'ok' : item.status,
+          };
+        }
+      };
+
+      const renderJobPanel = (run = null) => {
+        const badge = document.getElementById('translate-job-badge');
+        const fill = document.getElementById('translate-job-progress-fill');
+        const progressText = document.getElementById('translate-job-progress-text');
+        const doneEl = document.getElementById('translate-job-done');
+        const reviewEl = document.getElementById('translate-job-review');
+        const failedEl = document.getElementById('translate-job-failed');
+        const currentEl = document.getElementById('translate-job-current');
+        const eventsEl = document.getElementById('translate-job-events');
+        const cancelBtn = document.getElementById('translate-job-cancel');
+        if (!badge || !fill || !progressText || !doneEl || !reviewEl || !failedEl || !currentEl || !eventsEl || !cancelBtn) return;
+
+        if (!run) {
+          badge.textContent = 'พร้อม';
+          badge.className = 'c-badge c-badge--gray';
+          fill.style.width = '0%';
+          progressText.textContent = '0%';
+          doneEl.textContent = '0';
+          reviewEl.textContent = '0';
+          failedEl.textContent = '0';
+          currentEl.textContent = 'ยังไม่มีงานที่กำลังรัน';
+          eventsEl.textContent = '';
+          cancelBtn.hidden = true;
+          return;
+        }
+
+        syncResultsFromRun(run);
+        const pct = run.total ? Math.round(((run.done || 0) / run.total) * 100) : 0;
+        const badgeClass = run.status === 'running' || run.status === 'queued' || run.status === 'cancelling'
+          ? 'c-badge c-badge--amber'
+          : run.status === 'failed' || run.status === 'cancelled'
+            ? 'c-badge c-badge--red'
+            : 'c-badge c-badge--teal';
+        badge.textContent = run.status || 'unknown';
+        badge.className = badgeClass;
+        fill.style.width = Math.min(100, Math.max(0, pct)) + '%';
+        progressText.textContent = pct + '%';
+        doneEl.textContent = String(run.done || 0) + ' / ' + String(run.total || 0);
+        reviewEl.textContent = String(run.needsReview || 0);
+        failedEl.textContent = String(run.failed || 0);
+        currentEl.textContent = run.currentChapter
+          ? `กำลัง/ล่าสุด: ตอน ${run.currentChapter} · model ${run.model || currentLlmConfig.default_model || '-'}`
+          : `รอผลลัพธ์จาก pipeline · model ${run.model || currentLlmConfig.default_model || '-'}`;
+        eventsEl.textContent = (run.events || []).slice(-8).map(event => `${event.at || ''}  ${event.message || event.type || ''}`).join('\n');
+        cancelBtn.hidden = !['running', 'queued', 'cancelling'].includes(run.status);
+        renderChapterTable();
+      };
+
+      const stopRunPolling = () => {
+        if (AdminTranslatePage._pollTimer) clearInterval(AdminTranslatePage._pollTimer);
+        AdminTranslatePage._pollTimer = null;
+      };
+
+      const pollRun = (runId) => {
+        activeRunId = runId || '';
+        stopRunPolling();
+        if (!activeRunId) return;
+        const tick = async () => {
+          try {
+            const resp = await Api.getTranslateRun(activeRunId);
+            const run = resp.data || resp;
+            renderJobPanel(run);
+            if (!['running', 'queued', 'cancelling'].includes(run.status)) {
+              stopRunPolling();
+              await loadChapterTable(true);
+              renderQueuePreview();
+              if (runBtn) {
+                runBtn.disabled = false;
+                AdminUi.setButton(runBtn, 'book', 'เริ่มแปล');
+              }
+              Ui.showToast(run.status === 'done' ? 'งานแปลเสร็จแล้ว' : 'งานแปลหยุดด้วยสถานะ ' + run.status, run.status === 'done' ? 'success' : 'warning');
+            }
+          } catch (err) {
+            stopRunPolling();
+            AdminTranslatePage.setConsole('error', 'Run tracker failed', err.message);
+          }
+        };
+        tick();
+        AdminTranslatePage._pollTimer = setInterval(tick, 2000);
+      };
+
+      const refreshRuns = async () => {
+        try {
+          const resp = await Api.getTranslateRuns();
+          const data = resp.data || resp;
+          const slugVal = document.getElementById('translate-batch-novel')?.value || '';
+          const run = (data.active || []).find(item => item.slug === slugVal) || (data.active || [])[0] || null;
+          renderJobPanel(run);
+          if (run?.runId && ['running', 'queued', 'cancelling'].includes(run.status)) pollRun(run.runId);
+        } catch (err) {
+          AdminTranslatePage.setConsole('error', 'Run list failed', err.message);
+        }
+      };
 
       const visibleChapters = () => tableChapters.filter(ch => {
         const resultIssue = lastResultByNum[ch.num];
@@ -2520,18 +2654,37 @@ const AdminTranslatePage = {
       document.getElementById('translate-force-source')?.addEventListener('change', () => {
         renderQueuePreview();
       });
+      document.getElementById('translate-job-refresh')?.addEventListener('click', () => {
+        refreshRuns();
+      });
+      document.getElementById('translate-job-cancel')?.addEventListener('click', async () => {
+        if (!activeRunId) return;
+        const btn = document.getElementById('translate-job-cancel');
+        if (btn) btn.disabled = true;
+        try {
+          const resp = await Api.cancelTranslateRun(activeRunId);
+          renderJobPanel(resp.data || resp);
+        } catch (err) {
+          Ui.showToast('ยกเลิกงานไม่สำเร็จ: ' + err.message, 'error');
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      });
 
       document.getElementById('translate-batch-novel')?.addEventListener('change', () => {
         updateSourceHealth();
         loadChapterTable();
+        refreshRuns();
       });
       loadChapterTable().finally(() => {
         setTimeout(() => { refreshModelCatalog(true); }, 1000);
+        refreshRuns();
       });
 
       // ── Bind Batch Translation Event
       const runBtn = document.getElementById('translate-batch-run-btn');
       const runBatch = async (rangeOverride = '', runOptions = {}) => {
+          let launchedRun = false;
           const slugVal = document.getElementById('translate-batch-novel').value;
           const rangeVal = rangeOverride || document.getElementById('translate-batch-range').value;
           const concurrentVal = parseInt(document.getElementById('translate-batch-concurrent').value, 10);
@@ -2578,25 +2731,18 @@ const AdminTranslatePage = {
               options.model = modelOverride;
               if (modelProviderById[modelOverride]) options.provider = modelProviderById[modelOverride];
             }
-            const res = await Api.translateBatch(slugVal, rangeVal, concurrentVal, options);
-            const result = res.data || res;
-
-            if (res.ok && result.success) {
-              const batchResult = result.result || result;
-              for (const ch of batchResult.chapters || []) {
-                const num = parseInt(ch.ch || ch.num, 10);
-                if (Number.isFinite(num)) lastResultByNum[num] = ch;
-              }
-              AdminTranslatePage.setConsole(
-                'success',
-                `แปลเสร็จสิ้น: ${rangeVal}`,
-                AdminTranslatePage._formatBatchResult(batchResult)
-              );
-              await loadChapterTable(true);
-              Ui.showToast('แปลกลุ่มช่วงตอนสำเร็จแล้ว');
-            } else {
-              throw new Error(res.error?.message || 'แปลไม่สำเร็จ');
-            }
+            const res = await Api.startTranslateRun(slugVal, rangeVal, concurrentVal, options);
+            const run = res.data || res;
+            activeRunId = run.runId || '';
+            launchedRun = true;
+            renderJobPanel(run);
+            AdminTranslatePage.setConsole(
+              'running',
+              `เริ่มงานแปลแล้ว: ${rangeVal}`,
+              `run: ${activeRunId}\nmodel: ${run.model || currentLlmConfig.default_model || '-'}\nprovider: ${run.provider || currentLlmConfig.default_provider || '-'}`
+            );
+            pollRun(activeRunId);
+            Ui.showToast('เริ่มงานแปลแล้ว กำลังติดตามสถานะ');
           } catch (err) {
             const failedSummary = err.details?.summary || err.payload?.error?.details?.summary || {};
             const failedChapters = failedSummary.chapters || err.details?.chapters || [];
@@ -2619,7 +2765,7 @@ const AdminTranslatePage = {
             );
             Ui.showToast('การแปลเกิดข้อผิดพลาด: ' + err.message, 'error');
           } finally {
-            if (runBtn) {
+            if (runBtn && !launchedRun) {
               runBtn.disabled = false;
               AdminUi.setButton(runBtn, 'book', 'เริ่มแปล');
             }
