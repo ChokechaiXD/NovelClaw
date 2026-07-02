@@ -1341,8 +1341,8 @@ app.get('/api/admin/provider-config', asyncHandler(async (req, res) => {
 }));
 
 adminPost('/api/admin/provider-config', async (req, res) => {
-  const { active, default_model, discovery_model, custom_base_url, custom_api_key } = req.body;
-  if (!active && !default_model && !discovery_model && !custom_base_url && !custom_api_key) {
+  const { active, default_model, discovery_model, custom_base_url, custom_api_key, api_key_provider, api_key } = req.body;
+  if (!active && !default_model && !discovery_model && !custom_base_url && !custom_api_key && !api_key) {
     return fail(res, 400, 'INVALID_INPUT', 'Provide at least active, default_model, discovery_model, or custom endpoint settings');
   }
   try {
@@ -1352,6 +1352,8 @@ adminPost('/api/admin/provider-config', async (req, res) => {
       discovery_model: discovery_model || null,
       custom_base_url: custom_base_url || null,
       custom_api_key: custom_api_key || null,
+      api_key_provider: api_key_provider || active || null,
+      api_key: api_key || null,
     });
     ok(res, { saved: true, active, default_model, discovery_model, custom_base_url: custom_base_url || null });
   } catch (err) {
