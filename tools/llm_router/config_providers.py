@@ -90,6 +90,10 @@ def _load_provider_config() -> dict[str, Any]:
                     rk = _resolve_file_key(file_key)
                     if rk:
                         pcfg["api_key"] = rk
+                if not pcfg.get("api_key", ""):
+                    lk = _resolve_local_provider_key(name)
+                    if lk:
+                        pcfg["api_key"] = lk
 
     return resolved
 
@@ -143,6 +147,17 @@ def _resolve_file_key(value: str) -> str:
         return ""
 
 
+def _provider_key_field(provider_name: str) -> str:
+    if provider_name == "openmodel":
+        return "openmodel_api_key"
+    return f"{provider_name}_api_key"
+
+
+def _resolve_local_provider_key(provider_name: str) -> str:
+    key = _resolve_file_key(f"llm.json.{_provider_key_field(provider_name)}")
+    return key or (_resolve_file_key("llm.json.api_key") if provider_name == "openmodel" else "")
+
+
 def _write_llm_json_key(key: str, value: str) -> None:
     llm_path = _PROJECT_ROOT / "llm.json"
     data: dict[str, Any] = {}
@@ -186,7 +201,9 @@ def save_provider_config(active: str | None = None,
                          default_model: str | None = None,
                          discovery_model: str | None = None,
                          custom_base_url: str | None = None,
-                         custom_api_key: str | None = None) -> bool:
+                         custom_api_key: str | None = None,
+                         api_key_provider: str | None = None,
+                         api_key: str | None = None) -> bool:
     """Update active provider and/or default model in YAML file.
 
     Args:
@@ -195,6 +212,8 @@ def save_provider_config(active: str | None = None,
         discovery_model: New discovery/judge model ID (or None to keep).
         custom_base_url: OpenAI-compatible endpoint for the custom provider.
         custom_api_key: Optional API key for the custom provider, saved to llm.json.
+        api_key_provider: Provider name for api_key, saved to llm.json.
+        api_key: Optional API key for any provider, saved to llm.json.
 
     Returns:
         True if saved successfully.
@@ -224,6 +243,11 @@ def save_provider_config(active: str | None = None,
     _CONFIG_PATH.write_text(text, encoding="utf-8")
     if custom_api_key is not None and custom_api_key.strip():
         _write_llm_json_key("custom_api_key", custom_api_key.strip())
+    if api_key_provider is not None and api_key is not None and api_key.strip():
+        key = _provider_key_field(api_key_provider.strip())
+        _write_llm_json_key(key, api_key.strip())
+        if api_key_provider.strip() == "openmodel":
+            _write_llm_json_key("api_key", api_key.strip())
     clear_provider_config_cache()
     return True
 
@@ -333,6 +357,8 @@ def get_providers_list(refresh: bool = False) -> list[dict[str, Any]]:
                 "name": name,
                 "display_name": pcfg.get("display_name", name),
                 "base_url": pcfg.get("base_url", ""),
+                "has_key": bool(pcfg.get("api_key")),
+                "key_field": _provider_key_field(name),
                 "models": models,
                 "model_source": model_source,
                 "model_error": model_error,

@@ -87,9 +87,10 @@ const AdminProviderWizardPage = {
         const modelCount = (p.models || []).length;
         const sourceText = p.model_source === 'live' ? 'live' : 'static';
         const errorText = p.model_error ? ' · fallback' : '';
+        const keyText = p.has_key ? ' · มี key' : ' · ยังไม่มี key';
         return '<div class="c-card c-admin-provider__card' + act + '" data-provider="' + Ui.esc(p.name) + '">' +
           '<div class="c-admin-provider__card-name">' + Ui.esc(p.display_name || p.name) + '</div>' +
-          '<div class="c-admin-provider__card-meta">' + modelCount + ' โมเดล · ' + Ui.esc(sourceText + errorText) + '</div>' +
+          '<div class="c-admin-provider__card-meta">' + modelCount + ' โมเดล · ' + Ui.esc(sourceText + errorText + keyText) + '</div>' +
           '</div>';
       }).join('') +
       '</div>' +
@@ -191,6 +192,7 @@ const AdminProviderWizardPage = {
     const p = providers.find(x => x.name === selected_provider) || {};
     const pName = p.display_name || selected_provider;
     const isCustom = selected_provider === 'custom';
+    const keyPlaceholder = p.has_key ? 'มี key แล้ว - ใส่ค่าใหม่เฉพาะตอนต้องการเปลี่ยน' : 'ใส่ API key ของ ' + pName;
 
     page.innerHTML = '<div class="c-container">' +
       Ui.adminNav('provider') +
@@ -208,9 +210,10 @@ const AdminProviderWizardPage = {
       (isCustom ? '<div class="c-admin-provider__custom-panel">' +
       '<div class="c-form__group"><label class="c-form__label" for="provider-custom-base-url-final">Custom endpoint</label>' +
       '<input class="c-form__input" id="provider-custom-base-url-final" value="' + Ui.esc(this._state.selected_custom_base_url || p.base_url || '') + '" placeholder="http://localhost:8000/v1" /></div>' +
-      '<div class="c-form__group"><label class="c-form__label" for="provider-custom-api-key">Custom API key (optional)</label>' +
-      '<input class="c-form__input" id="provider-custom-api-key" type="password" autocomplete="off" placeholder="ปล่อยว่างได้ถ้า endpoint local ไม่ใช้ key" /></div>' +
       '</div>' : '') +
+      '<div class="c-form__group"><label class="c-form__label" for="provider-api-key">API key</label>' +
+      '<input class="c-form__input" id="provider-api-key" type="password" autocomplete="off" placeholder="' + Ui.esc(keyPlaceholder) + '" />' +
+      '<p class="c-form__help-text">เก็บใน llm.json บนเครื่องนี้เท่านั้น ถ้าไม่ใส่จะใช้ key เดิมหรือ env var เดิม</p></div>' +
       '<div id="wizard-status"></div>' +
       '<div class="c-admin-wizard__actions">' +
       '<button class="c-btn c-btn--ghost" id="wizard-prev-3" type="button">' + Ui.icon('arrow-left', 'xs') + '<span>ย้อนกลับ</span></button>' +
@@ -234,7 +237,8 @@ const AdminProviderWizardPage = {
           default_model: this._state.selected_model,
           discovery_model: this._state.selected_discovery,
           custom_base_url: document.getElementById('provider-custom-base-url-final')?.value.trim() || null,
-          custom_api_key: document.getElementById('provider-custom-api-key')?.value.trim() || null,
+          api_key_provider: this._state.selected_provider,
+          api_key: document.getElementById('provider-api-key')?.value.trim() || null,
         });
         statusEl.innerHTML = '<span class="c-badge c-badge--teal">บันทึกสำเร็จ</span>';
         this._setButton(btn, 'settings', 'บันทึกแล้ว');

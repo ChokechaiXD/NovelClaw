@@ -111,6 +111,44 @@ def test_save_provider_config_updates_custom_endpoint(tmp_path, monkeypatch):
     assert 'base_url: "http://127.0.0.1:1234/v1"' in text
 
 
+def test_save_provider_config_updates_local_provider_api_key(tmp_path, monkeypatch):
+    config_path = tmp_path / "providers.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "active: openai",
+                'default_model: "gpt-4o"',
+                "providers:",
+                "  openai:",
+                "    display_name: OpenAI",
+                '    base_url: "https://api.openai.com/v1"',
+                "    api_key_env: OPENAI_API_KEY",
+                '    api_key_file: ""',
+                "    models:",
+                '      - id: "gpt-4o"',
+                '        name: "GPT-4o"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(config_providers, "_CONFIG_PATH", config_path)
+    monkeypatch.setattr(config_providers, "_PROJECT_ROOT", tmp_path)
+    config_providers.clear_provider_config_cache()
+
+    saved = config_providers.save_provider_config(
+        api_key_provider="openai",
+        api_key="sk-local-test",
+    )
+
+    assert saved is True
+    assert '"openai_api_key": "sk-local-test"' in (tmp_path / "llm.json").read_text(encoding="utf-8")
+    assert "sk-local-test" not in config_path.read_text(encoding="utf-8")
+    config_providers.clear_provider_config_cache()
+    cfg = config_providers.get_provider_config()
+    assert cfg["providers"]["openai"]["api_key"] == "sk-local-test"
+
+
 def test_get_providers_list_can_refresh_live_models(tmp_path, monkeypatch):
     config_path = tmp_path / "providers.yaml"
     config_path.write_text(
