@@ -158,6 +158,18 @@ const Api = {
     return data;
   },
 
+  async deleteTranslatedChapters(slug, nums = []) {
+    const res = await fetch(`/api/novel/${slug}/translations/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nums })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw this._buildError(res, data);
+    if (data.ok) this.invalidateAll(slug);
+    return data;
+  },
+
   async getTranslationHealth() {
     const res = await fetch('/api/admin/translation-health');
     const data = await res.json().catch(() => ({}));

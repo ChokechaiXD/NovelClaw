@@ -10,6 +10,15 @@ function resetNovelRootModules() {
   }
 }
 
+async function pathExists(filepath) {
+  try {
+    await fs.access(filepath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 test('listChapters uses source markdown title when language json title is generic', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-chapter-repo-source-title-'));
   process.env.NOVELCLAW_ROOT = root;
@@ -124,4 +133,55 @@ test('listChapters includes translation quality only when requested', async () =
   assert.equal(withQuality[0].score, 72);
   assert.equal(withQuality[0].qualityStatus, 'needs_review');
   assert.equal(withQuality[0].model, 'test-model');
+});
+
+test('deleteTranslatedChapters removes only selected Thai translations', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-chapter-repo-delete-translated-selected-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const slug = 'delete-translated-selected';
+  const chaptersDir = path.join(root, slug, 'chapters');
+  const sourceDir = path.join(chaptersDir, 'source');
+  await fs.mkdir(sourceDir, { recursive: true });
+  await fs.writeFile(path.join(chaptersDir, '0001.th.json'), JSON.stringify({ chapterNo: 1 }), 'utf8');
+  await fs.writeFile(path.join(chaptersDir, '0001.cn.json'), JSON.stringify({ chapterNo: 1 }), 'utf8');
+  await fs.writeFile(path.join(chaptersDir, '0002.th.json'), JSON.stringify({ chapterNo: 2 }), 'utf8');
+  await fs.writeFile(path.join(sourceDir, '0001.md'), '# Chapter 1\n\nSource body.', 'utf8');
+  await fs.writeFile(path.join(sourceDir, '0002.md'), '# Chapter 2\n\nSource body.', 'utf8');
+
+  const { deleteTranslatedChapters } = require('../lib/chapter-repo');
+  const result = await deleteTranslatedChapters(slug, [1]);
+
+  assert.deepEqual(result, { deleted: 1, nums: [1] });
+  assert.equal(await pathExists(path.join(chaptersDir, '0001.th.json')), false);
+  assert.equal(await pathExists(path.join(chaptersDir, '0002.th.json')), true);
+  assert.equal(await pathExists(path.join(chaptersDir, '0001.cn.json')), true);
+  assert.equal(await pathExists(path.join(sourceDir, '0001.md')), true);
+});
+
+test('deleteTranslatedChapters can remove every Thai translation without deleting source files', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-chapter-repo-delete-translated-all-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const slug = 'delete-translated-all';
+  const chaptersDir = path.join(root, slug, 'chapters');
+  const sourceDir = path.join(chaptersDir, 'source');
+  await fs.mkdir(sourceDir, { recursive: true });
+  await fs.writeFile(path.join(chaptersDir, '0001.th.json'), JSON.stringify({ chapterNo: 1 }), 'utf8');
+  await fs.writeFile(path.join(chaptersDir, '0002.th.json'), JSON.stringify({ chapterNo: 2 }), 'utf8');
+  await fs.writeFile(path.join(chaptersDir, '0002.cn.json'), JSON.stringify({ chapterNo: 2 }), 'utf8');
+  await fs.writeFile(path.join(sourceDir, '0001.md'), '# Chapter 1\n\nSource body.', 'utf8');
+  await fs.writeFile(path.join(sourceDir, '0002.md'), '# Chapter 2\n\nSource body.', 'utf8');
+
+  const { deleteTranslatedChapters } = require('../lib/chapter-repo');
+  const result = await deleteTranslatedChapters(slug);
+
+  assert.deepEqual(result, { deleted: 2, nums: [1, 2] });
+  assert.equal(await pathExists(path.join(chaptersDir, '0001.th.json')), false);
+  assert.equal(await pathExists(path.join(chaptersDir, '0002.th.json')), false);
+  assert.equal(await pathExists(path.join(chaptersDir, '0002.cn.json')), true);
+  assert.equal(await pathExists(path.join(sourceDir, '0001.md')), true);
+  assert.equal(await pathExists(path.join(sourceDir, '0002.md')), true);
 });

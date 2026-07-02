@@ -2083,10 +2083,12 @@ const AdminTranslatePage = {
                   </div>
                   <div class="c-admin-translate__chapter-actions">
                     <button class="c-btn c-btn--xs c-btn--secondary" id="translate-select-untranslated" type="button">${Ui.icon('search', 'xs')}<span>ยังไม่แปล</span></button>
+                    <button class="c-btn c-btn--xs c-btn--secondary" id="translate-select-translated" type="button">${Ui.icon('bookmarks', 'xs')}<span>มีไฟล์แปล</span></button>
                     <button class="c-btn c-btn--xs c-btn--secondary" id="translate-select-review" type="button">${Ui.icon('search', 'xs')}<span>ควรดู/ล้มเหลว</span></button>
                     <button class="c-btn c-btn--xs c-btn--secondary" id="translate-select-source-errors" type="button">${Ui.icon('info', 'xs')}<span>source error</span></button>
                     <button class="c-btn c-btn--xs c-btn--ghost" id="translate-clear-selection" type="button">${Ui.icon('info', 'xs')}<span>ล้าง</span></button>
                     <button class="c-btn c-btn--xs c-btn--primary" id="translate-run-selected" type="button">${Ui.icon('book', 'xs')}<span>แปลที่เลือก</span></button>
+                    <button class="c-btn c-btn--xs c-btn--danger" id="translate-delete-selected" type="button">${Ui.icon('close', 'xs')}<span>ลบแปลที่เลือก</span></button>
                     <button class="c-btn c-btn--xs c-btn--secondary" id="translate-run-untranslated" type="button">${Ui.icon('book', 'xs')}<span>แปลที่ยังไม่แปล</span></button>
                     <button class="c-btn c-btn--xs c-btn--secondary" id="translate-retry-review" type="button">${Ui.icon('book', 'xs')}<span>Retry ควรดู</span></button>
                     <button class="c-btn c-btn--xs c-btn--secondary" id="translate-force-selected" type="button">${Ui.icon('book', 'xs')}<span>Force selected</span></button>
@@ -2364,6 +2366,12 @@ const AdminTranslatePage = {
         return AdminTranslatePage._rangeFromNums([...selectedNums]);
       };
 
+      const selectedTranslatedNums = () => [...selectedNums]
+        .map(num => tableChapters.find(ch => ch.num === num))
+        .filter(ch => ch && (ch.hasTh || ch.isTranslated || ch.status === 'translated'))
+        .map(ch => ch.num)
+        .sort((a, b) => a - b);
+
       const showChapterDetail = (num) => {
         const ch = tableChapters.find(item => item.num === num);
         if (!ch) return;
@@ -2450,6 +2458,9 @@ const AdminTranslatePage = {
 
       document.getElementById('translate-select-untranslated')?.addEventListener('click', () => {
         selectMatching(status => status === 'untranslated');
+      });
+      document.getElementById('translate-select-translated')?.addEventListener('click', () => {
+        selectMatching((status, ch) => ch.hasTh || ch.isTranslated || ch.status === 'translated');
       });
       document.getElementById('translate-select-review')?.addEventListener('click', () => {
         selectMatching(status => status === 'needs_review' || status === 'failed');
@@ -2625,6 +2636,49 @@ const AdminTranslatePage = {
       };
       document.getElementById('translate-run-selected')?.addEventListener('click', () => {
         runSelected();
+      });
+      document.getElementById('translate-delete-selected')?.addEventListener('click', async () => {
+        const slugVal = document.getElementById('translate-batch-novel')?.value || '';
+        const btn = document.getElementById('translate-delete-selected');
+        const nums = selectedTranslatedNums();
+        if (!slugVal || !btn) return;
+        if (!selectedNums.size) {
+          Ui.showToast('เลือกตอนที่ต้องการลบไฟล์แปลก่อน', 'error');
+          return;
+        }
+        if (!nums.length) {
+          Ui.showToast('ตอนที่เลือกยังไม่มีไฟล์แปลไทยให้ลบ', 'warning');
+          return;
+        }
+        const skipped = selectedNums.size - nums.length;
+        const range = AdminTranslatePage._rangeFromNums(nums);
+        const displayRange = range.length > 180 ? range.slice(0, 180) + '...' : range;
+        const note = skipped > 0 ? `\nข้าม ${skipped} ตอนที่ยังไม่มีไฟล์แปลไทย` : '';
+        if (!confirm(`ลบไฟล์แปลไทย (.th.json) ${nums.length} ตอน?\n\nตอน: ${displayRange}${note}\n\nSource/ไฟล์ต้นฉบับจะไม่ถูกลบ และสามารถกดแปลใหม่ได้ทันที`)) {
+          return;
+        }
+
+        btn.disabled = true;
+        AdminUi.setButton(btn, 'close', 'กำลังลบ...');
+        AdminTranslatePage.setConsole('running', 'Deleting selected translations', `slug: ${slugVal}\nchapters: ${displayRange}`);
+        try {
+          const res = await Api.deleteTranslatedChapters(slugVal, nums);
+          const data = res.data || res;
+          await loadChapterTable(false);
+          renderQueuePreview();
+          AdminTranslatePage.setConsole(
+            'success',
+            'Deleted selected translations',
+            `slug: ${slugVal}\ndeleted: ${data.deleted || 0}\nchapters: ${AdminTranslatePage._rangeFromNums(data.nums || [])}\nsource files kept: yes`
+          );
+          Ui.showToast('ลบไฟล์แปลไทยแล้ว ' + (data.deleted || 0) + ' ตอน');
+        } catch (err) {
+          AdminTranslatePage.setConsole('error', 'Delete selected translations failed', err.message);
+          Ui.showToast('ลบไฟล์แปลไม่สำเร็จ: ' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          AdminUi.setButton(btn, 'close', 'ลบแปลที่เลือก');
+        }
       });
       document.getElementById('translate-run-untranslated')?.addEventListener('click', () => {
         const range = selectMatching(status => status === 'untranslated');
