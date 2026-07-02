@@ -9,38 +9,114 @@
 
 // ── LIBRARY ──────────────────────────────────────────────────────────────
 const LibraryPage = {
-  async render(params) {
+  async render(params = {}) {
     const page = Ui.$('page-library');
     if (!page) return;
     Ui.showSkeleton('page-library');
     try {
       const novels = await Api.getNovels();
-      const visibleNovels = novels.filter(Ui.isVisibleNovel);
+      const visibleNovels = novels.filter(Ui.isVisibleNovel).map(Ui.enrichNovel);
       if (!visibleNovels.length) {
         Ui.showEmpty(page, 'หอสมุดว่างเปล่า', 'ยังไม่มีนิยายในระบบ เริ่มเพิ่มกันเลย!');
         return;
       }
-      const sortBy = params.sort || Store.getSettings().librarySort || 'title';
-      const sorted = [...visibleNovels].sort((a, b) => {
+      const settings = Store.getSettings();
+      const sortBy = params.sort || settings.librarySort || 'title';
+      const filterBy = params.filter || settings.libraryFilter || 'all';
+      const query = (params.q || '').trim().toLowerCase();
+      const counts = {
+        total: visibleNovels.length,
+        ready: visibleNovels.filter(n => n.totalCount > n.translatedCount).length,
+        active: visibleNovels.filter(n => n.translatedCount > 0 && n.translatedCount < n.totalCount).length,
+        complete: visibleNovels.filter(n => n.totalCount > 0 && n.translatedCount >= n.totalCount).length,
+        noCover: visibleNovels.filter(n => !n.coverImage).length,
+      };
+      const filtered = visibleNovels.filter(n => {
+        if (filterBy === 'ready') return n.totalCount > n.translatedCount;
+        if (filterBy === 'active') return n.translatedCount > 0 && n.translatedCount < n.totalCount;
+        if (filterBy === 'complete') return n.totalCount > 0 && n.translatedCount >= n.totalCount;
+        if (filterBy === 'no-cover') return !n.coverImage;
+        return true;
+      }).filter(n => {
+        if (!query) return true;
+        return [n.title, n.translatedTitle, n.slug, n.author].some(value => String(value || '').toLowerCase().includes(query));
+      });
+      const sorted = [...filtered].sort((a, b) => {
         if (sortBy === 'progress') return (b.translatedChapters || 0) - (a.translatedChapters || 0);
         if (sortBy === 'chapters') return (b.chapterCount || 0) - (a.chapterCount || 0);
+        if (sortBy === 'last') return (b.lastRead || 0) - (a.lastRead || 0);
         return (Ui.displayTitle(a) || '').localeCompare(Ui.displayTitle(b) || '');
       });
-      let html = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title"><svg class="c-icon c-icon--sm c-title-icon"><use xlink:href="#icon-library"/></svg>หอสมุด</h3><div class="c-section__tools"><span class="c-section__count">' + visibleNovels.length + ' เรื่อง</span><select id="library-sort" class="c-library-sort"><option value="title"' + (sortBy === 'title' ? ' selected' : '') + '>ชื่อ</option><option value="progress"' + (sortBy === 'progress' ? ' selected' : '') + '>ความคืบหน้า</option><option value="chapters"' + (sortBy === 'chapters' ? ' selected' : '') + '>ตอน</option></select></div></div><div class="c-card-grid">';
-      for (const n of sorted) {
-        const lr = Store.getLastPosition(n.slug);
-        html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover">' + Ui.coverHtml(n) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span>' + (lr ? '<span class="c-library-last-read">อ่านล่าสุด: ตอนที่ ' + lr + '</span>' : '') + '</div></a>';
-      }
-      html += '</div></section></div>';
+      const lastReadNovel = visibleNovels.find(n => n.lastRead) || visibleNovels[0];
+      const resultHtml = sorted.length
+        ? sorted.map(n => Ui.novelCard(n)).join('')
+        : '<div class="c-empty c-empty--compact"><div class="c-empty__title">ไม่พบนิยายตามเงื่อนไข</div><div class="c-empty__desc">ลองเปลี่ยน filter หรือคำค้นหา</div></div>';
+      let html = `<div class="c-container c-library-page">
+        <section class="c-control-center c-library-cockpit">
+          <div class="c-control-center__head">
+            <div>
+              <h2 class="c-control-center__title">${Ui.icon('library', 'sm')}Library</h2>
+              <p class="c-control-center__subtitle">เลือกอ่านต่อ แปลต่อ หรือจัดการเรื่องที่ต้องดูแลจากหน้าเดียว</p>
+            </div>
+            <a href="${lastReadNovel ? '#novel/' + Ui.esc(lastReadNovel.slug) + (lastReadNovel.lastRead ? '/' + Ui.esc(lastReadNovel.lastRead) : '') : '#library'}" class="c-btn c-btn--primary" data-nav>${Ui.icon('book', 'xs')}<span>อ่านต่อ</span></a>
+          </div>
+          <div class="c-control-center__stats">
+            ${Ui.stat('นิยาย', counts.total)}
+            ${Ui.stat('พร้อมแปล', counts.ready, { tone: 'warn' })}
+            ${Ui.stat('กำลังทำ', counts.active)}
+            ${Ui.stat('แปลครบ', counts.complete, { tone: 'success' })}
+          </div>
+          <div class="c-control-center__actions">
+            <a class="c-btn c-btn--secondary" href="#admin/import" data-nav>${Ui.icon('library', 'xs')}<span>Import Novel</span></a>
+            <a class="c-btn c-btn--secondary" href="#admin/translate" data-nav>${Ui.icon('settings', 'xs')}<span>Translate Queue</span></a>
+            <a class="c-btn c-btn--ghost" href="#admin/novels" data-nav>${Ui.icon('info', 'xs')}<span>Edit Library</span></a>
+          </div>
+        </section>
+        <section class="c-section">
+          <div class="c-library-toolbar">
+            <div class="c-search c-library-toolbar__search">
+              ${Ui.icon('search', 'sm')}
+              <input type="search" id="library-search" class="c-search__input" value="${Ui.esc(params.q || '')}" placeholder="ค้นหาชื่อเรื่อง ผู้แต่ง หรือ slug" />
+            </div>
+            <select id="library-filter" class="c-library-sort" aria-label="กรองนิยาย">
+              <option value="all"${filterBy === 'all' ? ' selected' : ''}>ทั้งหมด</option>
+              <option value="ready"${filterBy === 'ready' ? ' selected' : ''}>พร้อมแปล</option>
+              <option value="active"${filterBy === 'active' ? ' selected' : ''}>กำลังทำ</option>
+              <option value="complete"${filterBy === 'complete' ? ' selected' : ''}>แปลครบ</option>
+              <option value="no-cover"${filterBy === 'no-cover' ? ' selected' : ''}>ยังไม่มีปก (${counts.noCover})</option>
+            </select>
+            <select id="library-sort" class="c-library-sort" aria-label="เรียงนิยาย">
+              <option value="title"${sortBy === 'title' ? ' selected' : ''}>ชื่อ</option>
+              <option value="progress"${sortBy === 'progress' ? ' selected' : ''}>ความคืบหน้า</option>
+              <option value="chapters"${sortBy === 'chapters' ? ' selected' : ''}>จำนวนตอน</option>
+              <option value="last"${sortBy === 'last' ? ' selected' : ''}>อ่านล่าสุด</option>
+            </select>
+            <span class="c-section__count">${sorted.length}/${visibleNovels.length} เรื่อง</span>
+          </div>
+          <div class="c-card-grid c-library-grid">${resultHtml}</div>
+        </section>
+      </div>`;
       page.innerHTML = html;
       
-      // Wire sort dropdown
       const sel = document.getElementById('library-sort');
       if (sel) {
         sel.addEventListener('change', () => {
           Store.setSetting('librarySort', sel.value);
-          LibraryPage.render({ sort: sel.value });
+          LibraryPage.render({ sort: sel.value, filter: filterBy, q: document.getElementById('library-search')?.value || '' });
         });
+      }
+      const filterSel = document.getElementById('library-filter');
+      if (filterSel) {
+        filterSel.addEventListener('change', () => {
+          Store.setSetting('libraryFilter', filterSel.value);
+          LibraryPage.render({ sort: sel?.value || sortBy, filter: filterSel.value, q: document.getElementById('library-search')?.value || '' });
+        });
+      }
+      const searchInput = document.getElementById('library-search');
+      if (searchInput) {
+        searchInput.addEventListener('input', Ui.debounce(() => {
+          LibraryPage.render({ sort: sel?.value || sortBy, filter: filterSel?.value || filterBy, q: searchInput.value || '' });
+        }, 180));
       }
     } catch (err) { Ui.showError(page, 'โหลดไม่สำเร็จ', err.message); }
   }
@@ -48,11 +124,29 @@ const LibraryPage = {
 
 // ── SEARCH ───────────────────────────────────────────────────────────────
 const SearchPage = {
-  async render(params) {
+  async render(params = {}) {
     const page = Ui.$('page-search');
     if (!page) return;
     
-    page.innerHTML = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title"><svg class="c-icon c-icon--sm c-title-icon"><use xlink:href="#icon-search"/></svg>ค้นหานิยาย</h3></div><div class="c-search"><input type="text" id="search-input-field" placeholder="พิมพ์ชื่อ ภาษาไทย จีน อังกฤษ หรือ slug..." class="c-search__input" autofocus /><div id="search-results"></div></div></section></div>';
+    page.innerHTML = `<div class="c-container c-search-page">
+      <section class="c-control-center c-search-cockpit">
+        <div class="c-control-center__head">
+          <div>
+            <h2 class="c-control-center__title">${Ui.icon('search', 'sm')}Search</h2>
+            <p class="c-control-center__subtitle">ค้นหาเรื่องจากชื่อ ผู้แต่ง หรือ slug แล้วไปอ่าน/แปล/แก้ไขได้ทันที</p>
+          </div>
+          <a class="c-btn c-btn--secondary" href="#library" data-nav>${Ui.icon('library', 'xs')}<span>เปิดคลัง</span></a>
+        </div>
+      </section>
+      <section class="c-section">
+        <div class="c-search c-search-page__input-wrap">
+          ${Ui.icon('search', 'sm')}
+          <input type="search" id="search-input-field" placeholder="พิมพ์ชื่อ ภาษาไทย จีน อังกฤษ ผู้แต่ง หรือ slug..." class="c-search__input" autofocus />
+        </div>
+        <div id="search-summary" class="c-search-page__summary"></div>
+        <div id="search-results"></div>
+      </section>
+    </div>`;
     
     const results = Ui.$('search-results');
     const input = Ui.$('search-input-field');
@@ -61,20 +155,17 @@ const SearchPage = {
     // Helper function to render a list of novels
     const renderNovelsList = (filteredList) => {
       if (filteredList.length === 0) {
-        results.innerHTML = '<div class="c-empty c-empty--compact"><div class="c-empty__title">ไม่พบนิยาย</div><div class="c-empty__desc">ลองค้นด้วยชื่อเรื่อง ภาษาไทย จีน หรือ slug เช่น global-descent</div></div>';
+        Ui.$('search-summary').textContent = '0 results';
+        results.innerHTML = '<div class="c-empty c-empty--compact"><div class="c-empty__title">ไม่พบนิยาย</div><div class="c-empty__desc">ลองค้นด้วยชื่อเรื่อง ภาษาไทย จีน ผู้แต่ง หรือ slug เช่น global-descent</div></div>';
         return;
       }
-      let html = '<div class="c-card-grid c-search-results-grid">';
-      for (const n of filteredList) {
-        html += '<a href="#novel/' + n.slug + '" class="c-card" data-nav><div class="c-card__cover">' + Ui.coverHtml(n) + '</div><div class="c-card__info"><span class="c-card__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-card__meta">' + (n.author || '') + ' • ' + (n.chapterCount || 0) + ' ตอน</span></div></a>';
-      }
-      html += '</div>';
-      results.innerHTML = html;
+      Ui.$('search-summary').textContent = filteredList.length + ' results';
+      results.innerHTML = '<div class="c-card-grid c-search-results-grid">' + filteredList.map(n => Ui.novelCard(n, { compact: true })).join('') + '</div>';
     };
 
     // Load initial list (all novels)
     try {
-      const allNovels = (await Api.getNovels()).filter(Ui.isVisibleNovel);
+      const allNovels = (await Api.getNovels()).filter(Ui.isVisibleNovel).map(Ui.enrichNovel);
       renderNovelsList(allNovels);
 
       // Handle search input events
@@ -88,7 +179,8 @@ const SearchPage = {
           (n.title || '').toLowerCase().includes(q) ||
           (n.translatedTitle || '').toLowerCase().includes(q) ||
           (n.slug || '').toLowerCase().includes(q) ||
-          (n.author || '').toLowerCase().includes(q)
+          (n.author || '').toLowerCase().includes(q) ||
+          (n.source_lang || '').toLowerCase().includes(q)
         );
         renderNovelsList(filtered);
       });
@@ -100,12 +192,22 @@ const SearchPage = {
 
 // ── HISTORY ──────────────────────────────────────────────────────────────
 const HistoryPage = {
-  async render(params) {
+  async render(params = {}) {
     const page = Ui.$('page-history');
     if (!page) return;
     const recent = Store.getHistory();
     const novels = await Api.getNovels();
-    let html = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title">ประวัติการอ่าน</h3></div><div class="c-list">';
+    let html = `<div class="c-container c-history-page">
+      <section class="c-control-center c-history-cockpit">
+        <div class="c-control-center__head">
+          <div>
+            <h2 class="c-control-center__title">${Ui.icon('book', 'sm')}Reading History</h2>
+            <p class="c-control-center__subtitle">กลับไปยังตอนที่เคยอ่านล่าสุดแบบไม่ต้องไล่หาในคลัง</p>
+          </div>
+          <a class="c-btn c-btn--secondary" href="#library" data-nav>${Ui.icon('library', 'xs')}<span>เปิดคลัง</span></a>
+        </div>
+      </section>
+      <section class="c-section"><div class="c-list c-history-list">`;
     if (recent.length === 0) {
       html += '<div class="c-empty c-empty--roomy"><svg class="c-empty__mascot"><use xlink:href="#mascot-crab-reading"/></svg><div class="c-empty__title">ยังไม่มีประวัติ</div><div class="c-empty__desc">เมื่ออ่านนิยายจะปรากฏที่นี่</div></div>';
     } else {
@@ -115,7 +217,10 @@ const HistoryPage = {
         const dateStr = (e.ts && !isNaN(new Date(e.ts)))
           ? new Date(e.ts).toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })
           : 'ไม่ระบุวันที่';
-        html += '<a href="#novel/' + e.slug + '/' + e.num + '" class="c-list__item" data-nav><div class="c-list__info"><span class="c-list__title">' + Ui.esc(title) + '</span><span class="c-list__meta">ตอนที่ ' + e.num + ' · ' + dateStr + '</span></div><span class="c-list__action">อ่านต่อ ' + Ui.icon('arrow-right', 'xs') + '</span></a>';
+        html += '<a href="#novel/' + Ui.esc(e.slug) + '/' + Ui.esc(e.num) + '" class="c-list__item c-history-item" data-nav>' +
+          '<div class="c-history-item__cover">' + Ui.coverHtml(n || { slug: e.slug, title }) + '</div>' +
+          '<div class="c-list__info"><span class="c-list__title">' + Ui.esc(title) + '</span><span class="c-list__meta">ตอนที่ ' + Ui.esc(e.num) + ' · ' + Ui.esc(dateStr) + '</span></div>' +
+          '<span class="c-list__action">อ่านต่อ ' + Ui.icon('arrow-right', 'xs') + '</span></a>';
       }
     }
     html += '</div></section></div>';
@@ -125,21 +230,37 @@ const HistoryPage = {
 
 // ── RANKING ──────────────────────────────────────────────────────────────
 const RankingPage = {
-  async render(params) {
+  async render(params = {}) {
     const page = Ui.$('page-ranking');
     if (!page) return;
     try {
-      const novels = (await Api.getNovels()).filter(Ui.isVisibleNovel);
+      const novels = (await Api.getNovels()).filter(Ui.isVisibleNovel).map(Ui.enrichNovel);
       if (!novels.length) {
         Ui.showEmpty(page.querySelector('.c-container') || page, 'ไม่มีข้อมูลอันดับ', 'เริ่มอ่านนิยายเพื่อสะสมสถิติ');
         return;
       }
       const sorted = [...novels].sort((a, b) => (b.translatedChapters || 0) - (a.translatedChapters || 0));
-      let html = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title"><svg class="c-icon c-icon--sm c-title-icon"><use xlink:href="#icon-ranking"/></svg>อันดับนิยาย</h3><span class="c-section__count">เรียงตามจำนวนตอนที่แปล</span></div><div class="c-popular">';
+      let html = `<div class="c-container c-ranking-page">
+        <section class="c-control-center c-ranking-cockpit">
+          <div class="c-control-center__head">
+            <div>
+              <h2 class="c-control-center__title">${Ui.icon('ranking', 'sm')}Progress Ranking</h2>
+              <p class="c-control-center__subtitle">ดูเรื่องที่คืบหน้ามากสุด และเปิดไปจัดการงานต่อได้ทันที</p>
+            </div>
+            <a class="c-btn c-btn--secondary" href="#admin/translate" data-nav>${Ui.icon('settings', 'xs')}<span>Translate Queue</span></a>
+          </div>
+        </section>
+        <section class="c-section"><div class="c-popular c-ranking-list">`;
       for (let i = 0; i < Math.min(10, sorted.length); i++) {
         const n = sorted[i];
         const rankClass = 'c-popular__rank--' + (i + 1);
-        html += '<a href="#novel/' + n.slug + '" class="c-popular__item" data-nav><span class="c-popular__rank ' + rankClass + '">' + (i + 1) + '</span><div class="c-popular__cover">' + Ui.coverHtml(n) + '</div><div class="c-popular__info"><span class="c-popular__title">' + Ui.esc(Ui.displayTitle(n)) + '</span><span class="c-popular__meta">' + (n.author || '') + '</span><span class="c-popular__views">' + (n.translatedChapters || 0) + '/' + (n.totalChapters || n.chapterCount || 0) + ' ตอนที่แปลแล้ว</span></div></a>';
+        html += '<a href="#novel/' + Ui.esc(n.slug) + '" class="c-popular__item c-ranking-item" data-nav>' +
+          '<span class="c-popular__rank ' + rankClass + '">' + (i + 1) + '</span>' +
+          '<div class="c-popular__cover">' + Ui.coverHtml(n) + '</div>' +
+          '<div class="c-popular__info"><span class="c-popular__title">' + Ui.esc(Ui.displayTitle(n)) + '</span>' +
+          '<span class="c-popular__meta">' + Ui.esc(n.source_lang || 'auto') + ' -> ' + Ui.esc(n.target_lang || 'th') + ' · ' + Ui.esc(n.author || 'ไม่ระบุ') + '</span>' +
+          '<div class="c-card__progress c-ranking-item__progress"><span class="c-card__progress-bar"><span class="c-card__progress-fill ' + Ui.progressClass(n.translationPct) + '"></span></span><span class="c-card__progress-pct">' + Ui.esc(n.translationPct) + '%</span></div></div>' +
+          '<span class="c-popular__views">' + (n.translatedChapters || 0) + '/' + (n.totalChapters || n.chapterCount || 0) + ' ตอน</span></a>';
       }
       html += '</div></section></div>';
       page.innerHTML = html;
@@ -149,22 +270,89 @@ const RankingPage = {
 
 // ── SETTINGS ─────────────────────────────────────────────────────────────
 const SettingsPage = {
-  render(params) {
+  render(params = {}) {
     const page = Ui.$('page-settings');
     if (!page) return;
     const settings = Store.getSettings();
-    page.innerHTML = '<div class="c-settings-page">' +
-      '<div class="c-section__header c-settings-page__header"><h3 class="c-section__title">ตั้งค่า</h3></div>' +
-      '<div class="c-settings-card"><div class="c-settings-card__title"><svg class="c-icon c-icon--md"><use xlink:href="#icon-moon"/></svg> รูปลักษณ์</div>' +
-      '<div class="c-form__group"><label for="settings-theme">ธีม</label><select class="c-form__select" id="settings-theme"><option value="sepia"' + (settings.theme === 'sepia' ? ' selected' : '') + '>คลาสสิก (Sepia) ★</option><option value="night"' + (settings.theme === 'night' ? ' selected' : '') + '>กลางคืน (Night)</option><option value="paper"' + (settings.theme === 'paper' ? ' selected' : '') + '>สว่าง (Paper)</option><option value="amoled"' + (settings.theme === 'amoled' ? ' selected' : '') + '>AMOLED Black</option></select></div></div>' +
-      '<div class="c-settings-card"><div class="c-settings-card__title"><svg class="c-icon c-icon--md"><use xlink:href="#icon-book"/></svg> การอ่าน</div>' +
-      '<div class="c-form__group"><label for="settings-reader-lang">ภาษาใน Reader</label><select class="c-form__select" id="settings-reader-lang"><option value="th"' + (settings.readerLang === 'th' ? ' selected' : '') + '>ไทย (แปลแล้ว)</option><option value="cn"' + (settings.readerLang === 'cn' ? ' selected' : '') + '>จีนต้นฉบับ</option></select></div>' +
-      '<div class="c-form__group"><label>ขนาดตัวอักษร</label><div class="c-settings-font-row"><button class="c-btn c-btn--ghost c-settings-font-btn" id="settings-font-sm" type="button" aria-label="ลดขนาดตัวอักษร"><span>A−</span></button><span id="settings-font-label" class="c-settings-font-label">18px</span><button class="c-btn c-btn--ghost c-settings-font-btn" id="settings-font-lg" type="button" aria-label="เพิ่มขนาดตัวอักษร"><span>A+</span></button></div></div></div>' +
-      '<div class="c-settings-card"><div class="c-settings-card__title"><svg class="c-icon c-icon--md"><use xlink:href="#icon-settings"/></svg> การพัฒนาและแก้ไข (Local)</div>' +
-      '<div class="c-form__group"><label for="settings-editor-type">โปรแกรมแก้ไขไฟล์บทแปล</label><select class="c-form__select" id="settings-editor-type"><option value="notepad"' + (settings.editorType === 'notepad' ? ' selected' : '') + '>Notepad (รวดเร็ว, มีทุกเครื่อง)</option><option value="vscode"' + (settings.editorType === 'vscode' ? ' selected' : '') + '>VS Code (หากติดตั้งไว้ในเครื่อง)</option><option value="system_default"' + (settings.editorType === 'system_default' ? ' selected' : '') + '>โปรแกรมเริ่มต้นของระบบ (System Default)</option></select></div></div>' +
-      '<div class="c-settings-card"><div class="c-settings-card__title"><svg class="c-icon c-icon--md"><use xlink:href="#icon-info"/></svg> เกี่ยวกับ</div>' +
-      '<div class="c-settings-about">NovelClaw v1.0<br>ระบบอ่านและแปลนิยายจีน<br>Foundation Release (stable-novelctl-foundation-v1)</div></div>' +
-      '</div>';
+    const fontSize = parseInt(settings.fontSize, 10) || 18;
+    const lineHeight = parseFloat(settings.lineHeight) || 1.8;
+    page.innerHTML = `<div class="c-container c-settings-page">
+      <section class="c-control-center c-settings-cockpit">
+        <div class="c-control-center__head">
+          <div>
+            <h2 class="c-control-center__title">${Ui.icon('settings', 'sm')}Settings</h2>
+            <p class="c-control-center__subtitle">ตั้งค่าเฉพาะเครื่องนี้สำหรับการอ่าน การแก้ไข และ workflow local-first</p>
+          </div>
+          <a class="c-btn c-btn--primary" href="#admin/provider" data-nav>${Ui.icon('settings', 'xs')}<span>AI Settings</span></a>
+        </div>
+        <div class="c-settings-summary">
+          ${Ui.stat('Theme', settings.theme || 'sepia')}
+          ${Ui.stat('Reader', (settings.readerLang || 'th').toUpperCase())}
+          ${Ui.stat('Font', fontSize + 'px')}
+          ${Ui.stat('Line', lineHeight.toFixed(2))}
+        </div>
+      </section>
+      <section class="c-settings-grid">
+        <div class="c-settings-card">
+          <div class="c-settings-card__title">${Ui.icon('moon', 'sm')}รูปลักษณ์</div>
+          <div class="c-form__group">
+            <label class="c-form__label" for="settings-theme">ธีมเริ่มต้น</label>
+            <select class="c-form__select" id="settings-theme">
+              <option value="sepia"${settings.theme === 'sepia' ? ' selected' : ''}>Sepia - อ่านสบาย</option>
+              <option value="night"${settings.theme === 'night' ? ' selected' : ''}>Night - กลางคืน</option>
+              <option value="paper"${settings.theme === 'paper' ? ' selected' : ''}>Paper - สว่าง</option>
+              <option value="amoled"${settings.theme === 'amoled' ? ' selected' : ''}>AMOLED Black</option>
+            </select>
+          </div>
+        </div>
+        <div class="c-settings-card">
+          <div class="c-settings-card__title">${Ui.icon('book', 'sm')}Reader</div>
+          <div class="c-form__group">
+            <label class="c-form__label" for="settings-reader-lang">ภาษาใน Reader</label>
+            <select class="c-form__select" id="settings-reader-lang">
+              <option value="th"${settings.readerLang === 'th' ? ' selected' : ''}>ไทย - แปลแล้ว</option>
+              <option value="cn"${settings.readerLang === 'cn' ? ' selected' : ''}>ต้นฉบับ</option>
+            </select>
+          </div>
+          <div class="c-form__group">
+            <span class="c-form__label">ขนาดตัวอักษร</span>
+            <div class="c-settings-stepper">
+              <button class="c-btn c-btn--ghost c-settings-font-btn" id="settings-font-sm" type="button" aria-label="ลดขนาดตัวอักษร"><span>A-</span></button>
+              <span id="settings-font-label" class="c-settings-font-label">${fontSize}px</span>
+              <button class="c-btn c-btn--ghost c-settings-font-btn" id="settings-font-lg" type="button" aria-label="เพิ่มขนาดตัวอักษร"><span>A+</span></button>
+            </div>
+          </div>
+          <div class="c-form__group">
+            <span class="c-form__label">ระยะบรรทัด</span>
+            <div class="c-settings-stepper">
+              <button class="c-btn c-btn--ghost c-settings-font-btn" id="settings-leading-tight" type="button" aria-label="ลดระยะบรรทัด"><span>-</span></button>
+              <span id="settings-leading-label" class="c-settings-font-label">${lineHeight.toFixed(2)}</span>
+              <button class="c-btn c-btn--ghost c-settings-font-btn" id="settings-leading-loose" type="button" aria-label="เพิ่มระยะบรรทัด"><span>+</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="c-settings-card">
+          <div class="c-settings-card__title">${Ui.icon('settings', 'sm')}Local tools</div>
+          <div class="c-form__group">
+            <label class="c-form__label" for="settings-editor-type">โปรแกรมแก้ไขไฟล์บทแปล</label>
+            <select class="c-form__select" id="settings-editor-type">
+              <option value="notepad"${settings.editorType === 'notepad' ? ' selected' : ''}>Notepad - มีทุกเครื่อง</option>
+              <option value="vscode"${settings.editorType === 'vscode' ? ' selected' : ''}>VS Code - ถ้าติดตั้งไว้</option>
+              <option value="system_default"${settings.editorType === 'system_default' ? ' selected' : ''}>System Default</option>
+            </select>
+          </div>
+          <p class="c-form__help-text">การตั้งค่านี้เก็บ local เท่านั้น ใช้กับปุ่มแก้ไขจากหน้าอ่านและหน้าแอดมิน</p>
+        </div>
+        <div class="c-settings-card">
+          <div class="c-settings-card__title">${Ui.icon('info', 'sm')}About</div>
+          <div class="c-settings-about">
+            <strong>NovelClaw</strong>
+            <span>Local-first novel import, translate, and reading cockpit.</span>
+            <span>Foundation Release: stable-novelctl-foundation-v1</span>
+          </div>
+        </div>
+      </section>
+    </div>`;
 
     // Font label fix — use the new ID
     const fontLabel = document.getElementById('settings-font-label');
@@ -207,12 +395,24 @@ const SettingsPage = {
       fontStep = Math.min(2, fontStep + 1);
       applyFont(fontStep);
     });
+
+    let leading = parseFloat(Store.getSettings().lineHeight) || 1.8;
+    const applyLeading = (value) => {
+      leading = Math.max(1.5, Math.min(2.1, value));
+      document.documentElement.style.setProperty('--reader-line-height', String(leading));
+      Store.setSetting('lineHeight', leading);
+      const lbl = Ui.$('settings-leading-label');
+      if (lbl) lbl.textContent = leading.toFixed(2);
+    };
+    applyLeading(leading);
+    document.getElementById('settings-leading-tight')?.addEventListener('click', () => applyLeading(leading - 0.05));
+    document.getElementById('settings-leading-loose')?.addEventListener('click', () => applyLeading(leading + 0.05));
   }
 };
 
 // ── PROFILE ──────────────────────────────────────────────────────────────
 const ProfilePage = {
-  render(params) {
+  render(params = {}) {
     const page = Ui.$('page-profile');
     if (!page) return;
     const prof = Store.getProfile();
@@ -224,15 +424,38 @@ const ProfilePage = {
       { name: 'Obsidian', value: 'linear-gradient(135deg,#64748b,#1e293b)' }
     ];
 
-    let html = '<div class="c-container"><section class="c-section"><div class="c-section__header"><h3 class="c-section__title">โปรไฟล์</h3></div><div class="c-profile-card"><div class="c-avatar c-profile-avatar u-avatar-gradient-' + (prof.avatarColorIndex || 0) + '">' + prof.name.charAt(0).toUpperCase() + '</div><div><div class="c-profile-summary__name">' + Ui.esc(prof.name) + '</div><div class="c-profile-summary__meta">' + Ui.esc(prof.email) + ' • ' + Ui.esc(prof.role) + '</div></div></div></section>';
-
-    html += '<section class="c-section"><div class="c-section__header"><h3 class="c-section__title">แก้ไขข้อมูลโปรไฟล์</h3></div><div class="c-profile-form"><div class="c-form"><div class="c-form__group"><label class="c-form__label" for="profile-name">ชื่อ</label><input class="c-form__input" id="profile-name" value="' + Ui.esc(prof.name) + '" /></div><div class="c-form__group"><label class="c-form__label" for="profile-email">อีเมล</label><input class="c-form__input" id="profile-email" value="' + Ui.esc(prof.email) + '" /></div><div class="c-form__group"><label class="c-form__label" for="profile-role">บทบาท</label><select class="c-form__select" id="profile-role"><option value="admin"' + (prof.role === 'admin' ? ' selected' : '') + '>ผู้ดูแลระบบ</option><option value="paid"' + (prof.role === 'paid' ? ' selected' : '') + '>สมาชิกพิเศษ</option><option value="user"' + (prof.role === 'user' ? ' selected' : '') + '>สมาชิกทั่วไป</option><option value="bot"' + (prof.role === 'bot' ? ' selected' : '') + '>บอท</option></select></div><div class="c-form__group"><span class="c-form__label" id="profile-gradient-label">สี Avatar</span><div class="c-profile-gradient-row" role="group" aria-labelledby="profile-gradient-label">';
+    let html = `<div class="c-container c-profile-page">
+      <section class="c-control-center c-profile-cockpit">
+        <div class="c-control-center__head">
+          <div class="c-profile-card c-profile-card--flat">
+            <div class="c-avatar c-profile-avatar u-avatar-gradient-${prof.avatarColorIndex || 0}">${Ui.esc(prof.name.charAt(0).toUpperCase())}</div>
+            <div>
+              <h2 class="c-control-center__title">Profile</h2>
+              <div class="c-profile-summary__name">${Ui.esc(prof.name)}</div>
+              <div class="c-profile-summary__meta">${Ui.esc(prof.email)} · ${Ui.esc(prof.role)}</div>
+            </div>
+          </div>
+          <a class="c-btn c-btn--secondary" href="#settings" data-nav>${Ui.icon('settings', 'xs')}<span>Settings</span></a>
+        </div>
+      </section>
+      <section class="c-settings-grid">
+        <div class="c-settings-card c-profile-form">
+          <div class="c-settings-card__title">${Ui.icon('info', 'sm')}ข้อมูลผู้ใช้ local</div>
+          <div class="c-form">
+            <div class="c-form__group"><label class="c-form__label" for="profile-name">ชื่อ</label><input class="c-form__input" id="profile-name" value="${Ui.esc(prof.name)}" /></div>
+            <div class="c-form__group"><label class="c-form__label" for="profile-email">อีเมล</label><input class="c-form__input" id="profile-email" value="${Ui.esc(prof.email)}" /></div>
+            <div class="c-form__group"><label class="c-form__label" for="profile-role">บทบาท</label><select class="c-form__select" id="profile-role"><option value="admin"${prof.role === 'admin' ? ' selected' : ''}>ผู้ดูแลระบบ</option><option value="paid"${prof.role === 'paid' ? ' selected' : ''}>สมาชิกพิเศษ</option><option value="user"${prof.role === 'user' ? ' selected' : ''}>สมาชิกทั่วไป</option><option value="bot"${prof.role === 'bot' ? ' selected' : ''}>บอท</option></select></div>
+          </div>
+        </div>
+        <div class="c-settings-card">
+          <div class="c-settings-card__title">${Ui.icon('moon', 'sm')}Avatar</div>
+          <div class="c-form__group"><span class="c-form__label" id="profile-gradient-label">สี Avatar</span><div class="c-profile-gradient-row" role="group" aria-labelledby="profile-gradient-label">`;
 
     GRADIENTS.forEach((g, idx) => {
       html += '<button class="c-btn profile-gradient-btn u-avatar-gradient-' + idx + (idx === (prof.avatarColorIndex || 0) ? ' is-active' : '') + '" data-idx="' + idx + '" type="button" title="' + g.name + '" aria-label="เลือกสี Avatar ' + Ui.esc(g.name) + '"></button>';
     });
 
-    html += '</div></div><button class="c-btn c-btn--primary c-btn--full" id="profile-save-btn" type="button">' + Ui.icon('settings', 'xs') + '<span>บันทึกโปรไฟล์</span></button></div></div></section></div>';
+    html += '</div></div><button class="c-btn c-btn--primary c-btn--full" id="profile-save-btn" type="button">' + Ui.icon('settings', 'xs') + '<span>บันทึกโปรไฟล์</span></button></div></section></div>';
     page.innerHTML = html;
 
     document.getElementById('profile-save-btn')?.addEventListener('click', () => {

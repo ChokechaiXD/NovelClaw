@@ -1975,10 +1975,11 @@ const AdminTranslatePage = {
       };
       const modelOptions = buildModelOptions(currentLlmConfig);
 
+      const selectedTranslateSlug = params.slug || novels.find(Ui.isVisibleNovel)?.slug || novels[0]?.slug || '';
       const novelOptions = novels.map(n => {
         const h = importHealthBySlug[n.slug] || {};
         const label = h.status === 'error' ? 'source error' : (h.status === 'warn' ? 'source warn' : 'ready');
-        return `<option value="${Ui.esc(n.slug)}" data-source-status="${Ui.esc(h.status || 'ok')}">${Ui.esc(Ui.displayTitle(n) || n.slug)} · ${Ui.esc(label)}</option>`;
+        return `<option value="${Ui.esc(n.slug)}" data-source-status="${Ui.esc(h.status || 'ok')}"${n.slug === selectedTranslateSlug ? ' selected' : ''}>${Ui.esc(Ui.displayTitle(n) || n.slug)} · ${Ui.esc(label)}</option>`;
       }
       ).join('');
 

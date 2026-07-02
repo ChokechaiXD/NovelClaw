@@ -175,6 +175,57 @@ const Ui = {
     };
   },
 
+  progressClass(percent) {
+    const bucket = Math.max(0, Math.min(100, Math.round((Number(percent) || 0) / 10) * 10));
+    return `u-progress-w-${bucket}`;
+  },
+
+  novelStatus(novel) {
+    const n = Ui.enrichNovel(novel || {});
+    if (!n.totalCount) return { label: 'ไม่มีตอน', tone: 'gray' };
+    if (n.translatedCount >= n.totalCount) return { label: 'แปลครบ', tone: 'teal' };
+    if (n.translatedCount > 0) return { label: 'กำลังทำ', tone: 'amber' };
+    return { label: 'พร้อมแปล', tone: 'gray' };
+  },
+
+  novelCard(novel, options = {}) {
+    const n = Ui.enrichNovel(novel || {});
+    const title = Ui.displayTitle(n);
+    const status = Ui.novelStatus(n);
+    const pct = n.translationPct || 0;
+    const readHref = n.lastRead ? `#novel/${Ui.esc(n.slug)}/${Ui.esc(n.lastRead)}` : `#novel/${Ui.esc(n.slug)}`;
+    const meta = [
+      `${Ui.esc((n.source_lang || 'auto').toUpperCase())} -> ${Ui.esc((n.target_lang || 'th').toUpperCase())}`,
+      Ui.esc(n.author || 'ไม่ระบุผู้แต่ง'),
+      `${n.totalCount || 0} ตอน`,
+    ].join(' · ');
+    const compact = options.compact ? ' c-novel-card--compact' : '';
+    return `
+      <article class="c-card c-novel-card${compact}">
+        <a class="c-card__cover c-novel-card__cover" href="#novel/${Ui.esc(n.slug)}" data-nav aria-label="เปิด ${Ui.esc(title)}">${Ui.coverHtml(n)}</a>
+        <div class="c-card__info c-novel-card__body">
+          <div class="c-novel-card__head">
+            <a class="c-card__title c-novel-card__title" href="#novel/${Ui.esc(n.slug)}" data-nav>${Ui.esc(title)}</a>
+            <span class="c-badge c-badge--${status.tone}">${Ui.esc(status.label)}</span>
+          </div>
+          <div class="c-card__meta">${meta}</div>
+          <div class="c-card__progress" aria-label="Translation progress ${pct}%">
+            <span class="c-card__progress-bar"><span class="c-card__progress-fill ${Ui.progressClass(pct)}"></span></span>
+            <span class="c-card__progress-pct">${pct}%</span>
+          </div>
+          <div class="c-novel-card__meta-row">
+            <span>${n.translatedCount || 0}/${n.totalCount || 0} แปลแล้ว</span>
+            <span>${n.lastRead ? 'อ่านล่าสุด ตอน ' + Ui.esc(n.lastRead) : 'ยังไม่ได้อ่าน'}</span>
+          </div>
+          <div class="c-novel-card__actions">
+            <a class="c-btn c-btn--xs c-btn--primary" href="${readHref}" data-nav>${Ui.icon('book', 'xs')}<span>${n.lastRead ? 'อ่านต่อ' : 'เริ่มอ่าน'}</span></a>
+            <a class="c-btn c-btn--xs c-btn--ghost" href="#admin/translate/${Ui.esc(n.slug)}" data-nav>${Ui.icon('settings', 'xs')}<span>แปล</span></a>
+            <a class="c-btn c-btn--xs c-btn--ghost" href="#admin/novel-edit/${Ui.esc(n.slug)}" data-nav>${Ui.icon('info', 'xs')}<span>แก้ไข</span></a>
+          </div>
+        </div>
+      </article>`;
+  },
+
   // ── Update topbar avatar ───────────────────────────────────────────────
   updateAvatar() {
     const prof = Store.getProfile();
@@ -207,8 +258,9 @@ const Ui = {
     const numClass = tone === 'warn' ? 'c-mini-stat__num--warn'
       : tone === 'success' ? 'c-mini-stat__num--success'
       : '';
+    const safeValue = this.esc(String(value ?? ''));
     return `<div class="c-mini-stat${opts.class ? ' ' + opts.class : ''}">`
-      + `<div class="c-mini-stat__num ${numClass}">${value}</div>`
+      + `<div class="c-mini-stat__num ${numClass}">${safeValue}</div>`
       + `<div class="c-mini-stat__label">${this.esc(String(label))}</div></div>`;
   },
 
