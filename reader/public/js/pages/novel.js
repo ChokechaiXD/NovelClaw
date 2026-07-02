@@ -48,7 +48,12 @@ const NovelPage = {
             <span class="c-hero__tag">แปลไป ${enriched.translatedCount} / ${enriched.totalCount} ตอน (${enriched.translationPct}%)</span>
           </div>
           <p class="c-detail__synopsis">กำลังโหลดคำอธิบาย...</p>
-          <a href="#novel/${slug}/${chapters[0]?.num||1}" class="c-hero__cta" data-nav>${Ui.icon('book', 'xs')}<span>เริ่มอ่านตอนแรก</span>${Ui.icon('arrow-right', 'xs')}</a>
+          <div class="c-detail__workflow-actions">
+            <a href="#novel/${slug}/${chapters[0]?.num||1}" class="c-btn c-btn--primary" data-nav>${Ui.icon('book', 'xs')}<span>เริ่มอ่าน</span>${Ui.icon('arrow-right', 'xs')}</a>
+            <a href="#admin/translate" class="c-btn c-btn--secondary" data-nav>${Ui.icon('book', 'xs')}<span>สั่งแปล</span></a>
+            <a href="#admin/import/${Ui.esc(slug)}" class="c-btn c-btn--ghost" data-nav>${Ui.icon('library', 'xs')}<span>นำเข้า/ซ่อม source</span></a>
+            <a href="#admin/novel-edit/${Ui.esc(slug)}" class="c-btn c-btn--ghost" data-nav>${Ui.icon('settings', 'xs')}<span>แก้ข้อมูล/ปก</span></a>
+          </div>
         </div>
       </div>`;
 
@@ -104,8 +109,9 @@ const NovelPage = {
             const chNum = parseInt(btn.dataset.num, 10);
             if (!chSlug || isNaN(chNum)) return;
             
-            const loader = document.getElementById('reader-translation-loader');
-            if (loader) loader.style.display = 'flex';
+            btn.disabled = true;
+            btn.classList.add('ch-quick-translate-btn--running');
+            btn.innerHTML = '<span>กำลังแปล...</span>';
             
             try {
               const res = await Api.translateSingle(chSlug, chNum, true);
@@ -131,7 +137,9 @@ const NovelPage = {
               }
               Ui.showToast((err.code === 'SOURCE_NOT_READY' ? 'Source ยังไม่พร้อมแปล: ' : 'เกิดข้อผิดพลาดในการแปล: ') + err.message, 'error');
             } finally {
-              if (loader) loader.style.display = 'none';
+              btn.disabled = false;
+              btn.classList.remove('ch-quick-translate-btn--running');
+              btn.innerHTML = '<svg class="c-icon c-icon--xs c-icon--stroke"><use xlink:href="#icon-book"/></svg><span>แปล</span>';
             }
           });
         }

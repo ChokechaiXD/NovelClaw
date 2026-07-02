@@ -158,6 +158,38 @@ const Api = {
     return data;
   },
 
+  async startTranslateRun(slug, range, concurrent = 1, options = {}) {
+    const res = await fetch(`/api/novel/${slug}/translate/runs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ range, concurrent, ...options })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw this._buildError(res, data);
+    return data;
+  },
+
+  async getTranslateRuns() {
+    const res = await fetch('/api/translate/runs');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw this._buildError(res, data);
+    return data;
+  },
+
+  async getTranslateRun(runId) {
+    const res = await fetch(`/api/translate/runs/${encodeURIComponent(runId)}`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw this._buildError(res, data);
+    return data;
+  },
+
+  async cancelTranslateRun(runId) {
+    const res = await fetch(`/api/translate/runs/${encodeURIComponent(runId)}/cancel`, { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw this._buildError(res, data);
+    return data;
+  },
+
   async deleteTranslatedChapters(slug, nums = []) {
     const res = await fetch(`/api/novel/${slug}/translations/delete`, {
       method: 'POST',

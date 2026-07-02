@@ -181,14 +181,8 @@ const Ui = {
     const el = document.getElementById('profile-avatar');
     if (!el) return;
     el.textContent = prof.name ? prof.name.charAt(0).toUpperCase() : 'P';
-    const GRADIENTS = [
-      'linear-gradient(135deg,#f59e0b,#ef4444)',
-      'linear-gradient(135deg,#00f5d4,#38bdf8)',
-      'linear-gradient(135deg,#10b981,#059669)',
-      'linear-gradient(135deg,#a78bfa,#ec4899)',
-      'linear-gradient(135deg,#64748b,#1e293b)'
-    ];
-    el.style.background = GRADIENTS[prof.avatarColorIndex] || GRADIENTS[0];
+    el.classList.remove('u-avatar-gradient-0', 'u-avatar-gradient-1', 'u-avatar-gradient-2', 'u-avatar-gradient-3', 'u-avatar-gradient-4');
+    el.classList.add(`u-avatar-gradient-${prof.avatarColorIndex || 0}`);
   },
 
   // ── Debounce Utility ──────────────────────────────────────────────────

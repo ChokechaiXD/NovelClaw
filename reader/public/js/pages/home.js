@@ -16,6 +16,34 @@ const HomePage = {
       const enriched = visibleNovels.map(Ui.enrichNovel);
 
       let html = '<div class="c-container">';
+      const totalChapters = enriched.reduce((sum, n) => sum + (n.totalCount || 0), 0);
+      const translatedChapters = enriched.reduce((sum, n) => sum + (n.translatedCount || 0), 0);
+      const untranslatedChapters = Math.max(0, totalChapters - translatedChapters);
+      const lastReadNovel = enriched.find(n => n.lastRead) || enriched[0];
+
+      html += `
+      <section class="c-control-center">
+        <div class="c-control-center__head">
+          <div>
+            <span class="c-badge c-badge--teal">Local cockpit</span>
+            <h2 class="c-control-center__title">NovelClaw</h2>
+            <p class="c-control-center__subtitle">นำเข้า ตรวจ source สั่งแปล และกลับไปอ่านต่อจากจุดเดียว</p>
+          </div>
+          <a href="${lastReadNovel ? '#novel/' + Ui.esc(lastReadNovel.slug) + (lastReadNovel.lastRead ? '/' + Ui.esc(lastReadNovel.lastRead) : '') : '#library'}" class="c-btn c-btn--primary c-btn--lg" data-nav>${Ui.icon('book', 'xs')}<span>อ่านต่อ</span>${Ui.icon('arrow-right', 'xs')}</a>
+        </div>
+        <div class="c-control-center__stats">
+          ${Ui.stat('นิยาย', enriched.length)}
+          ${Ui.stat('ตอนทั้งหมด', totalChapters)}
+          ${Ui.stat('แปลแล้ว', translatedChapters, { tone: 'success' })}
+          ${Ui.stat('รอแปล', untranslatedChapters, { tone: 'warn' })}
+        </div>
+        <div class="c-control-center__actions">
+          <a class="c-btn c-btn--secondary" href="#admin/import" data-nav>${Ui.icon('library', 'xs')}<span>Import Novel</span></a>
+          <a class="c-btn c-btn--secondary" href="#admin/translate" data-nav>${Ui.icon('book', 'xs')}<span>Translate Queue</span></a>
+          <a class="c-btn c-btn--secondary" href="#admin/novels" data-nav>${Ui.icon('settings', 'xs')}<span>Manage Library</span></a>
+          <a class="c-btn c-btn--ghost" href="#admin/import" data-nav>${Ui.icon('info', 'xs')}<span>Fix Issues</span></a>
+        </div>
+      </section>`;
 
       // ── Hero ────────────────────────────────────────────────────────
       const featured = enriched[0];

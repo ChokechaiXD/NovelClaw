@@ -18,7 +18,7 @@
 </head>
 <body data-theme="sepia">
   <!-- SVG Symbols -->
-  <svg style="display: none;">
+  <svg class="u-hidden">
     <symbol id="logo-crab-claw" viewBox="0 0 32 32">
       <defs>
         <linearGradient id="lcg" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -99,7 +99,7 @@
           <div class="c-sidebar__subtitle">โลกของนักอ่าน ไม่สิ้นสุด</div>
         </div>
         <button class="c-btn c-btn--icon c-sidebar__close" id="sidebar-close" aria-label="ปิดเมนู" type="button">
-          <svg style="width:14px;height:14px;"><use xlink:href="#icon-close"/></svg>
+          <svg class="c-icon c-icon--xs"><use xlink:href="#icon-close"/></svg>
         </button>
       </div>
 
@@ -127,7 +127,7 @@
       <div class="c-sidebar__toggles">
         <div class="c-toggle__row">
           <span class="c-toggle__label">
-            <svg style="width:16px;height:16px;"><use xlink:href="#icon-moon"/></svg> โหมดกลางคืน
+            <svg class="c-icon c-icon--sm"><use xlink:href="#icon-moon"/></svg> โหมดกลางคืน
           </span>
           <div class="c-toggle c-toggle--active" id="theme-toggle-new"></div>
         </div>
@@ -139,7 +139,7 @@
       <div class="c-header">
         <div class="c-header__left">
           <button class="c-btn c-btn--icon" id="sidebar-toggle" aria-label="สลับแถบเมนู" type="button">
-            <svg style="width:18px;height:18px;"><use xlink:href="#icon-hamburger"/></svg>
+            <svg class="c-icon c-icon--sm"><use xlink:href="#icon-hamburger"/></svg>
           </button>
           <span class="c-header__title" id="page-title">หน้าหลัก</span>
         </div>
@@ -187,7 +187,7 @@
         <div class="c-sidebar__subtitle">โลกของนักอ่าน ไม่สิ้นสุด</div>
       </div>
       <button class="c-btn c-btn--icon" id="drawer-close" aria-label="ปิดเมนู" type="button">
-        <svg style="width:14px;height:14px;"><use xlink:href="#icon-close"/></svg>
+        <svg class="c-icon c-icon--xs"><use xlink:href="#icon-close"/></svg>
       </button>
     </div>
     <div class="c-sidebar__nav" id="drawer-nav">
@@ -230,15 +230,6 @@
       <svg aria-hidden="true"><use xlink:href="#icon-shield"/></svg>จัดการ
     </button>
   </nav>
-
-  <!-- Global Translation Loading Modal -->
-  <div class="c-modal" id="reader-translation-loader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:3000; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(6px);">
-    <div class="c-modal__card" style="background:var(--c-bg-secondary); border:1px solid var(--c-border); padding:var(--space-lg); border-radius:var(--radius); width:100%; max-width:400px; box-shadow:var(--shadow-lg); text-align:center; box-sizing:border-box;">
-      <div class="c-loader" style="width:40px; height:40px; border:3px solid var(--c-border); border-top-color:var(--c-accent); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto var(--space-md) auto;"></div>
-      <h3 style="margin-top:0; margin-bottom:var(--space-xs); font-size:var(--text-md); font-weight:600; color:var(--c-text-primary);">กำลังแปลบทนิยายด้วย AI...</h3>
-      <p style="margin:0; font-size:var(--text-xs); color:var(--c-text-muted);">กรุณารอสักครู่ (ใช้เวลาประมาณ 10-25 วินาที)<br>ระบบกำลังส่งเนื้อหาและเรียกตัวช่วยแปล Python QA</p>
-    </div>
-  </div>
 
   <div id="toast-container" class="c-toast-container"></div>
 

@@ -2,8 +2,8 @@
  * tests/test-static-ui.js — static frontend hygiene checks.
  *
  * Keeps generated UI strings aligned with the design system:
- *   - no inline style attributes in public JS
- *   - no inline onclick attributes in public JS
+ *   - no inline style attributes in public JS/HTML
+ *   - no inline onclick attributes in public JS/HTML
  *   - no blocking alert() calls in public JS
  *   - npm run check runs the recursive JS syntax gate
  */
@@ -13,6 +13,7 @@ const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
 const PUBLIC_JS = path.join(ROOT, 'public', 'js');
+const PUBLIC_HTML = path.join(ROOT, 'public', 'index.html');
 const PACKAGE_JSON = path.join(ROOT, 'package.json');
 const SERVER_JS = path.join(ROOT, 'server.js');
 const ADMIN_JS = path.join(PUBLIC_JS, 'pages', 'admin.js');
@@ -43,8 +44,9 @@ function fail(message) {
 }
 
 const jsFiles = walkJs(PUBLIC_JS);
+const uiFiles = jsFiles.concat(PUBLIC_HTML);
 
-for (const file of jsFiles) {
+for (const file of uiFiles) {
   const text = fs.readFileSync(file, 'utf8');
   const lines = text.split(/\r?\n/);
   for (const rule of FORBIDDEN) {
