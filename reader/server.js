@@ -852,6 +852,19 @@ adminPost('/api/novel/:slug/chapter/:num/delete', async (req, res) => {
   ok(res, { slug, num });
 });
 
+adminPost('/api/novel/:slug/translations/delete', async (req, res) => {
+  const slug = req.params.slug;
+  const nums = Array.isArray(req.body?.nums) ? req.body.nums : [];
+  if (!nums.length) return fail(res, 400, 'MISSING_NUMS', 'Select at least one translated chapter to delete.');
+  const result = await chapterRepo.deleteTranslatedChapters(slug, nums);
+  await chapterRepo.rebuildChaptersIndex(slug);
+  chapterRepo.invalidateAll(slug);
+  invalidateQualityMeta(slug);
+  invalidateCache('/api/novel/' + slug);
+  invalidateCache('/api/novels');
+  ok(res, { slug, ...result });
+});
+
 // ── Manual cache invalidation ──────────────────────────────────────
 
 adminPost('/api/invalidate-cache', (req, res) => {

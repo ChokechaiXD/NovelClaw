@@ -377,6 +377,43 @@ async function deleteChapter(slug, num) {
 }
 exports.deleteChapter = deleteChapter;
 
+async function deleteTranslatedChapters(slug, nums = null) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(slug)) return { deleted: 0, nums: [] };
+  const dir = chapterDir(slug);
+  let targets = [];
+
+  if (Array.isArray(nums) && nums.length) {
+    targets = [...new Set(nums.map(n => Number(n)).filter(n => Number.isInteger(n) && n > 0))]
+      .map(num => ({ num, filepath: chapterPath(slug, num, 'th') }));
+  } else {
+    let entries;
+    try { entries = await fs.readdir(dir, { withFileTypes: true }); }
+    catch (err) { if (err.code === 'ENOENT') return { deleted: 0, nums: [] }; throw err; }
+    targets = entries
+      .filter(entry => entry.isFile())
+      .map(entry => entry.name.match(/^(\d{4})\.th\.json$/))
+      .filter(Boolean)
+      .map(match => {
+        const num = parseInt(match[1], 10);
+        return { num, filepath: chapterPath(slug, num, 'th') };
+      });
+  }
+
+  const deletedNums = [];
+  for (const target of targets) {
+    try {
+      await fs.unlink(target.filepath);
+      deletedNums.push(target.num);
+    } catch (err) {
+      if (err.code !== 'ENOENT') throw err;
+    }
+  }
+
+  deletedNums.sort((a, b) => a - b);
+  return { deleted: deletedNums.length, nums: deletedNums };
+}
+exports.deleteTranslatedChapters = deleteTranslatedChapters;
+
 // ── List chapters (cached, fast-path via chapters.json) ────────────
 // Accepts options.forceScan = true to bypass cache and index.
 
