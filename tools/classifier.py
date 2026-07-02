@@ -18,7 +18,7 @@ System Split rule:
 รูปแบบไทยสไตล์ (ตามพี่โชค):
   - DIALOGUE: "..." (default, no special styling)
   - SYSTEM: 【】 (keep as-is, stand-alone paragraph)
-  - THOUGHT: <em>...</em> (italic, gray, no brackets)
+  - THOUGHT: semantic type only (renderer applies italic/gray safely)
   - ACTION/NARRATION: plain text
   - No colors anywhere — pure semantic structure
 """
@@ -164,9 +164,9 @@ def classify_paragraphs(paragraphs: list[str]) -> list[dict[str, str]]:
         t = classify(para)
         text = para.strip()
 
-        # Handle CN thought markers → italic (no brackets)
+        # Handle CN thought markers as semantic thought text, not raw HTML.
         if _THOUGHT_MARKER_RE.search(text):
-            text = _THOUGHT_MARKER_RE.sub(r"<em>\1</em>", text)
+            text = _THOUGHT_MARKER_RE.sub(r"\1", text)
 
         result.append({"type": t, "text": text})
     return result

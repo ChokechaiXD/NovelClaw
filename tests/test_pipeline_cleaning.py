@@ -35,6 +35,24 @@ def test_clean_source_preserves_first_story_line_without_header():
     assert "100點經驗值" in cleaned
 
 
+def test_clean_source_preserves_short_multilingual_story_lines():
+    raw = "\n".join(
+        [
+            "Lin Fan opened his eyes.",
+            '"Go."',
+            "田中は息を吸った。",
+            "김철수는 고개를 들었다.",
+        ]
+    )
+
+    cleaned = clean_source(raw)
+
+    assert "Lin Fan opened his eyes." in cleaned
+    assert '"Go."' in cleaned
+    assert "田中は息を吸った。" in cleaned
+    assert "김철수는 고개를 들었다." in cleaned
+
+
 def test_clean_source_removes_reader_noise_lines():
     raw = "\n".join(
         [

@@ -1335,7 +1335,7 @@ pre code {
   color: var(--heading);
   font-size: clamp(28px, 4vw, 44px);
   line-height: 1.18;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   font-weight: 700;
   text-align: center;
   margin-bottom: 32px;
@@ -1343,16 +1343,18 @@ pre code {
 }
 
 .reader-body {
-  max-width: 800px;
+  max-width: min(800px, 72ch);
   margin: 0 auto;
   padding: 2rem 1.5rem;
   width: 100%;
   font-size: var(--reader-font-size, 18px);
   line-height: var(--reader-line-height, var(--leading-reader, 1.9));
-  letter-spacing: 0.005em;
+  letter-spacing: 0;
   font-weight: 400;
   text-align: start;
   color: var(--text-main);
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 .reader-body p {
   margin: 0 0 1.35em;
@@ -1737,29 +1739,37 @@ pre code {
 /* ── Thai Style paragraph types (NEW) ────────────────────────────── */
 /* No colors — pure semantic structure as specified by P'Chok */
 .c-para {
-  margin-bottom: 0.35em;
-  line-height: 1.8;
+  margin: 0 0 0.72em;
+  line-height: var(--reader-line-height, var(--leading-reader, 1.9));
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 .c-para--narration {
   /* Default styling — no special treatment */
 }
 .c-para--dialogue {
   padding-left: 1em;  /* slight indent for dialogue */
+  margin-bottom: 0.42em;
 }
 /* Dialogue-to-dialogue spacing (พี่โชค: B) */
 .c-para--dialogue + .c-para--dialogue {
-  margin-top: 0.5em;
+  margin-top: 0.18em;
 }
 .c-para--system {
-  margin: 0.6em 0 0.6em 0;
-  font-weight: 500;
+  margin: 1.05em 0;
+  padding: 0.1em 0 0.1em 1em;
+  border-left: 2px solid var(--c-border);
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 .c-para--thought {
-  font-style: italic;
   color: #888;  /* gray — ตามพี่โชค提议 */
 }
+.c-para__thought-text {
+  font-style: italic;
+}
 .c-para--action {
-  margin-top: 0.2em;  /* subtle separation for action beats */
+  margin-top: 0.35em;  /* subtle separation for action beats */
 }
 
 
