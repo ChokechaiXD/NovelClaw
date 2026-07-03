@@ -69,29 +69,39 @@ const AdminProviderSettingsPage = {
     const discoveryModel = this._state.discoveryModel || defaultModel;
     const isCustom = providerId === 'custom';
     const activeProvider = providers.find(p => this._providerId(p) === this._state.active) || provider;
+    const activeProviderId = this._providerId(activeProvider);
+    const activeModelProvider = providers.find(p => this._models(p).some(model => model.id === this._state.defaultModel)) || activeProvider;
+    const selectedIsActive = providerId === activeProviderId;
+    const activeKeyLabel = activeProvider.has_key || activeProvider.hasKey ? 'API key ready' : 'Key missing or local model';
 
     page.innerHTML = `
       <div class="c-container c-container--wide">
         ${Ui.adminNav('provider')}
-        <div class="c-section__header c-admin-page__header">
-          <div>
-            <h3 class="c-section__title">${Ui.icon('settings', 'sm')}ระบบ AI</h3>
-            <p class="u-text-muted">เลือก provider, model, endpoint และเปลี่ยน API key ได้จากหน้าเดียว</p>
-          </div>
-          <button class="c-btn c-btn--secondary" id="provider-refresh-models" type="button">${Ui.icon('search', 'xs')}<span>รีเฟรช catalog</span></button>
-        </div>
 
-        <div class="c-admin-provider__active-card">
-          <div>
-            <span class="c-badge c-badge--teal">ใช้งานอยู่</span>
-            <h4>${Ui.esc(this._providerName(activeProvider))}</h4>
-            <p>${Ui.esc(this._catalogSummary(activeProvider))}</p>
+        <section class="c-control-center c-admin-provider__cockpit">
+          <div class="c-control-center__head">
+            <div>
+              <h2 class="c-control-center__title">${Ui.icon('settings', 'sm')}AI Model Center</h2>
+              <p class="c-control-center__subtitle">เห็น provider/model ที่ใช้อยู่จริงก่อนแก้ค่า เพื่อกันสั่งแปลผิดโมเดล</p>
+            </div>
+            <div class="c-admin-provider__hero-actions">
+              <button class="c-btn c-btn--secondary" id="provider-refresh-models" type="button">${Ui.icon('search', 'xs')}<span>Refresh catalog</span></button>
+              <a class="c-btn c-btn--ghost" href="#admin/translate" data-nav>${Ui.icon('book', 'xs')}<span>ไปหน้าแปล</span></a>
+            </div>
           </div>
-          <div class="c-admin-provider__active-models">
-            <span><strong>${Ui.esc(this._state.defaultModel || '-')}</strong><small>Translate model</small></span>
-            <span><strong>${Ui.esc(this._state.discoveryModel || '-')}</strong><small>Discovery/Judge model</small></span>
+          <div class="c-admin-provider__active-card">
+            <div>
+              <span class="c-badge c-badge--teal">Active provider</span>
+              <h4>${Ui.esc(this._providerName(activeProvider))}</h4>
+              <p>${Ui.esc(this._catalogSummary(activeProvider))}</p>
+            </div>
+            <div class="c-admin-provider__active-models">
+              <span><strong>${Ui.esc(this._state.defaultModel || '-')}</strong><small>Translate model · ${Ui.esc(this._providerName(activeModelProvider))}</small></span>
+              <span><strong>${Ui.esc(this._state.discoveryModel || '-')}</strong><small>Discovery/Judge model</small></span>
+              <span><strong>${Ui.esc(activeKeyLabel)}</strong><small>Credential state</small></span>
+            </div>
           </div>
-        </div>
+        </section>
 
         <div class="c-admin-provider__layout">
           <section class="c-admin-provider__rail" aria-label="Providers">
@@ -100,8 +110,9 @@ const AdminProviderSettingsPage = {
               ${providers.map(p => {
                 const id = this._providerId(p);
                 const active = id === providerId ? ' c-admin-provider__card--active' : '';
+                const activeNow = id === activeProviderId ? '<span class="c-badge c-badge--teal">Active</span>' : '';
                 return '<button class="c-admin-provider__card' + active + '" data-provider="' + Ui.esc(id) + '" type="button">' +
-                  '<span class="c-admin-provider__card-name">' + Ui.esc(this._providerName(p)) + '</span>' +
+                  '<span class="c-admin-provider__card-head"><span class="c-admin-provider__card-name">' + Ui.esc(this._providerName(p)) + '</span>' + activeNow + '</span>' +
                   '<span class="c-admin-provider__card-meta">' + Ui.esc(this._catalogSummary(p)) + '</span>' +
                   '</button>';
               }).join('')}
@@ -115,7 +126,10 @@ const AdminProviderSettingsPage = {
                   <h4>${Ui.esc(this._providerName(provider))}</h4>
                   <p class="u-text-muted">${Ui.esc(provider.base_url || 'ใช้ endpoint ตาม provider')}</p>
                 </div>
-                <span class="c-badge ${provider.model_error ? 'c-badge--amber' : 'c-badge--teal'}">${Ui.esc(provider.model_source || 'static')}</span>
+                <div class="c-admin-provider__form-badges">
+                  <span class="c-badge ${selectedIsActive ? 'c-badge--teal' : 'c-badge--gray'}">${selectedIsActive ? 'Editing active' : 'Editing inactive'}</span>
+                  <span class="c-badge ${provider.model_error ? 'c-badge--amber' : 'c-badge--teal'}">${Ui.esc(provider.model_source || 'static')}</span>
+                </div>
               </div>
 
               <div class="c-admin-provider__form-grid">

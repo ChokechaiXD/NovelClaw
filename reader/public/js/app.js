@@ -8,22 +8,42 @@
 const LAZY_ROUTE_SENTINEL = Symbol('lazy-route-sentinel');
 
 // ── Simple Hash Router ───────────────────────────────────────────────
-let adminModulePromise = null;  // resolves once admin.js is fetched
+let adminModulePromise = null;  // resolves once admin.js and its admin helpers are fetched
+function loadLazyScript(src, errorMessage) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = false;  // preserve execution order with the rest
+    s.onload = () => setTimeout(resolve, 0);
+    s.onerror = () => reject(new Error(errorMessage));
+    document.head.appendChild(s);
+  });
+}
+
 function ensureAdminLoaded() {
   if (!adminModulePromise) {
-    adminModulePromise = new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = '/js/pages/admin.js?_v=20260629_admin_qol';
-      s.async = false;  // preserve execution order with the rest
-      s.onload = () => {
-        // admin.js attaches Admin* globals to window via the existing wiring
-        // (Router.register('admin', ...) at the bottom of admin.js).
-        // Resolve on next tick so its top-level Router.register fires.
-        setTimeout(resolve, 0);
-      };
-      s.onerror = () => reject(new Error('Failed to load admin.js'));
-      document.head.appendChild(s);
-    });
+    adminModulePromise = loadLazyScript(
+      '/js/pages/admin-page-loader.js?_v=20260704_admin_modular_5',
+      'Failed to load admin-page-loader.js'
+    ).then(() => loadLazyScript(
+      '/js/pages/admin-ui.js?_v=20260704_admin_modular_5',
+      'Failed to load admin-ui.js'
+    )).then(() => loadLazyScript(
+      '/js/pages/admin-format.js?_v=20260704_admin_modular_5',
+      'Failed to load admin-format.js'
+    )).then(() => loadLazyScript(
+      '/js/pages/admin-translate-model.js?_v=20260704_admin_modular_5',
+      'Failed to load admin-translate-model.js'
+    )).then(() => loadLazyScript(
+      '/js/pages/admin-glossary-model.js?_v=20260704_admin_modular_5',
+      'Failed to load admin-glossary-model.js'
+    )).then(() => loadLazyScript(
+      '/js/pages/admin-import-model.js?_v=20260704_admin_modular_6',
+      'Failed to load admin-import-model.js'
+    )).then(() => loadLazyScript(
+      '/js/pages/admin.js?_v=20260704_admin_modular_12',
+      'Failed to load admin.js'
+    ));
   }
   return adminModulePromise;
 }
