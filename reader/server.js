@@ -35,6 +35,7 @@ const { pad, assertValidSlug, SLUG_RE, novelDir, novelJsonPath, novelCoverPath,
         NOVEL_COVER_EXTENSIONS, sourceMdPath, glossaryJsonPath, glossaryMdPath,
         charactersMdPath, NOVELS_DIR, chapterPath } = require('./lib/paths');
 const chapterRepo = require('./lib/chapter-repo');
+const chapterState = require('./lib/chapter-state');
 const novelRepo = require('./lib/novel-repo');
 const searchService = require('./lib/search-service');
 const importHealth = require('./lib/import-health');
@@ -390,10 +391,30 @@ app.get('/api/novel/:slug/meta', asyncHandler(async (req, res) => {
 app.get('/api/novel/:slug/chapters', asyncHandler(async (req, res) => {
   const startedAt = Date.now();
   const withQuality = req.query.withQuality === '1' || req.query.withQuality === 'true';
-  const chapters = await chapterRepo.listChapters(req.params.slug, { includeQuality: withQuality });
+  const rawChapters = await chapterRepo.listChapters(req.params.slug, { includeQuality: withQuality });
+  const sourceIssueByNum = new Map();
+  let workflowHealthError = '';
+  if (withQuality) {
+    try {
+      const issueMap = await importHealth.getSourceIssueMap(req.params.slug);
+      for (const [num, issue] of issueMap.entries()) sourceIssueByNum.set(num, issue);
+    } catch (err) {
+      workflowHealthError = err.message || 'Unable to read source diagnostics';
+    }
+  }
+  const runResultByNum = getActiveTranslateChapterResultMap(req.params.slug);
+  const chapters = rawChapters.map(chapter => chapterState.decorateChapter(chapter, {
+    sourceIssue: sourceIssueByNum.get(chapter.num),
+    runResult: runResultByNum.get(chapter.num),
+  }));
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   logTiming(`GET /api/novel/${req.params.slug}/chapters`, startedAt);
-  res.json({ slug: req.params.slug, chapters });
+  res.json({
+    slug: req.params.slug,
+    chapters,
+    workflowSummary: chapterState.summarizeChapterStates(chapters),
+    ...(workflowHealthError ? { workflowHealthError } : {}),
+  });
 }));
 
 app.get('/api/novel/:slug/cover', asyncHandler(async (req, res) => {
@@ -1435,6 +1456,46 @@ async function assertSourceReadyForTranslate(slug, nums, options = {}) {
 }
 
 const activeTranslateRuns = new Map();
+
+function getActiveTranslateChapterResultMap(slug) {
+  const resultByNum = new Map();
+  for (const run of activeTranslateRuns.values()) {
+    if (run.slug !== slug) continue;
+    const queuedStatus = run.status === 'cancelling' ? 'running' : 'queued';
+    for (const num of parseChapterRangeSpec(run.range)) {
+      resultByNum.set(num, {
+        num,
+        status: queuedStatus,
+        reason: run.status === 'cancelling' ? 'cancelling' : 'queued',
+        runId: run.runId,
+        model: run.model,
+        provider: run.provider,
+      });
+    }
+    if (run.currentChapter) {
+      resultByNum.set(run.currentChapter, {
+        num: run.currentChapter,
+        status: 'running',
+        reason: 'current chapter',
+        runId: run.runId,
+        model: run.model,
+        provider: run.provider,
+      });
+    }
+    for (const item of Object.values(run.chapterResults || {})) {
+      const num = parseInt(item.num, 10);
+      if (!Number.isFinite(num)) continue;
+      resultByNum.set(num, {
+        ...item,
+        num,
+        runId: run.runId,
+        model: item.model || run.model,
+        provider: item.provider || run.provider,
+      });
+    }
+  }
+  return resultByNum;
+}
 
 function createTranslateRunId() {
   return `${Date.now().toString(36)}-${crypto.randomBytes(4).toString('hex')}`;

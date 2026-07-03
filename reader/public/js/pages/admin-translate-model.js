@@ -47,6 +47,7 @@
     if (resultStatus === 'ok') return 'translated';
     if (resultStatus === 'queued' || resultStatus === 'running') return resultStatus;
     if (resultStatus && resultStatus !== 'ok') return resultStatus === 'failed' ? 'failed' : 'needs_review';
+    if (ch.workflowStatus) return ch.workflowStatus;
     const blockingIssue = sourceIssue?.issues?.some(issue => issue.severity === 'error');
     if (blockingIssue) return 'source_not_ready';
     const quality = ch.qualityRecord || ch.quality;
@@ -94,7 +95,10 @@
     }
     const q = query.trim().toLowerCase();
     if (!q) return true;
-    const issueText = (resultIssue?.reason || (sourceIssue?.issues || []).map(issue => issue.code).join(' ')).toLowerCase();
+    const workflowText = (ch.workflowReasons || []).join(' ');
+    const issueText = (resultIssue?.reason
+      || workflowText
+      || (sourceIssue?.issues || []).map(issue => issue.code).join(' ')).toLowerCase();
     return String(ch.num).includes(q)
       || String(ch.title || '').toLowerCase().includes(q)
       || String(ch.model || '').toLowerCase().includes(q)
