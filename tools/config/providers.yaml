@@ -7,10 +7,10 @@
 #   2. Change `default_model:` to one of the listed models
 #   3. Set API key via environment variable or llm.json
 
-active: openrouter
+active: custom
 
-default_model: "google/gemma-4-26b-a4b-it:free"
-discovery_model: "openai/gpt-oss-120b:free"  # separate model for glossary discovery + judge
+default_model: "NOVEL_TH_QUALITY"
+discovery_model: "NOVEL_TH_QUALITY"
 
 providers:
   openrouter:
@@ -107,7 +107,7 @@ providers:
 
   custom:
     display_name: Custom OpenAI-compatible
-    base_url: "http://localhost:8000/v1"
+    base_url: "http://localhost:20128/v1"
     api_key_env: CUSTOM_API_KEY
     api_key_file: llm.json.custom_api_key
     timeout_sec: 120
