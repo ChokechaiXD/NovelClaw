@@ -90,7 +90,7 @@ const AdminTranslatePage = {
   async render(params) {
     await AdminPageLoader.loadOnce(
       'admin-translate-view',
-      '/js/pages/admin-translate-view.js?_v=20260704_admin_modular_8',
+      '/js/pages/admin-translate-view.js?_v=20260704_chapter_state_1',
       'Failed to load admin-translate-view.js'
     );
     await AdminPageLoader.loadOnce(

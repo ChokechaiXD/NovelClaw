@@ -32,7 +32,7 @@ function ensureAdminLoaded() {
       '/js/pages/admin-format.js?_v=20260704_admin_modular_5',
       'Failed to load admin-format.js'
     )).then(() => loadLazyScript(
-      '/js/pages/admin-translate-model.js?_v=20260704_admin_modular_5',
+      '/js/pages/admin-translate-model.js?_v=20260704_chapter_state_1',
       'Failed to load admin-translate-model.js'
     )).then(() => loadLazyScript(
       '/js/pages/admin-glossary-model.js?_v=20260704_admin_modular_5',

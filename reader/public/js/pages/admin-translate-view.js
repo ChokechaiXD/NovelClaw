@@ -69,6 +69,8 @@
       const [label, badgeClass] = Model.statusBadge(status);
       const checked = selected.has(ch.num) ? ' checked' : '';
       const issueText = resultIssue?.reason
+        || (ch.workflowReasons || []).slice(0, 2).join(', ')
+        || (ch.workflowSourceIssues || []).map(issue => issue.code).slice(0, 2).join(', ')
         || (sourceIssue?.issues || []).map(issue => issue.code).slice(0, 2).join(', ');
       const qualityText = Model.qualityText(ch, resultIssue);
       const modelText = ch.model && ch.model !== 'unknown' ? ch.model : '';
@@ -111,8 +113,13 @@
     const quality = chapter.qualityRecord || chapter.quality || {};
     const status = Model.chapterStatus(chapter, sourceIssue, resultIssue);
     const [label, badgeClass] = Model.statusBadge(status);
-    const issues = resultIssue?.hardFailures || quality.hardFailures || sourceIssue?.issues?.map(issue => issue.code) || [];
+    const issues = resultIssue?.hardFailures
+      || quality.hardFailures
+      || chapter.workflowSourceIssues?.map(issue => issue.code)
+      || sourceIssue?.issues?.map(issue => issue.code)
+      || [];
     const warnings = resultIssue?.warnings || quality.warnings || [];
+    const workflowReasons = chapter.workflowReasons || [];
     return '<div class="c-admin-translate__detail-head">' +
       '<strong>ตอน ' + Ui.esc(num) + ' · ' + Ui.esc(chapter.title || '') + '</strong>' +
       '<span class="' + badgeClass + '">' + Ui.esc(label) + '</span>' +
@@ -126,6 +133,7 @@
       '<pre class="c-admin-translate__detail-pre">' + Ui.esc([
         issues.length ? 'issues: ' + issues.join('; ') : 'issues: -',
         warnings.length ? 'warnings: ' + warnings.join('; ') : 'warnings: -',
+        workflowReasons.length ? 'workflow: ' + workflowReasons.join('; ') : '',
         resultIssue?.reason ? 'last result: ' + resultIssue.reason : '',
       ].filter(Boolean).join('\n')) + '</pre>';
   }
