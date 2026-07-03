@@ -84,7 +84,7 @@ const NovelPage = {
           <div class="c-detail__ch-wrapper">
             <a href="#novel/${Ui.esc(slug)}/${Ui.esc(ch.num)}" class="${chClass.trim()}" data-nav>
               ${Ui.esc(ch.title || 'ตอนที่ ' + ch.num)}
-              ${read ? '<br><span class="c-detail__read-mark">✔ อ่านแล้ว</span>' : ''}
+              ${read ? '<br><span class="c-detail__read-mark">อ่านแล้ว</span>' : ''}
             </a>
             ${sourceOnly ? `
               <div class="c-detail__ch-actions">
