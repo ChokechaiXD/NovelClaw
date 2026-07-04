@@ -14,11 +14,12 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
+from novel_paths import glossary_json_path
+
 
 def _get_glossary_path(slug: str = "global-descent") -> Path:
     """Get path to glossary.json for a novel."""
-    from schema import get_novel_root
-    return get_novel_root(slug, check_exists=False) / "glossary" / "glossary.json"
+    return glossary_json_path(slug)
 
 
 @lru_cache(maxsize=8)

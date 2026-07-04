@@ -37,29 +37,27 @@ sys.path.insert(0, str(_TOOLS_DIR))
 from classifier import classify_and_format, estimate_type_ratios  # noqa: E402
 from atomic_io import atomic_write_json  # noqa: E402
 from llm_rate_limit import limit_llm_call  # noqa: E402
+from novel_paths import chapter_dir, chapter_path, source_md_path  # noqa: E402
 from prompt_builder import build_prompt, get_lang_config  # noqa: E402
 from scorer import PASS_THRESHOLD  # noqa: E402
 from source_cleaner import clean_source  # noqa: E402
 from quality_gate import evaluate_translation_quality  # noqa: E402
+from quality_retry import quality_repair_decision  # noqa: E402
 from glossary_pre import build_glossary_pre_chunk  # noqa: E402
 from glossary_discovery import discover_and_save  # noqa: E402
 from source_profile import build_source_profile, resolve_source_lang  # noqa: E402
 
 # ── Station 1: Source Reader ─────────────────────────────────────────
 
-_SOURCE_DIR = _PROJECT_ROOT / "novels" / "global-descent" / "chapters" / "source"
-_CHAPTER_DIR = _PROJECT_ROOT / "novels" / "global-descent" / "chapters"
-
 def read_source(ch_num: int, slug: str = "global-descent") -> str | None:
     """Station 1: Read source file. Supports .md and .cn.json."""
-    src_dir = _PROJECT_ROOT / "novels" / slug / "chapters" / "source"
-    src_json = _PROJECT_ROOT / "novels" / slug / "chapters" / f"{ch_num:04d}.cn.json"
+    src_json = chapter_path(slug, ch_num, "cn")
 
     if src_json.exists():
         data = json.loads(src_json.read_text(encoding="utf-8"))
         return "\n".join(data.get("paragraphs", []))
 
-    src_md = src_dir / f"{ch_num:04d}.md"
+    src_md = source_md_path(slug, ch_num)
     if src_md.exists():
         return src_md.read_text(encoding="utf-8")
 
@@ -415,8 +413,8 @@ def save_chapter(
     source_profile: dict[str, Any] | None = None,
 ) -> Path:
     """Station 7: Save classified paragraphs to .th.json."""
-    chapter_dir = _PROJECT_ROOT / "novels" / slug / "chapters"
-    chapter_dir.mkdir(parents=True, exist_ok=True)
+    out_dir = chapter_dir(slug)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     title = _get_title(source_text, ch_num, source_lang)
 
@@ -441,7 +439,7 @@ def save_chapter(
         "updatedAt": datetime.now(timezone.utc).isoformat(),
     }
 
-    out_path = chapter_dir / f"{ch_num:04d}.th.json"
+    out_path = chapter_path(slug, ch_num, "th")
     atomic_write_json(out_path, data, ensure_ascii=False, indent=2)
     return out_path
 
@@ -594,7 +592,13 @@ def translate_one(
                         break  # success!
 
                     last_error = f"scorer: {score_result['score']}/100 < {PASS_THRESHOLD}"
-                    repair_instruction = _build_repair_instruction(score_result)
+                    repair_decision = quality_repair_decision(score_result)
+                    attempts[-1]["repairEligible"] = repair_decision["eligible"]
+                    attempts[-1]["repairReason"] = repair_decision["reason"]
+                    repair_instruction = (
+                        _build_repair_instruction(score_result)
+                        if repair_decision["eligible"] else ""
+                    )
 
                     if attempt_cfg["kind"] == "translate" and repair_instruction:
                         continue  # one targeted repair retry

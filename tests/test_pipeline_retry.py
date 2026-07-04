@@ -23,7 +23,7 @@ def test_translate_one_retries_with_quality_repair_notes(monkeypatch, tmp_path):
     score_results = iter(
         [
             {
-                "score": 60,
+                "score": 82,
                 "passed": False,
                 "repair_notes": [
                     "Expand missing content and preserve all source events.",
@@ -59,6 +59,8 @@ def test_translate_one_retries_with_quality_repair_notes(monkeypatch, tmp_path):
     assert "<repair>" in calls[1]["prompt"]
     assert "Expand missing content" in calls[1]["prompt"]
     assert "Remove untranslated foreign-script leaks" in calls[1]["prompt"]
+    assert saved_kwargs["quality_record"]["attempts"][0]["repairEligible"] is True
+    assert saved_kwargs["quality_record"]["attempts"][0]["repairReason"] == "borderline_quality"
     assert saved_kwargs["quality_record"]["score"] == 90
     assert saved_kwargs["quality_record"]["passed"] is True
 
@@ -114,7 +116,7 @@ def test_translate_one_uses_discovery_model_as_fallback_after_empty_output(monke
     assert result["quality"]["attempts"][1]["kind"] == "fallback"
 
 
-def test_translate_one_marks_repeated_quality_failure_needs_review(monkeypatch):
+def test_translate_one_skips_quality_repair_when_score_is_too_low(monkeypatch):
     monkeypatch.setattr(pipeline, "read_source", lambda *_args, **_kwargs: "阿星醒來。")
     monkeypatch.setattr(pipeline, "build_translate_prompt", lambda **_kwargs: "SYSTEM\n<glossary>\nTranslate.")
     monkeypatch.setattr(
@@ -149,7 +151,48 @@ def test_translate_one_marks_repeated_quality_failure_needs_review(monkeypatch):
 
     assert result["status"] == "needs_review"
     assert "quality gate" in result["reason"]
+    assert len(result["quality"]["attempts"]) == 1
+    assert result["quality"]["attempts"][0]["repairEligible"] is False
+    assert result["quality"]["attempts"][0]["repairReason"] == "score_below_repair_floor"
+
+
+def test_translate_one_repairs_repeated_borderline_quality_failure(monkeypatch):
+    monkeypatch.setattr(pipeline, "read_source", lambda *_args, **_kwargs: "阿星醒來。")
+    monkeypatch.setattr(pipeline, "build_translate_prompt", lambda **_kwargs: "SYSTEM\n<glossary>\nTranslate.")
+    monkeypatch.setattr(
+        pipeline,
+        "_get_active_config",
+        lambda *_args, **_kwargs: {
+            "model": "primary-model",
+            "provider_name": "openrouter",
+            "discovery_model": "judge-model",
+        },
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "call_llm",
+        lambda *args, **kwargs: ("เฉาซิงลืมตาขึ้น\n\n(จบบท)", "fake", kwargs.get("model") or "fake-model"),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "_score_and_report",
+        lambda *_args, **_kwargs: {
+            "score": 82,
+            "passed": False,
+            "repair_notes": ["Remove untranslated foreign-script leaks from the Thai output."],
+            "repairNotes": ["Remove untranslated foreign-script leaks from the Thai output."],
+            "errors": ["Script Purity: leak"],
+            "hardFailures": ["Script Purity: leak"],
+            "warnings": [],
+        },
+    )
+
+    result = pipeline.translate_one(1)
+
+    assert result["status"] == "needs_review"
     assert len(result["quality"]["attempts"]) == 2
+    assert result["quality"]["attempts"][0]["repairEligible"] is True
+    assert result["quality"]["attempts"][1]["status"] == "quality_failed"
 
 
 def test_translate_one_auto_detects_source_lang_for_profile(monkeypatch, tmp_path):
