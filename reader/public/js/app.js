@@ -41,7 +41,7 @@ function ensureAdminLoaded() {
       '/js/pages/admin-import-model.js?_v=20260704_admin_modular_6',
       'Failed to load admin-import-model.js'
     )).then(() => loadLazyScript(
-      '/js/pages/admin.js?_v=20260704_admin_modular_12',
+      '/js/pages/admin.js?_v=20260704_chapter_state_3',
       'Failed to load admin.js'
     ));
   }

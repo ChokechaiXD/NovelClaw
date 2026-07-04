@@ -27,9 +27,11 @@
     const reviewEl = document.getElementById('translate-job-review');
     const failedEl = document.getElementById('translate-job-failed');
     const currentEl = document.getElementById('translate-job-current');
+    const metaEl = document.getElementById('translate-job-meta');
     const eventsEl = document.getElementById('translate-job-events');
+    const retryBtn = document.getElementById('translate-job-retry');
     const cancelBtn = document.getElementById('translate-job-cancel');
-    if (!badge || !fill || !progressText || !doneEl || !reviewEl || !failedEl || !currentEl || !eventsEl || !cancelBtn) {
+    if (!badge || !fill || !progressText || !doneEl || !reviewEl || !failedEl || !currentEl || !metaEl || !eventsEl || !retryBtn || !cancelBtn) {
       return { rendered: false, active: false };
     }
 
@@ -42,7 +44,11 @@
       reviewEl.textContent = '0';
       failedEl.textContent = '0';
       currentEl.textContent = 'ยังไม่มีงานที่กำลังรัน';
+      metaEl.textContent = 'range: - · workers: - · provider: - · model: -';
       eventsEl.textContent = 'Waiting for a run.';
+      retryBtn.hidden = true;
+      retryBtn.dataset.runId = '';
+      retryBtn.dataset.retryTotal = '0';
       cancelBtn.hidden = true;
       return { rendered: true, active: false };
     }
@@ -70,15 +76,29 @@
     reviewEl.textContent = String(run.needsReview || 0);
     failedEl.textContent = String(run.failed || 0);
     currentEl.textContent = run.currentChapter
-      ? `กำลังแปล/ล่าสุด: ตอน ${run.currentChapter} · model ${run.model || currentModel || '-'}`
-      : `รอผลลัพธ์จาก pipeline · model ${run.model || currentModel || '-'}`;
+      ? `กำลังแปล/ล่าสุด: ตอน ${run.currentChapter}`
+      : 'รอผลลัพธ์จาก pipeline';
+    const metaParts = [
+      `range: ${run.range || '-'}`,
+      `workers: ${run.workers || 1}`,
+      `provider: ${run.provider || '-'}`,
+      `model: ${run.model || currentModel || '-'}`,
+    ];
+    if (run.retryOf) metaParts.push(`retry of: ${run.retryOf}`);
+    metaEl.textContent = metaParts.join(' · ');
     eventsEl.textContent = (run.events || [])
       .slice(-8)
       .map(event => `${event.at || ''}  ${event.message || event.type || ''}`)
       .join('\n') || 'ยังไม่มี event จาก pipeline';
+    const retryTotal = run.retryPlan?.total || 0;
+    retryBtn.hidden = isActiveStatus(run.status) || retryTotal < 1;
+    retryBtn.dataset.runId = run.runId || '';
+    retryBtn.dataset.retryTotal = String(retryTotal);
+    const retryText = retryBtn.querySelector('span');
+    if (retryText) retryText.textContent = `Retry failed (${retryTotal})`;
     cancelBtn.hidden = !isActiveStatus(run.status);
     if (typeof renderChapterTable === 'function') renderChapterTable();
-    return { rendered: true, active: isActiveStatus(run.status), runId: run.runId || '' };
+    return { rendered: true, active: isActiveStatus(run.status), runId: run.runId || '', retryTotal };
   }
 
   window.AdminTranslateJob = {

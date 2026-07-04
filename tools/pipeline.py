@@ -35,6 +35,8 @@ _TOOLS_DIR = Path(__file__).parent
 sys.path.insert(0, str(_TOOLS_DIR))
 
 from classifier import classify_and_format, estimate_type_ratios  # noqa: E402
+from atomic_io import atomic_write_json  # noqa: E402
+from llm_rate_limit import limit_llm_call  # noqa: E402
 from prompt_builder import build_prompt, get_lang_config  # noqa: E402
 from scorer import PASS_THRESHOLD  # noqa: E402
 from source_cleaner import clean_source  # noqa: E402
@@ -184,8 +186,9 @@ def call_llm(
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
-            data = json.loads(resp.read().decode())
+        with limit_llm_call(cfg["provider_name"]):
+            with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+                data = json.loads(resp.read().decode())
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
         return content, cfg["provider_name"], model_name
     except urllib.error.HTTPError as e:
@@ -439,7 +442,7 @@ def save_chapter(
     }
 
     out_path = chapter_dir / f"{ch_num:04d}.th.json"
-    out_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    atomic_write_json(out_path, data, ensure_ascii=False, indent=2)
     return out_path
 
 

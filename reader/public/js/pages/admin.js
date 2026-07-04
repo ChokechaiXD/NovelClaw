@@ -115,7 +115,7 @@ const AdminTranslatePage = {
     );
     await AdminPageLoader.loadOnce(
       'admin-translate',
-      '/js/pages/admin-translate.js?_v=20260704_admin_modular_12',
+      '/js/pages/admin-translate.js?_v=20260704_chapter_state_3',
       'Failed to load admin-translate.js'
     );
     return window.AdminTranslatePage.render(params);

@@ -24,6 +24,7 @@ function sanitizeOutput(s) {
 }
 
 const helmet = require('helmet');
+const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const fs = require('node:fs/promises');
 const path = require('node:path');
@@ -43,6 +44,8 @@ const providerConfigService = require('./lib/provider-config-service');
 const translationHealth = require('./lib/translation-health');
 const { parseTranslateJsonOutput, parseBatchTranslateSummary } = require('./lib/translate-result');
 const { parseMarkdownToBlocks } = require('./lib/blocks');
+const { writeJsonAtomic } = require('./lib/atomic-write');
+const { buildRetryPlan } = require('./lib/translate-run-retry');
 
 // Re-export for tests
 module.exports = { parseMarkdownToBlocks, chapterRepo, novelRepo, searchService };
@@ -108,6 +111,7 @@ app.use(helmet({
     },
   },
 }));
+app.use(compression({ threshold: 1024 }));
 app.use(express.json({ limit: '8mb' }));
 
 // Rate-limit admin write APIs in case ADMIN_TOKEN is leaked. The reader is
@@ -1411,6 +1415,7 @@ function buildNovelctlTranslateArgs(slug, range, options = {}) {
   ];
 
   if (workers > 1) args.push('--parallel', String(workers));
+  else args.push('--sequential');
   if (options.mock) args.push('--mock');
   if (options.sourceLang) args.push('--from', options.sourceLang);
   if (options.targetLang) args.push('--to', options.targetLang);
@@ -1456,6 +1461,33 @@ async function assertSourceReadyForTranslate(slug, nums, options = {}) {
 }
 
 const activeTranslateRuns = new Map();
+
+function isTranslateRunActiveStatus(status) {
+  return status === 'running' || status === 'queued' || status === 'cancelling';
+}
+
+function findActiveTranslateRun(slug) {
+  for (const run of activeTranslateRuns.values()) {
+    if (run.slug !== slug) continue;
+    if (isTranslateRunActiveStatus(run.status)) {
+      return run;
+    }
+  }
+  return null;
+}
+
+function failIfTranslateRunActive(res, slug) {
+  const active = findActiveTranslateRun(slug);
+  if (!active) return false;
+  fail(
+    res,
+    409,
+    'TRANSLATE_RUN_ACTIVE',
+    'มีงานแปลของเรื่องนี้กำลังทำงานอยู่ รอให้เสร็จหรือกดยกเลิกก่อนเริ่มงานใหม่',
+    publicTranslateRun(active)
+  );
+  return true;
+}
 
 function getActiveTranslateChapterResultMap(slug) {
   const resultByNum = new Map();
@@ -1513,6 +1545,10 @@ function translateRunBucket(status) {
 function publicTranslateRun(run) {
   const chapters = Object.values(run.chapterResults || {})
     .sort((a, b) => (a.num || 0) - (b.num || 0));
+  const publicRun = {
+    ...run,
+    chapters: chapters.length ? chapters : (run.chapters || []),
+  };
   return {
     runId: run.runId,
     status: run.status,
@@ -1528,10 +1564,13 @@ function publicTranslateRun(run) {
     model: run.model || '',
     promptProfile: run.promptProfile || '',
     force: run.force === true,
+    workers: run.workers || 1,
+    retryOf: run.retryOf || '',
+    retryPlan: buildRetryPlan(publicRun),
     startedAt: run.startedAt,
     finishedAt: run.finishedAt || null,
     events: (run.events || []).slice(-60),
-    chapters,
+    chapters: publicRun.chapters,
     summary: run.summary || null,
   };
 }
@@ -1539,7 +1578,7 @@ function publicTranslateRun(run) {
 async function persistTranslateRun(run) {
   const bucket = translateRunBucket(run.status);
   await fs.mkdir(path.join(JOBS_DIR, bucket), { recursive: true });
-  await fs.writeFile(translateRunPath(bucket, run.runId), JSON.stringify(publicTranslateRun(run), null, 2), 'utf8');
+  await writeJsonAtomic(translateRunPath(bucket, run.runId), publicTranslateRun(run));
   if (bucket !== 'active') {
     await fs.unlink(translateRunPath('active', run.runId)).catch((err) => {
       if (err.code !== 'ENOENT') throw err;
@@ -1612,6 +1651,8 @@ function startTranslateRun(slug, range, args, options = {}) {
     provider: options.provider || '',
     promptProfile: options.promptProfile || '',
     force: options.force === true,
+    workers: Math.min(Math.max(parseInt(options.workers, 10) || 1, 1), 5),
+    retryOf: options.retryOf || '',
     startedAt: new Date().toISOString(),
     finishedAt: null,
     events: [],
@@ -1698,6 +1739,7 @@ adminPost('/api/novel/:slug/translate/single', async (req, res) => {
   const { num, score, model, provider, promptProfile, force } = req.body;
   const chapterNum = parseInt(num, 10);
   if (Number.isNaN(chapterNum)) return fail(res, 400, 'INVALID_NUM', 'Invalid chapter number');
+  if (failIfTranslateRunActive(res, slug)) return;
   try {
     await assertSourceReadyForTranslate(slug, [chapterNum], { force: force === true });
   } catch (err) {
@@ -1764,6 +1806,7 @@ adminPost('/api/novel/:slug/translate/batch', async (req, res) => {
   if (!range) return fail(res, 400, 'MISSING_RANGE', 'Chapter range (e.g. 5-10) is required.');
   const nums = parseChapterRangeSpec(range);
   if (!nums.length) return fail(res, 400, 'INVALID_RANGE', 'Invalid chapter range. Use examples like 5, 5-10, or 1,3-5.');
+  if (failIfTranslateRunActive(res, slug)) return;
   try {
     await assertSourceReadyForTranslate(slug, nums, { force: force === true });
   } catch (err) {
@@ -1827,6 +1870,7 @@ adminPost('/api/novel/:slug/translate/runs', async (req, res) => {
   if (!range) return fail(res, 400, 'MISSING_RANGE', 'Chapter range (e.g. 5-10) is required.');
   const nums = parseChapterRangeSpec(range);
   if (!nums.length) return fail(res, 400, 'INVALID_RANGE', 'Invalid chapter range. Use examples like 5, 5-10, or 1,3-5.');
+  if (failIfTranslateRunActive(res, slug)) return;
   try {
     await assertSourceReadyForTranslate(slug, nums, { force: force === true });
   } catch (err) {
@@ -1849,6 +1893,7 @@ adminPost('/api/novel/:slug/translate/runs', async (req, res) => {
     provider,
     promptProfile,
     force: force === true,
+    workers: concurrent || 1,
   });
   ok(res, run);
 });
@@ -1876,6 +1921,58 @@ app.get('/api/translate/runs/:runId', requireAdmin, asyncHandler(async (req, res
   if (!run) return fail(res, 404, 'RUN_NOT_FOUND', 'Translation run not found');
   ok(res, run);
 }));
+
+adminPost('/api/translate/runs/:runId/retry', async (req, res) => {
+  const runId = String(req.params.runId || '');
+  if (!/^[a-z0-9-]{8,40}$/i.test(runId)) return fail(res, 400, 'INVALID_RUN_ID', 'Invalid run id');
+
+  const sourceRun = await readTranslateRun(runId);
+  if (!sourceRun) return fail(res, 404, 'RUN_NOT_FOUND', 'Translation run not found');
+  if (isTranslateRunActiveStatus(sourceRun.status)) {
+    return fail(res, 409, 'RUN_STILL_ACTIVE', 'งานนี้ยังทำงานอยู่ รอให้จบหรือยกเลิกก่อน retry');
+  }
+
+  const retryPlan = buildRetryPlan(sourceRun);
+  if (!retryPlan.hasRetryable) {
+    return fail(res, 409, 'NO_RETRYABLE_CHAPTERS', 'ไม่พบตอนที่ failed หรือ needs review สำหรับ retry', retryPlan);
+  }
+
+  const slug = retryPlan.slug || sourceRun.slug || '';
+  if (!SLUG_RE.test(slug)) return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');
+  if (failIfTranslateRunActive(res, slug)) return;
+
+  const workers = Math.min(Math.max(parseInt(req.body?.concurrent ?? sourceRun.workers, 10) || 1, 1), 5);
+  const force = req.body?.force === true || sourceRun.force === true;
+  try {
+    await assertSourceReadyForTranslate(slug, retryPlan.nums, { force });
+  } catch (err) {
+    return fail(res, err.status || 500, err.code || 'SOURCE_CHECK_FAILED', err.message, err.details);
+  }
+
+  const meta = await novelRepo.getNovelMeta(slug);
+  const model = req.body?.model || sourceRun.model || undefined;
+  const provider = req.body?.provider || sourceRun.provider || undefined;
+  const promptProfile = req.body?.promptProfile || sourceRun.promptProfile || undefined;
+  const args = buildNovelctlTranslateArgs(slug, retryPlan.range, {
+    workers,
+    sourceLang: meta.source_lang || meta.sourceLang || 'auto',
+    targetLang: meta.target_lang || meta.targetLang || 'th',
+    model,
+    provider,
+    promptProfile,
+    json: true,
+  });
+  const run = startTranslateRun(slug, retryPlan.range, args, {
+    total: retryPlan.total,
+    model,
+    provider,
+    promptProfile,
+    force,
+    workers,
+    retryOf: sourceRun.runId,
+  });
+  ok(res, { run, retryPlan });
+});
 
 adminPost('/api/translate/runs/:runId/cancel', async (req, res) => {
   const runId = String(req.params.runId || '');

@@ -22,6 +22,8 @@ from typing import Any
 
 import yaml
 
+from atomic_io import atomic_write_json, atomic_write_text
+
 _CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "providers.yaml"
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -169,7 +171,7 @@ def _write_llm_json_key(key: str, value: str) -> None:
         except (json.JSONDecodeError, OSError):
             data = {}
     data[key] = value
-    llm_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    atomic_write_json(llm_path, data, ensure_ascii=False, indent=2)
 
 
 def _replace_custom_base_url(text: str, custom_base_url: str) -> str:
@@ -240,7 +242,7 @@ def save_provider_config(active: str | None = None,
     text = "".join(new_lines)
     if custom_base_url is not None:
         text = _replace_custom_base_url(text, custom_base_url.strip())
-    _CONFIG_PATH.write_text(text, encoding="utf-8")
+    atomic_write_text(_CONFIG_PATH, text)
     if custom_api_key is not None and custom_api_key.strip():
         _write_llm_json_key("custom_api_key", custom_api_key.strip())
     if api_key_provider is not None and api_key is not None and api_key.strip():
