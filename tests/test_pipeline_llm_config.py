@@ -1,6 +1,7 @@
 import json
 
 import pipeline
+import pipeline_llm
 
 
 class _FakeResponse:
@@ -57,7 +58,7 @@ def test_call_llm_uses_overridden_provider_runtime_config(monkeypatch):
         "llm_router.config_providers.get_provider_config",
         fake_provider_config,
     )
-    monkeypatch.setattr(pipeline.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(pipeline_llm.urllib.request, "urlopen", fake_urlopen)
 
     class FakeLimit:
         def __init__(self, provider):
@@ -69,11 +70,12 @@ def test_call_llm_uses_overridden_provider_runtime_config(monkeypatch):
         def __exit__(self, *_args):
             return False
 
-    monkeypatch.setattr(pipeline, "limit_llm_call", lambda provider: FakeLimit(provider))
+    monkeypatch.setattr(pipeline_llm, "limit_llm_call", lambda provider: FakeLimit(provider))
 
-    response, provider_name, model_name = pipeline.call_llm("prompt", provider="beta")
+    response, provider_name, model_name = pipeline_llm.call_llm("prompt", provider="beta")
 
     assert response == "translated"
+    assert pipeline.call_llm is pipeline_llm.call_llm
     assert provider_name == "beta"
     assert model_name == "default-model"
     assert captured["url"] == "https://beta.local/api/v1/chat/completions"

@@ -23,7 +23,7 @@ def test_propose_translations_parses_markdown_table(monkeypatch):
             "fake-model",
         )
 
-    monkeypatch.setattr("pipeline.call_llm", fake_call_llm)
+    monkeypatch.setattr("pipeline_llm.call_llm", fake_call_llm)
 
     proposed = glossary_discovery.propose_translations(candidates)
 

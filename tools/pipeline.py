@@ -21,9 +21,6 @@ from __future__ import annotations
 import json
 import re
 import sys
-import urllib.error
-import urllib.request
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -35,10 +32,12 @@ _TOOLS_DIR = Path(__file__).parent
 sys.path.insert(0, str(_TOOLS_DIR))
 
 from classifier import classify_and_format, estimate_type_ratios  # noqa: E402
-from atomic_io import atomic_write_json  # noqa: E402
-from llm_rate_limit import limit_llm_call  # noqa: E402
-from novel_paths import chapter_dir, chapter_path, source_md_path  # noqa: E402
-from prompt_builder import build_prompt, get_lang_config  # noqa: E402
+from novel_paths import chapter_path, source_md_path  # noqa: E402
+from pipeline_glossary import apply_glossary_post  # noqa: E402
+from pipeline_llm import call_llm, get_active_config as _get_active_config  # noqa: E402
+from pipeline_parser import parse_output  # noqa: E402
+from pipeline_save import save_chapter, get_title as _get_title  # noqa: E402
+from prompt_builder import build_prompt  # noqa: E402
 from scorer import PASS_THRESHOLD  # noqa: E402
 from source_cleaner import clean_source  # noqa: E402
 from quality_gate import evaluate_translation_quality  # noqa: E402
@@ -97,176 +96,6 @@ def build_translate_prompt(
         profile=prompt_profile,
         source_profile=source_profile,
     )
-
-
-# ── Station 4: LLM Caller (Direct HTTP) ──────────────────────────────
-
-def _get_active_config(provider_name: str | None = None) -> dict[str, Any]:
-    """Get active provider + model from config_providers."""
-    from llm_router.config_providers import get_provider_config
-
-    cfg = get_provider_config()
-    active = provider_name or cfg.get("active", "openrouter")
-    providers = cfg.get("providers", {})
-    pcfg = providers.get(active, {})
-    base_url = pcfg.get("base_url", "https://openrouter.ai/api/v1")
-    api_key = pcfg.get("api_key", "")
-    default_model = cfg.get("default_model", "google/gemma-4-26b-a4b-it:free")
-    discovery_model = cfg.get("discovery_model", default_model)
-    timeout = pcfg.get("timeout_sec", 90)
-    max_tokens = pcfg.get("max_tokens", 4096)
-    temperature = pcfg.get("temperature", 0.28)
-
-    return {
-        "base_url": base_url,
-        "api_key": api_key,
-        "model": default_model,
-        "discovery_model": discovery_model,
-        "timeout": timeout,
-        "max_tokens": max_tokens,
-        "temperature": temperature,
-        "provider_name": active,
-    }
-
-
-def call_llm(
-    prompt: str,
-    system: str | None = None,
-    model: str | None = None,
-    provider: str | None = None,
-    timeout: int | None = None,
-    max_tokens: int | None = None,
-    temperature: float | None = None,
-) -> tuple[str, str, str]:
-    """Station 4: Direct HTTP call to LLM provider.
-
-    Returns:
-        (response_text, provider_name, model_name)
-    """
-    cfg = _get_active_config(provider)
-    if model:
-        cfg["model"] = model
-    if timeout is not None:
-        cfg["timeout"] = timeout
-    if max_tokens is not None:
-        cfg["max_tokens"] = max_tokens
-    if temperature is not None:
-        cfg["temperature"] = temperature
-
-    base_url = cfg["base_url"].rstrip("/")
-    api_key = cfg["api_key"]
-    model_name = cfg["model"]
-    timeout_sec = cfg.get("timeout", 90)
-    max_tok = cfg.get("max_tokens", 4096)
-    temp = cfg.get("temperature", 0.28)
-
-    messages = []
-    if system:
-        messages.append({"role": "system", "content": system})
-    messages.append({"role": "user", "content": prompt})
-
-    url = f"{base_url}/chat/completions"
-    body = {
-        "model": model_name,
-        "messages": messages,
-        "max_tokens": max_tok,
-        "temperature": temp,
-    }
-
-    headers = {
-        "Content-Type": "application/json",
-    }
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-
-    req = urllib.request.Request(
-        url, data=json.dumps(body).encode(), headers=headers, method="POST"
-    )
-
-    try:
-        with limit_llm_call(cfg["provider_name"]):
-            with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
-                data = json.loads(resp.read().decode())
-        content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-        return content, cfg["provider_name"], model_name
-    except urllib.error.HTTPError as e:
-        err_body = e.read().decode()[:500] if e.fp else ""
-        raise RuntimeError(f"HTTP {e.code}: {err_body}") from e
-    except urllib.error.URLError as e:
-        raise RuntimeError(f"Connection failed: {e.reason}") from e
-
-
-# ── Station 5: Output Parser ──────────────────────────────────────────
-
-def parse_output(output: str, ch_num: int) -> list[str]:
-    """Station 5: Parse LLM plain text → list of paragraph strings."""
-    # Strip markdown fences
-    output = re.sub(r"^```[A-Za-z0-9_-]*\s*\n?", "", output.strip())
-    output = re.sub(r"\n?```\s*$", "", output)
-    # Strip control chars
-    output = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", output)
-    # Normalize line endings
-    output = output.replace("\r\n", "\n")
-    # Split by double newlines
-    paragraphs = re.split(r"\n\n+", output.strip())
-    paragraphs = [p.strip() for p in paragraphs if p.strip()]
-
-    # Post-processing: split mixed paragraphs (narration + dialogue in same block)
-    # LLM often puts narration and dialogue in the same \\n\\n block separated by \\n
-    # e.g. "เฉาซิงลอบคิดในใจ\n\"ต้องใช้เวลา 45 นาที\""
-    mixed = []
-    for p in paragraphs:
-        has_quote = '"' in p or '\u201c' in p or '\u201d' in p
-        has_non_quote_text = bool(re.sub(r'[\s"\\u201c\\u201d\\u300c\\u300d]', '', p))
-        if has_quote and has_non_quote_text and '\n' in p:
-            # Split by single newline to separate narration from dialogue
-            lines = [l.strip() for l in p.split('\n') if l.strip()]
-            # Group consecutive lines of same type (quoted vs unquoted)
-            for line in lines:
-                mixed.append(line)
-        else:
-            mixed.append(p)
-    paragraphs = mixed
-
-    # Fallback: if too few paragraphs but text is long, split by single newline
-    if len(paragraphs) <= 2 and any(len(p) > 2000 for p in paragraphs):
-        giant = paragraphs[0] if paragraphs else ""
-        parts = re.split(r"(?<=[.!?。！？])\s*|\n", giant)
-        paragraphs = [p.strip() for p in parts if len(p.strip()) > 10]
-
-    if not paragraphs:
-        raise ValueError(f"Empty LLM output for ch {ch_num}")
-
-    return paragraphs
-
-
-# ── Station 5.5: Glossary Post-Process ──────────────────────────────────
-
-def apply_glossary_post(
-    paragraphs: list[str], target_lang: str = "th"
-) -> list[str]:
-    """Apply term_policy to replace known term tokens.
-
-    LLM translates freely → Python ensures glossary compliance.
-    This covers skill/item/system terms. Character names are handled
-    via prompt injection (Station 3), not here.
-
-    Returns modified paragraph list.
-    """
-    try:
-        from qa.term_policy import get_term_policy
-
-        tp = get_term_policy(target_lang)
-        result = []
-        for para in paragraphs:
-            if para in ("(จบบท)", "(End)", "（終）", "(끝)"):
-                result.append(para)
-                continue
-            applied = tp.apply_to_text(para)
-            result.append(applied.text)
-        return result
-    except ImportError:
-        return paragraphs
 
 
 # ── Station 6.5: Scorer ─────────────────────────────────────────────────
@@ -386,62 +215,6 @@ Otherwise start with PASS: and keep feedback brief."""
         }
     except Exception as e:
         return {"ok": False, "passed": True, "feedback": str(e)[:200]}
-
-
-def _get_title(source_text: str, ch_num: int, source_lang: str = "cn") -> str:
-    """Extract chapter title from source."""
-    cfg = get_lang_config(source_lang)
-    title_regex = cfg.get("title_regex") or r"第\s*(\d+)\s*章\s*(.+)"
-    m = re.search(title_regex, source_text[:300])
-    title = m.group(2).strip() if m and m.lastindex and m.lastindex >= 2 else ""
-    return f"ตอนที่ {ch_num} {title}".strip()
-
-
-# ── Station 7: Save ───────────────────────────────────────────────────
-
-def save_chapter(
-    classified: list[dict[str, str]],
-    ch_num: int,
-    slug: str = "global-descent",
-    source_text: str = "",
-    source_lang: str = "cn",
-    target_lang: str = "th",
-    provider_name: str = "unknown",
-    model_name: str = "unknown",
-    prompt_profile: str = "",
-    quality_record: dict[str, Any] | None = None,
-    source_profile: dict[str, Any] | None = None,
-) -> Path:
-    """Station 7: Save classified paragraphs to .th.json."""
-    out_dir = chapter_dir(slug)
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    title = _get_title(source_text, ch_num, source_lang)
-
-    data = {
-        "novelId": slug,
-        "chapterNo": ch_num,
-        "sourceLang": source_lang,
-        "targetLang": target_lang,
-        "title": {
-            "source": "",
-            "translated": title,
-        },
-        "status": "needs_review" if quality_record and quality_record.get("passed") is False else "translated",
-        "paragraphs": classified,
-        "meta": {
-            "provider": provider_name,
-            "model": model_name,
-            "promptProfile": prompt_profile or "faithful_default",
-            "sourceProfile": source_profile or {},
-        },
-        "qualityRecord": quality_record or {},
-        "updatedAt": datetime.now(timezone.utc).isoformat(),
-    }
-
-    out_path = chapter_path(slug, ch_num, "th")
-    atomic_write_json(out_path, data, ensure_ascii=False, indent=2)
-    return out_path
 
 
 # ── MASTER PIPELINE ───────────────────────────────────────────────────

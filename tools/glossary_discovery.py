@@ -208,7 +208,7 @@ def propose_translations(
     if not candidates:
         return candidates
 
-    from pipeline import call_llm
+    from pipeline_llm import call_llm
 
     # Build term list for prompt (max 30 per call to keep prompt short)
     batch_size = 30
