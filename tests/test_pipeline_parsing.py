@@ -1,4 +1,6 @@
 from pipeline import parse_output
+import pipeline
+import pipeline_parser
 
 
 def test_parse_output_strips_markdown_fences():
@@ -14,6 +16,7 @@ def test_parse_output_strips_markdown_fences():
         "เฉาซิงลืมตาขึ้นท่ามกลางเสียงโกลาหล",
         '"รีบไปกันเถอะ" เขาพูดเสียงต่ำ',
     ]
+    assert pipeline.parse_output is pipeline_parser.parse_output
 
 
 def test_parse_output_strips_unknown_language_fence():
