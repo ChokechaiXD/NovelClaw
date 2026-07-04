@@ -18,6 +18,7 @@ class _FakeResponse:
 
 def test_call_llm_uses_overridden_provider_runtime_config(monkeypatch):
     calls = {"config": 0}
+    limited = []
 
     def fake_provider_config():
         calls["config"] += 1
@@ -58,6 +59,18 @@ def test_call_llm_uses_overridden_provider_runtime_config(monkeypatch):
     )
     monkeypatch.setattr(pipeline.urllib.request, "urlopen", fake_urlopen)
 
+    class FakeLimit:
+        def __init__(self, provider):
+            self.provider = provider
+
+        def __enter__(self):
+            limited.append(self.provider)
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(pipeline, "limit_llm_call", lambda provider: FakeLimit(provider))
+
     response, provider_name, model_name = pipeline.call_llm("prompt", provider="beta")
 
     assert response == "translated"
@@ -68,4 +81,5 @@ def test_call_llm_uses_overridden_provider_runtime_config(monkeypatch):
     assert captured["body"]["max_tokens"] == 222
     assert captured["body"]["temperature"] == 0.2
     assert captured["headers"]["Authorization"] == "Bearer beta-key"
+    assert limited == ["beta"]
     assert calls["config"] == 1

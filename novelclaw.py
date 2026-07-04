@@ -31,6 +31,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parent
 _TOOLS_DIR = _PROJECT_ROOT / "tools"
 sys.path.insert(0, str(_TOOLS_DIR))
 
+from atomic_io import atomic_write_json  # noqa: E402
 from pipeline import translate_one, judge_translation, read_source, clean_source  # noqa: E402
 from scorer import score_chapter, report as score_report  # noqa: E402
 
@@ -44,6 +45,15 @@ def _parse_range(range_str: str) -> list[int]:
         a, b = map(int, range_str.split("-"))
         return list(range(a, b + 1))
     return [int(range_str)]
+
+
+def _default_parallel_workers() -> int:
+    raw = os.environ.get("NOVELCLAW_DEFAULT_PARALLEL", "3").strip()
+    try:
+        workers = int(raw)
+    except ValueError:
+        workers = 3
+    return max(0, min(workers, 10))
 
 
 # ── TRANSLATE ──────────────────────────────────────────────────────────
@@ -63,15 +73,21 @@ def cmd_translate(args: list[str]) -> None:
     ap.add_argument("--model", default=None, help="Override model")
     ap.add_argument("--provider", default=None, help="Override provider")
     ap.add_argument("--profile", default="", help="Prompt profile preset")
-    ap.add_argument("--sequential", action="store_true", help="Sequential batch (default for single)")
-    ap.add_argument("--parallel", type=int, default=0, const=3, nargs="?",
-                    help="Parallel batch with N workers (default 3)")
+    ap.add_argument("--sequential", action="store_true", help="Force sequential batch mode")
+    ap.add_argument("--parallel", type=int, default=_default_parallel_workers(), const=3, nargs="?",
+                    help="Parallel batch with N workers (default: NOVELCLAW_DEFAULT_PARALLEL or 3)")
     ap.add_argument("--retry", type=int, default=0, help="Retry failed chapters up to N times")
     ap.add_argument("--json", action="store_true", help="JSON output")
 
     parsed = ap.parse_args(args)
+    if parsed.sequential:
+        parsed.parallel = 0
     ch_nums = _parse_range(parsed.range)
     is_batch = len(ch_nums) > 1
+
+    if parsed.parallel and parsed.parallel > 0 and is_batch:
+        _cmd_translate_parallel(ch_nums, parsed)
+        return
 
     if parsed.json:
         for ch in ch_nums:
@@ -87,10 +103,6 @@ def cmd_translate(args: list[str]) -> None:
 
     if is_batch:
         print(f"⚡ Batch: {len(ch_nums)} ตอน ({ch_nums[0]}-{ch_nums[-1]})")
-
-    if parsed.parallel and parsed.parallel > 0 and is_batch:
-        _cmd_translate_parallel(ch_nums, parsed)
-        return
 
     # Sequential (default)
     success = 0
@@ -144,20 +156,33 @@ def _cmd_translate_parallel(ch_nums: list[int], parsed) -> None:
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
     n_workers = min(parsed.parallel, len(ch_nums))
-    print(f"   ขนาน {n_workers} worker\n")
+    if not parsed.json:
+        print(f"   ขนาน {n_workers} worker\n")
 
-    with ThreadPoolExecutor(max_workers=n_workers) as exec:
-        fut_map = {
-            exec.submit(
-                translate_one,
+    def run_chapter(ch: int) -> dict:
+        last_result = None
+        for attempt in range(max(1, parsed.retry + 1)):
+            result = translate_one(
                 ch_num=ch,
                 slug=parsed.slug,
                 source_lang=parsed.source_lang,
                 target_lang=parsed.target_lang,
+                dry_run=parsed.dry_run,
+                mock=parsed.mock,
                 model_override=parsed.model,
                 provider_override=parsed.provider,
                 prompt_profile=parsed.profile,
-            ): ch
+            )
+            last_result = result
+            if result.get("status") in {"ok", "dry_run", "needs_review"}:
+                return result
+            if attempt < parsed.retry:
+                time.sleep(2)
+        return last_result or {"status": "failed", "ch": ch, "reason": "no result"}
+
+    with ThreadPoolExecutor(max_workers=n_workers) as exec:
+        fut_map = {
+            exec.submit(run_chapter, ch): ch
             for ch in ch_nums
         }
 
@@ -168,13 +193,22 @@ def _cmd_translate_parallel(ch_nums: list[int], parsed) -> None:
                 results[ch] = fut.result()
             except Exception as e:
                 results[ch] = {"status": "failed", "ch": ch, "reason": str(e)[:120]}
+            if parsed.json:
+                print(json.dumps(results[ch], ensure_ascii=False), flush=True)
+
+    if parsed.json:
+        return
 
     for ch in sorted(results.keys()):
         r = results[ch]
         if r["status"] == "ok":
-            print(f"  ✅ ตอน {ch}: {r['paragraphs']} ย่อหน้า — คะแนน: {r['score']}")
+            print(f"  OK ตอน {ch}: {r['paragraphs']} ย่อหน้า - คะแนน: {r['score']}")
+        elif r["status"] == "dry_run":
+            print(f"  DRY RUN ตอน {ch}: แหล่ง {r.get('source_chars', 0)} ตัวอักษร")
+        elif r["status"] == "needs_review":
+            print(f"  REVIEW ตอน {ch}: ต้องตรวจคุณภาพ - คะแนน: {r.get('score', '?')}")
         else:
-            print(f"  ❌ ตอน {ch}: {r.get('reason', '?')[:80]}")
+            print(f"  FAIL ตอน {ch}: {r.get('reason', '?')[:80]}")
 
 
 # ── JUDGE ──────────────────────────────────────────────────────────────
@@ -309,7 +343,7 @@ def cmd_config(args: list[str]) -> None:
         }
         json_key = key_map.get(provider_name, f"{provider_name}_api_key")
         data[json_key] = api_key
-        llm_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        atomic_write_json(llm_path, data, ensure_ascii=False, indent=2)
         print(f"✅ ตั้งค่า API key สำหรับ {provider_name} แล้ว")
         return
 

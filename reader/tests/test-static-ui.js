@@ -16,7 +16,10 @@ const PUBLIC_JS = path.join(ROOT, 'public', 'js');
 const PUBLIC_HTML = path.join(ROOT, 'public', 'index.html');
 const PACKAGE_JSON = path.join(ROOT, 'package.json');
 const SERVER_JS = path.join(ROOT, 'server.js');
+const API_JS = path.join(PUBLIC_JS, 'api.js');
 const ADMIN_JS = path.join(PUBLIC_JS, 'pages', 'admin.js');
+const ADMIN_TRANSLATE_JS = path.join(PUBLIC_JS, 'pages', 'admin-translate.js');
+const ADMIN_TRANSLATE_JOB_JS = path.join(PUBLIC_JS, 'pages', 'admin-translate-job.js');
 
 const FORBIDDEN = [
   { label: 'inline style attribute', pattern: 'style="' },
@@ -69,7 +72,52 @@ if (adminText.includes('#admin/novels/')) {
   fail('admin novels edit action must link to #admin/novel-edit/<slug>');
 }
 
+const adminTranslateText = fs.readFileSync(ADMIN_TRANSLATE_JS, 'utf8');
+if (adminTranslateText.includes('includeChapters: true')) {
+  fail('admin translate table must use chapter workflowSourceIssues instead of refetching import health chapters');
+}
+if (!adminTranslateText.includes('withQuality: true, fresh: true')) {
+  fail('admin translate table must fetch fresh chapter workflow state');
+}
+if (!adminTranslateText.includes('translate-job-retry')) {
+  fail('admin translate tracker must expose retry for failed run chapters');
+}
+if (!adminTranslateText.includes('translate-job-meta')) {
+  fail('admin translate tracker must render selected run metadata');
+}
+
+const adminTranslateJobText = fs.readFileSync(ADMIN_TRANSLATE_JOB_JS, 'utf8');
+if (!adminTranslateJobText.includes('retryPlan') || !adminTranslateJobText.includes('Retry failed')) {
+  fail('admin translate job panel must render retryPlan status');
+}
+if (!adminTranslateJobText.includes('retry of:') || !adminTranslateJobText.includes('workers:')) {
+  fail('admin translate job panel must show run model/provider/workers metadata');
+}
+
+const apiText = fs.readFileSync(API_JS, 'utf8');
+if (!apiText.includes('!options.fresh && cached')) {
+  fail('Api.getChapters must let workflow pages bypass cached chapter lists');
+}
+if (!apiText.includes('retryTranslateRun')) {
+  fail('Api must expose retryTranslateRun for failed translate runs');
+}
+
 const serverText = fs.readFileSync(SERVER_JS, 'utf8');
+if (!serverText.includes("require('compression')") || !serverText.includes('app.use(compression(')) {
+  fail('server.js must enable response compression middleware');
+}
+if (!serverText.includes("require('./lib/atomic-write')") || !serverText.includes('await writeJsonAtomic(translateRunPath(bucket, run.runId)')) {
+  fail('server.js must persist translate run JSON atomically');
+}
+if (!serverText.includes('function findActiveTranslateRun') || !serverText.includes('TRANSLATE_RUN_ACTIVE')) {
+  fail('server.js must block overlapping active translate runs for the same novel');
+}
+if (!serverText.includes("args.push('--sequential')")) {
+  fail('server.js must pass --sequential when translate worker count is one');
+}
+if (!serverText.includes("adminPost('/api/translate/runs/:runId/retry'") || !serverText.includes('NO_RETRYABLE_CHAPTERS')) {
+  fail('server.js must expose a retry endpoint for failed translate run chapters');
+}
 for (const missingScript of ['glossary.py', 'translate_term.py', 'novelctl.py']) {
   if (serverText.includes(missingScript)) {
     fail(`server.js references removed script ${missingScript}`);

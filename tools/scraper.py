@@ -27,6 +27,11 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+try:
+    from atomic_io import atomic_write_text
+except ModuleNotFoundError:
+    from tools.atomic_io import atomic_write_text
+
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _NOVELS_DIR = _PROJECT_ROOT / "novels"
 
@@ -182,7 +187,7 @@ def scrape_chapter(
         return {"status": "failed", "ch": ch, "reason": "empty content"}
 
     # Save
-    out_path.write_text(content, encoding="utf-8")
+    atomic_write_text(out_path, content)
     return {"status": "ok", "ch": ch, "path": str(out_path)}
 
 

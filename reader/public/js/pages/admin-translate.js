@@ -236,9 +236,11 @@ const AdminTranslatePage = {
                   <span><strong id="translate-job-failed">0</strong><small>failed</small></span>
                 </div>
                 <div id="translate-job-current" class="c-admin-translate__job-current">ยังไม่มีงานที่กำลังรัน</div>
+                <div id="translate-job-meta" class="c-admin-translate__job-current u-text-muted">range: - · workers: - · provider: - · model: -</div>
                 <pre id="translate-job-events" class="c-admin-translate__mini-log">Waiting for a run.</pre>
                 <div class="c-admin-translate__job-actions">
                   <button class="c-btn c-btn--sm c-btn--ghost" id="translate-job-refresh" type="button">${Ui.icon('info', 'xs')}<span>Refresh</span></button>
+                  <button class="c-btn c-btn--sm c-btn--secondary" id="translate-job-retry" type="button" hidden>${Ui.icon('book', 'xs')}<span>Retry failed</span></button>
                   <button class="c-btn c-btn--sm c-btn--danger" id="translate-job-cancel" type="button" hidden>${Ui.icon('close', 'xs')}<span>Cancel</span></button>
                 </div>
               </div>
@@ -386,14 +388,17 @@ const AdminTranslatePage = {
       let searchQuery = '';
       const selectedNums = new Set();
       let activeRunId = '';
+      let panelRunId = '';
 
       const renderJobPanel = (run = null) => {
-        return AdminTranslateJob.renderPanel({
+        const rendered = AdminTranslateJob.renderPanel({
           run,
           resultByNum: lastResultByNum,
           currentModel: currentLlmConfig.default_model || '-',
           renderChapterTable,
         });
+        panelRunId = rendered.runId || '';
+        return rendered;
       };
 
       const stopRunPolling = () => {
@@ -434,9 +439,15 @@ const AdminTranslatePage = {
           const resp = await Api.getTranslateRuns();
           const data = resp.data || resp;
           const slugVal = document.getElementById('translate-batch-novel')?.value || '';
-          const run = (data.active || []).find(item => item.slug === slugVal) || (data.active || [])[0] || null;
+          const activeRun = (data.active || []).find(item => item.slug === slugVal) || (data.active || [])[0] || null;
+          const recentRun = (data.recent || []).find(item => item.slug === slugVal) || (data.recent || [])[0] || null;
+          const run = activeRun || recentRun || null;
           renderJobPanel(run);
           if (run?.runId && AdminTranslateJob.isActiveStatus(run.status)) pollRun(run.runId);
+          else {
+            activeRunId = '';
+            stopRunPolling();
+          }
         } catch (err) {
           AdminTranslatePage.setConsole('error', 'Run list failed', err.message);
         }
@@ -504,13 +515,18 @@ const AdminTranslatePage = {
         summaryEl.textContent = 'กำลังโหลดรายการตอน...';
         table.innerHTML = '<div class="c-admin-translate__chapter-empty">กำลังโหลด...</div>';
         try {
-          const [chapters, healthResp] = await Promise.all([
-            Api.getChapters(slugVal, { withQuality: true }),
-            Api.getImportHealth(slugVal, { includeChapters: true }).catch(() => ({ data: { chapters: [] } })),
-          ]);
+          const chapters = await Api.getChapters(slugVal, { withQuality: true, fresh: true });
           tableChapters = chapters || [];
           sourceIssueByNum = {};
-          for (const ch of healthResp.data?.chapters || []) sourceIssueByNum[ch.num] = ch;
+          for (const ch of tableChapters) {
+            if ((ch.workflowSourceIssues || []).length) {
+              sourceIssueByNum[ch.num] = {
+                num: ch.num,
+                title: ch.title,
+                issues: ch.workflowSourceIssues,
+              };
+            }
+          }
           selectedNums.clear();
           if (!preserveResults) lastResultByNum = {};
           renderChapterTable();
@@ -676,6 +692,37 @@ const AdminTranslatePage = {
       });
       document.getElementById('translate-job-refresh')?.addEventListener('click', () => {
         refreshRuns();
+      });
+      document.getElementById('translate-job-retry')?.addEventListener('click', async (event) => {
+        const btn = event.currentTarget;
+        const runId = panelRunId || btn.dataset.runId || '';
+        if (!runId) return;
+        const concurrentVal = parseInt(document.getElementById('translate-batch-concurrent')?.value, 10) || 1;
+        const forceSource = document.getElementById('translate-force-source')?.checked === true;
+        btn.disabled = true;
+        AdminUi.setButton(btn, 'book', 'Retrying...');
+        AdminTranslatePage.setConsole('running', 'Retry failed chapters', `run: ${runId}\nworkers: ${concurrentVal}\nforce source: ${forceSource ? 'yes' : 'no'}`);
+        try {
+          const resp = await Api.retryTranslateRun(runId, concurrentVal, { force: forceSource });
+          const data = resp.data || resp;
+          const run = data.run || data;
+          activeRunId = run.runId || '';
+          renderJobPanel(run);
+          AdminTranslatePage.setConsole(
+            'running',
+            `Retry started: ${run.range || '-'}`,
+            `new run: ${activeRunId}\nretry of: ${data.retryPlan?.sourceRunId || run.retryOf || runId}\nchapters: ${data.retryPlan?.range || run.range || '-'}`
+          );
+          pollRun(activeRunId);
+          Ui.showToast('เริ่ม retry ตอนที่ failed/needs review แล้ว');
+        } catch (err) {
+          const retryTotal = btn.dataset.retryTotal || '';
+          AdminUi.setButton(btn, 'book', retryTotal && retryTotal !== '0' ? `Retry failed (${retryTotal})` : 'Retry failed');
+          AdminTranslatePage.setConsole('error', 'Retry failed chapters failed', err.message);
+          Ui.showToast('retry ไม่สำเร็จ: ' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+        }
       });
       document.getElementById('translate-job-cancel')?.addEventListener('click', async () => {
         if (!activeRunId) return;

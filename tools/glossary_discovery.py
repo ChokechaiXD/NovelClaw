@@ -20,6 +20,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from atomic_io import atomic_write_json
+
 # ── Paths ──────────────────────────────────────────────────────────────
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -343,7 +345,7 @@ def save_discovered_terms(
 
     if saved > 0:
         data = {"terms": terms}
-        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        atomic_write_json(path, data, ensure_ascii=False, indent=2)
         # Clear cache
         _load_existing_terms.cache_clear()
 

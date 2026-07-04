@@ -18,6 +18,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 try:
+    from atomic_io import atomic_write_json, atomic_write_text
+except ModuleNotFoundError:
+    from tools.atomic_io import atomic_write_json, atomic_write_text
+
+try:
     from import_adapters import get_adapter, list_adapters
     from import_adapters.base import ChapterRef, ExtractedChapter
     from import_adapters.cleaning import clean_text_lines, validate_paragraphs
@@ -140,7 +145,7 @@ def update_novel_json(
             "updatedAt": datetime.now(timezone.utc).isoformat(),
         }
     )
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    atomic_write_json(path, data, ensure_ascii=False, indent=2)
     return data
 
 
@@ -156,7 +161,7 @@ def write_toc_manifest(slug: str, toc, adapter_id: str) -> Path:
         "chapters": [asdict(ch) for ch in toc.chapters],
     }
     path = source_toc_path(slug)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    atomic_write_json(path, payload, ensure_ascii=False, indent=2)
     return path
 
 
@@ -293,7 +298,7 @@ def import_url(url: str, slug: str, site: str = "auto", range_text: str | None =
             raw = adapter.fetch_chapter(ref)
             chapter = adapter.extract(raw, ref)
             warnings = list(chapter.warnings)
-            out_path.write_text(render_source_markdown(chapter, adapter.id, warnings), encoding="utf-8")
+            atomic_write_text(out_path, render_source_markdown(chapter, adapter.id, warnings))
             imported += 1
             results.append(
                 {
@@ -384,7 +389,7 @@ def import_paste(
             warnings=warnings,
             needs_review=needs_review,
         )
-        out_path.write_text(render_source_markdown(chapter, "manual-paste", warnings), encoding="utf-8")
+        atomic_write_text(out_path, render_source_markdown(chapter, "manual-paste", warnings))
         imported += 1
         results.append(
             {

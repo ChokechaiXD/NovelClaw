@@ -52,7 +52,7 @@ const Api = {
     const cacheKey = `${slug}:${options.withQuality ? 'quality' : 'basic'}`;
     const now = Date.now();
     const cached = this._chaptersCache[cacheKey];
-    if (cached && (now - (this._chaptersCacheTime[cacheKey] || 0)) < this._CACHE_TTL) return cached;
+    if (!options.fresh && cached && (now - (this._chaptersCacheTime[cacheKey] || 0)) < this._CACHE_TTL) return cached;
     const suffix = options.withQuality ? '?withQuality=1' : '';
     const res = await fetch(`/api/novel/${slug}/chapters${suffix}`);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
@@ -187,6 +187,19 @@ const Api = {
     const res = await fetch(`/api/translate/runs/${encodeURIComponent(runId)}/cancel`, { method: 'POST' });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw this._buildError(res, data);
+    return data;
+  },
+
+  async retryTranslateRun(runId, concurrent = 1, options = {}) {
+    const res = await fetch(`/api/translate/runs/${encodeURIComponent(runId)}/retry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ concurrent, ...options })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw this._buildError(res, data);
+    const run = data.data?.run || data.run;
+    if (run?.slug) this.invalidateAll(run.slug);
     return data;
   },
 
