@@ -21,10 +21,9 @@ from pathlib import Path
 from typing import Any
 
 from atomic_io import atomic_write_json
+from novel_paths import glossary_json_path
 
 # ── Paths ──────────────────────────────────────────────────────────────
-
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # ── CJK term extraction ───────────────────────────────────────────────
 
@@ -81,11 +80,7 @@ _SAVE_CONFIDENCE = {"high", "medium"}
 
 def _get_glossary_path(slug: str = "global-descent") -> Path:
     """Get path to glossary.json."""
-    try:
-        from schema import get_novel_root
-        return get_novel_root(slug, check_exists=False) / "glossary" / "glossary.json"
-    except ImportError:
-        return _PROJECT_ROOT / "novels" / slug / "glossary" / "glossary.json"
+    return glossary_json_path(slug)
 
 
 @lru_cache(maxsize=8)
@@ -295,6 +290,17 @@ def _should_save_discovered_term(candidate: dict[str, Any]) -> bool:
         return False
     return confidence in _SAVE_CONFIDENCE
 
+
+def _clear_glossary_caches() -> None:
+    """Clear glossary readers that may be stale after saving new terms."""
+    _load_existing_terms.cache_clear()
+    try:
+        from glossary_pre import load_characters
+
+        load_characters.cache_clear()
+    except Exception:
+        pass
+
 def save_discovered_terms(
     discovered: list[dict[str, Any]],
     slug: str = "global-descent",
@@ -346,8 +352,7 @@ def save_discovered_terms(
     if saved > 0:
         data = {"terms": terms}
         atomic_write_json(path, data, ensure_ascii=False, indent=2)
-        # Clear cache
-        _load_existing_terms.cache_clear()
+        _clear_glossary_caches()
 
     return saved
 
