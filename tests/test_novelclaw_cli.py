@@ -99,3 +99,19 @@ def test_import_sites_loads_archived_importer(capsys):
     output = capsys.readouterr().out
     assert '"sites"' in output
     assert '69shu' in output
+
+
+
+def test_save_runtime_config_updates_model_used_by_cli(tmp_path, monkeypatch):
+    monkeypatch.setattr(novelclaw, "_PROJECT_ROOT", tmp_path)
+    (tmp_path / "novelclaw.config.yaml").write_text(
+        "provider: custom\nmodel: old-model\ndiscovery_model: old-discovery\n",
+        encoding="utf-8",
+    )
+
+    novelclaw._save_runtime_config(model="new-model", discovery_model="new-discovery")
+
+    saved = (tmp_path / "novelclaw.config.yaml").read_text(encoding="utf-8")
+    assert "model: new-model" in saved
+    assert "discovery_model: new-discovery" in saved
+    assert "provider: custom" in saved

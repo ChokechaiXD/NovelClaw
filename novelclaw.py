@@ -76,6 +76,33 @@ _CONFIG_SCHEMA = {
 }
 
 
+
+
+def _save_runtime_config(**updates: str) -> None:
+    """Update novelclaw.config.yaml, the runtime config source."""
+    import yaml
+
+    cfg_path = _PROJECT_ROOT / "novelclaw.config.yaml"
+    data = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) if cfg_path.exists() else {}
+    if not isinstance(data, dict):
+        data = {}
+    for key, value in updates.items():
+        if value is not None:
+            data[key] = value
+    atomic_write_text(cfg_path, yaml.safe_dump(data, allow_unicode=True, sort_keys=False))
+
+    # ponytail: clear both config caches after local writes; add a shared config module if more writers appear.
+    try:
+        from pipeline_llm import _load_central_config
+        _load_central_config.cache_clear()
+    except Exception:
+        pass
+    try:
+        from llm_router.config_providers import clear_provider_config_cache
+        clear_provider_config_cache()
+    except Exception:
+        pass
+
 def _validate_config() -> list[str]:
     """Validate novelclaw.config.yaml against schema. Returns list of errors."""
     cfg_path = _PROJECT_ROOT / "novelclaw.config.yaml"
@@ -113,7 +140,7 @@ def _validate_config() -> list[str]:
 _TOOLS_DIR = _PROJECT_ROOT / "tools"
 sys.path.insert(0, str(_TOOLS_DIR))
 
-from atomic_io import atomic_write_json  # noqa: E402
+from atomic_io import atomic_write_json, atomic_write_text  # noqa: E402
 from pipeline import translate_one, judge_translation, read_source, clean_source  # noqa: E402
 from scorer import ScorerHistory, score_chapter, report as score_report  # noqa: E402
 
@@ -457,14 +484,9 @@ def cmd_config(args: list[str]) -> None:
         return
 
     if parsed.provider or parsed.model or parsed.discovery_model:
-        try:
-            from llm_router.config_providers import save_provider_config
-        except ImportError:
-            print("❌ ไม่พบ config_providers.py")
-            return
-        save_provider_config(
-            active=parsed.provider,
-            default_model=parsed.model,
+        _save_runtime_config(
+            provider=parsed.provider,
+            model=parsed.model,
             discovery_model=parsed.discovery_model,
         )
         print(f"✅ บันทึกแล้ว")
