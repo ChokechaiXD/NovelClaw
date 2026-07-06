@@ -20,9 +20,44 @@ Architecture:
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Any
 
+import yaml
+
 from source_profile import summarize_structure_contract
+
+# ── Prompt Profiles ───────────────────────────────────────────────────
+# Load profiles from tools/prompt_profiles/*.yaml
+_PROFILES_DIR = Path(__file__).resolve().parent / "prompt_profiles"
+_PROFILE_CACHE: dict[str, dict[str, Any]] = {}
+
+
+def _load_profile(name: str) -> dict[str, Any] | None:
+    """Load a prompt profile from YAML file in prompt_profiles/."""
+    if name in _PROFILE_CACHE:
+        return _PROFILE_CACHE[name]
+    profile_path = _PROFILES_DIR / f"{name}.yaml"
+    if not profile_path.exists():
+        return None
+    try:
+        with open(profile_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        _PROFILE_CACHE[name] = data
+        return data
+    except Exception:
+        return None
+
+
+def _format_profile_system_prompt(name: str, **kwargs: str) -> str | None:
+    """Format a YAML profile's system_prompt with chapter-specific values."""
+    profile = _load_profile(name)
+    if not profile or "system_prompt" not in profile:
+        return None
+    try:
+        return profile["system_prompt"].format(**kwargs)
+    except KeyError:
+        return profile["system_prompt"]
 
 # ── Source language config ─────────────────────────────────────────────
 # Each entry: bracket mapping + script rules + example for prompt
@@ -347,8 +382,30 @@ def build_prompt(
 
     # ── Build prompt parts ──────────────────────────────────────────
 
-    # Static identity (prefix-caching friendly)
-    identity = f"""<task>
+    # Check if a YAML profile provides a system prompt override
+    yaml_profile = None
+    sys_prompt = None
+    if profile:
+        yaml_profile = _load_profile(profile)
+        if yaml_profile and "system_prompt" in yaml_profile:
+            sys_prompt = yaml_profile["system_prompt"]
+
+    if sys_prompt:
+        # YAML profile provides full system prompt — use it as-is
+        # (replaces identity + profile_section + universal_rules)
+        try:
+            identity = sys_prompt.format(
+                source_lang_name=src_name,
+                target_lang_name=tgt_name,
+                novel_title=novel_title or "(unspecified)",
+            )
+        except KeyError:
+            identity = sys_prompt
+        profile_section = ""  # consumed in YAML system_prompt
+        universal_rules_empty = ""
+    else:
+        # Static identity (prefix-caching friendly)
+        identity = f"""<task>
 MIKA — Cross-Language Novel Translation Specialist
 Source: {src_name} → Target: {tgt_name}
 Novel: {novel_title or "(unspecified)"}
@@ -357,8 +414,8 @@ Core identity: Transmittor — preserve the author's original voice,
 scene order, sentence rhythm, and intentional flatness.
 </task>"""
 
-    # Universal rules (apply to ALL language pairs)
-    universal_rules = """<rules>
+        # Universal rules (apply to ALL language pairs)
+        universal_rules_empty = """<rules>
 [CORE: Transmittor Principle]
 - **Preserve the author's voice.** Do NOT improve the author into a different writer.
 - **Completeness:** translate every source beat. Do NOT omit, summarize,
@@ -385,15 +442,15 @@ scene order, sentence rhythm, and intentional flatness.
 - Remove web novel footer/site artifacts (donations, thanks, author notes, next-chapter links).
 </rules>"""
 
-    structure_contract = summarize_structure_contract(source_profile)
+        profile_key = profile if profile in PROMPT_PROFILES else DEFAULT_PROFILE
+        profile_section = (
+            "<prompt_profile>\n"
+            f"id: {profile_key}\n"
+            f"{PROMPT_PROFILES[profile_key]}\n"
+            "</prompt_profile>"
+        )
 
-    profile_key = profile if profile in PROMPT_PROFILES else DEFAULT_PROFILE
-    profile_section = (
-        "<prompt_profile>\n"
-        f"id: {profile_key}\n"
-        f"{PROMPT_PROFILES[profile_key]}\n"
-        "</prompt_profile>"
-    )
+    structure_contract = summarize_structure_contract(source_profile)
 
     # Per-source-lang rules
     src_specific = f"""<source_language_rules>
@@ -441,7 +498,7 @@ Before finishing, silently check:
         "",
         profile_section,
         "",
-        universal_rules,
+        universal_rules_empty,
         "",
         structure_contract,
         "",

@@ -14,7 +14,7 @@ timeout_sec: 120
 parallel_workers: 3
 
 # ── Pipeline behavior ──
-prompt_profile: ""
+prompt_profile: omni
 sequential: false
 judge_enabled: true
 judge_threshold: 95.0

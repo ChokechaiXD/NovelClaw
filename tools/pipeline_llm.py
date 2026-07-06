@@ -60,27 +60,7 @@ def get_active_config(provider_name: str | None = None) -> dict[str, Any]:
     }
 
 
-def _do_request(
-    url: str,
-    body: bytes,
-    headers: dict[str, str],
-    timeout_sec: int,
-    attempt: int = 0,
-) -> tuple[str, dict]:
-    """Make one HTTP request, return (raw_text, data_dict).
-
-    Raises on failure — caller retries.
-    """
-    with urllib.request.urlopen(url, data=body, headers=headers, timeout=timeout_sec) as resp:
-        raw = resp.read().decode().strip()
-    if raw.endswith("data: [DONE]"):
-        raw = raw[: -len("data: [DONE]")].strip()
-    json_start = raw.find("{")
-    if json_start >= 0:
-        raw = raw[json_start:]
-    data = json.loads(raw)
-    content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-    return content, data
+# _do_request was removed — call_llm handles HTTP inline with full retry logic.
 
 
 def call_llm(

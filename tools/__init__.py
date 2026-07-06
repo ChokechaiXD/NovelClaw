@@ -1,0 +1,1 @@
+"""NovelClaw — tools package."""
