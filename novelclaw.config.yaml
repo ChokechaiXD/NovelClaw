@@ -12,3 +12,4 @@ judge_threshold: 85.0
 glossary_discovery: true
 fallback_provider: custom
 fallback_model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
+skip_chapters: []

@@ -73,6 +73,7 @@ _CONFIG_SCHEMA = {
     "glossary_discovery": {"type": bool, "default": True},
     "fallback_provider": {"type": str, "default": "custom"},
     "fallback_model": {"type": str, "default": ""},
+    "skip_chapters": {"type": list, "default": []},
 }
 
 
@@ -104,12 +105,12 @@ def _save_runtime_config(**updates: str) -> None:
         pass
 
 def _validate_config() -> list[str]:
-    """Validate novelclaw.config.yaml against schema. Returns list of errors."""
+    """Validate novelclaw.config.yaml against schema + provider catalog. Returns list of errors."""
+    import yaml
     cfg_path = _PROJECT_ROOT / "novelclaw.config.yaml"
     if not cfg_path.exists():
         return ["novelclaw.config.yaml not found — using defaults"]
 
-    import yaml
     try:
         with open(cfg_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
@@ -121,20 +122,31 @@ def _validate_config() -> list[str]:
         val = data.get(key)
         if val is None:
             if schema.get("required"):
-                errors.append(f"  Missing required key: '{key}'")
+                errors.append(f"Missing required key: '{key}'")
             continue
-
         expected = schema["type"]
         try:
-            coerced = expected(val)
+            expected(val)
         except (ValueError, TypeError):
-            errors.append(f"  '{key}' should be {expected.__name__}, got {type(val).__name__} ({val!r})")
-            continue
+            errors.append(f"'{key}' should be {expected.__name__}, got {type(val).__name__}")
 
-        if "min" in schema and coerced < schema["min"]:
-            errors.append(f"  '{key}' = {coerced} < min ({schema['min']})")
-        if "max" in schema and coerced > schema["max"]:
-            errors.append(f"  '{key}' = {coerced} > max ({schema['max']})")
+    # Validate provider/model exist in catalog
+    from llm_router.config_admin import get_providers_list
+    providers = get_providers_list()
+    available_models = {}
+    for p in providers:
+        available_models[p["name"]] = {m["id"] for m in p.get("models", [])}
+
+    provider = data.get("provider")
+    model = data.get("model")
+    discovery = data.get("discovery_model")
+
+    if provider and provider not in available_models:
+        errors.append(f"Provider '{provider}' not found in providers.yaml")
+    if provider and model and model not in available_models.get(provider, set()):
+        errors.append(f"Model '{model}' not found under provider '{provider}'")
+    if provider and discovery and discovery not in available_models.get(provider, set()):
+        errors.append(f"Discovery model '{discovery}' not found under provider '{provider}'")
 
     return errors
 _TOOLS_DIR = _PROJECT_ROOT / "tools"
@@ -193,6 +205,16 @@ def cmd_translate(args: list[str]) -> None:
         parsed.parallel = 0
     ch_nums = _parse_range(parsed.range)
     is_batch = len(ch_nums) > 1
+
+    # Apply skip-list
+    import yaml
+    cfg = yaml.safe_load((_PROJECT_ROOT / "novelclaw.config.yaml").read_text(encoding="utf-8")) or {}
+    if isinstance(cfg.get("skip_chapters"), list):
+        skip_set = set(cfg["skip_chapters"])
+        orig = len(ch_nums)
+        ch_nums = [c for c in ch_nums if c not in skip_set]
+        if len(ch_nums) < orig:
+            print(f"   ข้าม {orig - len(ch_nums)} ตอนจาก skip-list")
 
     if parsed.parallel and parsed.parallel > 0 and is_batch:
         _cmd_translate_parallel(ch_nums, parsed)
@@ -394,7 +416,12 @@ def cmd_judge(args: list[str]) -> None:
 
 
 def cmd_status(args: list[str]) -> None:
-    """novelclaw status — แสดงสถานะนิยาย"""
+    """novelclaw status — แสดงสถานะ + drift report (--report)"""
+    import argparse
+    ap = argparse.ArgumentParser(prog="novelclaw status")
+    ap.add_argument("--report", action="store_true", help="Show structure drift report")
+    parsed = ap.parse_args(args)
+
     from pipeline_llm import get_active_config
 
     novels_dir = _PROJECT_ROOT / "novels"
@@ -435,6 +462,23 @@ def cmd_status(args: list[str]) -> None:
         pct = round(th_count / source_all * 100) if source_all > 0 else 0
         print(f"  📖 {title}")
         print(f"     แหล่ง: {source_all} ตอน | แปลแล้ว: {th_count} ({pct}%)")
+
+        if parsed.report:
+            # Quick drift check: compare structure between source and translated
+            for cn_file in cn_files:
+                th_file = cn_file.with_suffix(".th.json")
+                if not th_file.exists():
+                    continue
+                th_data = json.loads(th_file.read_text(encoding="utf-8"))
+                if not isinstance(th_data, list) or len(th_data) == 0:
+                    continue
+                if cn_file.exists():
+                    src = json.loads(cn_file.read_text(encoding="utf-8"))
+                    if isinstance(src, list):
+                        src_count = len([p for p in src if isinstance(p, dict) and p.get("type") == "paragraph"])
+                        th_count_p = len(th_data)
+                        if th_count_p != src_count:
+                            print(f"     ⚠️  {cn_file.stem}: โครงสร้างเปลี่ยน {src_count}→{th_count_p}")
 
 
 # ── CONFIG ─────────────────────────────────────────────────────────────
