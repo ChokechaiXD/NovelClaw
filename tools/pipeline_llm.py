@@ -12,6 +12,30 @@ from typing import Any
 from llm_rate_limit import limit_llm_call
 
 
+# ── Structured error types ─────────────────────────────────────────────
+class TransientError(Exception):
+    """Retryable: rate-limit, network blip, server overload (429/5xx)."""
+
+
+class FatalError(Exception):
+    """Non-retryable: auth, bad model, bad request shape."""
+
+
+_ERROR_CODE_MAP: dict[int, type[Exception]] = {
+    400: FatalError,     # bad request → won't fix on retry
+    401: FatalError,     # auth failed
+    403: FatalError,     # forbidden / quota exhausted permanently
+    404: FatalError,     # model not found
+    413: FatalError,     # payload too large
+    422: FatalError,     # unprocessable entity
+    429: TransientError, # rate limit → retry with backoff
+    500: TransientError, # server error → may recover
+    502: TransientError, # bad gateway → may recover
+    503: TransientError, # service unavailable → may recover
+    504: TransientError, # gateway timeout → may recover
+}
+
+
 @lru_cache(maxsize=1)
 def _load_central_config() -> dict[str, Any]:
     """Load novelclaw.config.yaml from project root."""
@@ -128,6 +152,7 @@ def call_llm(
 
     max_attempts = 3
     last_error = ""
+    retry_count = 0
 
     for attempt in range(max_attempts):
         try:
@@ -146,22 +171,24 @@ def call_llm(
             # Empty/short content — retry
             last_error = f"empty_or_short_content ({len(content.strip()) if content else 0} chars)"
             time.sleep(1)
+            retry_count += 1
         except (json.JSONDecodeError, KeyError, IndexError) as e:
-            last_error = f"parse_error: {e}"
-            time.sleep(1.5)
+            raise FatalError(f"LLM parse error (won't fix on retry): {e}")
         except urllib.error.HTTPError as e:
             err_body = e.read().decode()[:500] if e.fp else ""
-            last_error = f"HTTP {e.code}: {err_body[:100]}"
-            if e.code == 429:
-                time.sleep(5)
-            elif e.code >= 500:
-                time.sleep(3)
-            else:
-                time.sleep(1.5)
+            err_cls = _ERROR_CODE_MAP.get(e.code, TransientError)
+            msg = f"HTTP {e.code}: {err_body[:100]}"
+            if issubclass(err_cls, FatalError):
+                raise FatalError(msg)
+            last_error = msg
+            backoff = {429: 5, 500: 3, 502: 3, 503: 3, 504: 3}.get(e.code, 1.5)
+            time.sleep(backoff)
+            retry_count += 1
         except urllib.error.URLError as e:
             last_error = f"connection: {e.reason}"
             time.sleep(2)
+            retry_count += 1
 
-    raise RuntimeError(
-        f"LLM call failed after {max_attempts} attempts: {last_error}"
+    raise TransientError(
+        f"LLM call failed after {max_attempts} attempts ({retry_count} retries): {last_error}"
     )

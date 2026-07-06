@@ -23,7 +23,25 @@ import logging
 import re
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
+
+
+class _TranslateOneResult(TypedDict, total=False):
+    """Return value from translate_one()."""
+    status: str  # ok, failed, dry_run
+    ch: int
+    paragraphs: int
+    types: dict[str, float]
+    path: str
+    score: float
+    source_chars: int
+    source_preview: str
+    provider: str
+    model: str
+    discovery: str
+    judge: str
+    reason: str
+
 
 # ── Logging setup ────────────────────────────────────────────────────
 logger = logging.getLogger("novelclaw.pipeline")
@@ -67,6 +85,7 @@ sys.path.insert(0, str(_TOOLS_DIR))
 from classifier import classify_and_format, estimate_type_ratios  # noqa: E402
 from novel_paths import chapter_path, source_md_path  # noqa: E402
 from pipeline_llm import call_llm, get_active_config as _get_active_config  # noqa: E402
+from pipeline_llm import FatalError  # noqa: E402
 from pipeline_parser import parse_output  # noqa: E402
 from pipeline_save import apply_glossary_post, save_chapter, get_title as _get_title  # noqa: E402
 from prompt_builder import build_prompt  # noqa: E402
@@ -309,6 +328,8 @@ def _run_one_attempt(
             "system_text": system_text,
             "user_text": user_text,
         }
+    except FatalError:
+        raise  # propagate fatal errors — no point retrying
     except Exception as e:
         return {
             "status": "error",
