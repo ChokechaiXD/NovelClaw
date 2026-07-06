@@ -1,0 +1,339 @@
+{
+  "novelId": "global-descent",
+  "chapterNo": 17,
+  "sourceLang": "cn",
+  "targetLang": "th",
+  "title": {
+    "source": "",
+    "translated": "ตอนที่ 17"
+  },
+  "status": "translated",
+  "paragraphs": [
+    {
+      "type": "narration",
+      "text": "เฉาซิงบังคับตัวเองให้สงบสติอารมณ์ จากนั้นจึงสอบถามระบบ"
+    },
+    {
+      "type": "dialogue",
+      "text": "\"ในกรณีที่ไม่พิจารณาเรื่องค่าความอิ่ม หากต้องการให้ค่าสถานะเพิ่มขึ้น ต้องกินเนื้อหมีอย่างน้อยเท่าไหร่ถึงจะมีผล\""
+    },
+    {
+      "type": "narration",
+      "text": "ต้องรู้ก่อนว่า เนื้อหมีชนิดนี้จะมีผลเพิ่มค่าสถานะเฉพาะการกินครั้งแรกเท่านั้น"
+    },
+    {
+      "type": "narration",
+      "text": "ดังนั้น ไม่ว่าเจ้าจะกินเนื้อหมี 10 ชิ้น หรือ 100 ชิ้น ผลลัพธ์ก็เหมือนกัน"
+    },
+    {
+      "type": "narration",
+      "text": "แต่ถ้าหากกินเพียงคำเดียวแล้วได้ผลล่ะก็ พื้นที่ในการพลิกแพลงของเฉาซิงจะกว้างขึ้นมาก!"
+    },
+    {
+      "type": "narration",
+      "text": "ในตอนนั้น คำแจ้งเตือนจากระบบก็ปรากฏขึ้น"
+    },
+    {
+      "type": "system",
+      "text": "【จำเป็นต้องบริโภคเนื้อหมีมากกว่า 100 กรัม จึงจะได้รับผลการเพิ่มค่าสถานะ】"
+    },
+    {
+      "type": "narration",
+      "text": "เมื่อเห็นคำแจ้งเตือนนี้ ใบหน้าของเฉาซิงก็ฉายแววดีใจอย่างบ้าคลั่ง"
+    },
+    {
+      "type": "narration",
+      "text": "นั่นหมายความว่า เนื้อหมี 1,215 ชิ้นนี้ เขาสามารถแบ่งออกเป็นหมื่นกว่าส่วนเพื่อนำไปแลกเปลี่ยนได้!"
+    },
+    {
+      "type": "narration",
+      "text": "ไม่กล้าจินตนาการเลยว่าจะแลกทรัพยากรมาได้มากมายขนาดไหน!"
+    },
+    {
+      "type": "narration",
+      "text": "แน่นอนว่าเฉาซิงไม่มีทางนำออกมาแลกเปลี่ยนทั้งหมด เขาต้องเก็บส่วนหนึ่งไว้ใช้ในชีวิตประจำวันด้วย"
+    },
+    {
+      "type": "narration",
+      "text": "เพราะตอนนี้ประชากรในดินแดนของเขามีจำนวนมาก"
+    },
+    {
+      "type": "narration",
+      "text": "และหลังจากนี้ยังต้องรับสมัครดรูอิดทุ่งน้ำแข็ง LV 15 อีกหนึ่งตน"
+    },
+    {
+      "type": "narration",
+      "text": "ดังนั้น เฉาซิงจึงเก็บวัสดุทั้งหมดบนพื้นขึ้นมาทันที"
+    },
+    {
+      "type": "narration",
+      "text": "ถึงตอนนี้ สิ่งของที่ได้รับจากการต่อสู้ครั้งนี้ก็ถูกตรวจสอบจนเกือบครบถ้วนแล้ว"
+    },
+    {
+      "type": "narration",
+      "text": "ขณะที่เฉาซิงเตรียมจะพาทุกคนกลับ เขาก็สังเกตเห็นถ้ำลึกที่อยู่ด้านหลัง"
+    },
+    {
+      "type": "narration",
+      "text": "ถ้ำแห่งนี้... ดูเหมือนจะเป็นที่อยู่อาศัยของหมีคลั่งหิมะ"
+    },
+    {
+      "type": "narration",
+      "text": "ข้างในจะมีสมบัติอะไรบ้างหรือเปล่านะ?"
+    },
+    {
+      "type": "dialogue",
+      "text": "เมื่อเห็นสายตาของเฉาซิง อะซัมจึงอาสาว่า \"ท่านลอร์ด ให้ผู้น้อยเข้าไปสำรวจก่อนเถิดครับ!\""
+    },
+    {
+      "type": "narration",
+      "text": "จากนั้น อะซัมก็ชักดาบยาวที่ข้างเอวออกมา แล้วเดินตรงเข้าไปในถ้ำ"
+    },
+    {
+      "type": "dialogue",
+      "text": "ไม่กี่นาทีต่อมา อะซัมก็เดินออกมา เขาพูดอย่างนอบน้อมว่า \"ท่านลอร์ด ภายในถ้ำไม่พบอันตรายอื่นใดครับ\""
+    },
+    {
+      "type": "dialogue",
+      "text": "\"แต่ว่า ข้าพบสิ่งที่แตกต่างออกไปบางอย่างในนั้น\""
+    },
+    {
+      "type": "dialogue",
+      "text": "เฉาซิงสงสัย \"สิ่งที่แตกต่างออกไป?\""
+    },
+    {
+      "type": "narration",
+      "text": "เฉาซิงพาหลิวมู่เสวี่ยเดินมุ่งหน้าเข้าไปในถ้ำของหมีคลั่ง"
+    },
+    {
+      "type": "narration",
+      "text": "ทันทีที่เข้าสู่ภายในถ้ำ กลิ่นดินจางๆ ก็ลอยเข้าสู่จมูก"
+    },
+    {
+      "type": "system",
+      "text": "【ท่านได้เข้าสู่พื้นที่พิเศษ: ถ้ำหมีคลั่งหิมะ...】"
+    },
+    {
+      "type": "narration",
+      "text": "ภายในถ้ำค่อนข้างมืดสลัว แต่เมื่อเทียบกับหิมะที่ตกหนักด้านนอก ข้างในนี้อบอุ่นกว่ามากจริงๆ"
+    },
+    {
+      "type": "narration",
+      "text": "เฉาซิงมองดูการแสดงผลอุณหภูมิเหนือศีรษะ"
+    },
+    {
+      "type": "system",
+      "text": "【อุณหภูมิปัจจุบัน: -25℃】"
+    },
+    {
+      "type": "narration",
+      "text": "ยิ่งเดินลึกเข้าไปในถ้ำ อุณหภูมิภายในก็ยิ่งสูงขึ้น"
+    },
+    {
+      "type": "action",
+      "text": "เดินต่อไปได้ประมาณสิบกว่าเมตร"
+    },
+    {
+      "type": "narration",
+      "text": "ที่มุมถ้ำ เฉาซิงได้พบกับสิ่งที่อะซัมบอกว่าแตกต่างออกไป"
+    },
+    {
+      "type": "narration",
+      "text": "บนกองหญ้าแห้ง มีสิ่งมีชีวิตสีขาวโพลนทั้งตัว ดูเหมือนก้อนขนลูกกลมๆ นอนอยู่"
+    },
+    {
+      "type": "narration",
+      "text": "มันคือลูกหมีสีขาวที่เพิ่งเกิดได้ไม่นาน"
+    },
+    {
+      "type": "narration",
+      "text": "มันดูเหมือนจะอยู่ในสภาวะหลับใหล ร่างกายขดตัวเข้าหากัน เผยให้เห็นอุ้งเท้าเล็กๆ สีชมพูน่ารัก"
+    },
+    {
+      "type": "narration",
+      "text": "หลิวมู่เสวี่ยที่อยู่ด้านข้าง ดวงตาพลันปรากฏประกายดาวดวงเล็กๆ ทันที"
+    },
+    {
+      "type": "narration",
+      "text": "เฉาซิงเดินไปที่รังหมี ย่อตัวลง และกำลังจะใช้มือสัมผัสลูกหมีตัวนี้"
+    },
+    {
+      "type": "narration",
+      "text": "เสียงกระแสไฟฟ้าดังขึ้น พร้อมกับตัวเลขความเสียหายปรากฏขึ้นเหนือศีรษะของเฉาซิง"
+    },
+    {
+      "type": "thought",
+      "text": "เฉาซิงรู้สึกเหมือนถูกเข็มทิ่ม จึงชักแขนกลับตามสัญชาตญาณ"
+    },
+    {
+      "type": "dialogue",
+      "text": "\"เชี่ย! ลูกหมีตัวนี้ปล่อยไฟฟ้าได้ด้วยเหรอ?\""
+    },
+    {
+      "type": "thought",
+      "text": "เฉาซิงมองไปข้างหน้าด้วยความประหลาดใจ ค่าสถานะของลูกหมีตัวนี้ปรากฏขึ้นตรงหน้า"
+    },
+    {
+      "type": "system",
+      "text": "【หมีคลั่งหิมะ (วัยอ่อน)】\n【พรสวรรค์: ร่างกายสายฟ้า (สามารถควบคุมพลังสายฟ้าที่อ่อนแรงได้)】"
+    },
+    {
+      "type": "narration",
+      "text": "ลูกหมีตัวนี้ มีอนาคตไกลแฮะ!"
+    },
+    {
+      "type": "narration",
+      "text": "ในตอนนั้น คำแจ้งเตือนจากระบบก็ปรากฏขึ้นอีกครั้ง"
+    },
+    {
+      "type": "system",
+      "text": "【ตรวจพบสิ่งมีชีวิตป่าที่สามารถทำให้เชื่องได้: ลูกหมีคลั่งหิมะ ต้องการทำให้เชื่องและรับเข้าสู่ดินแดนหรือไม่?】"
+    },
+    {
+      "type": "narration",
+      "text": "(หลังจากทำให้สิ่งมีชีวิตป่าเชื่องแล้ว จำเป็นต้องจัดหาอาหารให้ และรอจนกว่ามันจะเติบโต จึงจะมีพลังต่อสู้ที่เหมาะสม)"
+    },
+    {
+      "type": "narration",
+      "text": "เห็นได้ชัดว่า หลิวมู่เสวี่ยที่อยู่ข้างๆ ก็ได้ยินคำแจ้งเตือนของระบบเช่นกัน"
+    },
+    {
+      "type": "narration",
+      "text": "เธอกำลังมองเฉาซิงด้วยสายตาเว้าวอน ดูเหมือนจะปรารถนาอย่างยิ่งให้เขาพาลูกหมีตัวนี้ไปด้วย"
+    },
+    {
+      "type": "thought",
+      "text": "เฉาซิงครุ่นคิดครู่หนึ่งแล้วพยักหน้า"
+    },
+    {
+      "type": "narration",
+      "text": "ลูกหมีตัวนี้ แม้จะยังไม่มีพลังต่อสู้ แต่ศักยภาพของมันมีอยู่จริง"
+    },
+    {
+      "type": "narration",
+      "text": "เมื่อมันเติบโตขึ้น ไม่แน่ว่าอาจจะแข็งแกร่งเหมือนกับหมีคล"
+    },
+    {
+      "type": "narration",
+      "text": "(จบบท)"
+    }
+  ],
+  "meta": {
+    "provider": "custom",
+    "model": "openrouter/google/gemma-4-31b-it:free",
+    "promptProfile": "faithful_default",
+    "sourceProfile": {
+      "chapterNo": 17,
+      "sourceLang": "cn",
+      "targetLang": "th",
+      "sourceLangSource": "novel_meta",
+      "charCount": 2159,
+      "paragraphCount": 93,
+      "dialogueCount": 14,
+      "systemMarkerCount": 14,
+      "sourceScriptMix": {
+        "Han": 1734,
+        "Latin": 7
+      },
+      "specialSymbolInventory": {
+        "「": 14,
+        "」": 14,
+        "【": 14,
+        "】": 14,
+        "…": 8,
+        "（": 6,
+        "）": 6,
+        "+": 1,
+        "℃": 1
+      },
+      "lengthTarget": {
+        "minRatio": 0.85,
+        "idealMinRatio": 1.0,
+        "maxRatio": 3.5
+      }
+    }
+  },
+  "qualityRecord": {
+    "passed": true,
+    "score": 96.0,
+    "threshold": 85.0,
+    "hardFailures": [],
+    "warnings": [],
+    "repairNotes": [],
+    "lengthRatio": 1.503,
+    "scriptLeaks": 0,
+    "structure": {
+      "passed": true,
+      "hardFailures": [],
+      "warnings": [],
+      "source": {
+        "paragraphCount": 93,
+        "dialogueCount": 14,
+        "systemMarkerCount": 14
+      },
+      "output": {
+        "paragraphCount": 51,
+        "dialogueCount": 6,
+        "systemMarkerCount": 5
+      }
+    },
+    "judge": {
+      "ok": true,
+      "passed": true,
+      "feedback": "PASS:\nNaturalness: 9 | Consistency: 10 | Clarity: 9 | Flow: 9 | Completeness: 10\nThe translation is professional, reads naturally in Thai, and maintains a consistent tone for a system-based novel. No major issues found.",
+      "model": "openrouter/google/gemma-4-31b-it:free",
+      "sampledParagraphs": 12
+    },
+    "repairHistory": [
+      {
+        "kind": "translate",
+        "model": "openrouter/google/gemma-4-31b-it:free",
+        "provider": "custom",
+        "status": "passed",
+        "score": 96.0,
+        "hardFailures": [],
+        "structure": {
+          "passed": true,
+          "hardFailures": [],
+          "warnings": [],
+          "source": {
+            "paragraphCount": 93,
+            "dialogueCount": 14,
+            "systemMarkerCount": 14
+          },
+          "output": {
+            "paragraphCount": 51,
+            "dialogueCount": 6,
+            "systemMarkerCount": 5
+          }
+        }
+      }
+    ],
+    "attempts": [
+      {
+        "kind": "translate",
+        "model": "openrouter/google/gemma-4-31b-it:free",
+        "provider": "custom",
+        "status": "passed",
+        "score": 96.0,
+        "hardFailures": [],
+        "structure": {
+          "passed": true,
+          "hardFailures": [],
+          "warnings": [],
+          "source": {
+            "paragraphCount": 93,
+            "dialogueCount": 14,
+            "systemMarkerCount": 14
+          },
+          "output": {
+            "paragraphCount": 51,
+            "dialogueCount": 6,
+            "systemMarkerCount": 5
+          }
+        }
+      }
+    ]
+  },
+  "updatedAt": "2026-07-05T19:55:40.321198+00:00"
+}

@@ -1,0 +1,422 @@
+{
+  "novelId": "global-descent",
+  "chapterNo": 53,
+  "sourceLang": "cn",
+  "targetLang": "th",
+  "title": {
+    "source": "",
+    "translated": "ตอนที่ 53"
+  },
+  "status": "translated",
+  "paragraphs": [
+    {
+      "type": "narration",
+      "text": "นักบวชชุดดำ สิ่งมีชีวิตระดับหัวหน้าปรากฏตัว!"
+    },
+    {
+      "type": "narration",
+      "text": "ต้าป่ายเปิดใช้งานทักษะ"
+    },
+    {
+      "type": "system",
+      "text": "【พุ่งชนคลั่ง】"
+    },
+    {
+      "type": "narration",
+      "text": "ทันที!"
+    },
+    {
+      "type": "narration",
+      "text": "ในขณะนี้ แมมมอธดุร้ายเปรียบเสมือนรถไฟเล็กที่เสียการควบคุม พุ่งชนทะลวงไปทั่วทั้งค่าย"
+    },
+    {
+      "type": "narration",
+      "text": "เต็นท์และบ้านพักถูกมันชนจนพลิกคว่ำไปทีละหลัง!"
+    },
+    {
+      "type": "narration",
+      "text": "เหล่านักล่าที่อยู่ตามทางถูกชนจนกระเด็นไปหมด"
+    },
+    {
+      "type": "narration",
+      "text": "ในสถานะ"
+    },
+    {
+      "type": "system",
+      "text": "【พุ่งชนคลั่ง】"
+    },
+    {
+      "type": "narration",
+      "text": "ความเร็วในการเคลื่อนที่ของต้าป่ายเพิ่มขึ้นถึง 200%!"
+    },
+    {
+      "type": "narration",
+      "text": "ลำพังเพียงแรงปะทะนี้ ก็สามารถชนนักล่าทั่วไปจนตายได้ทันที"
+    },
+    {
+      "type": "narration",
+      "text": "ในตอนนั้นเอง เงาสีดำสายหนึ่งพุ่งทะยานออกมาจากค่ายอย่างรวดเร็ว"
+    },
+    {
+      "type": "narration",
+      "text": "การเคลื่อนไหวของเขาฉับไวมาก ถึงขั้นรวดเร็วกว่าซาร่าเสียด้วยซ้ำ"
+    },
+    {
+      "type": "narration",
+      "text": "เขาปรากฏตัวขึ้นด้านหลังของต้าป่ายราวกับภูตผี"
+    },
+    {
+      "type": "narration",
+      "text": "ตัวเลขความเสียหายสองชุดลอยขึ้น พรากพลังชีวิตของต้าป่ายไปเกือบหนึ่งพันหน่วย"
+    },
+    {
+      "type": "thought",
+      "text": "ต้าป่ายรู้สึกเจ็บทันที มันหันหัวกลับมาแล้วฟาดงวงเข้าใส่"
+    },
+    {
+      "type": "narration",
+      "text": "ทว่าเจ้าหมอนี่มีความคล่องตัวเป็นเลิศ เพียงแค่เบี่ยงตัวหลบ ก็พ้นจากการโจมตีของต้าป่าย"
+    },
+    {
+      "type": "narration",
+      "text": "ในจังหวะนี้เอง เฉาซิงถึงมองเห็นรูปลักษณ์ของหมอนั่นได้ชัดเจน"
+    },
+    {
+      "type": "narration",
+      "text": "มันเป็นชายสวมชุดคลุมยาวสีดำ ทั่วทั้งร่างราวกับถูกห่อหุ้มด้วยเงามืด และสวมหน้ากากสีดำ"
+    },
+    {
+      "type": "narration",
+      "text": "ในมือถือมีดสั้นสองเล่มที่เปล่งประกายเย็นเยียบ"
+    },
+    {
+      "type": "narration",
+      "text": "ค่าสถานะของฝ่ายตรงข้ามปรากฏขึ้นตรงหน้า"
+    },
+    {
+      "type": "system",
+      "text": "【นักบวชชุดดำนักล่า LV 20】\n【ระดับ: สิ่งมีชีวิตระดับหัวหน้าขั้นสอง】\n【พลังชีวิต: 8764/8764】\n【พลังโจมตี: 843~856】\n【ทักษะ: ตัดคู่ (สร้างความเสียหาย 80% ของพลังโจมตีสองจังหวะแก่ศัตรู)\nระเบิดควัน (ขว้างกลุ่มควันฉุนเฉียวเข้าปกคลุมศัตรู ทำให้ศัตรูติดสถานะตาบอด 1~3 วินาที และลดความว่องไวลง 50 แต้ม)\nลอบโจมตี (อ้อมไปด้านหลังอย่างแนบเนียน สร้างความเสียหายแทงข้างหลัง 130% แก่ศัตรู)\nปามีดบิน (ปามีดบินโจมตีศัตรูต่อเนื่องสามเล่ม มีดแต่ละเล่มสร้างความเสียหาย 70% และเพิ่มสถานะเลือดไหล 1 ชั้น)】"
+    },
+    {
+      "type": "dialogue",
+      "text": "สายตาของเฉาซิงหดแคบลง \"ออกมาจนได้!\""
+    },
+    {
+      "type": "narration",
+      "text": "เจ้าหมอนี่แหละ คือกลิ่นอายที่แข็งแกร่งที่สุดในค่ายที่ซาร่าพูดถึง"
+    },
+    {
+      "type": "narration",
+      "text": "ในเวลาเดียวกัน นักฆ่าชุดดำคนนั้นหลังจากหยุดชะงักครู่หนึ่ง ก็พุ่งเข้ามาอีกครั้ง"
+    },
+    {
+      "type": "narration",
+      "text": "เงาดำวูบหนึ่ง ครั้งนี้เขาปรากฏตัวขึ้นที่บริเวณท้องของต้าป่ายโดยตรง"
+    },
+    {
+      "type": "narration",
+      "text": "มีดสองเล่มฟันลงไป พลังชีวิตของต้าป่ายลดฮวบลงไปอีกช่วงหนึ่ง"
+    },
+    {
+      "type": "narration",
+      "text": "ส่วนต้าป่ายก็ยกกีบเท้าขึ้นอย่างบ้าคลั่ง โจมตีอย่างรุนแรงไม่หยุด"
+    },
+    {
+      "type": "narration",
+      "text": "บนหัวของนักฆ่าชุดดำปรากฏตัวเลขความเสียหายกระจายเพียงเล็กน้อย"
+    },
+    {
+      "type": "narration",
+      "text": "ในตอนนี้ แม้พลังโจมตีและพลังชีวิตของต้าป่ายจะแข็งแกร่งกว่าเขา"
+    },
+    {
+      "type": "narration",
+      "text": "แต่เพราะทักษะการเคลื่อนไหวที่คล่องแคล่วของอีกฝ่าย ต้าป่ายจึงเกือบจะถูกปั่นหัวจนหมุนคว้าง"
+    },
+    {
+      "type": "narration",
+      "text": "ซ้ำร้ายยังถูกโจมตีเป็นระยะ ทำให้พลังชีวิตลดลงอย่างต่อเนื่อง"
+    },
+    {
+      "type": "narration",
+      "text": "ปะทะกันไม่ถึงยี่สิบวินาที ต้าป่ายก็ถูกเขาพรากพลังชีวิตไปเกือบสามพันหน่วย"
+    },
+    {
+      "type": "narration",
+      "text": "นักฆ่าชุดดำหยุดนิ่งอยู่กับที่ จากนั้นทำท่าปาดคอเพื่อยั่วยุต้าป่าย"
+    },
+    {
+      "type": "narration",
+      "text": "ต้าป่ายเข้าสู่โหมดคลั่ง ยกกีบเท้าหน้าขึ้นกระทืบอย่างบ้าคลั่ง"
+    },
+    {
+      "type": "narration",
+      "text": "หลิวมู่เสวี่ยที่อยู่ด้านข้างมองการต่อสู้ในสนามด้วยความกังวล"
+    },
+    {
+      "type": "dialogue",
+      "text": "\"อาซิง... ดูเหมือนต้าป่ายจะสู้เขาไม่ได้...\""
+    },
+    {
+      "type": "narration",
+      "text": "ในฐานะสิ่งมีชีวิตระดับหัวหน้าเหมือนกัน ต้าป่ายไม่ใช่คู่ต่อสู้ของนักฆ่าชุดดำคนนั้นจริงๆ"
+    },
+    {
+      "type": "narration",
+      "text": "นั่นเป็นเพราะร่างกายที่ใหญ่โตของต้าป่ายมอบพลังทำลายล้างที่รุนแรง แต่การเคลื่อนไหวนั้นค่อนข้างงุ่มง่าม"
+    },
+    {
+      "type": "dialogue",
+      "text": "เฉาซิงกล่าว \"ไม่ต้องห่วง หมอนี่จะโอหังได้อีกไม่นาน\""
+    },
+    {
+      "type": "dialogue",
+      "text": "\"อีกสักพักต้าป่ายก็จะมีคนช่วยแล้ว\""
+    },
+    {
+      "type": "narration",
+      "text": "ขณะนี้ หุ่นยนต์ตีนตะขาบไถลลงมาจากบันไดหินยักษ์ และเข้าร่วมวงต่อสู้"
+    },
+    {
+      "type": "narration",
+      "text": "ส่วนทางด้านซาร่า ได้จัดการศัตรูทั้งหมดอย่างเงียบเชียบเรียบร้อยแล้ว"
+    },
+    {
+      "type": "narration",
+      "text": "ภายใต้คำสั่งของเฉาซิง ซาร่าพุ่งตรงไปยังนักบวชชุดดำนักล่าคนนั้น"
+    },
+    {
+      "type": "thought",
+      "text": "ทันใดนั้น นักบวชชุดดำรู้สึกถึงความเย็นเยียบที่แผ่นหลัง สีหน้าเปลี่ยนไปอย่างรุนแรง"
+    },
+    {
+      "type": "narration",
+      "text": "ในวินาทีวิกฤต เขาหมุนตัวกลับอย่างรวดเร็วพร้อมแทงมีดสั้นออกไป"
+    },
+    {
+      "type": "narration",
+      "text": "หลังจากเสียงโลหะปะทะกัน ทั้งสองฝ่ายต่างเห็นใบหน้าของกันและกันชัดเจน"
+    },
+    {
+      "type": "dialogue",
+      "text": "นักบวชชุดดำนักล่ามองซาร่าด้วยความประหลาดใจ \"ยังมียอดฝีมืออีกรึ?\""
+    },
+    {
+      "type": "narration",
+      "text": "ซาร่าไม่พูดจา มีดเงาปีศาจฟันลงมาอีกครั้งอย่างไม่ลังเล"
+    },
+    {
+      "type": "narration",
+      "text": "นักฆ่าชุดดำไม่ยอมแพ้ เขาสะบัดมีดสั้นสองเล่มจนเกิดเป็นภาพติดตา"
+    },
+    {
+      "type": "narration",
+      "text": "นักฆ่าระดับสูงสองคนเปิดฉากเข่นฆ่ากันในระยะประชิดทันที"
+    },
+    {
+      "type": "narration",
+      "text": "สองวินาทีต่อมา ซาร่าถูกกดดันอย่างรวดเร็วเนื่องจากค่าสถานะที่ห่างกันอยู่ช่วงหนึ่ง"
+    },
+    {
+      "type": "dialogue",
+      "text": "ในดวงตาของนักฆ่าชุดดำปรากฏรอยยิ้มแห่งชัยชนะ \"คิดจะจัดการข้า เจ้ายังอ่อนหัดเกินไป\""
+    },
+    {
+      "type": "narration",
+      "text": "ทว่า ยังไม่ทันที่รอยยิ้มบนใบหน้าจะเลือนหาย"
+    },
+    {
+      "type": "narration",
+      "text": "ต้าป่ายที่อยู่ด้านหลังคว้าโอกาส ในจังหวะที่เขาเสียสมาธิ ก็ฟาดงวงช้างเข้าใส่ทันที"
+    },
+    {
+      "type": "narration",
+      "text": "นักฆ่าชุดดำนักล่าถูกฟาดจนกระเด็นลอยไป"
+    },
+    {
+      "type": "narration",
+      "text": "ตัวเลขความเสียหายขนาดใหญ่ลอยขึ้น"
+    },
+    {
+      "type": "narration",
+      "text": "นักฆ่าชุดดำตกลงบนพื้น กระอักเลือดออกมา"
+    },
+    {
+      "type": "dialogue",
+      "text": "\"แคกๆ... เจ้าแมมมอธดุร้าย ข้าจะฆ่าเจ้า!\""
+    },
+    {
+      "type": "narration",
+      "text": "ต้าป่ายกลายร่างเป็นสัตว์ยักษ์คลั่ง พุ่งเข้าใส่เขาอย่างรุนแรง"
+    },
+    {
+      "type": "narration",
+      "text": "นักฆ่าชุดดำคนนี้เพิ่งจะลุกขึ้นเตรียมสู้"
+    },
+    {
+      "type": "narration",
+      "text": "มีดเงาปีศาจเล่มหนึ่งกรีดผ่านข้างหูเขาไปอย่างเงียบเชียบ"
+    },
+    {
+      "type": "narration",
+      "text": "นักฆ่าชุดดำใจหายวาบ รีบหลบหลีกอย่างลนลาน"
+    },
+    {
+      "type": "narration",
+      "text": "ทว่า การเคลื่อนไหวของเขายังช้าไปก้าวหนึ่ง"
+    },
+    {
+      "type": "dialogue",
+      "text": "นักฆ่าชุดดำลูบรอยแผลบนศีรษะแล้วคำรามด้วยความโกรธ \"บัดซบ! พวกเจ้ากล้ารุมโจมตีข้านักบวชผู้นี้รึ!\""
+    },
+    {
+      "type": "dialogue",
+      "text": "\"ศาสนจักรแห่งแสงจะไม่ปล่อยพวกเจ้าไว้แน่!\""
+    },
+    {
+      "type": "narration",
+      "text": "ทว่า ซาร่าและต้าป่ายกลับเมินเฉยต่อคำขู่ของเขา และเปิดฉากรุมโจมตีทันที"
+    },
+    {
+      "type": "narration",
+      "text": "ความได้เปรียบพลิกกลับมาทางฝั่งของเฉาซิงในพริบตา"
+    },
+    {
+      "type": "narration",
+      "text": "ส่วนทางด้านอาซัม เมื่อมีหุ่นยนต์ตีนตะขาบเข้ามาสมทบ เฉาซิงจึงส่งหุ่นยนต์"
+    },
+    {
+      "type": "narration",
+      "text": "(จบบท)"
+    }
+  ],
+  "meta": {
+    "provider": "custom",
+    "model": "openrouter/google/gemma-4-31b-it:free",
+    "promptProfile": "faithful_default",
+    "sourceProfile": {
+      "chapterNo": 53,
+      "sourceLang": "cn",
+      "targetLang": "th",
+      "sourceLangSource": "novel_meta",
+      "charCount": 2060,
+      "paragraphCount": 92,
+      "dialogueCount": 12,
+      "systemMarkerCount": 13,
+      "sourceScriptMix": {
+        "Han": 1652,
+        "Latin": 6
+      },
+      "specialSymbolInventory": {
+        "【": 13,
+        "】": 13,
+        "「": 12,
+        "」": 12,
+        "…": 6,
+        "（": 4,
+        "）": 4,
+        "~": 2
+      },
+      "lengthTarget": {
+        "minRatio": 0.85,
+        "idealMinRatio": 1.0,
+        "maxRatio": 3.5
+      }
+    }
+  },
+  "qualityRecord": {
+    "passed": false,
+    "score": 96.0,
+    "threshold": 85.0,
+    "hardFailures": [
+      "LLM Judge: sampled review flagged quality risk."
+    ],
+    "warnings": [
+      "Structure Contract: system marker count looks low (3/13)."
+    ],
+    "repairNotes": [
+      "FAIL: Naturalness (6), Flow (7)\n- Naturalness: \"สิ่งมีชีวิตระดับหัวหน้า\" sounds like a literal translation; use \"มอนสเตอร์ระดับบอส\" or \"ศัตรูระดับบอส\" for a more natural gaming/novel style.\n- Flow: Paragraph 22's \"ระ\" is a truncated sentenc"
+    ],
+    "lengthRatio": 2.083,
+    "scriptLeaks": 0,
+    "structure": {
+      "passed": true,
+      "hardFailures": [],
+      "warnings": [
+        "Structure Contract: system marker count looks low (3/13)."
+      ],
+      "source": {
+        "paragraphCount": 92,
+        "dialogueCount": 12,
+        "systemMarkerCount": 13
+      },
+      "output": {
+        "paragraphCount": 69,
+        "dialogueCount": 9,
+        "systemMarkerCount": 3
+      }
+    },
+    "judge": {
+      "ok": true,
+      "passed": false,
+      "feedback": "FAIL: Naturalness (6), Flow (7)\n- Naturalness: \"สิ่งมีชีวิตระดับหัวหน้า\" sounds like a literal translation; use \"มอนสเตอร์ระดับบอส\" or \"ศัตรูระดับบอส\" for a more natural gaming/novel style.\n- Flow: Paragraph 22's \"ระ\" is a truncated sentence; ensure full translation of skill descriptions.",
+      "model": "openrouter/google/gemma-4-31b-it:free",
+      "sampledParagraphs": 12
+    },
+    "repairHistory": [
+      {
+        "kind": "translate",
+        "model": "openrouter/google/gemma-4-31b-it:free",
+        "provider": "custom",
+        "status": "passed",
+        "score": 96.0,
+        "hardFailures": [],
+        "structure": {
+          "passed": true,
+          "hardFailures": [],
+          "warnings": [
+            "Structure Contract: system marker count looks low (3/13)."
+          ],
+          "source": {
+            "paragraphCount": 92,
+            "dialogueCount": 12,
+            "systemMarkerCount": 13
+          },
+          "output": {
+            "paragraphCount": 69,
+            "dialogueCount": 9,
+            "systemMarkerCount": 3
+          }
+        }
+      }
+    ],
+    "attempts": [
+      {
+        "kind": "translate",
+        "model": "openrouter/google/gemma-4-31b-it:free",
+        "provider": "custom",
+        "status": "passed",
+        "score": 96.0,
+        "hardFailures": [],
+        "structure": {
+          "passed": true,
+          "hardFailures": [],
+          "warnings": [
+            "Structure Contract: system marker count looks low (3/13)."
+          ],
+          "source": {
+            "paragraphCount": 92,
+            "dialogueCount": 12,
+            "systemMarkerCount": 13
+          },
+          "output": {
+            "paragraphCount": 69,
+            "dialogueCount": 9,
+            "systemMarkerCount": 3
+          }
+        }
+      }
+    ]
+  },
+  "updatedAt": "2026-07-05T19:12:09.599095+00:00"
+}

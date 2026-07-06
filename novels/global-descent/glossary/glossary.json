@@ -13562,6 +13562,6706 @@
       "verified": false,
       "explanation": "generic “person”.",
       "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "天賦永恒之力已生",
+      "thai": "พรสวรรค์พลังนิรันดร์ทำงาน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"已生\" in this context means \"activated/triggered\"",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "點護甲",
+      "thai": "แต้มเกราะ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Refers to armor points",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的地方",
+      "thai": "สถานที่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "General term for \"place/location\"",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "該技能已變為永久",
+      "thai": "สกิลนี้กลายเป็นแบบถาวร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Refers to a skill becoming permanent",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "塊狼肉",
+      "thai": "ชิ้นเนื้อหมาป่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=6, confidence=high)"
+    },
+    {
+      "source": "極地人小屋",
+      "thai": "กระท่อมชาวขั้วโลก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "普通",
+      "thai": "ทั่วไป",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "你失去了新鮮的狼",
+      "thai": "เนื้อหมาป่าสด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: \"You lost fresh wolf meat\"",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "需求物品",
+      "thai": "ไอเทมที่ต้องการ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "你失去了狼肉",
+      "thai": "เสียเนื้อหมาป่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: \"You lost wolf meat\"",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "塊鐵",
+      "thai": "ชิ้นเหล็ก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "那個叫做陳元的倖",
+      "thai": "ผู้รอดชีวิตที่ชื่อเฉินหยวน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: \"The survivor named Chen Yuan\"",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "兄弟",
+      "thai": "พี่ชาย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "生鏽的鐵盾",
+      "thai": "โล่เหล็กขึ้นสนิม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "條私聊信息",
+      "thai": "ข้อความแชทส่วนตัว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "狼肉",
+      "thai": "เนื้อหมาป่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "強悍戰力而折服",
+      "thai": "ยอมสยบต่อพลัง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Context: Submission to strength",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "已為你表現出來的",
+      "thai": "ที่คุณแสดงออกมา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Context: Relative clause referring to displayed power",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "冰原德魯伊招募卷",
+      "thai": "ใบอัญเชิญดรูอิดทุ่งน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item: Recruitment scroll",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "一個恐怖的傷害數",
+      "thai": "ตัวเลขดาเมจที่น่าสะพรึง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Context: High damage number in game",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "大豐收",
+      "thai": "เก็บเกี่ยวครั้งใหญ่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Meaning \"big harvest/jackpot\"",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "分解暴熊屍體",
+      "thai": "ชำแหละศพหมีคลั่ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "分解 (disassemble/butcher), 暴熊 (violent/rampage bear)",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "初級力量之心",
+      "thai": "หัวใจแห่งพลังระดับต้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "初級 (beginner/basic), 力量之心 (heart of strength)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星相信",
+      "thai": "เฉาซิงเชื่อว่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "曹星 (Proper name: Cao Xing)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "你失去了新鮮的熊",
+      "thai": "คุณเสียเนื้อหมีสด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Context: Trading system (lost item)",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "我換到了",
+      "thai": "ฉันแลกได้แล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Context: Excitement after a successful trade",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "然後笑道",
+      "thai": "แล้วยิ้มกล่าว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: dialogue tag",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "頻道",
+      "thai": "ช่อง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: chat channel/communication channel",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "就在這時候",
+      "thai": "ในตอนนั้นเอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "你獲得了技能書",
+      "thai": "คุณได้รับหนังสือสกิล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "柳叔叔",
+      "thai": "ลุงหลิ่ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "他轉過身",
+      "thai": "เขาหันกลับมา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Action: turning around",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星搖了搖頭道",
+      "thai": "เฉาซิงส่ายหน้าแล้วกล่าว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Action: shaking head + speaking",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "那就是",
+      "thai": "นั่นก็คือ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "噹啷",
+      "thai": "เคร้ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Onomatopoeia for metal clashing/hitting",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "縫紉鋪",
+      "thai": "ร้านเย็บผ้า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "比起昨天",
+      "thai": "เมื่อเทียบกับเมื่อวาน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "多的人手",
+      "thai": "กำลังคนเพิ่ม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "初級減震",
+      "thai": "ลดแรงกระแทกขั้นต้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game skill/effect",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "醫療包",
+      "thai": "ชุดปฐมพยาบาล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Medical kit",
+      "notes": "auto_discovered (freq=7, confidence=high)"
+    },
+    {
+      "source": "獎勵獸肉",
+      "thai": "เนื้อสัตว์รางวัล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Reward beast meat",
+      "notes": "auto_discovered (freq=6, confidence=high)"
+    },
+    {
+      "source": "中型資源包",
+      "thai": "แพ็กทรัพยากรกลาง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Medium resource pack",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "巨熊形態",
+      "thai": "ร่างหมีักษ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Giant bear form",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "隨機二階生物招募",
+      "thai": "สุ่มรับสิ่งมีชีวิตระดับ 2",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Random Tier 2 creature recruitment",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "自選綠色武器",
+      "thai": "เลือกอาวุธสีเขียว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Choice of green weapon",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的賜福",
+      "thai": "พรของ...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"Blessing of [someone]\" (context implies a divine blessing)",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "嗚嗚嗚",
+      "thai": "ฮือๆๆ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Onomatopoeia for crying",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "注意",
+      "thai": "หมายเหตุ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Used as \"Note\" or \"Caution\" in game descriptions",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得鐵",
+      "thai": "ได้รับเหล็ก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item acquisition",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得石塊",
+      "thai": "ได้รับหิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item acquisition",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "一階士兵訓練書",
+      "thai": "หนังสือฝึกทหารระดับ 1",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game item (Tier 1 Soldier Training Book)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得木材",
+      "thai": "ได้รับไม้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item acquisition",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "方式",
+      "thai": "วิธี",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "柳慕雪聽罷",
+      "thai": "หลิว มู่เสวี่ย ฟังจบ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name + action",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "哭聲",
+      "thai": "เสียงร้องไห้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "那群遊獵者的瘋狂",
+      "thai": "ความบ้าคลั่งของกลุ่มพรานพเนจร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"遊獵者\" (Roaming Hunters/Stalkers) translated as พรานพเนจร; \"瘋狂\" as ความบ้าคลั่ง.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的概率造成",
+      "thai": "มีโอกาสสร้าง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Used in skill descriptions (chance to deal damage)",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "鼴鼠人礦洞",
+      "thai": "เหมืองมนุษย์ตุ่น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper place name (Moleman Mine)",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "裝備加成",
+      "thai": "โบนัสอุปกรณ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Stat bonus from gear",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "恩賜解脫",
+      "thai": "พรแห่งการปลดปล่อย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill name (Gift/Blessing of Liberation)",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "莎拉點了點頭",
+      "thai": "ซาร่าพยักหน้า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name + action",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "地穴魔蛛",
+      "thai": "แมงมุมปีศาจถ้ำ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Meaning translation",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "魔蛛卵",
+      "thai": "ไข่แมงมุมปีศาจ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Meaning translation",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "繼續前進",
+      "thai": "เดินหน้าต่อ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Command/Action",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "一股邪惡",
+      "thai": "กลิ่นอายชั่วร้าย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Context: \"氣息\" (aura/breath)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "詛咒金屬",
+      "thai": "โลหะต้องสาป",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "秘銀礦石",
+      "thai": "แร่เงินลึกลับ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Mithril ore",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "可在礦石加工廠進",
+      "thai": "แปรรูปได้ที่โรงถลุงแร่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Partial sentence; context implies processing",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "鐵礦石",
+      "thai": "แร่เหล็ก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "級的精英怪",
+      "thai": "มอนสเตอร์ระดับอีลิท",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Elite monster",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "行加工",
+      "thai": "แปรรูป",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Processing/Refining",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得礦車",
+      "thai": "ได้รับรถขนแร่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "履帶機器人",
+      "thai": "หุ่นยนต์ตีนตะขาบ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "公里的時速",
+      "thai": "ความเร็วต่อชั่วโมง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "主人",
+      "thai": "นายท่าน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "強大的猛獁象",
+      "thai": "แมมมอธผู้ทรงพลัง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "猛獁象 = Mammoth",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "三更",
+      "thai": "ตอนที่ 3",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "In web novel contexts, \"更\" refers to a chapter update/installment.",
+      "notes": "auto_discovered (freq=3, confidence=medium)"
+    },
+    {
+      "source": "壞了",
+      "thai": "ซวยแล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Used as an interjection meaning \"Oh no\" or \"I'm in trouble\" in this context.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "萬克朗",
+      "thai": "คลอน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Currency name (transliteration)",
+      "notes": "auto_discovered (freq=6, confidence=high)"
+    },
+    {
+      "source": "你準備出什麼價",
+      "thai": "คุณจะให้ราคาเท่าไหร่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "色裝備",
+      "thai": "อุปกรณ์สี...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Refers to gear rarity color (e.g., gold/purple gear)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "甚至於",
+      "thai": "ถึงขั้นที่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "黑獅護衛",
+      "thai": "องครักษ์สิงห์ดำ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: monster/guard name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "其他領民們也紛紛",
+      "thai": "ชาวบ้านคนอื่นๆ ก็ต่าง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"領民\" (territory residents) translated as ชาวบ้าน for natural flow.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "栽種蒼白之樹的領",
+      "thai": "ดินแดนที่ปลูกต้นไม้สีขาว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"蒼白之樹\" (Pale Tree) translated as ต้นไม้สีขาว.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "讚美仁慈的領主大",
+      "thai": "สรรเสริญท่านลอร์ดผู้เมตตา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"領主\" (Lord) translated as ท่านลอร์ด.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "求求您",
+      "thai": "ได้โปรดเถอะค่ะ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"求求您\" is a plea; added \"ค่ะ\" based on the context of a female speaker (妮芙).",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的姐姐",
+      "thai": "พี่สาวของฉัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"的姐姐\" (older sister) translated as พี่สาว.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "鷹眼",
+      "thai": "ตาเหยี่ยว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Meaning: Eagle Eye (Nickname/Title)",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "目標",
+      "thai": "เป้าหมาย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Meaning: Target/Destination",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "秒內增加",
+      "thai": "เพิ่มขึ้นใน...วินาที",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: duration of buff",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "服用後可瞬間恢復",
+      "thai": "ฟื้นฟูทันทีหลังใช้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: item effect",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "在領地酒館中出售",
+      "thai": "ขายที่โรงเตี๊ยมเขตปกครอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: item location",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "頓時眼睛一亮",
+      "thai": "ตาเป็นประกายทันที",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: reaction/emotion",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "是否開啟",
+      "thai": "ต้องการเปิดหรือไม่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: system prompt",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的概率進入醉酒狀",
+      "thai": "มีโอกาสเข้าสู่สถานะมึนเมา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: debuff chance",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "發現巨人商會貨物",
+      "thai": "พบหีบสินค้าสมาคมยักษ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: system discovery",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "並且在",
+      "thai": "และใน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: conjunction",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星下令道",
+      "thai": "เฉาซิงสั่งการ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name + action",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "曹星隨口誇讚了一",
+      "thai": "เฉาซิงเอ่ยชม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name + action",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "點力量",
+      "thai": "แต้มพละกำลัง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game stat (Strength)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "喔喔",
+      "thai": "โอ๊ะ โอ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Onomatopoeia (Monkey sound)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "做得不錯",
+      "thai": "ทำได้ดีมาก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Common praise phrase",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "霜精靈",
+      "thai": "ภูตน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Frost Spirit/Elemental",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "在曹星面前",
+      "thai": "ตรงหน้าเฉาซิง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"In front of Cao Xing\"",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "讚美偉大的山神大",
+      "thai": "สรรเสริญเทพภูเขาผู้ยิ่งใหญ่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"Praise the great Mountain God\"",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "居人",
+      "thai": "ชาวถ้ำ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Context: 穴居人 (Cave dwellers)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "喔喔喔",
+      "thai": "โอ้ว โอ้ว โอ้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Onomatopoeia/Chanting",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "都是",
+      "thai": "ล้วนแต่เป็น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"All are / mostly are\"",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "力量並不可怕",
+      "thai": "พลังไม่น่ากลัว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Part of a dialogue/quote",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "硫磺石",
+      "thai": "หินกำมะถัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name/Surname (Sulfur Stone)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "大門",
+      "thai": "ประตู",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Referring to a treasury gate",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "區域",
+      "thai": "พื้นที่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Referring to a hidden area/zone",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "閃亮寶石",
+      "thai": "อัญมณีแวววาว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "獲得鎏金燭台",
+      "thai": "ได้รับเชิงเทียนเลี่ยมทอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "祭壇",
+      "thai": "แท่นบูชา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "的地精",
+      "thai": "ก๊อบลิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "鍊金學",
+      "thai": "วิชาเล่นแร่แปรธาตุ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星眼中出現驚喜",
+      "thai": "เฉาซิงตาเป็นประกายด้วยความดีใจ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"ตาเป็นประกาย\" (eyes sparkling) is a natural Thai idiom for showing surprise and joy.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "恐怖的山谷",
+      "thai": "หุบเขาเขย่าขวัญ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Meaning: Valley of Terror/Horror",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "感謝您",
+      "thai": "ขอบคุณท่าน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Formal/Respectful",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "在眾人的圍攻下",
+      "thai": "ท่ามกลางการรุมโจมตี",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "碎顱投擲",
+      "thai": "ขว้างกะโหลกแตก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "已上升",
+      "thai": "เพิ่มขึ้นแล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Status update",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "擊殺了地精戰士",
+      "thai": "สังหารนักรบก็อบลิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "宮殿大門鑰匙",
+      "thai": "กุญแจประตูวัง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "度已上升",
+      "thai": "ระดับเพิ่มขึ้นแล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Likely referring to loyalty (忠誠度)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "級領主府激活",
+      "thai": "เปิดใช้งานคฤหาสน์เจ้าเมืองเลเวล...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"激活\" means activate/unlock",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "需要",
+      "thai": "ต้องการ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Basic requirement",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "放置在領地中",
+      "thai": "วางในอาณาเขต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"領地\" refers to territory/domain",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "太離譜了",
+      "thai": "เกินไปแล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Idiom for \"absurd\" or \"outrageous\"",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "忠誠度已達滿值",
+      "thai": "ค่าความภักดีเต็มแล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"滿值\" means max value",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的機器人",
+      "thai": "หุ่นยนต์...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Context refers to specific types of robots",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星恍然點了點頭",
+      "thai": "เฉาซิงพยักหน้าเข้าใจ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name + action",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "極致",
+      "thai": "ขั้นสุด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Meaning \"to the extreme/limit\"",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "道具效果",
+      "thai": "เอฟเฟกต์ไอเทม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game terminology",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星問道",
+      "thai": "เฉาซิงเอ่ยถาม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name + action",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "只不過",
+      "thai": "เพียงแต่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Conjunction",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "次攻擊",
+      "thai": "การโจมตีหนึ่งครั้ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game mechanic context",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "隻以上時",
+      "thai": "เมื่อมี...ตัวขึ้นไป",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Used for counting animals/monsters (隻) in a conditional context (時)",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "克朗幣",
+      "thai": "เหรียญคลอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Currency name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "可以",
+      "thai": "ได้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Agreement/Permission",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "幾位大人",
+      "thai": "ท่านทั้งหลาย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Polite address for a group",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "這位領主大人",
+      "thai": "ท่านลอร์ดท่านนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Title for a lord",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星嘴角抽了抽",
+      "thai": "มุมปากเฉาซิงกระตุก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Facial expression (twitch)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "枚克朗",
+      "thai": "คลอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Currency unit (枚 is classifier)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "火爐",
+      "thai": "เตาผิง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Heating stove/fireplace",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的阿薩姆",
+      "thai": "อัสซัม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "丹尼",
+      "thai": "แดนนี่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "莉葉特",
+      "thai": "จูเลียต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Juliet)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "自己",
+      "thai": "ตัวเอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Reflexive pronoun",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "大角奶牛",
+      "thai": "วัวนมเขาใหญ่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Literal translation of \"Big-horned dairy cow\"",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "米高",
+      "thai": "สูง...เมตร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "級領主小屋",
+      "thai": "บ้านเจ้าเมืองเลเวล...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "面積",
+      "thai": "พื้นที่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "大冰矛",
+      "thai": "หอกน้ำแข็งยักษ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "初階城牆",
+      "thai": "กำแพงเมืองระดับต้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "乾杯",
+      "thai": "ชนแก้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "冰牆術",
+      "thai": "เวทกำแพงน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "所需時間",
+      "thai": "เวลาที่ใช้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "初階城牆建造圖紙",
+      "thai": "แบบแปลนสร้างกำแพงระดับต้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "公分寬",
+      "thai": "กว้าง...ซม.",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "中階城牆建造圖紙",
+      "thai": "แบบแปลนสร้างกำแพงระดับกลาง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "盾牌猛擊",
+      "thai": "โล่กระแทก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "米寬",
+      "thai": "กว้าง...เมตร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "米長",
+      "thai": "ยาว...เมตร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "物品介紹",
+      "thai": "คำอธิบายไอเทม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "高燒",
+      "thai": "ไข้สูง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "一眼",
+      "thai": "แวบหนึ่ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "In context of \"looking at each other\" (對視一眼)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "虛弱",
+      "thai": "อ่อนแรง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "烈酒",
+      "thai": "เหล้าแรง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "謝謝您",
+      "thai": "ขอบคุณค่ะ/ครับ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Depending on speaker gender",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "希望之地",
+      "thai": "ดินแดนแห่งความหวัง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "昏迷",
+      "thai": "หมดสติ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的吼聲",
+      "thai": "เสียงคำราม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "了過來",
+      "thai": "ตอบสนอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: 反應了過來 (reacted)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "這一波集火",
+      "thai": "การรุมโจมตีนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: 集火 (focused fire)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "態下",
+      "thai": "ในสถานะ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: 狀態下 (in a state of...)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "早安",
+      "thai": "อรุณสวัสดิ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "麥樂瑟",
+      "thai": "แมคเลเซอร์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Person)",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "區域頻道",
+      "thai": "ช่องแชทพื้นที่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game term (Area/Regional Channel)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "需要食物",
+      "thai": "ต้องการอาหาร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Meaning translation",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "信息",
+      "thai": "ข้อมูล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "馬克機器人",
+      "thai": "หุ่นยนต์มาร์ค",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Mark) + Robot",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "這隻小熊崽",
+      "thai": "ลูกหมีตัวนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Literal translation (This bear cub)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "腳底抹油",
+      "thai": "ทาน้ำมันที่เท้า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Idiom meaning to flee quickly/escape",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "幻影刺客招募捲軸",
+      "thai": "ม้วนเรียกนักฆ่าเงา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game item: Recruitment scroll",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "級升",
+      "thai": "เลื่อนระดับ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Level up",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "出去",
+      "thai": "ส่งออกไป",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Context: Dispatching followers/minions",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星愣了一下",
+      "thai": "เฉาซิงชะงัก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "愣了一下 = stunned/paused",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "要不",
+      "thai": "หรือจะ...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Used as a suggestion/alternative",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "阿薩姆聽罷",
+      "thai": "อาซัมได้ยินดังนั้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "聽罷 = after hearing/having heard",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "你的領民",
+      "thai": "ราษฎรของคุณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: game/simulation (subjects/citizens)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "鼴鼠人監工長鞭",
+      "thai": "แส้ผู้คุมมนุษย์ตุ่น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "鐵鎬",
+      "thai": "อีเตอร์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Tool",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "黏稠液體",
+      "thai": "ของเหลวเหนียวข้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Material",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "混沌之書",
+      "thai": "หนังสือโกลาหล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "痛苦加深",
+      "thai": "เพิ่มความเจ็บปวด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill/Effect",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "移動速度增加",
+      "thai": "เพิ่มความเร็วเคลื่อนที่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Buff/Effect",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "乾糧",
+      "thai": "เสบียงแห้ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Consumable",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "鐵錠",
+      "thai": "แท่งเหล็ก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Material",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "鞭笞",
+      "thai": "เฆี่ยนตี",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill/Action",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "寵物契約",
+      "thai": "สัญญาเลี้ยงสัตว์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: pet contract/bond",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "你們這些傢伙",
+      "thai": "พวกแก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Used in a confrontational/aggressive tone",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "威脅",
+      "thai": "คำขู่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Refers to the act of threatening/menace",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "布林",
+      "thai": "บูลิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Goblin name)",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "砍瓜切菜",
+      "thai": "ฟันฉับๆ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Idiom meaning slicing through enemies easily",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "強大的幻影刺客",
+      "thai": "นักฆ่าเงาผู้ทรงพลัง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game class/title",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "莎拉和阿薩姆",
+      "thai": "ซาร่าและอาซัม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper names",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "頓時出現了一道血",
+      "thai": "ปรากฏรอยเลือดทันที",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Action description",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "刃舞擊殺了冰霜哥",
+      "thai": "ระบำดาบสังหารก็อบลินน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill name (刃舞) + Action",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "樹靈族",
+      "thai": "เผ่าพฤกษา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "這些樹靈一族",
+      "thai": "เหล่าเผ่าพฤกษา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "當前人口",
+      "thai": "ประชากรปัจจุบัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: current population count",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "斬殺頭目級生物",
+      "thai": "สังหารมอนสเตอร์ระดับบอส",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"頭目\" in gaming context refers to a Boss/Leader; \"生物\" refers to creatures/monsters.",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "倖存者們的騷操作",
+      "thai": "แผนเหนือเมฆของผู้รอดชีวิต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"騷操作\" (sāo cāozuò) in this context refers to unexpected, clever, or unconventional moves/tactics.",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "的蛻變",
+      "thai": "การวิวัฒนาการ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: transformation/evolution to a higher rank",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "女王領域",
+      "thai": "อาณาเขตราชินี",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: skill area/domain",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "血吻",
+      "thai": "จุมพิตโลหิต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: proper name/title (Blood Kiss)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "已生效",
+      "thai": "มีผลแล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: status/effect activated",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "雲彩氂牛",
+      "thai": "วัวเมฆา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Magic creature (Cloud-like ox)",
+      "notes": "auto_discovered (freq=5, confidence=high)"
+    },
+    {
+      "source": "契約成功",
+      "thai": "ทำสัญญาสำเร็จ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "System notification",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "頭雲彩氂牛",
+      "thai": "ตัววัวเมฆา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"頭\" is a classifier for animals",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "已成為你的寵物",
+      "thai": "กลายเป็นสัตว์เลี้ยงของคุณแล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "System notification",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "對其使用了",
+      "thai": "ใช้...กับมัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Action performed on target",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的事",
+      "thai": "เรื่องที่...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "General noun phrase",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "契約",
+      "thai": "สัญญา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Contract/Pact",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "心靈震懾",
+      "thai": "ข่มขวัญจิตใจ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill/Status effect (Mental intimidation)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "雲彩氂牛面前",
+      "thai": "ต่อหน้าวัวเมฆา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Location/Position",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "驚呼道",
+      "thai": "อุทานว่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Dialogue tag",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "放輕鬆",
+      "thai": "ผ่อนคลายหน่อย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Comforting phrase",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "雲彩奔襲",
+      "thai": "เมฆาจู่โจม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill/State (Cloud Charge/Rush)",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "變故",
+      "thai": "เหตุไม่คาดฝัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "refers to an unexpected turn of events or a sudden change",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "強大的曹星",
+      "thai": "เฉาซิงผู้แข็งแกร่ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Cao Xing) + adjective (Powerful/Strong)",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "父親",
+      "thai": "พ่อ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "梅爾老先生",
+      "thai": "คุณปู่เมล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name + honorific",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "一路上應該不會遇",
+      "thai": "ระหว่างทางไม่น่าจะเจอ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "看來",
+      "thai": "ดูเหมือนว่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "怎麼了",
+      "thai": "เกิดอะไรขึ้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "這些異世界領主的",
+      "thai": "เหล่าลอร์ดต่างโลกเหล่านี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的村民",
+      "thai": "ชาวบ้าน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "紅鮭魚",
+      "thai": "ปลาแซลมอนแดง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的目光",
+      "thai": "สายตา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "叫你亂跑",
+      "thai": "บอกแล้วว่าอย่าวิ่งซน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Context: scolding/punishing someone",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "搶走他們的極地人",
+      "thai": "แย่งชิงชาวขั้วโลก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=5, confidence=high)"
+    },
+    {
+      "source": "踏平領地",
+      "thai": "บดขยี้ดินแดน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "大地母神在上",
+      "thai": "เทพีปฐพีโปรดคุ้มครอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Exclamation/Prayer",
+      "notes": "auto_discovered (freq=3, confidence=medium)"
+    },
+    {
+      "source": "獲得食物",
+      "thai": "ได้รับอาหาร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得初級元素結晶",
+      "thai": "ได้รับผลึกธาตุระดับต้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "張偉",
+      "thai": "จางเหว่ย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "沒過多久",
+      "thai": "ไม่นานหลังจากนั้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "發現領主",
+      "thai": "พบเจ้าดินแดน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "除了",
+      "thai": "นอกจาก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得冰晶石",
+      "thai": "ได้รับหินผลึกน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星欣喜不已",
+      "thai": "เฉาซิงดีใจอย่างยิ่ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "更新內容",
+      "thai": "รายละเอียดอัปเดต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=10, confidence=high)"
+    },
+    {
+      "source": "在曹星驚訝的目光",
+      "thai": "ท่ามกลางสายตาตกตะลึงของเฉาซิง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的倖存者",
+      "thai": "ผู้รอดชีวิต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "倒計時",
+      "thai": "นับถอยหลัง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "說到後面",
+      "thai": "พอพูดถึงตอนท้าย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "新手保護期剩餘時",
+      "thai": "เวลาคุ้มครองมือใหม่ที่เหลือ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "建築",
+      "thai": "สิ่งปลูกสร้าง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "變化",
+      "thai": "การเปลี่ยนแปลง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "然後點了點頭",
+      "thai": "แล้วพยักหน้า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "在他身後",
+      "thai": "ด้านหลังเขา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "級的精英級古樹",
+      "thai": "ต้นไม้โบราณระดับอีลิท",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"Elite\" is standard for 精英 in gaming",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "大腳",
+      "thai": "เท้าขนาดใหญ่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "還行",
+      "thai": "ก็โอเค",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Colloquial for \"not bad/acceptable\"",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星的隊伍浩浩蕩",
+      "thai": "กองทัพของเฉาซิงที่ยิ่งใหญ่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "浩浩蕩蕩 refers to a grand/large procession",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "應該的",
+      "thai": "เป็นสิ่งที่ควรทำ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Polite response meaning \"it's my duty/pleasure\"",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "一明",
+      "thai": "อี้หมิง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (transliteration)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "思的說道",
+      "thai": "พูดอย่างเขินๆ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Context implies 不好意思 (embarrassed/shy)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "姚一明有些不好意",
+      "thai": "เหยาอี้หมิงรู้สึกเขินๆ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Context implies 不好意思 (embarrassed/shy)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星搖了搖頭",
+      "thai": "เฉาซิงส่ายหัว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "曹星 (Cao Xing) is a name; 搖了搖頭 means shook head.",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "發財了",
+      "thai": "รวยแล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "亡靈的陪葬品",
+      "thai": "ของอุทิศให้คนตาย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "靈壓",
+      "thai": "แรงดันวิญญาณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game skill",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "噬魂怪",
+      "thai": "อสูรกลืนวิญญาณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Monster name",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "獲得書籍",
+      "thai": "ได้รับหนังสือ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "System message",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "永望神殿",
+      "thai": "วิหารนิรันดร์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Temple)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "不是",
+      "thai": "ไม่ใช่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "窸窣",
+      "thai": "สวบสาบ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Onomatopoeia (rustling)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得魔能水晶",
+      "thai": "ได้รับคริสตัลเวท",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "System message",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得碎金塊",
+      "thai": "ได้รับเศษทอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "System message",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的右手",
+      "thai": "มือขวาของ...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "吞魔之盒",
+      "thai": "กล่องกลืนมาร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "通道",
+      "thai": "ทางเดิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "窣窣",
+      "thai": "สวบสาบ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Onomatopoeia (rustling)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得黃銅古幣",
+      "thai": "ได้รับเหรียญทองแดงโบราณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "System message",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星打了個手勢",
+      "thai": "เฉาซิงส่งสัญญาณมือ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Action description",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "你的领地成员",
+      "thai": "สมาชิกดินแดนของคุณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=9, confidence=high)"
+    },
+    {
+      "source": "与此同时",
+      "thai": "ในขณะเดียวกัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=5, confidence=high)"
+    },
+    {
+      "source": "当前等级",
+      "thai": "เลเวลปัจจุบัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=5, confidence=high)"
+    },
+    {
+      "source": "获得经验值",
+      "thai": "ได้รับค่าประสบการณ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "获得恶灵粉尘",
+      "thai": "ได้รับผงวิญญาณร้าย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "这时候",
+      "thai": "ตอนนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "战斗人员获得经验",
+      "thai": "นักรบได้รับค่าประสบการณ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "大型钩爪",
+      "thai": "กรงเล็บขนาดใหญ่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "不过",
+      "thai": "แต่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "坚不可摧",
+      "thai": "แข็งแกร่งไร้พ่าย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "skill name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "精英级生物",
+      "thai": "สิ่งมีชีวิตระดับอีลิท",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "沌之书",
+      "thai": "หนังสือโกลาหล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Short for 混沌之书",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "不错不错",
+      "thai": "ไม่เลว ไม่เลว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "成功概率为",
+      "thai": "โอกาสสำเร็จคือ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "三阶精英级生物",
+      "thai": "สิ่งมีชีวิตอีลิทระดับ 3",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的精英魂魄",
+      "thai": "วิญญาณระดับอีลิทของ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "刃舞击杀了噬魂怪",
+      "thai": "เริ่นอู่สังหารอสูรกลืนวิญญาณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "刃舞 is a name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "可对一名三阶及三",
+      "thai": "ใช้กับยูนิตระดับ 3 หรือต่ำกว่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context cut off",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "门口的噬魂怪已经",
+      "thai": "อสูรกลืนวิญญาณที่หน้าประตูได้...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "英魂魄",
+      "thai": "วิญญาณวีรชน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Short for 精英魂魄",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "获得中型力量之书",
+      "thai": "ได้รับหนังสือพละกำลังขนาดกลาง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "话落",
+      "thai": "สิ้นคำพูด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "可查看",
+      "thai": "ตรวจสอบได้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "点精神属性",
+      "thai": "ค่าสถานะจิตใจ 1 แต้ม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "好好好",
+      "thai": "ดี ดี ดี",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的强大魂魄",
+      "thai": "วิญญาณที่ทรงพลังของ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星满意的点了点",
+      "thai": "เฉาซิงพยักหน้าอย่างพอใจ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "英雄最多使用",
+      "thai": "ฮีโร่ใช้ได้สูงสุด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "妮丝",
+      "thai": "นีส",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (suffix of 蕾妮丝)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "使其大概率进化为",
+      "thai": "เพิ่มโอกาสวิวัฒนาการเป็น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "属性",
+      "thai": "ค่าสถานะ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game context (Stats)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "而就在这时",
+      "thai": "ทันใดนั้นเอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Transition phrase",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "看到这一幕",
+      "thai": "เมื่อเห็นดังนั้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Reaction to a scene",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "希儿妲",
+      "thai": "ซีลดา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Phonetic transliteration",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "曹星点了点头",
+      "thai": "เฉาซิงพยักหน้า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Action description",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "点力量属性",
+      "thai": "ค่าพละกำลัง 1 แต้ม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Stat gain (Strength)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得惡靈粉塵",
+      "thai": "ได้รับผงวิญญาณร้าย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "大型鉤爪",
+      "thai": "กรงเล็บยักษ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "妮絲",
+      "thai": "นีส",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Renice)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "使其大概率進化為",
+      "thai": "เพิ่มโอกาสวิวัฒนาการเป็น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "精英級生物",
+      "thai": "สิ่งมีชีวิตระดับอีลิท",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "點精神屬性",
+      "thai": "ค่าสติปัญญา 1 แต้ม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "精神 (Spirit/Mind) in games usually maps to INT or WIS",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "門口的噬魂怪已經",
+      "thai": "มอนสเตอร์กลืนวิญญาณที่หน้าประตู...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "噬魂怪 = Soul Eater/Devourer",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "沌之書",
+      "thai": "หนังสือโกลาหล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Short for 混沌之書 (Book of Chaos)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "三階精英級生物",
+      "thai": "สิ่งมีชีวิตระดับอีลิทขั้น 3",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "刃舞擊殺了噬魂怪",
+      "thai": "รินอู่สังหารมอนสเตอร์กลืนวิญญาณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "刃舞 (Blade Dance) is likely a name/title",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "點力量屬性",
+      "thai": "ค่าพละกำลัง 1 แต้ม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "噬魂怪咆哮者的精",
+      "thai": "วิญญาณอีลิทของผู้คำรามกลืนวิญญาณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "精 refers to 精英魂魄 (Elite Soul)",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "可對一名三階及三",
+      "thai": "ใช้กับสิ่งมีชีวิตขั้น 3 หรือต่ำกว่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "堅不可摧",
+      "thai": "แข็งแกร่งไร้พ่าย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill name (Indestructible)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得中型力量之書",
+      "thai": "ได้รับหนังสือพละกำลังขนาดกลาง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "成功概率為",
+      "thai": "โอกาสสำเร็จคือ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "噬靈",
+      "thai": "กลืนวิญญาณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill name",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "屬性同上",
+      "thai": "ธาตุเดียวกัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Same attribute as above",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "噬靈之體",
+      "thai": "กายกลืนวิญญาณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Talent name",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "散魂之爪",
+      "thai": "กรงเล็บสลายวิญญาณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill name",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "嘶嘶",
+      "thai": "ฟู่ ฟู่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Hissing sound",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "隻噬魂怪",
+      "thai": "สัตว์กลืนวิญญาณตัวหนึ่ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"隻\" is classifier for animals",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的噬魂怪",
+      "thai": "เหล่าสัตว์กลืนวิญญาณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Referring to the monsters",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "三階精英級",
+      "thai": "ระดับอีลิทขั้น 3",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Rank/Grade",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "去吧",
+      "thai": "ไปเลย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Command/Action",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "緊接著",
+      "thai": "ตามด้วย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Sequence of events",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "而那群噬魂怪",
+      "thai": "ส่วนพวกสัตว์กลืนวิญญาณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Transition phrase",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "撕碎",
+      "thai": "ฉีกเป็นชิ้นๆ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Violent action",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星話落",
+      "thai": "พอเฉาซิงพูดจบ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"話落\" means finished speaking",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "聖愈術",
+      "thai": "เวทรักษาศักดิ์สิทธิ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Holy healing spell",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "星界溝通",
+      "thai": "สื่อสารดาราจักร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Astral Communication",
+      "notes": "auto_discovered (freq=8, confidence=high)"
+    },
+    {
+      "source": "星火術",
+      "thai": "มนตราประกายดาว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Starfire Spell",
+      "notes": "auto_discovered (freq=7, confidence=high)"
+    },
+    {
+      "source": "梟獸形態",
+      "thai": "ร่างนกฮูกยักษ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Owl Beast Form",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "聖劍神殿",
+      "thai": "วิหารดาบศักดิ์สิทธิ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Holy Sword Temple",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "的加持了",
+      "thai": "ได้รับการเสริมพลัง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Buffed/Empowered",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "受天賦",
+      "thai": "ผลจากพรสวรรค์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Affected by Talent",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星滿臉無語",
+      "thai": "เฉาซิงพูดไม่ออก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Speechless/Facepalm",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "任務進度已更新",
+      "thai": "ความคืบหน้าภารกิจอัปเดตแล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Quest progress updated",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "效果持續",
+      "thai": "ผลคงอยู่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Effect duration",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的魔法傷害",
+      "thai": "ความเสียหายเวท",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Magic damage",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星十分滿意",
+      "thai": "เฉาซิงพอใจมาก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Very satisfied",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星驚喜不已",
+      "thai": "เฉาซิงประหลาดใจและดีใจมาก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Extremely surprised/delighted",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "格殺勿論",
+      "thai": "ฆ่าทิ้งให้หมด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Kill without mercy",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "形態",
+      "thai": "ร่าง / รูปแบบ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Form/State",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "對周圍",
+      "thai": "รอบตัว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: area of effect",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "我靠",
+      "thai": "เชี่ย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "slang/exclamation",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "他便帶著隊伍",
+      "thai": "เขาจึงนำทีม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "暴風箭雨",
+      "thai": "ฝนธนูปายุ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "skill name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "火炬神殿",
+      "thai": "วิหารคบเพลิง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "place name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "幾百只噬魂怪",
+      "thai": "มอนสเตอร์กลืนวิญญาณหลายร้อยตัว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "噬魂怪 = Soul Eater/Devourer",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "這只噬魂惡魔",
+      "thai": "ปีศาจกลืนวิญญาณตัวนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "并且有",
+      "thai": "และมี",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "怎么了",
+      "thai": "เกิดอะไรขึ้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "旋風斬",
+      "thai": "เพลงดาบพายุ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game skill (Whirlwind Slash)",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "雪鷹之盔",
+      "thai": "หมวกเหยี่ยวหิมะ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item name",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "幾百隻噬魂怪",
+      "thai": "มอนสเตอร์กลืนวิญญาณหลายร้อยตัว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "噬魂怪 = Soul Eater/Devourer",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "石符",
+      "thai": "ยันต์หิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Magic stone talisman",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "這隻噬魂惡魔",
+      "thai": "ปีศาจกลืนวิญญาณตัวนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "並且有",
+      "thai": "และมี",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Conjunction",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "電子元件製作圖紙",
+      "thai": "แบบแปลนชิ้นส่วนอิเล็กทรอนิกส์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "冰川裂隙",
+      "thai": "รอยแยกธารน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "鮮血飆起",
+      "thai": "เลือดสาดกระจาย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Descriptive action",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獲得遊獵者面具",
+      "thai": "ได้รับหน้ากากพราน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item acquisition",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "稀有",
+      "thai": "หายาก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Rarity grade (Rare)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "巴布",
+      "thai": "บาบู",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Surname)",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "種子",
+      "thai": "เมล็ดพันธุ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "埃爾坎先生",
+      "thai": "คุณเอลคาน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name + Honorific",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "什麼",
+      "thai": "อะไร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的天賦",
+      "thai": "พรสวรรค์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "初級釀酒知識",
+      "thai": "ความรู้การหมักเหล้าเบื้องต้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "好的大人",
+      "thai": "ได้ค่ะ ท่าน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Polite response to superior",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "霍格村村民",
+      "thai": "ชาวบ้านหมู่บ้านฮอก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "我來採購點物資",
+      "thai": "มาซื้อเสบียง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "靈敏嗅覺",
+      "thai": "ประสาทรับกลิ่นไว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Talent/Ability",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的種子",
+      "thai": "เมล็ดพันธุ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "靈息草種子",
+      "thai": "เมล็ดหญ้าลมปราณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item (Spirit Breath Grass)",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "的手下",
+      "thai": "ลูกน้อง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "然後點頭道",
+      "thai": "แล้วพยักหน้ากล่าว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "艾蓮娜聽罷",
+      "thai": "เมื่อเอเลน่าได้ฟัง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "和他身邊那些強大",
+      "thai": "และเหล่าผู้แข็งแกร่งข้างกาย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星頓時眼睛亮起",
+      "thai": "เฉาซิงตาเป็นประกายทันที",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "不過好在",
+      "thai": "แต่โชคดีที่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "理解",
+      "thai": "เข้าใจ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "銳魂魄",
+      "thai": "วิญญาณชั้นยอด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: 精銳魂魄 (Elite Soul)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "華麗的金質飾品",
+      "thai": "เครื่องประดับทองหรูหรา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "親愛的領主大人",
+      "thai": "ท่านลอร์ดที่รัก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "是否開啟阿斯卡隆",
+      "thai": "เปิดอัสคาลอนหรือไม่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name: Ascalon",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "太猛了",
+      "thai": "โคตรโหด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Slang for \"too powerful/overpowered\"",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "品袋子",
+      "thai": "ถุงไอเทม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Short for 陪葬品袋子 (Burial item bag)",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "阿斯卡隆陪葬品袋",
+      "thai": "ถุงสมบัติอัสคาลอน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Burial goods/offerings bag",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "升到了",
+      "thai": "เลื่อนระดับถึง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Level up",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "咳咳",
+      "thai": "แค่กๆ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Coughing sound",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "愁了",
+      "thai": "กังวล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: 不用愁了 (No need to worry)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "碎金塊",
+      "thai": "เศษทอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "致命毒素",
+      "thai": "พิษร้ายแรง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "可以聯繫我",
+      "thai": "ติดต่อฉันได้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "國王戰刃",
+      "thai": "ดาบศึกราชา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Meaning: King's Battle Blade",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "全部升到了",
+      "thai": "เลื่อนระดับทั้งหมด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: leveling up members/soldiers",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "哈羅德先生",
+      "thai": "คุณฮาโรลด์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "proper name + polite title",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "哈羅德點頭道",
+      "thai": "ฮาโรลด์พยักหน้า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "action description",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "戰斗人員獲得經驗",
+      "thai": "ประสบการณ์ผู้ต่อสู้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "武斗者短劍",
+      "thai": "มีดสั้นนักสู้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "要么",
+      "thai": "ไม่ก็",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "亞麻棉服",
+      "thai": "ชุดผ้าลินิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "精釀的朗姆酒配方",
+      "thai": "สูตรเหล้ารัมคราฟต์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "朗姆酒",
+      "thai": "เหล้ารัม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "所屬勢力",
+      "thai": "สังกัด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "凍傷",
+      "thai": "หิมะกัด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "干奶酪",
+      "thai": "ชีสแห้ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "葡萄酒",
+      "thai": "ไวน์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "蜂蜜",
+      "thai": "น้ำผึ้ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "一進去",
+      "thai": "พอเข้าไป",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "內傷",
+      "thai": "บาดเจ็บภายใน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "已進階為三階頭目",
+      "thai": "เลื่อนขั้นเป็นหัวหน้าขั้น 3",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "粗鹽",
+      "thai": "เกลือสมุทร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "飢餓",
+      "thai": "หิวโหย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "中級地下室建造圖",
+      "thai": "แบบสร้างห้องใต้ดินระดับกลาง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星眼中帶著疑惑",
+      "thai": "เฉาซิงมีสีหน้าสงสัย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "冰晶王國",
+      "thai": "อาณาจักรผลึกน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "重傷",
+      "thai": "บาดเจ็บสาหัส",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "龍舌蘭酒",
+      "thai": "เหล้าเตกีลา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "對方對你的態度已",
+      "thai": "ทัศนคติที่มีต่อคุณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Part of a system notification",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "諾布爾",
+      "thai": "โนเบิล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Noble)",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "當前關係",
+      "thai": "ความสัมพันธ์ปัจจุบัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game status term",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "改變",
+      "thai": "เปลี่ยนแปลง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "牛奶",
+      "thai": "นม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "熟悉",
+      "thai": "สนิทสนม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Relationship level",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "然后問道",
+      "thai": "แล้วถามว่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Used as a dialogue tag.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的吸血效果",
+      "thai": "เอฟเฟกต์ดูดเลือด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "經過淨化後",
+      "thai": "หลังผ่านการชำระล้าง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "力量得到了些許提",
+      "thai": "พลังเพิ่มขึ้นเล็กน้อย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "truncated source text",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "長弓",
+      "thai": "ธนูยาว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "角鷹長弓",
+      "thai": "ธนูยาวกริฟฟิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "角鷹 = Griffin",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獸肉",
+      "thai": "เนื้อสัตว์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "吸血之刃",
+      "thai": "คมดาบดูดเลือด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "這個世界的原住民",
+      "thai": "ชาวพื้นเมืองของโลกนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "這麼多",
+      "thai": "มากมายขนาดนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "拉布回道",
+      "thai": "ลาบูตอบว่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name transliteration",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "神色",
+      "thai": "สีหน้า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "橄欖石碎片",
+      "thai": "เศษเพอริโด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Peridot fragment",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "點魔法攻擊力",
+      "thai": "พลังโจมตีเวท",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Magic Attack Power",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "攻擊速度和移動速",
+      "thai": "ความเร็วโจมตีและเคลื่อนที่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Attack and Movement Speed",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "可鑲嵌在武器或裝",
+      "thai": "ใส่ในอาวุธหรืออุปกรณ์ได้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Socketable in weapon/gear",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "血紅托爾吉爾之歌",
+      "thai": "บทเพลงทอร์กิลสีเลือด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Song of Blood-red Thorgil)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "進行鑲嵌",
+      "thai": "ทำการฝัง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "To socket/embed",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "過來",
+      "thai": "พุ่งเข้ามา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Based on context \"撲了過來\" (pounced/lunged)",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "度增加",
+      "thai": "เพิ่มขึ้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Increase (suffix of speed)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "紫晶碎片",
+      "thai": "เศษอเมทิสต์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Amethyst fragment",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "最大射程",
+      "thai": "ระยะยิงสูงสุด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Max Range",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "族長頭冠",
+      "thai": "มงกุฎหัวหน้าเผ่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Clan Chief's Crown",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "備中",
+      "thai": "ในอุปกรณ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "In equipment (truncated from 裝備中)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "需要中級鍛造技術",
+      "thai": "ต้องใช้ทักษะตีเหล็กระดับกลาง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Requires intermediate forging skill",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "粉碎一切",
+      "thai": "บดขยี้ทุกสิ่ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "召喚亡靈大軍",
+      "thai": "อัญเชิญกองทัพคนตาย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "大祭司",
+      "thai": "มหาปุโรหิต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "四階頭目級生物",
+      "thai": "สิ่งมีชีวิตระดับหัวหน้าขั้น 4",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "阿斯卡隆亡者之書",
+      "thai": "คัมภีร์คนตายแห่งอัสคาลอน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name: Ascalon",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "阿斯卡隆的戰士們",
+      "thai": "เหล่านักรบแห่งอัสคาลอน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name: Ascalon",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "為了對付這條黑蛇",
+      "thai": "เพื่อจัดการงูดำตัวนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "遊獵者黑袍祭司",
+      "thai": "ปุโรหิตชุดดำผู้พเนจร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "黑暗之體",
+      "thai": "กายาแห่งความมืด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "馬上衝鋒",
+      "thai": "บุกโจมตีทันที",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Command/Action",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "小沃利",
+      "thai": "วอลลี่น้อย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Diminutive name",
+      "notes": "auto_discovered (freq=5, confidence=high)"
+    },
+    {
+      "source": "曹星的寵物",
+      "thai": "สัตว์เลี้ยงของเฉาซิง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Cao Xing)",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "一階精英級生物",
+      "thai": "สิ่งมีชีวิตระดับอีลิทขั้น 1",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game rank/tier",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "巨獸",
+      "thai": "อสูรกาย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Talent name",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "沃利貝爾",
+      "thai": "วอลลิเบียร์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Volibear)",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "對力量低於沃利貝",
+      "thai": "ผู้ที่มีพลังน้อยกว่าวอลลิเบียร์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Fragment",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "減速效果",
+      "thai": "เอฟเฟกต์สโลว์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game term",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "攻擊時額外造成",
+      "thai": "สร้างความเสียหายเพิ่มเติม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Combat term",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "會獲得一個護盾",
+      "thai": "จะได้รับโล่ป้องกัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Combat term",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "貝爾",
+      "thai": "เบียร์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Shortened name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "面樹心",
+      "thai": "แกนกลางต้นไม้หน้าคน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item name",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "青出於藍勝於藍",
+      "thai": "เก่งกว่าอาจารย์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Idiom (Better than the original)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "置召喚一道閃電",
+      "thai": "อัญเชิญสายฟ้าลงตำแหน่ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Fragment",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "並且有概率使敵人",
+      "thai": "และมีโอกาสทำให้ศัตรู",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Fragment",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "爪子附加閃電之力",
+      "thai": "เพิ่มพลังสายฟ้าให้กรงเล็บ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill effect",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的生命值",
+      "thai": "พลังชีวิตของ...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Fragment",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獒犬霰彈槍",
+      "thai": "ปืนลูกซองมาสทิฟฟ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item name (Mastiff Shotgun)",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "閃電落點範圍內",
+      "thai": "ภายในระยะสายฟ้าตก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Area of effect",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "將會被撲倒",
+      "thai": "จะถูกกระโจนทับ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Combat action",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "閃電之爪",
+      "thai": "กรงเล็บสายฟ้า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "爾的生物",
+      "thai": "สิ่งมีชีวิตของ...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Fragment",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的閃電傷害",
+      "thai": "ความเสียหายสายฟ้าของ...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Fragment",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "沃利貝爾為自己的",
+      "thai": "วอลลิเบียร์ใช้... ของตนเอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Fragment",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "沃利貝爾迅速撲向",
+      "thai": "วอลลิเบียร์กระโจนเข้าใส่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Action",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "本次加速時間",
+      "thai": "ระยะเวลาเร่งการเติบโต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Growth mechanic",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "蒼白之樹祝福",
+      "thai": "พรแห่งพฤกษาขาว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Buff name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的傷害和",
+      "thai": "ความเสียหายและ...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Fragment",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "陷入",
+      "thai": "ตกอยู่ในสถานะ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Status effect",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "對敵人造成攻擊力",
+      "thai": "สร้างความเสียหายตามพลังโจมตี",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Combat formula",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "護盾耐久值為沃利",
+      "thai": "ความทนทานของโล่เท่ากับ...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Fragment",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "生命值額外",
+      "thai": "พลังชีวิตเพิ่มเติม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "HP bonus",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "敵人展開撕咬",
+      "thai": "ขย้ำศัตรู",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"Tear and bite\" action",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "持續",
+      "thai": "ต่อเนื่อง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Duration/Continuous",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "秒的麻痹效果",
+      "thai": "เอฟเฟกต์เป็นอัมพาต...วินาที",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Paralysis effect for X seconds",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "嘎嘣",
+      "thai": "กร้วม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Onomatopoeia for crunching/biting",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "沃利貝爾在指定位",
+      "thai": "Volibear ในตำแหน่งที่กำหนด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name + target location",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "如果友方單位處在",
+      "thai": "หากยูนิตฝ่ายเดียวกันอยู่ใน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Conditional phrase for allies",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "淨化森林野豬肉",
+      "thai": "เนื้อหมูป่าป่าชำระ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item: Purified Forest Boar Meat",
+      "notes": "auto_discovered (freq=10, confidence=high)"
+    },
+    {
+      "source": "募捲軸",
+      "thai": "ม้วนอัญเชิญ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Short for recruitment scroll",
+      "notes": "auto_discovered (freq=5, confidence=high)"
+    },
+    {
+      "source": "個冰龍印記",
+      "thai": "ตรามังกรน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Ice Dragon Mark",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "川裂片",
+      "thai": "เศษน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Likely \"Glacier Shard\" (冰川裂片)",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "個冰龍印記或者冰",
+      "thai": "ตรามังกรน้ำแข็งหรือเศษน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Combined item names",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "出來",
+      "thai": "ออกมา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Verb: to build/create out",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "張一階野豬戰士招",
+      "thai": "ม้วนอัญเชิญนักรบหมูป่าระดับ 1",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Tier 1 Boar Warrior Recruitment Scroll",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "張野豬戰士招募捲",
+      "thai": "ม้วนอัญเชิญนักรบหมูป่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Boar Warrior Recruitment Scroll",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "塊藍色品級野豬肉",
+      "thai": "เนื้อหมูป่าระดับสีน้ำเงิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Blue grade boar meat",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "塊藍色品級獸肉",
+      "thai": "เนื้อสัตว์ระดับสีน้ำเงิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Blue grade beast meat",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "豬肉",
+      "thai": "เนื้อหมู",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Boar/Pig meat",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "了喜意",
+      "thai": "ดีใจ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Expression of joy",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "塊獸肉",
+      "thai": "เนื้อสัตว์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Piece of beast meat",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "淨化的森林野豬肉",
+      "thai": "เนื้อหมูป่าป่าชำระ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Purified Forest Boar Meat",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "豬戰士",
+      "thai": "นักรบหมูป่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Boar Warrior",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "淨化的頭目野豬肉",
+      "thai": "เนื้อหมูป่าบอสบริสุทธิ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item",
+      "notes": "auto_discovered (freq=6, confidence=high)"
+    },
+    {
+      "source": "能書",
+      "thai": "หนังสือสกิล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Short for 技能書",
+      "notes": "auto_discovered (freq=6, confidence=high)"
+    },
+    {
+      "source": "初級寒冰掌控",
+      "thai": "ควบคุมน้ำแข็งขั้นต้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill",
+      "notes": "auto_discovered (freq=5, confidence=high)"
+    },
+    {
+      "source": "寒鐵機械師專屬技",
+      "thai": "สกิลเฉพาะช่างกลเหล็กเย็น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "聖盾突擊",
+      "thai": "โล่ศักดิ์สิทธิ์จู่โจม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "初級劍術掌控",
+      "thai": "ควบคุมดาบขั้นต้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "收購大量圖紙技能",
+      "thai": "รับซื้อแบบแปลนและสกิล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Trade request",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "改良版自爆機器人",
+      "thai": "หุ่นยนต์ระเบิดตัวปรับปรุง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Item/Skill",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "初級機械親和",
+      "thai": "ความคุ้นเคยเครื่องจักรขั้นต้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "材料",
+      "thai": "วัสดุ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "General term",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "寒霜法師專屬技能",
+      "thai": "สกิลเฉพาะจอมเวทน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "分別是",
+      "thai": "ได้แก่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Connector",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "硬貨",
+      "thai": "เงินสด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Context: payment method",
+      "notes": "auto_discovered (freq=3, confidence=medium)"
+    },
+    {
+      "source": "破冰飛刃",
+      "thai": "คมมีดทลายน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Skill",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "持續時間",
+      "thai": "ระยะเวลาแสดงผล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game stat",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "你也可以在實戰中",
+      "thai": "คุณยังสามารถใช้ในรบจริง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Phrase",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "了上去",
+      "thai": "เพิ่มเข้าไป",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Phrase",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "但很顯然",
+      "thai": "แต่เห็นได้ชัดว่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Phrase",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "建築效果",
+      "thai": "เอฟเฟกต์สิ่งก่อสร้าง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game stat",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "科羅納",
+      "thai": "โคโรนา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Corona)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "尤其是",
+      "thai": "โดยเฉพาะอย่างยิ่ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Phrase",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "小提示",
+      "thai": "คำแนะนำเล็กน้อย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "UI/Tip",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "馬克追擊者",
+      "thai": "มาร์คผู้ไล่ล่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Mark Chaser)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "教官",
+      "thai": "ครูฝึก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Role/NPC",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獸骨輕甲",
+      "thai": "เกราะเบากระดูกสัตว์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game item",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "這些阿斯卡隆士兵",
+      "thai": "ทหารอาสคาลอนเหล่านี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Ascalon)",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "板牙甲",
+      "thai": "เกราะเขี้ยวแผ่น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Game item",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "不宜外出",
+      "thai": "ไม่ควรออกนอกบ้าน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Weather warning",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "這麼多的材料",
+      "thai": "วัตถุดิบมากมายขนาดนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "General context",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "藤蔓",
+      "thai": "เถาวัลย์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Plant/Material",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "哈羅德激動道",
+      "thai": "ฮาโรลด์กล่าวอย่างตื่นเต้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Harold)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "輕甲",
+      "thai": "เกราะเบา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Armor type",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "造成了",
+      "thai": "สร้าง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: damage dealt",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "黑暗教團",
+      "thai": "ลัทธิมืด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "這兩個遊獵者斥候",
+      "thai": "หน่วยสอดแนมพรานทั้งสอง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星鬆了口氣",
+      "thai": "เฉาซิงถอนหายใจ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獵者斥候",
+      "thai": "หน่วยสอดแนมพราน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "鷹眼對遊獵者斥候",
+      "thai": "ฮอว์กอายต่อหน่วยสอดแนมพราน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星驚訝不已",
+      "thai": "เฉาซิงตกใจมาก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "煙霧彈",
+      "thai": "ระเบิดควัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "得到曹星的命令後",
+      "thai": "หลังได้รับคำสั่งจากเฉาซิง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "潛行",
+      "thai": "พรางตัว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "守衛",
+      "thai": "ผู้พิทักษ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Guard/Sentinel",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "曹星通過小型通訊",
+      "thai": "เฉาซิงสื่อสารผ่าน...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Partial phrase; \"Cao Xing communicates via...\"",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "獵者守衛",
+      "thai": "ผู้พิทักษ์นักล่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Hunter Guard",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "裝置",
+      "thai": "อุปกรณ์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Device",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "他下令道",
+      "thai": "เขาสั่งการว่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "He ordered/commanded",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "等我的指令",
+      "thai": "รอคำสั่งฉัน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Wait for my command",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "莎拉再次出現",
+      "thai": "ซาร่าปรากฏตัวอีกครั้ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Sarah appeared again",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "習得新技能",
+      "thai": "เรียนรู้ทักษะใหม่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=5, confidence=high)"
+    },
+    {
+      "source": "荊棘術",
+      "thai": "มนตราหนาม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=5, confidence=high)"
+    },
+    {
+      "source": "生命綻放",
+      "thai": "บานสะพรั่งแห่งชีวิต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "龍血萃取",
+      "thai": "สกัดโลหิตมังกร",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "至此",
+      "thai": "ถึงตอนนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "鬥士",
+      "thai": "นักสู้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "強化樹皮",
+      "thai": "เปลือกไม้เสริมแกร่ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "階精英生物",
+      "thai": "สิ่งมีชีวิตระดับอีลิทขั้น...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "目級生物",
+      "thai": "สิ่งมีชีวิตระดับบอส",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "屬性提升",
+      "thai": "เพิ่มค่าสถานะ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "樹人形態",
+      "thai": "ร่างเอนท์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Tree-man/Ent form",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "糾纏根須",
+      "thai": "รากพันธนาการ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "最大的提升",
+      "thai": "การพัฒนาที่ยิ่งใหญ่ที่สุด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "秒內",
+      "thai": "ภายใน...วินาที",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "安德魯敏捷",
+      "thai": "ความว่องไวของแอนดรูว์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "瘋狂狀態",
+      "thai": "สถานะคลุ้มคลั่ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "破軍之劍",
+      "thai": "ดาบทลายทัพ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的法杖",
+      "thai": "คทาเวท",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: purple staff",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "刺殺者手冊",
+      "thai": "คู่มือนักฆ่า",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: Assassin's Handbook (Orange grade)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "了曹星",
+      "thai": "ให้เฉาซิง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: gave [item] to Cao Xing",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "這本手冊",
+      "thai": "คู่มือเล่มนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: this handbook",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "對於曹星來說",
+      "thai": "สำหรับเฉาซิง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: as for Cao Xing / for Cao Xing",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "曹星大人",
+      "thai": "ท่านเฉาซิง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name + Honorific",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "霍格村求援",
+      "thai": "ขอความช่วยเหลือหมู่บ้านฮอก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Request for aid from Hog Village",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "行動計劃",
+      "thai": "แผนปฏิบัติการ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Action plan",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "驅逐雪魔",
+      "thai": "ขับไล่ปีศาจหิมะ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Expel/Banish the Snow Demon",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "出現在霍格村的雪",
+      "thai": "ปีศาจหิมะที่ปรากฏในหมู่บ้านฮอก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Context implies \"Snow Demon\" (雪魔)",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "燕妮",
+      "thai": "แอนนี่",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Yanni)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "怨靈之體",
+      "thai": "กายวิญญาณพยาบาท",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "雪原之體",
+      "thai": "กายทุ่งหิมะ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "元素之體",
+      "thai": "กายธาตุ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "魚肉",
+      "thai": "เนื้อปลา",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=5, confidence=high)"
+    },
+    {
+      "source": "青鱈魚",
+      "thai": "ปลาคอดเขียว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=4, confidence=high)"
+    },
+    {
+      "source": "黃花魚",
+      "thai": "ปลาจวด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Also known as Yellow Croaker",
+      "notes": "auto_discovered (freq=3, confidence=medium)"
+    },
+    {
+      "source": "銀鮭魚",
+      "thai": "ปลาแซลมอนเงิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "萬公斤",
+      "thai": "หมื่นกิโลกรัม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "的魚類",
+      "thai": "ปลาชนิด...",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Fragment of a sentence",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "飛天魚",
+      "thai": "ปลาบิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "可分解成白銀鮭魚",
+      "thai": "ย่อยสลายเป็นปลาแซลมอนเงินได้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "雪魔的舌頭",
+      "thai": "ลิ้นปีศาจหิมะ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "釘頭魚",
+      "thai": "ปลาหัวตะปู",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Literal translation for a fictional/specific fish",
+      "notes": "auto_discovered (freq=2, confidence=medium)"
+    },
+    {
+      "source": "肉質極其鮮嫩的白",
+      "thai": "เนื้อปลา...ที่นุ่มละมุนมาก",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Fragment of a sentence",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "已達要求",
+      "thai": "ครบตามกำหนด",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "context: requirements met",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "生長祝福效果增加",
+      "thai": "ผลพรการเติบโตเพิ่มขึ้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "game effect",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "蒼白之樹已獲得了",
+      "thai": "ต้นไม้สีซีดได้รับ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "proper name (Pale Tree)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "招募成功",
+      "thai": "รับสมัครสำเร็จ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "recruitment success",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "可以的",
+      "thai": "ได้ครับ/ค่ะ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "agreement",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "魯本",
+      "thai": "รูเบน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "proper name (Ruben)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "加速成長",
+      "thai": "เร่งการเติบโต",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "game skill/item",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "因你的領地繁榮度",
+      "thai": "เนื่องจากความรุ่งเรืองของดินแดน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "cause/reason",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "了什麼",
+      "thai": "บางอย่าง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "\"understood something\"",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "朱莉葉特微微頷首",
+      "thai": "จูเลียตพยักหน้าเล็กน้อย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "proper name (Juliet) + action",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "讓新成員感到了安",
+      "thai": "ทำให้สมาชิกใหม่รู้สึกปลอดภัย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "feeling of security",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "這位騎士",
+      "thai": "อัศวินท่านนี้",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=7, confidence=high)"
+    },
+    {
+      "source": "騎士",
+      "thai": "อัศวิน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "轉身",
+      "thai": "หันหลังกลับ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "人類",
+      "thai": "มนุษย์",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "尤莉婭",
+      "thai": "ยูเลีย",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "的冰巢怪",
+      "thai": "สัตว์ประหลาดรังน้ำแข็ง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Meaning-based translation for a creature.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "朱莉葉特繼續道",
+      "thai": "จูเลียตกล่าวต่อ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (Juliet) + action.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "明白",
+      "thai": "เข้าใจไหม",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Context is a command/question.",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "獎勵",
+      "thai": "รางวัล",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "領地外的新人",
+      "thai": "หน้าใหม่นอกดินแดน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "搭建鐵軌系統",
+      "thai": "วางระบบรางรถไฟ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "埃麗莎聽罷",
+      "thai": "เอลิซ่าฟังจบ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Proper name (transliteration)",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "領地外面",
+      "thai": "นอกดินแดน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "你指揮",
+      "thai": "คุณบัญชาการ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "回領主大人",
+      "thai": "เรียนท่านเจ้าเมือง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "Formal response to a lord",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "因你的話語",
+      "thai": "เพราะคำพูดของคุณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "士兵數量達到",
+      "thai": "จำนวนทหารถึง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "那群阿斯卡隆士兵",
+      "thai": "เหล่าทหารอัสคาลอน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "一階普通生物",
+      "thai": "สิ่งมีชีวิตทั่วไประดับ 1",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=3, confidence=high)"
+    },
+    {
+      "source": "斯卡隆士兵",
+      "thai": "ทหารอัสคาลอน",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "攻擊速度增加",
+      "thai": "ความเร็วโจมตีเพิ่มขึ้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "以上",
+      "thai": "ขึ้นไป",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "因你的英勇事跡",
+      "thai": "จากวีรกรรมอันกล้าหาญ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "到了",
+      "thai": "ถึง",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "護甲增加",
+      "thai": "พลังป้องกันเพิ่มขึ้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "激動道",
+      "thai": "กล่าวอย่างตื่นเต้น",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "別打了",
+      "thai": "หยุดตีได้แล้ว",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
+    },
+    {
+      "source": "因你",
+      "thai": "เพราะคุณ",
+      "category": "auto_discovered",
+      "priority": 3,
+      "lock": "auto",
+      "verified": false,
+      "explanation": "",
+      "notes": "auto_discovered (freq=2, confidence=high)"
     }
   ]
 }

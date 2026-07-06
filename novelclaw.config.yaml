@@ -1,0 +1,25 @@
+# novelclaw.config.yaml — Central Pipeline Configuration
+# ======================================================
+# ถ้าลบไฟล์นี้ → fallback ไปอ่าน providers.yaml + llm.json แบบเดิม
+
+# ── Active provider & model ──
+provider: openrouter
+model: google/gemma-4-31b-it:free
+discovery_model: google/gemma-4-31b-it:free
+
+# ── LLM defaults ──
+temperature: 0.28
+max_tokens: 8192
+timeout_sec: 120
+parallel_workers: 3
+
+# ── Pipeline behavior ──
+prompt_profile: ""
+sequential: false
+judge_enabled: true
+judge_threshold: 95.0
+glossary_discovery: true
+
+# ── Fallback (safety filter bypass) ──
+fallback_provider: custom
+fallback_model: openrouter/nvidia/nemotron-3-super-120b-a12b:free

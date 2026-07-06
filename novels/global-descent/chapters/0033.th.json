@@ -1,0 +1,280 @@
+{
+  "novelId": "global-descent",
+  "chapterNo": 33,
+  "sourceLang": "cn",
+  "targetLang": "th",
+  "title": {
+    "source": "",
+    "translated": "ตอนที่ 33"
+  },
+  "status": "translated",
+  "paragraphs": [
+    {
+      "type": "dialogue",
+      "text": "ประกาศจากระบบ: \"ผู้รอดชีวิตทุกท่านโปรดทราบ การอัปเดตอันดับเลเวลเสร็จสมบูรณ์แล้ว\""
+    },
+    {
+      "type": "narration",
+      "text": "เมื่อได้ยินประกาศนี้ ผู้รอดชีวิตในเขตต่างๆ ทั่วโลกต่างพากันกดเปิดดูตารางอันดับ"
+    },
+    {
+      "type": "narration",
+      "text": "ผู้รอดชีวิตในเขต 174 ก็ไม่มีข้อยกเว้น"
+    },
+    {
+      "type": "narration",
+      "text": "ทว่า อันดับที่ปรากฏบนนั้นกลับเหนือความคาดหมายของทุกคน"
+    },
+    {
+      "type": "system",
+      "text": "【ตารางอันดับเลเวล เขต 174】\n【อันดับ 1: เฉาซิง (เลเวล 4 1%)】\n【อันดับ 2: อู่ซิงหู่ (เลเวล 3 25%)】\n【อันดับ 3: โจวป๋อ (เลเวล 3 14%)】\n【อันดับ 4: เหรินอี้ซวี่ (เลเวล 3 10%)】\n【อันดับ 5: ฟางหลง (เลเวล 3 7%)】"
+    },
+    {
+      "type": "narration",
+      "text": "เมื่อเห็นรายชื่อในตารางอันดับนี้ ช่องแชทของทั้งเขต 174 ก็ตกอยู่ในความเงียบงันชั่วขณะ"
+    },
+    {
+      "type": "narration",
+      "text": "จากนั้น ข้อความจำนวนมหาศาลก็หลั่งไหลเข้ามาจนเต็มหน้าจอ"
+    },
+    {
+      "type": "dialogue",
+      "text": "เฉินหัว: \"เชี่ย! ไม่ใช่ฟางหลง และไม่ใช่ อู่ซิงหู่ แต่อันดับหนึ่งกลับเป็นบอสเฉาซิง!\""
+    },
+    {
+      "type": "dialogue",
+      "text": "เถา มู่มู่: \"นึกไม่ถึงจริงๆ ว่าบอสเฉาซิงจะได้อันดับหนึ่ง แข็งแกร่งเกินไปแล้ว!\""
+    },
+    {
+      "type": "dialogue",
+      "text": "หลิวต้าซู่: \"บอสเฉาซิงทำได้ยังไงกัน?\""
+    },
+    {
+      "type": "thought",
+      "text": "ทุกคนต่างแสดงความตกใจออกมาจากใจ"
+    },
+    {
+      "type": "dialogue",
+      "text": "ผู้รอดชีวิตคนหนึ่งที่ชื่อ ตู้หรง กล่าวว่า \"ฉันว่าทุกคนไม่ต้องตกใจขนาดนั้น บอสเฉาซิงคือชายที่ฆ่าหมีได้ การคว้าอันดับหนึ่งมาครองก็ไม่ใช่เรื่องน่าแปลกใจอะไร\""
+    },
+    {
+      "type": "dialogue",
+      "text": "\"ฮ่าฮ่า ฉันก็คิดว่าบอสเฉาซิงสมควรได้รับอันดับหนึ่งแล้ว ต้องขอบคุณเนื้อหมีของเขาที่ทำให้คนในครอบครัวฉันได้เพิ่มค่าสถานะ ตอนนี้ไม่เพียงแต่ผ่านพ้นวิกฤตความเป็นความตายมาได้ แต่ยังค่อยๆ พัฒนาอาณาเขตขึ้นมาได้ด้วย\""
+    },
+    {
+      "type": "dialogue",
+      "text": "\"ใช่เลยๆ บอสเฉาซิงได้อันดับหนึ่ง ฉันยอมรับได้\""
+    },
+    {
+      "type": "narration",
+      "text": "เพราะเนื้อหมีที่เขาขายนั้น ช่วยเหลือผู้คนไว้ได้ไม่น้อยจริงๆ"
+    },
+    {
+      "type": "narration",
+      "text": "ในขณะที่ฟางหลงและโจวป๋อรวมถึงคนอื่นๆ กลับมีสีหน้าย่ำแย่"
+    },
+    {
+      "type": "dialogue",
+      "text": "\"บัดซบ! ทำไมไอ้เด็กนั่นถึงได้อันดับหนึ่ง?\""
+    },
+    {
+      "type": "narration",
+      "text": "ใบหน้าของฟางหลงมีความโกรธเกรี้ยว และมีความไม่อยากจะเชื่อปนอยู่"
+    },
+    {
+      "type": "narration",
+      "text": "แต่ไม่นานเขาก็กลับมาสงบได้อีกครั้ง"
+    },
+    {
+      "type": "dialogue",
+      "text": "ฟางหลงถอนหายใจช้าๆ \"ยังดีที่ห่างกันแค่เลเวลเดียว ระยะเวลาก่อนสิ้นสุดช่วงคุ้มครองมือใหม่ยังเหลืออีกสามวัน เพียงพอที่ฉันจะไล่ตามเลเวลให้ทันแน่นอน!\""
+    },
+    {
+      "type": "narration",
+      "text": "ทางด้านโจวป๋อ ใบหน้าปรากฏรอยยิ้มที่ดูสนใจ"
+    },
+    {
+      "type": "dialogue",
+      "text": "\"น่าสนใจ เดิมทีนึกว่าไอ้เด็กนี่แค่โชคดี พอไปล่วงเกินฟางหลงเข้าก็คงจบเห่\""
+    },
+    {
+      "type": "dialogue",
+      "text": "\"ตอนนี้ดูเหมือนว่าเขาจะมีฝีมืออยู่บ้างจริงๆ\""
+    },
+    {
+      "type": "dialogue",
+      "text": "โจวป๋อเปิดรายชื่อเพื่อน จากนั้นกดส่งข้อความส่วนตัวว่า \"ไป ใช้เครือข่ายความสัมพันธ์รอบตัว สืบประวัติของคนที่ชื่อเฉาซิงคนนี้มา\""
+    },
+    {
+      "type": "narration",
+      "text": "นอกหน้าต่าง แสงหิมะสะท้อนวาว ลมหนาวหวีดหวิว"
+    },
+    {
+      "type": "narration",
+      "text": "ภายในห้อง เตาไฟที่อบอุ่นแผ่ความร้อนออกมา"
+    },
+    {
+      "type": "narration",
+      "text": "เตียงไม้เล็กๆ ส่งเสียงเอี๊ยดอ๊าด อุณหภูมิภายใต้ผ้าห่มกำลังพุ่งสูงขึ้นอย่างรวดเร็ว"
+    },
+    {
+      "type": "narration",
+      "text": "หญิงงามใบหน้าแดงซ่าน เบือนหน้าหนีไม่กล้าสบตากับเฉาซิง สองมือโอบกอดลำคอของเขาไว้แน่น"
+    },
+    {
+      "type": "narration",
+      "text": "เสียงเรียกของหญิงงามนั้นยาวนานและกังวาน"
+    },
+    {
+      "type": "narration",
+      "text": "ภายในห้อง อบอวลไปด้วยความหวานชื่นท่ามกลางสายฝนและเมฆหมอก"
+    },
+    {
+      "type": "narration",
+      "text": "ครู่ต่อมา หลังจากเสียงครางกระเส่าที่ยาวนานและกังวานสิ้นสุดลง ความเคลื่อนไหวในห้องก็ค่อยๆ สงบลง"
+    },
+    {
+      "type": "narration",
+      "text": "หลิวมู่เสวี่ยซบลงในอ้อมกอดของเฉาซิง ดวงตาเต็มไปด้วยความเลื่อนลอย"
+    },
+    {
+      "type": "narration",
+      "text": "ในตอนนั้น พวกเขาก็ได้ยินประกาศจากระบบเช่นกัน"
+    },
+    {
+      "type": "dialogue",
+      "text": "หลิวมู่เสวี่ยชูคอระหงดุจหงส์ ดวงตาฉายแววตื่นเต้นแล้วกล่าวว่า \"อาซิง คุณได้อันดับหนึ่งด้วย"
+    },
+    {
+      "type": "narration",
+      "text": "(จบบท)"
+    }
+  ],
+  "meta": {
+    "provider": "custom",
+    "model": "openrouter/google/gemma-4-31b-it:free",
+    "promptProfile": "faithful_default",
+    "sourceProfile": {
+      "chapterNo": 33,
+      "sourceLang": "cn",
+      "targetLang": "th",
+      "sourceLangSource": "novel_meta",
+      "charCount": 2212,
+      "paragraphCount": 90,
+      "dialogueCount": 28,
+      "systemMarkerCount": 13,
+      "sourceScriptMix": {
+        "Han": 1741
+      },
+      "specialSymbolInventory": {
+        "「": 28,
+        "」": 28,
+        "【": 13,
+        "】": 13,
+        "…": 6,
+        "（": 6,
+        "）": 6,
+        "+": 2,
+        "[": 2,
+        "]": 2,
+        "℃": 1
+      },
+      "lengthTarget": {
+        "minRatio": 0.85,
+        "idealMinRatio": 1.0,
+        "maxRatio": 3.5
+      }
+    }
+  },
+  "qualityRecord": {
+    "passed": true,
+    "score": 100.0,
+    "threshold": 85.0,
+    "hardFailures": [],
+    "warnings": [
+      "Structure Contract: system marker count looks low (1/13)."
+    ],
+    "repairNotes": [],
+    "lengthRatio": 1.145,
+    "scriptLeaks": 0,
+    "structure": {
+      "passed": true,
+      "hardFailures": [],
+      "warnings": [
+        "Structure Contract: system marker count looks low (1/13)."
+      ],
+      "source": {
+        "paragraphCount": 90,
+        "dialogueCount": 28,
+        "systemMarkerCount": 13
+      },
+      "output": {
+        "paragraphCount": 34,
+        "dialogueCount": 13,
+        "systemMarkerCount": 1
+      }
+    },
+    "judge": {
+      "ok": true,
+      "passed": true,
+      "feedback": "PASS:\nNaturalness: 9 | Consistency: 10 | Clarity: 10 | Flow: 9 | Completeness: 8\n\nThe translation is highly natural and captures the \"web novel\" tone perfectly. The only minor note is the abrupt cut-off at paragraph [5] and [34], but this appears to be a sampling issue rather than a translation error.",
+      "model": "openrouter/google/gemma-4-31b-it:free",
+      "sampledParagraphs": 12
+    },
+    "repairHistory": [
+      {
+        "kind": "translate",
+        "model": "openrouter/google/gemma-4-31b-it:free",
+        "provider": "custom",
+        "status": "passed",
+        "score": 100.0,
+        "hardFailures": [],
+        "structure": {
+          "passed": true,
+          "hardFailures": [],
+          "warnings": [
+            "Structure Contract: system marker count looks low (1/13)."
+          ],
+          "source": {
+            "paragraphCount": 90,
+            "dialogueCount": 28,
+            "systemMarkerCount": 13
+          },
+          "output": {
+            "paragraphCount": 34,
+            "dialogueCount": 13,
+            "systemMarkerCount": 1
+          }
+        }
+      }
+    ],
+    "attempts": [
+      {
+        "kind": "translate",
+        "model": "openrouter/google/gemma-4-31b-it:free",
+        "provider": "custom",
+        "status": "passed",
+        "score": 100.0,
+        "hardFailures": [],
+        "structure": {
+          "passed": true,
+          "hardFailures": [],
+          "warnings": [
+            "Structure Contract: system marker count looks low (1/13)."
+          ],
+          "source": {
+            "paragraphCount": 90,
+            "dialogueCount": 28,
+            "systemMarkerCount": 13
+          },
+          "output": {
+            "paragraphCount": 34,
+            "dialogueCount": 13,
+            "systemMarkerCount": 1
+          }
+        }
+      }
+    ]
+  },
+  "updatedAt": "2026-07-05T19:01:23.448625+00:00"
+}

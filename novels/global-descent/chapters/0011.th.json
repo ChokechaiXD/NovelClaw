@@ -1,0 +1,363 @@
+{
+  "novelId": "global-descent",
+  "chapterNo": 11,
+  "sourceLang": "cn",
+  "targetLang": "th",
+  "title": {
+    "source": "",
+    "translated": "ตอนที่ 11"
+  },
+  "status": "translated",
+  "paragraphs": [
+    {
+      "type": "narration",
+      "text": "สิ่งที่เฉาซิงพูดนั้นย่อมเป็นเรื่องโกหก ทักษะ"
+    },
+    {
+      "type": "system",
+      "text": "【วิชาเกราะน้ำแข็ง】"
+    },
+    {
+      "type": "narration",
+      "text": "เป็นหนึ่งในทักษะพื้นฐานช่วงต้นของนักเวท แม้จะค่อนข้างไร้ประโยชน์ แต่ก็มีมูลค่าไม่น้อย"
+    },
+    {
+      "type": "dialogue",
+      "text": "เฉาซิงตอบกลับไปตรงๆ ว่า \"จะเชื่อหรือไม่ก็แล้วแต่\""
+    },
+    {
+      "type": "dialogue",
+      "text": "เมื่อแมคเลเธอร์ได้ยินดังนั้นก็พูดอย่างจนใจว่า \"ช่างเถอะ เนื้องู 3 ชิ้นก็ 3 ชิ้นแล้วกัน ประหยัดหน่อยก็น่าจะพอให้ครอบครัวข้าทนอยู่ได้อีกวัน\""
+    },
+    {
+      "type": "narration",
+      "text": "เมื่อได้ยินประโยคสุดท้าย แววตาของเฉาซิงไหววูบ"
+    },
+    {
+      "type": "dialogue",
+      "text": "หลังจากครุ่นคิดครู่หนึ่ง เขาก็ส่งข้อความไปว่า \"เอาแบบนี้ เปลี่ยนเป็นอาหาร 20 ชิ้น แล้วข้าจะเพิ่มขนมปังให้อีก 5 ก้อน\""
+    },
+    {
+      "type": "dialogue",
+      "text": "แมคเลเธอร์ที่อยู่อีกฝั่งชะงักไป แต่ก็ตอบว่า \"ตกลง\""
+    },
+    {
+      "type": "dialogue",
+      "text": "เฉาซิง: \"งั้นเจ้าไปแก้ไขข้อมูลการแลกเปลี่ยนในตลาดเลย ข้าจะกดซื้อทันที\""
+    },
+    {
+      "type": "narration",
+      "text": "ไม่นานนัก ราคาของหนังสือทักษะเล่มนั้นในตลาดก็เปลี่ยนเป็น"
+    },
+    {
+      "type": "system",
+      "text": "【อาหาร】"
+    },
+    {
+      "type": "narration",
+      "text": "* 20 และ"
+    },
+    {
+      "type": "system",
+      "text": "【ขนมปัง】"
+    },
+    {
+      "type": "narration",
+      "text": "* 5"
+    },
+    {
+      "type": "system",
+      "text": "【การแลกเปลี่ยนสำเร็จ ท่านได้รับหนังสือทักษะวิชาเกราะน้ำแข็ง*1 ท่านเสียเนื้องูสด*3 ท่านเสียขนมปัง*5】"
+    },
+    {
+      "type": "system",
+      "text": "【วิชาเกราะน้ำแข็ง: ใช้พลังจิตจำนวนหนึ่ง เพื่อเพิ่มค่าเกราะให้ตนเองหรือพันธมิตร (พลังจิต*0.6) ผลคงอยู่ 30 วินาที คูลดาวน์ 60 วินาที】"
+    },
+    {
+      "type": "narration",
+      "text": "เฉาซิงมีสีหน้ายินดี สิ่งนี้แหละที่ต้องการ"
+    },
+    {
+      "type": "narration",
+      "text": "ตอนนี้ความแข็งแกร่งทางจิตของเขาคือ 5 เมื่อรวมกับการเสริมพลังจาก"
+    },
+    {
+      "type": "system",
+      "text": "【ไม้เท้าสาวก】"
+    },
+    {
+      "type": "narration",
+      "text": "จึงมีพลังจิต 8 จุด"
+    },
+    {
+      "type": "narration",
+      "text": "นั่นหมายความว่า เฉาซิงสามารถเพิ่มค่าเกราะให้ตัวเองได้อย่างถาวรอีก 5 จุด!"
+    },
+    {
+      "type": "narration",
+      "text": "[เรียนรู้"
+    },
+    {
+      "type": "system",
+      "text": "【วิชาเกราะน้ำแข็ง】"
+    },
+    {
+      "type": "narration",
+      "text": "สำเร็จ...]"
+    },
+    {
+      "type": "narration",
+      "text": "หลังจากคำแจ้งเตือนของระบบสิ้นสุดลง เฉาซิงก็แอบดีใจในใจ"
+    },
+    {
+      "type": "narration",
+      "text": "จากนั้น เขาเริ่มร่ายวิชาเกราะน้ำแข็งใส่ตัวเองเป็นคนแรก"
+    },
+    {
+      "type": "narration",
+      "text": "[ร่าย"
+    },
+    {
+      "type": "system",
+      "text": "【วิชาเกราะน้ำแข็ง】"
+    },
+    {
+      "type": "narration",
+      "text": "สำเร็จ ค่าเกราะ+5 พรสวรรค์"
+    },
+    {
+      "type": "system",
+      "text": "【พลังนิรันดร์】"
+    },
+    {
+      "type": "narration",
+      "text": "ทำงาน ทักษะนี้ได้กลายเป็นสถานะถาวร]"
+    },
+    {
+      "type": "thought",
+      "text": "วินาทีต่อมา เฉาซิงรู้สึกได้ถึงเกราะน้ำแข็งที่มองไม่เห็นชั้นหนึ่งห่อหุ้มร่างกายเอาไว้"
+    },
+    {
+      "type": "thought",
+      "text": "ความรู้สึกปลอดภัยเอ่อล้นขึ้นมาในใจ"
+    },
+    {
+      "type": "narration",
+      "text": "ผลของ"
+    },
+    {
+      "type": "system",
+      "text": "【วิชาเกราะน้ำแข็ง】"
+    },
+    {
+      "type": "narration",
+      "text": "คล้ายกับ"
+    },
+    {
+      "type": "system",
+      "text": "【เกราะเกล็ด】"
+    },
+    {
+      "type": "narration",
+      "text": "คือเป็นวิธีการป้องกันที่มองไม่เห็น ซึ่งจะปรากฏออกมาก็ต่อเมื่อถูกโจมตีเท่านั้น"
+    },
+    {
+      "type": "narration",
+      "text": "ตอนนี้ค่าเกราะของเขาเพิ่มขึ้นมาถึง 15 จุด การโจมตีของมอนสเตอร์เลเวลต่ำกว่า 3 แทบจะไม่สามารถสร้างความเสียหายให้เขาได้เลย!"
+    },
+    {
+      "type": "narration",
+      "text": "หลังจากรอครบ 60 วินาที เฉาซิงก็ร่ายวิชาเกราะน้ำแข็งเพิ่มให้อีกชั้นแก่หลิวมู่เสวี่ย"
+    },
+    {
+      "type": "narration",
+      "text": "ในฐานะตัวแทงค์ของทีม แน่นอนว่าต้องดันค่าป้องกันของเธอให้สูงที่สุดเท่าที่จะทำได้"
+    },
+    {
+      "type": "narration",
+      "text": "หลิวมู่เสวี่ยเองก็ได้ทราบสถานการณ์ปัจจุบันของผู้รอดชีวิตคนอื่นๆ ผ่านช่องแชท"
+    },
+    {
+      "type": "thought",
+      "text": "ตอนนี้เธอถึงได้เข้าใจว่า ไม่ใช่ทุกคนที่จะเหมือนเธอที่ได้อาศัยอยู่ในบ้านเจ้าเมืองอันอบอุ่น"
+    },
+    {
+      "type": "narration",
+      "text": "ผู้รอดชีวิตส่วนใหญ่ยังคงต้องใช้ชีวิตอย่างหิวโหยและหนาวเหน็บ"
+    },
+    {
+      "type": "narration",
+      "text": "หากไม่ได้อยู่กับเฉาซิง หลิวมู่เสวี่ยเองก็คงต้องเผชิญชะตากรรมแบบเดียวกัน หรืออาจจะเลวร้ายกว่านั้น"
+    },
+    {
+      "type": "narration",
+      "text": "และต้องผ่านนรกหิมะที่หนาวเหน็บเสียดกระดูกในยามค่ำคืน"
+    },
+    {
+      "type": "dialogue",
+      "text": "หลิวมู่เสวี่ยมองเฉาซิงด้วยสายตาซาบซึ้ง \"ขอบคุณนะอาซิง ถ้าไม่มีนาย ฉันคงหนาวตายอยู่ข้างนอกนั่นแล้ว\""
+    },
+    {
+      "type": "dialogue",
+      "text": "เฉาซิงส่ายหน้า \"ไม่เป็นไรครับพี่สะใภ้ ในเมื่อเราสองคนถูกจัดให้อยู่กลุ่มเดียวกัน ก็ต้องร่วมมือกันเพื่อให้มีชีวิตรอดในโลกนี้ให้ดีที่สุด\""
+    },
+    {
+      "type": "dialogue",
+      "text": "\"การที่ผมช่วยพี่ ก็เหมือนช่วยตัวผมเองด้วย\""
+    },
+    {
+      "type": "dialogue",
+      "text": "หลิวมู่เสวี่ยพยักหน้าอย่างจริงจัง \"ฉันจะรีบปรับตัวให้เข้ากับโลกนี้ให้เร็วที่สุด จะไม่เป็นตัวถ่วงของนายแน่นอน!\""
+    },
+    {
+      "type": "narration",
+      "text": "หลังจากนั้น ทั้งสองก็ตกอยู่ในความเงียบที่ค่อนข้างสงบ"
+    },
+    {
+      "type": "thought",
+      "text": "ในตอนนั้นเอง หลิวมู่เสวี่ยไม่รู้ว่าคิดอะไรอยู่ จู่ๆ ใบหน้าสวยก็แดงระเรื่อ แม้แต่ร่างกายก็สั่นเทาเล็กน้อย"
+    },
+    {
+      "type": "narration",
+      "text": "ครู่ต่อมา เธอถอดรองเท้าบูทลุยหิมะออก แล้วหดตัวกลับเข้าไปบนเตียงไม้เล็กๆ"
+    },
+    {
+      "type": "narration",
+      "text": "หลิวมู่เสวี่ยห่อตัวด้วยเสื้อคลุมหนังหมาป่า ฝังศีรษะที่แดงก่ำลงไปลึกๆ เหลือเพียงเท้าเล็กๆ สีชมพูนวลโผล่ออกมา"
+    },
+    {
+      "type": "narration",
+      "text": "โดยมีเตาผิงอันอบอุ่นกั้นกลางระหว่างคนทั้งสอง"
+    },
+    {
+      "type": "narration",
+      "text": "(จบบท)"
+    }
+  ],
+  "meta": {
+    "provider": "custom",
+    "model": "openrouter/google/gemma-4-31b-it:free",
+    "promptProfile": "faithful_default",
+    "sourceProfile": {
+      "chapterNo": 11,
+      "sourceLang": "cn",
+      "targetLang": "th",
+      "sourceLangSource": "novel_meta",
+      "charCount": 2859,
+      "paragraphCount": 107,
+      "dialogueCount": 46,
+      "systemMarkerCount": 9,
+      "sourceScriptMix": {
+        "Han": 2297
+      },
+      "specialSymbolInventory": {
+        "「": 46,
+        "」": 46,
+        "【": 10,
+        "】": 10,
+        "[": 2,
+        "]": 2,
+        "…": 2,
+        "+": 1,
+        "（": 1,
+        "）": 1
+      },
+      "lengthTarget": {
+        "minRatio": 0.85,
+        "idealMinRatio": 1.0,
+        "maxRatio": 3.5
+      }
+    }
+  },
+  "qualityRecord": {
+    "passed": true,
+    "score": 100.0,
+    "threshold": 85.0,
+    "hardFailures": [],
+    "warnings": [
+      "Structure Contract: dialogue count looks low (9/46)."
+    ],
+    "repairNotes": [],
+    "lengthRatio": 1.059,
+    "scriptLeaks": 0,
+    "structure": {
+      "passed": true,
+      "hardFailures": [],
+      "warnings": [
+        "Structure Contract: dialogue count looks low (9/46)."
+      ],
+      "source": {
+        "paragraphCount": 107,
+        "dialogueCount": 46,
+        "systemMarkerCount": 9
+      },
+      "output": {
+        "paragraphCount": 55,
+        "dialogueCount": 9,
+        "systemMarkerCount": 11
+      }
+    },
+    "judge": {
+      "ok": true,
+      "passed": true,
+      "feedback": "PASS:\nNaturalness: 9 | Consistency: 10 | Clarity: 9 | Flow: 9 | Completeness: 10\nThe translation is professional, captures the light novel tone perfectly, and handles system prompts and dialogue naturally. No improvements needed.",
+      "model": "openrouter/google/gemma-4-31b-it:free",
+      "sampledParagraphs": 12
+    },
+    "repairHistory": [
+      {
+        "kind": "translate",
+        "model": "openrouter/google/gemma-4-31b-it:free",
+        "provider": "custom",
+        "status": "passed",
+        "score": 100.0,
+        "hardFailures": [],
+        "structure": {
+          "passed": true,
+          "hardFailures": [],
+          "warnings": [
+            "Structure Contract: dialogue count looks low (9/46)."
+          ],
+          "source": {
+            "paragraphCount": 107,
+            "dialogueCount": 46,
+            "systemMarkerCount": 9
+          },
+          "output": {
+            "paragraphCount": 55,
+            "dialogueCount": 9,
+            "systemMarkerCount": 11
+          }
+        }
+      }
+    ],
+    "attempts": [
+      {
+        "kind": "translate",
+        "model": "openrouter/google/gemma-4-31b-it:free",
+        "provider": "custom",
+        "status": "passed",
+        "score": 100.0,
+        "hardFailures": [],
+        "structure": {
+          "passed": true,
+          "hardFailures": [],
+          "warnings": [
+            "Structure Contract: dialogue count looks low (9/46)."
+          ],
+          "source": {
+            "paragraphCount": 107,
+            "dialogueCount": 46,
+            "systemMarkerCount": 9
+          },
+          "output": {
+            "paragraphCount": 55,
+            "dialogueCount": 9,
+            "systemMarkerCount": 11
+          }
+        }
+      }
+    ]
+  },
+  "updatedAt": "2026-07-05T18:50:26.582255+00:00"
+}

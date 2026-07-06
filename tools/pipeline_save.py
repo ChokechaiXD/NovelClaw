@@ -1,4 +1,10 @@
-"""Chapter writer station for translated NovelClaw chapters."""
+"""Post-translation station: apply term policy then save chapter.
+
+Merged from pipeline_glossary.py + pipeline_save.py:
+  - apply_glossary_post() — term_policy replacements on translated text
+  - get_title() — extract/format chapter title
+  - save_chapter() — write .th.json to disk
+"""
 
 from __future__ import annotations
 
@@ -10,6 +16,29 @@ from typing import Any
 from atomic_io import atomic_write_json
 from novel_paths import chapter_dir, chapter_path
 from prompt_builder import get_lang_config
+
+# ── End markers (preserved as-is during glossary application)
+_END_MARKERS = {"(จบบท)", "(End)", "（終）", "(끝)"}
+
+
+def apply_glossary_post(
+    paragraphs: list[str], target_lang: str = "th"
+) -> list[str]:
+    """Apply term_policy replacements to translated paragraph strings."""
+    try:
+        from qa.term_policy import get_term_policy
+
+        tp = get_term_policy(target_lang)
+        result = []
+        for para in paragraphs:
+            if para in _END_MARKERS:
+                result.append(para)
+                continue
+            applied = tp.apply_to_text(para)
+            result.append(applied.text)
+        return result
+    except ImportError:
+        return paragraphs
 
 
 def get_title(source_text: str, ch_num: int, source_lang: str = "cn") -> str:

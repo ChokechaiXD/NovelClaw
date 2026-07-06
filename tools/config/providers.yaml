@@ -1,16 +1,8 @@
 # NovelClaw Provider Configuration
-# This file is read by llm_router/config.py AND can be edited via Admin UI.
-# Switching active provider + model here affects all translation pipelines.
-#
-# HOW TO SWITCH:
-#   1. Change `active:` to the provider key below
-#   2. Change `default_model:` to one of the listed models
-#   3. Set API key via environment variable or llm.json
-
-active: custom
-
-default_model: "NOVEL_TH_QUALITY"
-discovery_model: "NOVEL_TH_QUALITY"
+# =================================
+# active, default_model, discovery_model ถูกย้ายไป novelclaw.config.yaml
+# ดูและเปลี่ยนได้ที่ไฟล์นั้น (รากโปรเจกต์)
+# ไฟล์นี้ยังใช้สำหรับ: provider details (base_url, model list, profiles)
 
 providers:
   openrouter:
@@ -114,9 +106,15 @@ providers:
     max_tokens: 4096
     temperature: 0.3
     models:
-      - id: "custom-model"
-        name: "Custom model"
-        tier: custom
+      - id: "openrouter/google/gemma-4-31b-it:free"
+        name: "Gemma 4 31B via 9Router (free)"
+        tier: free
+      - id: "openrouter/openai/gpt-oss-120b:free"
+        name: "GPT-OSS 120B via 9Router (free)"
+        tier: free
+      - id: "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+        name: "Nemotron 3 Super 120B via 9Router (free)"
+        tier: free
 
 # Translation profiles (which provider + model to use for each task)
 profiles:

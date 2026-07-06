@@ -1,7 +1,6 @@
 """tools/qa — Quality assurance package for NovelClaw.
 
 Submodules:
-- validators.py:   Canonical regex patterns (CJK, EN, source artifacts)
-- deterministic.py: Pre-LLM deterministic checks
-- scoring.py:      Quality scoring dimensions
+- term_policy.py:  Term Action Registry (from config/term_policy.{lang}.yaml)
+- script_policy.py: Target-language script allowlist policy
 """

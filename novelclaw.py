@@ -28,6 +28,20 @@ import time
 from pathlib import Path
 
 _PROJECT_ROOT = Path(__file__).resolve().parent
+
+
+def _cli_config_default(key: str) -> str:
+    """Read default value from novelclaw.config.yaml, return "" if not found."""
+    cfg_path = _PROJECT_ROOT / "novelclaw.config.yaml"
+    if not cfg_path.exists():
+        return ""
+    try:
+        import yaml
+        with open(cfg_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        return str(data.get(key, ""))
+    except Exception:
+        return ""
 _TOOLS_DIR = _PROJECT_ROOT / "tools"
 sys.path.insert(0, str(_TOOLS_DIR))
 

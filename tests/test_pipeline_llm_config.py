@@ -58,6 +58,7 @@ def test_call_llm_uses_overridden_provider_runtime_config(monkeypatch):
         "llm_router.config_providers.get_provider_config",
         fake_provider_config,
     )
+    monkeypatch.setattr(pipeline_llm, "_load_central_config", lambda: {})
     monkeypatch.setattr(pipeline_llm.urllib.request, "urlopen", fake_urlopen)
 
     class FakeLimit:
@@ -72,12 +73,12 @@ def test_call_llm_uses_overridden_provider_runtime_config(monkeypatch):
 
     monkeypatch.setattr(pipeline_llm, "limit_llm_call", lambda provider: FakeLimit(provider))
 
-    response, provider_name, model_name = pipeline_llm.call_llm("prompt", provider="beta")
+    response, provider_name, model_name = pipeline_llm.call_llm("prompt", provider="beta", model="openrouter/test-model")
 
     assert response == "translated"
     assert pipeline.call_llm is pipeline_llm.call_llm
     assert provider_name == "beta"
-    assert model_name == "default-model"
+    assert model_name == "openrouter/test-model"
     assert captured["url"] == "https://beta.local/api/v1/chat/completions"
     assert captured["timeout"] == 22
     assert captured["body"]["max_tokens"] == 222
