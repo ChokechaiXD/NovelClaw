@@ -362,3 +362,36 @@ def test_translate_one_judge_auto_repair_saves_chapter_after_successful_fix(monk
     assert result["status"] == "ok"
     assert saved_kwargs["quality_record"]["judge"]["repaired"] is True
     assert any(a["kind"] == "judge_repair" for a in saved_kwargs["quality_record"]["attempts"])
+
+
+
+def test_translate_one_tolerates_empty_judge_feedback(monkeypatch, tmp_path):
+    monkeypatch.setattr(pipeline, "read_source", lambda *_args, **_kwargs: "阿星醒來。")
+    monkeypatch.setattr(pipeline, "build_translate_prompt", lambda **_kwargs: "SYSTEM\n<glossary>\nTranslate.")
+    monkeypatch.setattr(
+        pipeline,
+        "_get_active_config",
+        lambda *_args, **_kwargs: {
+            "model": "primary-model",
+            "provider_name": "openrouter",
+            "discovery_model": "judge-model",
+        },
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "call_llm",
+        lambda *args, **kwargs: ("เฉาซิงลืมตาขึ้น\n\n(จบบท)", "fake", kwargs.get("model") or "fake-model"),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "_score_and_report",
+        lambda *_args, **_kwargs: {"score": 92, "passed": True, "hardFailures": []},
+    )
+    monkeypatch.setattr(pipeline, "judge_translation", lambda *_args, **_kwargs: {"ok": True, "feedback": None})
+    monkeypatch.setattr(pipeline, "discover_and_save", lambda **_kwargs: {"discovered": 0, "saved": 0, "terms": []})
+    monkeypatch.setattr(pipeline, "save_chapter", lambda **_kwargs: tmp_path / "0001.th.json")
+
+    result = pipeline.translate_one(1)
+
+    assert result["status"] == "ok"
+    assert result["judge"] == ""

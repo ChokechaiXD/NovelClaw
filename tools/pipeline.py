@@ -1049,11 +1049,12 @@ def translate_one(
             "sourceProfile": source_profile,
             "score": score_result.get("score", 0) if isinstance(score_result, dict) else 0,
             "quality": quality_record,
-            "judge": (judge_result.get("feedback")[:200] if isinstance(judge_result, dict) and judge_result.get("ok") else "judge_error"),
+            "judge": (str(judge_result.get("feedback") or "")[:200] if isinstance(judge_result, dict) and judge_result.get("ok") else "judge_error"),
             "discovery": f"{discovery_result.get('discovered', 0)} found, {discovery_result.get('saved', 0)} saved" if isinstance(discovery_result, dict) and discovery_result.get('discovered', 0) > 0 else "none",
         }
 
     except Exception as e:
+        logger.exception("translate_one failed for ch %s", ch_num)
         return {"status": "failed", "ch": ch_num, "reason": str(e)[:300]}
 
 
