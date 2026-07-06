@@ -39,6 +39,9 @@ class _TranslateOneResult(TypedDict, total=False):
     source_preview: str
     provider: str
     model: str
+    promptProfile: str
+    sourceLang: str
+    sourceProfile: str
     discovery: str
     judge: str
     reason: str
