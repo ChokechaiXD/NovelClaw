@@ -426,8 +426,10 @@ scene order, sentence rhythm, and intentional flatness.
   standalone dialogue, and standalone system/UI markers.
 - Split or join paragraphs only when Thai readability or a standalone system
   marker requires it. Do not collapse many source beats into one paragraph.
-- If the source has standalone dialogue lines, keep them as standalone dialogue
-  lines in the translation. Do not bury speech inside narration.
+- **Dialogue preservation:** if the source has standalone dialogue lines, keep
+  them as standalone Thai dialogue paragraphs. Do not bury speech inside narration.
+- Do not combine multiple source dialogue lines into one paragraph.
+- Chat/forum lines with `Name: "..."` must remain separate paragraphs.
 - **No JSON, XML, markdown fences, or any wrapper.**
 - **End with end marker.** The last paragraph must be the end marker.
 - **CRITICAL: Output length must be >=85% of source.** Do NOT condense or summarize.
