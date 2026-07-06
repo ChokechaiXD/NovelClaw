@@ -1,4 +1,11 @@
-"""Deterministic translation quality gate used by the local pipeline."""
+"""Deterministic translation quality gate — wraps scorer.py with
+pipeline-level decisions (structure contract, repair notes).
+Caller's single point of entry for scoring a translation attempt.
+
+- evaluate_translation_quality() → dict (passed, score, hardFailures, repair_notes)
+- evaluate_structure_contract() → source vs output structure check
+- build_repair_notes() → error → actionable repair hint
+"""
 
 from __future__ import annotations
 

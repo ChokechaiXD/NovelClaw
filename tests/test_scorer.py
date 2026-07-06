@@ -76,8 +76,8 @@ def test_scorer_does_not_clear_term_policy_cache(monkeypatch):
 def test_quality_gate_fails_when_dimension_fails_even_if_weighted_total_is_high(monkeypatch):
     fake_result = SimpleNamespace(
         weighted_total=90.0,
-        dimensions=[SimpleNamespace(name="Script Purity", score=0.9)],
-        errors=["Script Purity: leak"],
+        dimensions=[SimpleNamespace(name="Completeness", score=0.9)],
+        errors=["Completeness: too short"],
     )
 
     monkeypatch.setattr(quality_gate, "score_chapter", lambda *_args, **_kwargs: fake_result)
