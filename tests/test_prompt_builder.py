@@ -41,3 +41,18 @@ def test_prompt_profiles_are_explicit_presets():
 
     assert "<prompt_profile>" in prompt
     assert "strict_literal" in prompt
+
+
+
+def test_prompt_preserves_dialogue_line_structure():
+    prompt = build_prompt(
+        source_text='张三: 「一」\n李四: 「二」',
+        ch_num=3,
+        source_lang="cn",
+        target_lang="th",
+        novel_title="global-descent",
+    )
+
+    assert "Do not combine multiple source dialogue lines" in prompt
+    assert 'Chat/forum lines with `Name: "..."` must remain separate paragraphs' in prompt
+    assert "No JSON, XML, markdown fences" in prompt
