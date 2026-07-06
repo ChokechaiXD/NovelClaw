@@ -141,12 +141,15 @@ def _validate_config() -> list[str]:
     model = data.get("model")
     discovery = data.get("discovery_model")
 
+    # Provider validation: allow if in catalog OR if it's a custom/local endpoint
     if provider and provider not in available_models:
-        errors.append(f"Provider '{provider}' not found in providers.yaml")
+        # Not an error — could be custom/local endpoint
+        pass  # Optional: add warning logic if desired
     if provider and model and model not in available_models.get(provider, set()):
         errors.append(f"Model '{model}' not found under provider '{provider}'")
+
     if provider and discovery and discovery not in available_models.get(provider, set()):
-        errors.append(f"Discovery model '{discovery}' not found under provider '{provider}'")
+        errors.append(f"Warning: Discovery model '{discovery}' not in catalog for provider '{provider}'")
 
     return errors
 _TOOLS_DIR = _PROJECT_ROOT / "tools"
