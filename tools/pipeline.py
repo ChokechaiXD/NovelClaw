@@ -19,10 +19,43 @@ Usage (via novelclaw.py CLI):
 from __future__ import annotations
 
 import json
+import logging
 import re
 import sys
 from pathlib import Path
 from typing import Any
+
+# ── Logging setup ────────────────────────────────────────────────────
+logger = logging.getLogger("novelclaw.pipeline")
+_LOGGING_CONFIGURED = False
+
+
+def _ensure_logging() -> None:
+    global _LOGGING_CONFIGURED
+    if _LOGGING_CONFIGURED:
+        return
+    _LOGGING_CONFIGURED = True
+    log_file = _PROJECT_ROOT / "novelclaw.log"
+    try:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+            handlers=[
+                logging.FileHandler(str(log_file), encoding="utf-8"),
+                logging.StreamHandler(),
+            ],
+            force=True,
+        )
+        logger.info("Logging initialized (file=%s)", log_file)
+    except Exception:
+        # Fallback: stdout-only if file write fails
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+            force=True,
+        )
+    logger.info("Logging initialized (stdout only)")
+
 
 # ── Paths ─────────────────────────────────────────────────────────────
 
@@ -44,7 +77,36 @@ from glossary_pre import build_glossary_pre_chunk  # noqa: E402
 from glossary_discovery import discover_and_save  # noqa: E402
 from source_profile import build_source_profile, resolve_source_lang  # noqa: E402
 
-_GLOSSARY_DISCOVERED: set[str] = set()  # ponytail: run glossary once per slug per session
+# ── Glossary discovery persistence ────────────────────────────────────
+# Previously a global set() that only lasted one session.
+# Now checks glossary.json on disk — persists across sessions.
+
+_GLOSSARY_CACHE: dict[str, bool] = {}  # slug → has_auto_discovered
+
+
+def _glossary_has_been_discovered(slug: str) -> bool:
+    """Check if glossary.json already contains auto-discovered terms.
+    
+    Cached per slug to avoid re-reading disk every chapter.
+    """
+    if slug in _GLOSSARY_CACHE:
+        return _GLOSSARY_CACHE[slug]
+
+    from novel_paths import glossary_json_path
+    path = glossary_json_path(slug)
+    if not path.exists():
+        _GLOSSARY_CACHE[slug] = False
+        return False
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        terms = data.get("terms", [])
+        has_auto = any(t.get("category") == "auto_discovered" for t in terms)
+        _GLOSSARY_CACHE[slug] = has_auto
+        return has_auto
+    except Exception:
+        _GLOSSARY_CACHE[slug] = False
+        return False
 
 # ── Station 1: Source Reader ─────────────────────────────────────────
 
@@ -664,7 +726,7 @@ def _run_real_translate(
     )
 
     # ── Station 6.8: Auto Glossary Discovery ──
-    if source and _GLOSSARY_DISCOVERED.add(slug) is None:
+    if source and not _glossary_has_been_discovered(slug):
         cfg = _get_active_config()
         discovery_result = discover_and_save(
             source_text=source, slug=slug, source_lang=source_lang,
@@ -707,6 +769,7 @@ def translate_one(
         {"status": "ok", "ch": num, "paragraphs": N, "types": {...}, "path": "..."}
         or {"status": "failed", "ch": num, "reason": "..."}
     """
+    _ensure_logging()
     try:
         # ── Station 1-2: Read + Clean ──
         raw = read_source(ch_num, slug)
