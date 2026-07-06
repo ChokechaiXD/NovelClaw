@@ -48,6 +48,7 @@ _GLOSSARY_DISCOVERED: set[str] = set()  # ponytail: run glossary once per slug p
 
 # ── Station 1: Source Reader ─────────────────────────────────────────
 
+
 def read_source(ch_num: int, slug: str = "global-descent") -> str | None:
     """Station 1: Read source file. Supports .md and .cn.json."""
     src_json = chapter_path(slug, ch_num, "cn")
@@ -64,6 +65,7 @@ def read_source(ch_num: int, slug: str = "global-descent") -> str | None:
 
 
 # ── Station 3: Prompt Builder ─────────────────────────────────────────
+
 
 def build_translate_prompt(
     source_text: str,
@@ -99,6 +101,7 @@ def build_translate_prompt(
 
 
 # ── Station 6.5: Scorer ─────────────────────────────────────────────────
+
 
 def _score_and_report(
     classified: list[dict[str, str]],
@@ -146,6 +149,113 @@ def _quality_summary(
         "repairHistory": attempts,
         "attempts": attempts,
     }
+
+
+# ── Prompt Splitter ────────────────────────────────────────────────────
+
+
+def _split_prompt(
+    prompt: str,
+    repair_instruction: str = "",
+) -> tuple[str | None, str]:
+    """Split assembled prompt into system + user parts at the first structured marker.
+
+    Returns (system_text or None, user_text).
+    """
+    split_point = prompt.find("<continuity>")
+    if split_point < 0:
+        split_point = prompt.find("<glossary>")
+    if split_point > 0 and split_point < len(prompt):
+        system_text = prompt[:split_point].strip()
+        user_text = prompt[split_point:].strip()
+    else:
+        system_text = None
+        user_text = prompt
+    if repair_instruction:
+        user_text += repair_instruction
+    return system_text, user_text
+
+
+# ── Station 4-6: One Attempt Runner ────────────────────────────────────
+
+
+def _run_one_attempt(
+    prompt: str,
+    repair_instruction: str,
+    ch_num: int,
+    target_lang: str,
+    source: str,
+    source_profile: dict[str, Any] | None,
+    attempt_cfg: dict[str, Any],
+) -> dict[str, Any]:
+    """Run one LLM attempt through Stations 4-6 (call → parse → gloss → classify → score).
+
+    Args:
+        prompt: Full assembled prompt.
+        repair_instruction: Quality-failure repair instruction (may be empty).
+        ch_num: Chapter number (for parsing).
+        target_lang: Target language code.
+        source: Clean source text.
+        source_profile: Source profile for scoring context.
+        attempt_cfg: Attempt config with 'kind', 'model', 'provider' keys.
+
+    Returns:
+        Dict with 'status' key: 'passed', 'quality_failed', 'empty_output', or 'error'.
+        Plus 'classified', 'score_result', 'provider', 'model', 'system_text',
+        'user_text', and for errors: 'reason'.
+    """
+    system_text, user_text = _split_prompt(prompt, repair_instruction)
+
+    try:
+        response, provider_name, model_name = call_llm(
+            prompt=user_text,
+            system=system_text,
+            model=attempt_cfg["model"],
+            provider=attempt_cfg["provider"],
+        )
+
+        if not response or len(response.strip()) < 10:
+            return {
+                "status": "empty_output",
+                "provider": provider_name,
+                "model": model_name,
+                "system_text": system_text,
+                "user_text": user_text,
+            }
+
+        # ── Station 5: Parse ──
+        paragraph_strings = parse_output(response, ch_num)
+        if paragraph_strings[-1] != "(จบบท)":
+            paragraph_strings.append("(จบบท)")
+
+        # ── Station 5.5: Glossary Post-Process ──
+        paragraph_strings = apply_glossary_post(paragraph_strings, target_lang)
+
+        # ── Station 6: Classify ──
+        classified = classify_and_format(paragraph_strings)
+
+        # ── Station 6.5: Score ──
+        score_result = _score_and_report(classified, source, target_lang, source_profile=source_profile)
+
+        passed = bool(score_result.get("passed"))
+        return {
+            "status": "passed" if passed else "quality_failed",
+            "classified": classified,
+            "score_result": score_result,
+            "provider": provider_name,
+            "model": model_name,
+            "system_text": system_text,
+            "user_text": user_text,
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "reason": str(e)[:100],
+            "provider": attempt_cfg["provider"],
+            "model": attempt_cfg["model"],
+            "system_text": system_text,
+            "user_text": user_text,
+        }
 
 
 # ── Station 6.75: LLM Judge ────────────────────────────────────────────
@@ -219,6 +329,7 @@ Otherwise start with PASS: and keep feedback brief."""
 
 # ── Station 6.75: LLM Judge + Auto Repair Orchestration ──────────────
 
+
 def _judge_and_auto_repair(
     classified: list[dict[str, str]],
     source: str,
@@ -252,7 +363,6 @@ def _judge_and_auto_repair(
 
     if judge_result.get("ok") and judge_result.get("passed") is False:
         judge_feedback = str(judge_result.get("feedback", ""))[:400]
-        # Attempt one targeted repair guided by Judge feedback
         judge_repair_instruction = (
             "\n\n<judge_repair>\nAn LLM quality reviewer suggested improvements."
             " Rewrite the full chapter addressing these points before returning:\n"
@@ -274,7 +384,6 @@ def _judge_and_auto_repair(
                 classified2 = classify_and_format(paras2)
                 score2 = _score_and_report(classified2, source, target_lang, source_profile=source_profile)
                 if score2["passed"]:
-                    # Repair worked — use the improved translation
                     classified = classified2
                     score_result = score2
                     judge_repaired = True
@@ -307,7 +416,279 @@ def _judge_and_auto_repair(
     return classified, score_result, judge_result
 
 
+# ── Retry quality decision ─────────────────────────────────────────────
+
+
+def _quality_repair_decision(score_result: dict[str, Any]) -> dict[str, Any]:
+    """Determine if a quality-failed chapter is eligible for auto-repair retry."""
+    _scr = float(score_result.get("score") or 0.0)
+    _notes = [str(n) for n in (score_result.get("repairNotes") or score_result.get("repair_notes") or []) if str(n).strip()]
+    _eligible = (not score_result.get("passed")) and bool(_notes) and (_scr >= 80.0)
+    return {"eligible": _eligible, "reason": "borderline_quality" if _eligible else "not_eligible", "score": _scr}
+
+
+# ── Safety Fallback ────────────────────────────────────────────────────
+
+
+def _try_safety_fallback(
+    user_text: str,
+    system_text: str | None,
+    ch_num: int,
+    target_lang: str,
+    source: str,
+    source_profile: dict[str, Any] | None,
+    last_error: str,
+    primary_provider: str,
+) -> tuple[bool, dict[str, Any], list[dict[str, str]], str, str, str]:
+    """Attempt OpenRouter safety filter auto-fallback to 9Router.
+
+    Returns (succeeded, score_result, classified, fallback_model, fallback_provider, path)
+    or (False, ...) if fallback fails.
+    """
+    if "empty_or_short_content" not in last_error or primary_provider != "openrouter":
+        return (False, {}, [], "", "", "")
+
+    fallback_model = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+    try:
+        response_retry, prov_retry, _ = call_llm(
+            prompt=user_text,
+            system=system_text,
+            model=fallback_model,
+            provider="custom",
+        )
+        if response_retry and len(response_retry.strip()) >= 50:
+            paras = parse_output(response_retry, ch_num)
+            if paras[-1] != "(จบบท)":
+                paras.append("(จบบท)")
+            paras = apply_glossary_post(paras, target_lang)
+            classified = classify_and_format(paras)
+            score_result = _score_and_report(classified, source, target_lang, source_profile=source_profile)
+            if score_result.get("passed"):
+                out_path = save_chapter(ch_num, classified, score_result, source_lang, target_lang, source, source_profile)
+                return (True, score_result, classified, fallback_model, prov_retry, out_path)
+    except Exception:
+        pass
+    return (False, {}, [], "", "", "")
+
+
+# ── Real Translation Orchestration ──────────────────────────────────────
+
+
+def _run_real_translate(
+    *,
+    ch_num: int,
+    slug: str,
+    source: str,
+    source_lang: str,
+    target_lang: str,
+    source_profile: dict[str, Any],
+    prompt: str,
+    model_override: str | None,
+    provider_override: str | None,
+) -> dict[str, Any]:
+    """Run the real (non-mock) translation loop: retry → judge → glossary.
+
+    Returns a dict with keys:
+      status: "ok" | "needs_review" | "failed"
+      plus classified, score_result, judge_result, attempts, provider_name,
+      model_name, discovery_result, source_lang, source_profile, reason, score
+    """
+    cfg = _get_active_config(provider_override)
+    primary_model = model_override or cfg["model"]
+    discovery_model = cfg.get("discovery_model") or primary_model
+    primary_provider = cfg["provider_name"]
+
+    attempts: list[dict[str, Any]] = []
+    last_error = "unknown"
+    repair_instruction = ""
+    judge_result: dict[str, Any] = {"ok": False, "passed": True, "feedback": "", "model": "", "sampledParagraphs": 0}
+    attempt_plan = [
+        {"kind": "translate", "model": primary_model, "provider": primary_provider},
+        {"kind": "repair", "model": primary_model, "provider": primary_provider},
+        {"kind": "fallback", "model": discovery_model, "provider": primary_provider},
+    ]
+    allow_repair = True
+    translation_ready = False
+    classified: list[dict[str, str]] = []
+    score_result: dict[str, Any] = {}
+    provider_name = ""
+    model_name = ""
+    system_text: str | None = None
+    user_text = ""
+
+    for attempt_cfg in attempt_plan:
+        if attempt_cfg["kind"] == "repair" and not allow_repair:
+            continue
+
+        result = _run_one_attempt(
+            prompt=prompt,
+            repair_instruction=repair_instruction,
+            ch_num=ch_num,
+            target_lang=target_lang,
+            source=source,
+            source_profile=source_profile,
+            attempt_cfg=attempt_cfg,
+        )
+
+        system_text = result["system_text"]
+        user_text = result["user_text"]
+
+        if result["status"] == "passed":
+            classified = result["classified"]
+            score_result = result["score_result"]
+            provider_name = result["provider"]
+            model_name = result["model"]
+            attempts.append({
+                "kind": attempt_cfg["kind"],
+                "model": model_name,
+                "provider": provider_name,
+                "status": "passed",
+                "score": score_result.get("score", 0),
+                "hardFailures": score_result.get("hardFailures", score_result.get("errors", [])),
+                "structure": score_result.get("structure", {}),
+            })
+            translation_ready = True
+            break
+
+        if result["status"] == "empty_output":
+            last_error = "Empty LLM output"
+            attempts.append({
+                "kind": attempt_cfg["kind"],
+                "model": result["model"],
+                "provider": result["provider"],
+                "status": "empty_output",
+            })
+            allow_repair = False
+            continue
+
+        if result["status"] == "error":
+            last_error = result.get("reason", "unknown")
+            attempts.append({
+                "kind": attempt_cfg["kind"],
+                "model": result["model"],
+                "provider": result["provider"],
+                "status": "error",
+                "reason": last_error,
+            })
+            allow_repair = False
+            if attempt_cfg["kind"] != "fallback":
+                continue
+            return {
+                "status": "failed", "ch": ch_num, "reason": last_error[:300],
+                "classified": [], "score_result": {}, "judge_result": {},
+                "attempts": attempts, "provider_name": "", "model_name": "",
+                "discovery_result": {}, "source_lang": source_lang,
+                "source_profile": source_profile,
+            }
+
+        # quality_failed
+        classified = result["classified"]
+        score_result = result["score_result"]
+        provider_name = result["provider"]
+        model_name = result["model"]
+        last_error = f"scorer: {score_result.get('score', 0)}/100 < {PASS_THRESHOLD}"
+        attempts.append({
+            "kind": attempt_cfg["kind"],
+            "model": model_name,
+            "provider": provider_name,
+            "status": "quality_failed",
+            "score": score_result.get("score", 0),
+            "hardFailures": score_result.get("hardFailures", score_result.get("errors", [])),
+            "structure": score_result.get("structure", {}),
+        })
+
+        repair_decision = _quality_repair_decision(score_result)
+        attempts[-1]["repairEligible"] = repair_decision["eligible"]
+        attempts[-1]["repairReason"] = repair_decision["reason"]
+        repair_instruction = _build_repair_instruction(score_result) if repair_decision["eligible"] else ""
+
+        if attempt_cfg["kind"] == "translate" and repair_instruction:
+            continue
+
+        return {
+            "status": "needs_review", "ch": ch_num,
+            "reason": f"quality gate failed after retry: {last_error}",
+            "score": score_result.get("score", 0),
+            "classified": classified,
+            "score_result": score_result,
+            "judge_result": judge_result,
+            "attempts": attempts,
+            "provider_name": provider_name,
+            "model_name": model_name,
+            "discovery_result": {},
+            "quality": _quality_summary(score_result, attempts),
+            "source_lang": source_lang,
+            "source_profile": source_profile,
+        }
+
+    if not translation_ready:
+        succeeded, fb_score, fb_classified, fb_model, fb_prov, out_path = _try_safety_fallback(
+            user_text=user_text, system_text=system_text,
+            ch_num=ch_num, target_lang=target_lang,
+            source=source, source_profile=source_profile,
+            last_error=last_error, primary_provider=primary_provider,
+        )
+        if succeeded:
+            return {
+                "status": "ok", "ch": ch_num, "path": out_path,
+                "score": fb_score.get("score", 0),
+                "classified": fb_classified,
+                "score_result": fb_score,
+                "judge_result": judge_result,
+                "attempts": attempts,
+                "provider_name": fb_prov,
+                "model_name": fb_model,
+                "discovery_result": {},
+                "source_lang": source_lang,
+                "source_profile": source_profile,
+                "quality": fb_score,
+            }
+        return {
+            "status": "failed", "ch": ch_num, "reason": last_error,
+            "classified": [], "score_result": {}, "judge_result": {},
+            "attempts": attempts, "provider_name": "", "model_name": "",
+            "discovery_result": {}, "source_lang": source_lang,
+            "source_profile": source_profile,
+            "quality": {"attempts": attempts, "repairHistory": attempts},
+        }
+
+    # ── Station 6.75: LLM Judge + Auto Repair ──
+    judge_model = model_override or cfg.get("discovery_model") or primary_model
+    classified, score_result, judge_result = _judge_and_auto_repair(
+        classified=classified, source=source,
+        score_result=score_result, source_profile=source_profile,
+        judge_model=judge_model, primary_model=primary_model,
+        primary_provider=primary_provider,
+        system_text=system_text, user_text=user_text,
+        ch_num=ch_num, target_lang=target_lang, attempts=attempts,
+    )
+
+    # ── Station 6.8: Auto Glossary Discovery ──
+    if source and _GLOSSARY_DISCOVERED.add(slug) is None:
+        cfg = _get_active_config()
+        discovery_result = discover_and_save(
+            source_text=source, slug=slug, source_lang=source_lang,
+            discovery_model=model_override or cfg.get("discovery_model"),
+        )
+    else:
+        discovery_result = {"discovered": 0, "saved": 0, "terms": []}
+
+    return {
+        "status": "ok", "ch": ch_num,
+        "classified": classified,
+        "score_result": score_result,
+        "judge_result": judge_result,
+        "attempts": attempts,
+        "provider_name": provider_name,
+        "model_name": model_name,
+        "discovery_result": discovery_result,
+        "source_lang": source_lang,
+        "source_profile": source_profile,
+    }
+
+
 # ── MASTER PIPELINE ───────────────────────────────────────────────────
+
 
 def translate_one(
     ch_num: int,
@@ -336,11 +717,8 @@ def translate_one(
         if not source:
             return {"status": "failed", "ch": ch_num, "reason": "empty_after_clean"}
         source_profile = build_source_profile(
-            source,
-            source_lang=source_lang,
-            target_lang=target_lang,
-            ch_num=ch_num,
-            lang_source=source_lang_source,
+            source, source_lang=source_lang, target_lang=target_lang,
+            ch_num=ch_num, lang_source=source_lang_source,
         )
 
         if dry_run:
@@ -354,12 +732,9 @@ def translate_one(
 
         # ── Station 3: Build Prompt ──
         prompt = build_translate_prompt(
-            source_text=source,
-            ch_num=ch_num,
-            source_lang=source_lang,
-            target_lang=target_lang,
-            slug=slug,
-            prompt_profile=prompt_profile,
+            source_text=source, ch_num=ch_num,
+            source_lang=source_lang, target_lang=target_lang,
+            slug=slug, prompt_profile=prompt_profile,
             source_profile=source_profile,
         )
 
@@ -374,217 +749,44 @@ def translate_one(
             score_result = {"score": 100, "passed": True, "report": "(mock)", "dimensions": {}}
             judge_result = {"ok": True, "feedback": "(mock)"}
             discovery_result = {"discovered": 0, "saved": 0, "terms": []}
-        else:
-            # ── Retry policy: translate once, repair once on quality fail,
-            #    fallback to discovery model only on provider/empty failures. ──
-            cfg = _get_active_config(provider_override)
-            primary_model = model_override or cfg["model"]
-            discovery_model = cfg.get("discovery_model") or primary_model
-            primary_provider = cfg["provider_name"]
-
             attempts: list[dict[str, Any]] = []
-            last_error = "unknown"
-            repair_instruction = ""
-            judge_result: dict[str, Any] = {"ok": False, "passed": True, "feedback": "", "model": "", "sampledParagraphs": 0}
-            attempt_plan = [
-                {"kind": "translate", "model": primary_model, "provider": primary_provider},
-                {"kind": "repair", "model": primary_model, "provider": primary_provider},
-                {"kind": "fallback", "model": discovery_model, "provider": primary_provider},
-            ]
-            allow_repair = True
-            translation_ready = False
-            for attempt_cfg in attempt_plan:
-                if attempt_cfg["kind"] == "repair" and not allow_repair:
-                    continue
-                try:
-                    # ── Station 4: Call LLM ──
-                    split_point = prompt.find("<continuity>")
-                    if split_point < 0:
-                        split_point = prompt.find("<glossary>")
-                    if split_point > 0 and split_point < len(prompt):
-                        system_text = prompt[:split_point].strip()
-                        user_text = prompt[split_point:].strip()
-                    else:
-                        system_text = None
-                        user_text = prompt
-                    if repair_instruction:
-                        user_text += repair_instruction
-
-                    response, provider_name, model_name = call_llm(
-                        prompt=user_text,
-                        system=system_text,
-                        model=attempt_cfg["model"],
-                        provider=attempt_cfg["provider"],
-                    )
-
-                    if not response or len(response.strip()) < 10:
-                        last_error = "Empty LLM output"
-                        attempts.append({
-                            "kind": attempt_cfg["kind"],
-                            "model": attempt_cfg["model"],
-                            "provider": provider_name,
-                            "status": "empty_output",
-                        })
-                        allow_repair = False
-                        continue
-
-                    # ── Station 5: Parse ──
-                    paragraph_strings = parse_output(response, ch_num)
-                    if paragraph_strings[-1] != "(จบบท)":
-                        paragraph_strings.append("(จบบท)")
-
-                    # ── Station 5.5: Glossary Post-Process ──
-                    paragraph_strings = apply_glossary_post(paragraph_strings, target_lang)
-
-                    # ── Station 6: Classify ──
-                    classified = classify_and_format(paragraph_strings)
-
-                    # ── Station 6.5: Scorer ──
-                    score_result = _score_and_report(classified, source, target_lang, source_profile=source_profile)
-                    attempts.append({
-                        "kind": attempt_cfg["kind"],
-                        "model": model_name,
-                        "provider": provider_name,
-                        "status": "passed" if score_result["passed"] else "quality_failed",
-                        "score": score_result.get("score", 0),
-                        "hardFailures": score_result.get("hardFailures", score_result.get("errors", [])),
-                        "structure": score_result.get("structure", {}),
-                    })
-
-                    if score_result["passed"]:
-                        translation_ready = True
-                        break  # success!
-
-                    last_error = f"scorer: {score_result['score']}/100 < {PASS_THRESHOLD}"
-                    # ponytail: inline quality_repair_decision (was quality_retry.py)
-                    _scr = float(score_result.get("score") or 0.0)
-                    _notes = [str(n) for n in (score_result.get("repairNotes") or score_result.get("repair_notes") or []) if str(n).strip()]
-                    _eligible = (not score_result.get("passed")) and bool(_notes) and (_scr >= 80.0)
-                    repair_decision = {"eligible": _eligible, "reason": "borderline_quality" if _eligible else "not_eligible", "score": _scr}
-                    attempts[-1]["repairEligible"] = repair_decision["eligible"]
-                    attempts[-1]["repairReason"] = repair_decision["reason"]
-                    repair_instruction = (
-                        _build_repair_instruction(score_result)
-                        if repair_decision["eligible"] else ""
-                    )
-
-                    if attempt_cfg["kind"] == "translate" and repair_instruction:
-                        continue  # one targeted repair retry
-
-                    return {
-                        "status": "needs_review", "ch": ch_num,
-                        "reason": f"quality gate failed after retry: {last_error}",
-                        "score": score_result.get("score", 0),
-                        "quality": _quality_summary(score_result, attempts),
-                        "sourceLang": source_lang,
-                        "sourceProfile": source_profile,
-                    }
-
-                except Exception as e:
-                    last_error = str(e)[:100]
-                    attempts.append({
-                        "kind": attempt_cfg["kind"],
-                        "model": attempt_cfg["model"],
-                        "provider": attempt_cfg["provider"],
-                        "status": "error",
-                        "reason": last_error,
-                    })
-                    allow_repair = False
-                    if attempt_cfg["kind"] != "fallback":
-                        continue
-                    return {"status": "failed", "ch": ch_num, "reason": str(e)[:300]}
-
-            if not translation_ready:
-                # ── Safety filter auto-fallback ──
-                # If OpenRouter moderation truncated output (empty/short), retry once
-                # via 9Router with a less-censored OpenRouter model.
-                if "empty_or_short_content" in last_error and primary_provider == "openrouter":
-                    fallback_model = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
-                    try:
-                        response_retry, prov_retry, _ = call_llm(
-                            prompt=user_text,
-                            system=system_text,
-                            model=fallback_model,
-                            provider="custom",
-                        )
-                        if response_retry and len(response_retry.strip()) >= 50:
-                            paras = parse_output(response_retry, ch_num)
-                            if paras[-1] != "(จบบท)":
-                                paras.append("(จบบท)")
-                            paras = apply_glossary_post(paras, target_lang)
-                            classified = classify_and_format(paras)
-                            score_result = _score_and_report(classified, source, target_lang, source_profile=source_profile)
-                            if score_result["passed"]:
-                                path = save_chapter(ch_num, classified, score_result, source_lang, target_lang, source, source_profile)
-                                return {
-                                    "status": "ok",
-                                    "ch": ch_num,
-                                    "path": path,
-                                    "score": score_result.get("score", 0),
-                                    "quality": score_result,
-                                    "model": fallback_model,
-                                    "provider": prov_retry,
-                                    "attempts": attempts,
-                                    "sourceLang": source_lang,
-                                    "targetLang": target_lang,
-                                    "sourceProfile": source_profile,
-                                }
-                    except Exception:
-                        pass  # fallback failed, proceed to normal failure
-
-                return {
-                    "status": "failed",
-                    "ch": ch_num,
-                    "reason": last_error,
-                    "quality": {"attempts": attempts, "repairHistory": attempts},
-                    "sourceLang": source_lang,
-                    "sourceProfile": source_profile,
-                }
-
-            # ── Station 6.75: LLM Judge + Auto Repair ──
-            judge_model = model_override or cfg.get("discovery_model") or primary_model
-            classified, score_result, judge_result = _judge_and_auto_repair(
-                classified=classified,
-                source=source,
-                score_result=score_result,
-                source_profile=source_profile,
-                judge_model=judge_model,
-                primary_model=primary_model,
-                primary_provider=primary_provider,
-                system_text=system_text,
-                user_text=user_text,
-                ch_num=ch_num,
-                target_lang=target_lang,
-                attempts=attempts,
+        else:
+            r = _run_real_translate(
+                ch_num=ch_num, slug=slug,
+                source=source, source_lang=source_lang,
+                target_lang=target_lang, source_profile=source_profile,
+                prompt=prompt,
+                model_override=model_override, provider_override=provider_override,
             )
 
-            # ── Station 6.8: Auto Glossary Discovery ──
-            # ponytail: run once per session via module-level set
-            if source and _GLOSSARY_DISCOVERED.add(slug) is None:
-                cfg = _get_active_config()
-                discovery_result = discover_and_save(
-                    source_text=source,
-                    slug=slug,
-                    source_lang=source_lang,
-                    discovery_model=model_override or cfg.get("discovery_model"),
-                )
-            else:
-                discovery_result = {"discovered": 0, "saved": 0, "terms": []}
+            if r["status"] in ("failed", "needs_review"):
+                return {
+                    "status": r["status"],
+                    "ch": ch_num,
+                    "reason": r.get("reason", ""),
+                    "score": r.get("score", 0),
+                    "quality": r.get("quality", r.get("score_result", {})),
+                    "path": r.get("path", ""),
+                    "sourceLang": r.get("source_lang", source_lang),
+                    "sourceProfile": r.get("source_profile", source_profile),
+                }
+
+            classified = r["classified"]
+            score_result = r["score_result"]
+            judge_result = r["judge_result"]
+            provider_name = r["provider_name"]
+            model_name = r["model_name"]
+            discovery_result = r["discovery_result"]
+            attempts = r["attempts"]
 
         quality_record = _quality_summary(score_result, attempts if not mock else [], judge_result)
         final_status = "needs_review" if quality_record.get("passed") is False else "ok"
         out_path = save_chapter(
-            classified=classified,
-            ch_num=ch_num,
-            slug=slug,
-            source_text=source,
-            source_lang=source_lang,
-            target_lang=target_lang,
-            provider_name=provider_name,
-            model_name=model_name,
+            classified=classified, ch_num=ch_num, slug=slug,
+            source_text=source, source_lang=source_lang, target_lang=target_lang,
+            provider_name=provider_name, model_name=model_name,
             prompt_profile=prompt_profile,
-            quality_record=quality_record,
-            source_profile=source_profile,
+            quality_record=quality_record, source_profile=source_profile,
         )
 
         return {
@@ -602,7 +804,7 @@ def translate_one(
             "score": score_result["score"],
             "quality": quality_record,
             "judge": judge_result["feedback"][:200] if judge_result.get("ok") else "judge_error",
-            "discovery": f"{discovery_result['discovered']} found, {discovery_result['saved']} saved" if discovery_result['discovered'] > 0 else "none",
+            "discovery": f"{discovery_result['discovered']} found, {discovery_result['saved']} saved" if discovery_result.get('discovered', 0) > 0 else "none",
         }
 
     except Exception as e:
@@ -631,4 +833,3 @@ if __name__ == "__main__":
         dry_run=args.dry_run,
         mock=args.mock,
     )
-    print(json.dumps(result, ensure_ascii=False, indent=2))
