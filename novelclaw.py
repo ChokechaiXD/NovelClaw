@@ -115,7 +115,7 @@ sys.path.insert(0, str(_TOOLS_DIR))
 
 from atomic_io import atomic_write_json  # noqa: E402
 from pipeline import translate_one, judge_translation, read_source, clean_source  # noqa: E402
-from scorer import score_chapter, report as score_report  # noqa: E402
+from scorer import ScorerHistory, score_chapter, report as score_report  # noqa: E402
 
 
 # ── Helpers ────────────────────────────────────────────────────────────
@@ -172,6 +172,7 @@ def cmd_translate(args: list[str]) -> None:
         return
 
     if parsed.json:
+        scorer_history = ScorerHistory()
         for ch in ch_nums:
             result = translate_one(
                 ch_num=ch, slug=parsed.slug,
@@ -179,6 +180,7 @@ def cmd_translate(args: list[str]) -> None:
                 dry_run=parsed.dry_run, mock=parsed.mock,
                 model_override=parsed.model, provider_override=parsed.provider,
                 prompt_profile=parsed.profile,
+                scorer_history=scorer_history,
             )
             print(json.dumps(result, ensure_ascii=False))
         return
@@ -187,6 +189,7 @@ def cmd_translate(args: list[str]) -> None:
         _json_progress("batch_start", {"chapters": ch_nums, "total": len(ch_nums)})
 
     # Sequential (default)
+    scorer_history = ScorerHistory()
     success = 0
     failed = 0
     total = len(ch_nums)
@@ -204,6 +207,7 @@ def cmd_translate(args: list[str]) -> None:
                 dry_run=parsed.dry_run, mock=parsed.mock,
                 model_override=parsed.model, provider_override=parsed.provider,
                 prompt_profile=parsed.profile,
+                scorer_history=scorer_history,
             )
 
             if result["status"] == "ok":
