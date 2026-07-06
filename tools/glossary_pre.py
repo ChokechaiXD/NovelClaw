@@ -134,7 +134,12 @@ def build_character_prompt(slug: str = "global-descent", max_chars: int = 20) ->
 
     main_chars = chars[:max_chars]
 
-    lines = ["<character_voice>", "CN→Thai name map (main characters):"]
+    lines = [
+        "<character_voice>",
+        "CN→Thai name map (HARD CONSTRAINTS):",
+        "  - If a source name appears, use exactly its mapped Thai name.",
+        "  - Never substitute one character's Thai name for another.",
+    ]
     for c in main_chars:
         src = c["source"]
         thai = c["thai"]
