@@ -9,7 +9,7 @@ Usage:
     novelclaw translate 130-150                # แปลช่วง batch
     novelclaw translate 130 --mock             # ทดสอบ (ไม่เรียก LLM)
     novelclaw translate 130 --from jp          # แปลจากญี่ปุ่น
-    novelclaw translate 130 --model gemma-4-31b-it:free
+    novelclaw translate 130 --model gemma-4-26b-a4b-it:free
     novelclaw translate 130-150 --sequential   # batch sequential mode
 
     novelclaw judge 130                        # ตรวจคุณภาพตอนที่แปลแล้ว
@@ -423,7 +423,17 @@ def cmd_config(args: list[str]) -> None:
     ap.add_argument("--discovery-model", help="Set discovery/judge model")
     ap.add_argument("--set-key", nargs=2, metavar=("PROVIDER", "KEY"),
                     help="Set API key for provider (e.g. openrouter sk-or-...)")
+    ap.add_argument("--validate", action="store_true", help="Validate novelclaw.config.yaml and exit")
     parsed = ap.parse_args(args)
+
+    if parsed.validate:
+        errors = _validate_config()
+        if errors:
+            for err in errors:
+                print(f"❌ {err}")
+            raise SystemExit(1)
+        print("✅ config OK")
+        return
 
     if parsed.set_key:
         provider_name, api_key = parsed.set_key
