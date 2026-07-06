@@ -1,5 +1,0 @@
-name = "novelclaw-reader"
-pages_build_output_dir = "reader/public"
-
-# Static-only SPA — no Workers, no Functions
-compatibility_date = "2026-07-06"
