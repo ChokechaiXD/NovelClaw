@@ -6,9 +6,9 @@ Replaces blacklist-per-model approach with universal policy:
   Everything else (Han, Hiragana, Katakana, Hangul, Latin, Cyrillic, Arabic...) = FAIL.
 
 Usage:
-    from qa.script_policy import detect_script_leaks, format_leak_report
-    leaks = detect_script_leaks("สวัสดี Open Beta 你好", target_lang="th")
-    # → [Latin: "Open", Latin: "Beta", Han: "你好"]
+    from qa.script_policy import detect_script_leaks
+    result = detect_script_leaks(["สวัสดี Open Beta 你好"], target_lang="th")
+    # → {ok=False, leaks=[Latin: "Open", ...], foreign_script_counts={Latin: 2, Han: 1}}
 """
 
 from __future__ import annotations
@@ -58,22 +58,7 @@ TARGET_SCRIPT_POLICY: dict[str, dict[str, Any]] = {
     },
 }
 
-# Digits, whitespace, punctuation: always allowed
-_ALLOWED_CHAR_CATS = {
-    "Nd",    # digit
-    "Zs",    # space separator
-    "Zl",    # line separator
-    "Zp",    # paragraph separator
-    "Po",    # other punctuation
-    "Pd",    # dash/punctuation
-    "Ps",    # open punctuation
-    "Pe",    # close punctuation
-    "Pi",    # initial quote
-    "Pf",    # final quote
-    "Sc",    # currency symbol
-    "Sm",    # math symbol
-    "So",    # other symbol — brackets like 【】「」『』
-}
+# Digits, whitespace, punctuation: always allowed — handled inline in detect_script_leaks
 
 
 # ── Results ───────────────────────────────────────────────────────────
@@ -87,16 +72,6 @@ class ScriptLeak:
     context: str
     severity: str  # "error" | "warning"
     suggestion: str = ""
-
-    def to_dict(self) -> dict:
-        return {
-            "script": self.script,
-            "token": self.token,
-            "index": self.index,
-            "context": self.context,
-            "severity": self.severity,
-            "suggestion": self.suggestion,
-        }
 
 
 @dataclass
@@ -118,20 +93,6 @@ def _classify_char(cp: int) -> str | None:
             if lo <= cp <= hi:
                 return script
     return None  # unknown/digits/punct
-
-
-_ALLOWED_PATTERN = re.compile(r'^[\s\d\u0E00-\u0E7F\u0021-\u002F\u003A-\u0040'
-                              r'\u005B-\u0060\u007B-\u007E\u3000-\u303F'
-                              r'\uFF00-\uFFEF\u2010-\u205E'
-                              r'\u0022\u0027'
-                              r'\u300C\u300D\u300E\u300F'
-                              r'\u3010\u3011\u3014\u3015'
-                              r'\u2032\u2033]+$')
-
-
-def is_pure_target(text: str, target_lang: str = "th") -> bool:
-    """Quick check: is text purely allowed for target language?"""
-    return _ALLOWED_PATTERN.match(text) is not None
 
 
 def detect_script_leaks(
@@ -214,20 +175,3 @@ def detect_script_leaks(
     result.foreign_script_counts = char_counts
     result.ok = result.error_count == 0
     return result
-
-
-def format_leak_report(result: ScriptLeakResult) -> str:
-    """Format leak results as human-readable text."""
-    if result.ok:
-        return "✅ Script purity: no leaks"
-
-    lines = [f"⚠️  Script leaks: {result.error_count} errors, {result.warning_count} warnings"]
-    scripts = ", ".join(f"{s}×{c}" for s, c in result.foreign_script_counts.items())
-    if scripts:
-        lines.append(f"   Scripts: {scripts}")
-    for leak in result.leaks[:8]:
-        lines.append(f"   [{leak.severity.upper()}] {leak.script}: \"{leak.token}\" "
-                     f"@{leak.index} ({leak.context[:50]})")
-    if len(result.leaks) > 8:
-        lines.append(f"   ... and {len(result.leaks) - 8} more")
-    return "\n".join(lines)
