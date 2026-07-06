@@ -39,26 +39,61 @@ class ScorerResult:
     metrics: dict[str, Any] = field(default_factory=dict)
 
 
-# ── Thresholds ─────────────────────────────────────────────────────────
+# ── Language-specific thresholds ────────────────────────────────────────
+# Each target language gets its own thresholds and end marker patterns
 
-PASS_THRESHOLD = 85.0  # พี่โชคสั่ง: 85/100 ถึงผ่าน (ลดจาก 95)
+PASS_THRESHOLD = 85.0  # 85/100 ถึงผ่าน
 
-# Length ratio — พี่โชค: ต้องเท่าต้นฉบับ ต่ำกว่า 85% = ต้องแปลใหม่
-COMPLETENESS_MIN = 0.85
-COMPLETENESS_IDEAL_MIN = 1.0
-COMPLETENESS_IDEAL_MAX = 3.00
-COMPLETENESS_MAX = 3.50
+LANG_CONFIGS: dict[str, dict[str, Any]] = {
+    "th": {
+        "completeness_min": 0.85,
+        "completeness_ideal_min": 1.0,
+        "completeness_ideal_max": 3.00,
+        "completeness_max": 3.50,
+        "dialogue_ratio_min": 0.05,
+        "dialogue_ratio_max": 0.80,
+        "dialogue_ideal_min": 0.08,
+        "dialogue_ideal_max": 0.65,
+        "end_marker_regex": r"\(.*?(?:จบ|End|끝|終).*?\)",
+    },
+    "en": {
+        "completeness_min": 0.70,
+        "completeness_ideal_min": 0.85,
+        "completeness_ideal_max": 2.00,
+        "completeness_max": 2.50,
+        "dialogue_ratio_min": 0.05,
+        "dialogue_ratio_max": 0.85,
+        "dialogue_ideal_min": 0.08,
+        "dialogue_ideal_max": 0.70,
+        "end_marker_regex": r"\(.*?(?:จบ|End|끝|終).*?\)",
+    },
+    "ko": {
+        "completeness_min": 0.75,
+        "completeness_ideal_min": 0.90,
+        "completeness_ideal_max": 2.50,
+        "completeness_max": 3.00,
+        "dialogue_ratio_min": 0.05,
+        "dialogue_ratio_max": 0.80,
+        "dialogue_ideal_min": 0.08,
+        "dialogue_ideal_max": 0.65,
+        "end_marker_regex": r"\(.*?(?:จบ|End|끝|終).*?\)",
+    },
+}
 
-DIALOGUE_RATIO_MIN = 0.05
-DIALOGUE_RATIO_MAX = 0.80
-DIALOGUE_IDEAL_MIN = 0.08
-DIALOGUE_IDEAL_MAX = 0.65
+def _get_lang_config(target_lang: str) -> dict[str, Any]:
+    """Get config for a target language, falling back to Thai defaults."""
+    return LANG_CONFIGS.get(target_lang, LANG_CONFIGS["th"])
 
 
 def _score_completeness(
-    paragraphs: list[dict[str, str]], source_char_count: int
+    paragraphs: list[dict[str, str]], source_char_count: int, target_lang: str = "th"
 ) -> DimensionScore:
-    """Measure output completeness relative to source."""
+    """Measure output completeness relative to source (language-aware)."""
+    cfg = _get_lang_config(target_lang)
+    min_ = cfg["completeness_min"]
+    ideal_min = cfg["completeness_ideal_min"]
+    ideal_max = cfg["completeness_ideal_max"]
+    max_ = cfg["completeness_max"]
     texts = [p["text"] for p in paragraphs if p["text"] not in ("(จบบท)", "(End)", "（終）", "(끝)")]
     output_chars = sum(len(t) for t in texts)
     n_paras = len(texts)
@@ -72,22 +107,22 @@ def _score_completeness(
     if n_paras < 3:
         return DimensionScore("Completeness", 0.20, 0.0, f"{detail} — truncated", False)
 
-    if ratio < COMPLETENESS_MIN:
-        return DimensionScore("Completeness", 0.20, max(0.0, ratio / COMPLETENESS_MIN),
+    if ratio < min_:
+        return DimensionScore("Completeness", 0.20, max(0.0, ratio / min_),
                               f"{detail} — too short", False)
 
-    if ratio > COMPLETENESS_MAX:
+    if ratio > max_:
         return DimensionScore("Completeness", 0.20, 0.3,
                               f"{detail} — too long", False)
 
-    if COMPLETENESS_IDEAL_MIN <= ratio <= COMPLETENESS_IDEAL_MAX:
+    if ideal_min <= ratio <= ideal_max:
         return DimensionScore("Completeness", 0.20, 1.0, f"{detail} ✅")
 
     # Penalty zone
-    if ratio < COMPLETENESS_IDEAL_MIN:
-        score = 0.6 + 0.4 * (ratio - COMPLETENESS_MIN) / (COMPLETENESS_IDEAL_MIN - COMPLETENESS_MIN)
+    if ratio < ideal_min:
+        score = 0.6 + 0.4 * (ratio - min_) / (ideal_min - min_)
     else:
-        score = 0.6 + 0.4 * (COMPLETENESS_MAX - ratio) / (COMPLETENESS_MAX - COMPLETENESS_IDEAL_MAX)
+        score = 0.6 + 0.4 * (max_ - ratio) / (max_ - ideal_max)
 
     return DimensionScore("Completeness", 0.20, score, detail)
 
@@ -142,13 +177,14 @@ def _score_script_purity(
                           f"⚠️ {count} leaks ({scripts})", passed=count <= 1)
 
 
-def _score_end_marker(paragraphs: list[dict[str, str]]) -> DimensionScore:
-    """Check that last paragraph is an end marker."""
+def _score_end_marker(paragraphs: list[dict[str, str]], target_lang: str = "th") -> DimensionScore:
+    """Check that last paragraph is an end marker (language-aware)."""
     if not paragraphs:
         return DimensionScore("End Marker", 0.10, 0.0, "no paragraphs", False)
 
     last = paragraphs[-1]["text"] if isinstance(paragraphs[-1], dict) else str(paragraphs[-1])
-    has_end = bool(re.search(r"[\(\（\[【][\u0e00-\u0e7fจบบทจบEnd끝終]+[\)\）\]】]", last))
+    cfg = _get_lang_config(target_lang)
+    has_end = bool(re.search(cfg["end_marker_regex"], last))
 
     if has_end:
         return DimensionScore("End Marker", 0.10, 1.0, f"✅ {last}")
@@ -178,9 +214,15 @@ def _score_type_diversity(
 
 
 def _score_dialogue_ratio(
-    paragraphs: list[dict[str, str]], source_has_dialogue: bool = True
+    paragraphs: list[dict[str, str]], source_has_dialogue: bool = True,
+    target_lang: str = "th",
 ) -> DimensionScore:
-    """% dialogue paragraphs vs total."""
+    """% dialogue paragraphs vs total (language-aware)."""
+    cfg = _get_lang_config(target_lang)
+    min_ = cfg["dialogue_ratio_min"]
+    max_ = cfg["dialogue_ratio_max"]
+    ideal_min = cfg["dialogue_ideal_min"]
+    ideal_max = cfg["dialogue_ideal_max"]
     non_end = [p for p in paragraphs
                if p["type"] != "end" and p["text"] not in ("(จบบท)", "(End)", "（終）", "(끝)")]
     if not non_end:
@@ -193,13 +235,13 @@ def _score_dialogue_ratio(
     if dialogue == 0 and not source_has_dialogue:
         return DimensionScore("Dialogue Ratio", 0.15, 1.0, f"{detail} — narration-only source ✅")
 
-    if ratio < DIALOGUE_RATIO_MIN:
-        return DimensionScore("Dialogue Ratio", 0.15, max(0, ratio / DIALOGUE_RATIO_MIN * 0.6),
+    if ratio < min_:
+        return DimensionScore("Dialogue Ratio", 0.15, max(0, ratio / min_ * 0.6),
                               f"{detail} — too little", False)
-    if ratio > DIALOGUE_RATIO_MAX:
-        return DimensionScore("Dialogue Ratio", 0.15, max(0, 1.0 - (ratio - DIALOGUE_RATIO_MAX) * 2),
+    if ratio > max_:
+        return DimensionScore("Dialogue Ratio", 0.15, max(0, 1.0 - (ratio - max_) * 2),
                               f"{detail} — too much", False)
-    if DIALOGUE_IDEAL_MIN <= ratio <= DIALOGUE_IDEAL_MAX:
+    if ideal_min <= ratio <= ideal_max:
         return DimensionScore("Dialogue Ratio", 0.15, 1.0, f"{detail} ✅")
 
     return DimensionScore("Dialogue Ratio", 0.15, 0.8, detail)
@@ -306,11 +348,11 @@ def score_chapter(
     length_ratio = round(output_chars / source_char_count, 3) if source_char_count else 0.0
 
     dims = [
-        _score_completeness(paragraphs, source_char_count),
+        _score_completeness(paragraphs, source_char_count, target_lang),
         _score_script_purity(paragraphs, target_lang),
-        _score_end_marker(paragraphs),
+        _score_end_marker(paragraphs, target_lang),
         _score_type_diversity(paragraphs, source_has_dialogue),
-        _score_dialogue_ratio(paragraphs, source_has_dialogue),
+        _score_dialogue_ratio(paragraphs, source_has_dialogue, target_lang),
         _score_term_compliance(paragraphs, target_lang, source_text),
     ]
 

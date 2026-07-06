@@ -30,6 +30,20 @@ from pathlib import Path
 _PROJECT_ROOT = Path(__file__).resolve().parent
 
 
+def _json_progress(event: str, data: dict, *, timestamp: bool = True) -> None:
+    """Write structured progress to stderr as JSON lines.
+
+    Humans read stdout. Machines read stderr.
+    Use 2>progress.jsonl to capture, or 2>/dev/null to hide.
+
+    Event types: job_start, chapter_start, chapter_done, chapter_fail, job_done
+    """
+    payload = {"event": event, **data}
+    if timestamp:
+        payload["ts"] = time.time()
+    print(json.dumps(payload, ensure_ascii=False), file=sys.stderr, flush=True)
+
+
 def _cli_config_default(key: str) -> str:
     """Read default value from novelclaw.config.yaml, return "" if not found."""
     cfg_path = _PROJECT_ROOT / "novelclaw.config.yaml"
@@ -42,6 +56,60 @@ def _cli_config_default(key: str) -> str:
         return str(data.get(key, ""))
     except Exception:
         return ""
+
+
+_CONFIG_SCHEMA = {
+    "provider": {"type": str, "required": True},
+    "model": {"type": str, "required": True},
+    "discovery_model": {"type": str, "default": ""},
+    "temperature": {"type": float, "min": 0.0, "max": 2.0, "default": 0.28},
+    "max_tokens": {"type": int, "min": 256, "max": 32768, "default": 4096},
+    "timeout_sec": {"type": int, "min": 10, "max": 600, "default": 120},
+    "parallel_workers": {"type": int, "min": 1, "max": 8, "default": 1},
+    "prompt_profile": {"type": str, "default": ""},
+    "sequential": {"type": bool, "default": False},
+    "judge_enabled": {"type": bool, "default": True},
+    "judge_threshold": {"type": float, "min": 0.0, "max": 100.0, "default": 95.0},
+    "glossary_discovery": {"type": bool, "default": True},
+    "fallback_provider": {"type": str, "default": "custom"},
+    "fallback_model": {"type": str, "default": ""},
+}
+
+
+def _validate_config() -> list[str]:
+    """Validate novelclaw.config.yaml against schema. Returns list of errors."""
+    cfg_path = _PROJECT_ROOT / "novelclaw.config.yaml"
+    if not cfg_path.exists():
+        return ["novelclaw.config.yaml not found — using defaults"]
+
+    import yaml
+    try:
+        with open(cfg_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+    except Exception as e:
+        return [f"Config parse error: {e}"]
+
+    errors: list[str] = []
+    for key, schema in _CONFIG_SCHEMA.items():
+        val = data.get(key)
+        if val is None:
+            if schema.get("required"):
+                errors.append(f"  Missing required key: '{key}'")
+            continue
+
+        expected = schema["type"]
+        try:
+            coerced = expected(val)
+        except (ValueError, TypeError):
+            errors.append(f"  '{key}' should be {expected.__name__}, got {type(val).__name__} ({val!r})")
+            continue
+
+        if "min" in schema and coerced < schema["min"]:
+            errors.append(f"  '{key}' = {coerced} < min ({schema['min']})")
+        if "max" in schema and coerced > schema["max"]:
+            errors.append(f"  '{key}' = {coerced} > max ({schema['max']})")
+
+    return errors
 _TOOLS_DIR = _PROJECT_ROOT / "tools"
 sys.path.insert(0, str(_TOOLS_DIR))
 
@@ -116,7 +184,7 @@ def cmd_translate(args: list[str]) -> None:
         return
 
     if is_batch:
-        print(f"⚡ Batch: {len(ch_nums)} ตอน ({ch_nums[0]}-{ch_nums[-1]})")
+        _json_progress("batch_start", {"chapters": ch_nums, "total": len(ch_nums)})
 
     # Sequential (default)
     success = 0
@@ -126,6 +194,7 @@ def cmd_translate(args: list[str]) -> None:
     for i, ch in enumerate(ch_nums):
         label = f"[{i+1}/{total}]" if is_batch else ""
         print(f"\n{label} → แปลตอน {ch}..." if label else f"\n→ แปลตอน {ch}...")
+        _json_progress("chapter_start", {"ch": ch, "i": i+1, "total": total})
 
         # Retry loop
         for attempt in range(max(1, parsed.retry + 1)):
@@ -146,22 +215,26 @@ def cmd_translate(args: list[str]) -> None:
                 if result.get("discovery") and result["discovery"] != "none":
                     print(f"     📖 {result['discovery']}")
                 print(f"     {result['provider']}:{result['model']}")
+                _json_progress("chapter_done", {"ch": ch, "result": result})
                 success += 1
                 break
             elif result["status"] == "dry_run":
                 print(f"  📄 แหล่ง {result['source_chars']} ตัวอักษร")
                 print(f"     ตัวอย่าง: {result['source_preview'][:100]}...")
+                _json_progress("chapter_done", {"ch": ch, "result": result})
                 break
             else:
                 if attempt < parsed.retry:
                     print(f"  ⚠️  ตอน {ch} ล้มเหลว (ครั้งที่ {attempt+1}): {result['reason'][:80]}")
                     print(f"     กำลังลองใหม่...")
+                    _json_progress("chapter_retry", {"ch": ch, "attempt": attempt+1, "reason": result.get("reason","")})
                     time.sleep(2)
                 else:
                     print(f"  ❌ ตอน {ch} FAILED: {result['reason'][:120]}")
                     failed += 1
 
     if is_batch:
+        _json_progress("batch_done", {"success": success, "failed": failed, "total": total})
         print(f"\n完毕! {success} ผ่าน, {failed} ล้มเหลว จาก {total} ตอน")
 
 
@@ -176,6 +249,7 @@ def _cmd_translate_parallel(ch_nums: list[int], parsed) -> None:
     def run_chapter(ch: int) -> dict:
         last_result = None
         for attempt in range(max(1, parsed.retry + 1)):
+            _json_progress("chapter_start", {"ch": ch})
             result = translate_one(
                 ch_num=ch,
                 slug=parsed.slug,
@@ -189,6 +263,7 @@ def _cmd_translate_parallel(ch_nums: list[int], parsed) -> None:
             )
             last_result = result
             if result.get("status") in {"ok", "dry_run", "needs_review"}:
+                _json_progress("chapter_done", {"ch": ch, "status": result.get("status")})
                 return result
             if attempt < parsed.retry:
                 time.sleep(2)
@@ -451,6 +526,12 @@ def main() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
+
+    # Validate config on every CLI invocation
+    config_errors = _validate_config()
+    if len(sys.argv) >= 2 and sys.argv[1] not in ("-h", "--help"):
+        for err in config_errors:
+            print(f"⚠️  {err}", file=sys.stderr)
 
     if len(sys.argv) < 2:
         print(__doc__)

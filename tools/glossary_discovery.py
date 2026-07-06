@@ -319,17 +319,25 @@ def discover_and_save(
     slug: str = "global-descent",
     source_lang: str = "cn",
     discovery_model: str | None = None,
+    max_terms: int = 30,  # ponytail: cap to prevent LLM call explosion
 ) -> dict[str, Any]:
     """Full discovery pipeline: extract → propose → save.
 
     Called from pipeline.py after Station 6.75.
 
+    Args:
+        max_terms: Maximum candidate terms to propose per call.
+                   Hard cap prevents explosion when source has 200+ unique terms.
     Returns:
         {"discovered": N, "saved": N, "terms": [...]}
     """
     candidates = extract_unknown_terms(source_text, slug, source_lang, min_freq=2)
     if not candidates:
         return {"discovered": 0, "saved": 0, "terms": []}
+
+    # Cap candidates to prevent LLM call explosion
+    if len(candidates) > max_terms:
+        candidates = candidates[:max_terms]
 
     proposed = propose_translations(candidates, source_lang, discovery_model)
     saved = save_discovered_terms(proposed, slug)
