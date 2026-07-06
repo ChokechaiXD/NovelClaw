@@ -1,0 +1,9 @@
+; Cloudflare Pages — SPA fallback + API proxy stub
+; https://developers.cloudflare.com/pages/configuration/redirects/
+
+; SPA fallback: all non-file paths serve index.html
+/*  /index.html  200
+
+; API routes — these need a backend (see README)
+; Currently returns 404 from the static Pages with JSON error
+/api/*  /api-offline.html  200
