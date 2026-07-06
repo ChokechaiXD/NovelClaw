@@ -86,7 +86,7 @@ from classifier import classify_and_format, estimate_type_ratios  # noqa: E402
 from novel_paths import chapter_path, source_md_path  # noqa: E402
 from pipeline_llm import call_llm, get_active_config as _get_active_config  # noqa: E402
 from pipeline_llm import FatalError  # noqa: E402
-from scorer import ScorerHistory  # noqa: E402
+from scorer import ScorerHistory, MqmError  # noqa: E402
 from pipeline_parser import parse_output  # noqa: E402
 from pipeline_save import apply_glossary_post, save_chapter, get_title as _get_title  # noqa: E402
 from prompt_builder import build_prompt  # noqa: E402
@@ -340,6 +340,67 @@ def _run_one_attempt(
             "system_text": system_text,
             "user_text": user_text,
         }
+
+
+# ── Station 6.6: Script Leak Auto-Correction ──────────────────────────
+
+
+def _repair_script_leaks(
+    paragraph_strings: list[str],
+    target_lang: str,
+    attempt_model: str | None = None,
+    attempt_provider: str | None = None,
+) -> list[str]:
+    """Fix script leaks by re-translating only leaky paragraphs.
+
+    Returns the fixed paragraph list (unchanged if no leaks found).
+    """
+    from qa.script_policy import detect_script_leaks
+
+    result = detect_script_leaks(paragraph_strings, target_lang=target_lang)
+    if result.ok:
+        return paragraph_strings  # nothing to fix
+
+    # Group leaks by paragraph index
+    para_errors: dict[int, set[str]] = {}
+    for leak in result.leaks:
+        if leak.index not in para_errors:
+            para_errors[leak.index] = set()
+        para_errors[leak.index].add(leak.script)
+
+    # Fix only paragraphs with leaks
+    fixed = list(paragraph_strings)
+    leaked_indices = sorted(para_errors.keys())
+    for pi in leaked_indices:
+        if pi >= len(fixed) or fixed[pi] in ("(จบบท)", "(End)", "（終）", "(끝)"):
+            continue
+        scripts_desc = ", ".join(sorted(para_errors[pi]))
+        old_text = fixed[pi]
+        # Skip very short paragraphs where auto-repair is wasteful
+        if len(old_text) < 15:
+            continue
+        system_prompt = (
+            f"You are a literary translator. Fix ONLY the {scripts_desc} script "
+            f"leaks in the following {target_lang} text. Replace foreign-script "
+            f"words with natural {target_lang} equivalents. "
+            f"Return ONLY the fixed text, nothing else."
+        )
+        try:
+            resp, _, _ = call_llm(
+                prompt=f"Fix script leaks in this paragraph:\n\n{old_text}",
+                system=system_prompt,
+                model=attempt_model,
+                provider=attempt_provider,
+                temperature=0.1,
+                max_tokens=500,
+            )
+            candidate = resp.strip()
+            # Ensure the repair didn't trash the paragraph
+            if len(candidate) >= len(old_text) * 0.5 and len(candidate) <= len(old_text) * 3:
+                fixed[pi] = candidate
+        except Exception:
+            pass  # fall through to original text
+    return fixed
 
 
 # ── Station 6.75: LLM Judge ────────────────────────────────────────────
@@ -738,6 +799,41 @@ def _run_real_translate(
         attempts[-1]["repairEligible"] = repair_decision["eligible"]
         attempts[-1]["repairReason"] = repair_decision["reason"]
         repair_instruction = _build_repair_instruction(score_result) if repair_decision["eligible"] else ""
+
+        # ── Station 6.6: Script Leak Auto-Correction ──
+        # Fix only leaky paragraphs instead of retrying the whole chapter
+        _leak_fixed = False
+        _hard = score_result.get("hardFailures") or score_result.get("errors") or []
+        _only_script_leaks = all(
+            e.startswith("Script Purity") or "leak" in e.lower()
+            for e in _hard
+        ) and any(
+            e.startswith("Script Purity") or "leak" in e.lower()
+            for e in _hard
+        )
+        if _only_script_leaks and score_result.get("hardFailures"):
+            from classifier import classify_and_format
+            _para_strings = [p["text"] for p in classified] if classified else []
+            _repaired = _repair_script_leaks(
+                _para_strings, target_lang,
+                attempt_model=model_name, attempt_provider=provider_name,
+            )
+            if _repaired != _para_strings:
+                _reclassified = classify_and_format(_repaired)
+                _new_score = _score_and_report(
+                    _reclassified, source, target_lang, source_profile=source_profile
+                )
+                if _new_score.get("passed"):
+                    classified = _reclassified
+                    score_result = _new_score
+                    _leak_fixed = True
+                    attempts[-1]["status"] = "leak_repaired"
+                    attempts[-1]["score"] = _new_score.get("score", 0)
+                    translation_ready = True
+                    break
+
+        if _leak_fixed:
+            continue
 
         if attempt_cfg["kind"] == "translate" and repair_instruction:
             continue
