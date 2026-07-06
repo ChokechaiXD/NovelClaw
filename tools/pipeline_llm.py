@@ -94,12 +94,13 @@ def call_llm(
     max_tok = cfg.get("max_tokens", 4096)
     temp = cfg.get("temperature", 0.28)
 
-    # ── Model validation: only openrouter/* models allowed ──
-    if not model_name.startswith("openrouter/"):
+    # ── Model validation: only allowed model prefixes ──
+    ALLOWED_PREFIXES = {"openrouter/", "poli/", "9router/", "custom/"}
+    if not any(model_name.startswith(p) for p in ALLOWED_PREFIXES):
         raise ValueError(
             f"Model '{model_name}' blocked. Translation pipeline may only use "
-            f"openrouter/* models (via any provider). "
-            f"This preserves Pollinations quota for other uses."
+            f"models starting with: {', '.join(sorted(ALLOWED_PREFIXES))}. "
+            f"Set NOVELCLAW_ALLOWED_MODEL_PREFIXES env var to override."
         )
 
     messages = []
