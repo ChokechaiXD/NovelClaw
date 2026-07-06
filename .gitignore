@@ -107,7 +107,12 @@ staging/
 *.swp
 *.whl
 
-# Cleanup 2026-06-22
-_Archive/
-docs/
+# Automatically created `sqlite_mcp_server.db` by MCP server instantiation
 *.db
+
+# Pipeline runtime artifacts (regenerated per run)
+tools/.batch_checkpoint.json
+tools/.batch_log.jsonl
+tools/.batch_report_final.md
+tools/.retry_log.jsonl
+tools/.retry_report_final.md
