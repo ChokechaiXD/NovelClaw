@@ -21,6 +21,28 @@ from typing import Any
 
 
 @dataclass
+class MqmError:
+    """Structured translation error per MQM typology.
+
+    category — one of: accuracy, fluency, terminology, style, locale, script_leak, structure
+    subcategory — e.g. omission, addition, mistranslation, hangul_leak, missing_end_marker
+    severity — minor, major, critical
+    span — excerpt with problem (first 120 chars)
+    position — paragraph index, or -1 for whole-chapter
+    detail — human-readable description
+    """
+    category: str
+    subcategory: str
+    severity: str  # minor, major, critical
+    span: str = ""
+    position: int = -1
+    detail: str = ""
+
+    def to_short(self) -> str:
+        return f"[{self.severity}] {self.category}/{self.subcategory}: {self.detail[:80]}"
+
+
+@dataclass
 class ScorerHistory:
     """Adaptive threshold tracking: adjusts PASS_THRESHOLD based on real chapters.
 
@@ -60,6 +82,7 @@ class ScorerResult:
     dimensions: list[DimensionScore] = field(default_factory=list)
     passed: bool = True
     errors: list[str] = field(default_factory=list)
+    mqm_errors: list[MqmError] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     metrics: dict[str, Any] = field(default_factory=dict)
 
@@ -354,6 +377,32 @@ def _score_term_compliance(
     )
 
 
+# ── MQM Mapping ─────────────────────────────────────────────────────
+
+
+def _mqm_map(dim_name: str, detail: str) -> tuple[str, str, str]:
+    """Map DimensionScore → (mqm_category, mqm_subcategory, severity)."""
+    _d = detail.lower()
+    mapping = {
+        "Completeness": ("accuracy", "omission" if "short" in _d or "truncated" in _d else "addition"),
+        "Script Purity": ("script_leak", "foreign_script"),
+        "End Marker": ("structure", "missing_end_marker"),
+        "Type Diversity": ("style", "monotonous_type"),
+        "Dialogue Ratio": ("style", "dialogue_imbalance"),
+        "Term Compliance": ("terminology", "term_mismatch"),
+    }
+    cat, sub = mapping.get(dim_name, ("accuracy", "general"))
+
+    # Severity heuristic
+    sev: str = "major"
+    if "minor" in _d or "slight" in _d or "some" in _d or "≤" in _d:
+        sev = "minor"
+    elif "missing" in _d or "truncated" in _d or "too short" in _d or "too long" in _d:
+        sev = "critical"
+
+    return cat, sub, sev
+
+
 # ── Master Score Function ───────────────────────────────────────────
 
 
@@ -390,11 +439,23 @@ def score_chapter(
     ]
     passed = weighted >= PASS_THRESHOLD
 
+    # Build structured MQM errors
+    mqm_errors: list[MqmError] = []
+    for d in dims:
+        if d.passed:
+            continue
+        cat, sub, sev = _mqm_map(d.name, d.detail)
+        mqm_errors.append(MqmError(
+            category=cat, subcategory=sub, severity=sev,
+            span=d.detail[:120], position=-1, detail=d.detail,
+        ))
+
     return ScorerResult(
         weighted_total=round(weighted, 1),
         dimensions=dims,
         passed=passed,
         errors=errors,
+        mqm_errors=mqm_errors,
         warnings=warnings,
         metrics={
             "lengthRatio": length_ratio,
