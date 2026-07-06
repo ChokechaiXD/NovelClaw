@@ -203,6 +203,39 @@ def test_translate_one_skips_quality_repair_when_score_is_too_low(monkeypatch):
     assert result["quality"]["attempts"][0]["repairReason"] == "not_eligible"
 
 
+def test_translate_one_needs_review_keeps_usable_output_contract(monkeypatch, tmp_path):
+    monkeypatch.setattr(pipeline, "read_source", lambda *_args, **_kwargs: "阿星醒來。")
+    monkeypatch.setattr(pipeline, "build_translate_prompt", lambda **_kwargs: "SYSTEM\n<glossary>\nTranslate.")
+    monkeypatch.setattr(
+        pipeline,
+        "_get_active_config",
+        lambda *_args, **_kwargs: {
+            "model": "primary-model",
+            "provider_name": "openrouter",
+            "discovery_model": "judge-model",
+        },
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "call_llm",
+        lambda *args, **kwargs: ("เฉาซิงลืมตาขึ้น\n\n(จบบท)", "fake", kwargs.get("model") or "fake-model"),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "_score_and_report",
+        lambda *_args, **_kwargs: {"score": 60, "passed": False, "hardFailures": ["Completeness: too short"]},
+    )
+    monkeypatch.setattr(pipeline, "save_chapter", lambda **_kwargs: tmp_path / "0001.th.json")
+
+    result = pipeline.translate_one(1)
+
+    assert result["status"] == "needs_review"
+    assert result["path"] == str(tmp_path / "0001.th.json")
+    assert result["paragraphs"] > 0
+    assert result["provider"] == "fake"
+    assert result["model"] == "primary-model"
+
+
 def test_translate_one_repairs_repeated_borderline_quality_failure(monkeypatch):
     monkeypatch.setattr(pipeline, "read_source", lambda *_args, **_kwargs: "阿星醒來。")
     monkeypatch.setattr(pipeline, "build_translate_prompt", lambda **_kwargs: "SYSTEM\n<glossary>\nTranslate.")

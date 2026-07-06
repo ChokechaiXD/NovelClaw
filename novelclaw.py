@@ -210,10 +210,13 @@ def cmd_translate(args: list[str]) -> None:
                 scorer_history=scorer_history,
             )
 
-            if result["status"] == "ok":
+            if result["status"] in {"ok", "needs_review"}:
                 ratio_str = ", ".join(f"{t}:{p}%" for t, p in result.get("types", {}).items())
-                print(f"  ✅ ตอน {ch}: {result['paragraphs']} ย่อหน้า ({ratio_str})")
+                marker = "⚠️" if result["status"] == "needs_review" else "✅"
+                print(f"  {marker} ตอน {ch}: {result['paragraphs']} ย่อหน้า ({ratio_str})")
                 print(f"     คะแนน: {result['score']}")
+                if result.get("reason"):
+                    print(f"     Reason: {result['reason'][:120]}")
                 if result.get("judge") and result["judge"] != "(mock)":
                     print(f"     Judge: {result['judge'][:120]}")
                 if result.get("discovery") and result["discovery"] != "none":
