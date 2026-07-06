@@ -581,7 +581,7 @@ def _judge_and_auto_repair(
                 paras2 = apply_glossary_post(paras2, target_lang)
                 classified2 = classify_and_format(paras2)
                 score2 = _score_and_report(classified2, source, target_lang, source_profile=source_profile)
-                if score2["passed"]:
+                if isinstance(score2, dict) and score2.get("passed"):
                     classified = classified2
                     score_result = score2
                     judge_repaired = True
@@ -632,6 +632,7 @@ def _try_safety_fallback(
     user_text: str,
     system_text: str | None,
     ch_num: int,
+    source_lang: str,
     target_lang: str,
     source: str,
     source_profile: dict[str, Any] | None,
@@ -643,7 +644,7 @@ def _try_safety_fallback(
     Returns (succeeded, score_result, classified, fallback_model, fallback_provider, path)
     or (False, ...) if fallback fails.
     """
-    if "empty_or_short_content" not in last_error or primary_provider != "openrouter":
+    if primary_provider != "openrouter" or "empty" not in last_error.lower():
         return (False, {}, [], "", "", "")
 
     fallback_model = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
@@ -654,7 +655,7 @@ def _try_safety_fallback(
             model=fallback_model,
             provider="custom",
         )
-        if response_retry and len(response_retry.strip()) >= 50:
+        if response_retry and len(response_retry.strip()) >= 5:
             paras = parse_output(response_retry, ch_num)
             if paras[-1] != "(จบบท)":
                 paras.append("(จบบท)")
@@ -662,7 +663,11 @@ def _try_safety_fallback(
             classified = classify_and_format(paras)
             score_result = _score_and_report(classified, source, target_lang, source_profile=source_profile)
             if score_result.get("passed"):
-                out_path = save_chapter(ch_num, classified, score_result, source_lang, target_lang, source, source_profile)
+                out_path = save_chapter(
+                    classified=classified, ch_num=ch_num, source_text=source,
+                    source_lang=source_lang, target_lang=target_lang, source_profile=source_profile,
+                    quality_record=score_result,
+                )
                 return (True, score_result, classified, fallback_model, prov_retry, out_path)
     except Exception:
         pass
@@ -857,7 +862,7 @@ def _run_real_translate(
     if not translation_ready:
         succeeded, fb_score, fb_classified, fb_model, fb_prov, out_path = _try_safety_fallback(
             user_text=user_text, system_text=system_text,
-            ch_num=ch_num, target_lang=target_lang,
+            ch_num=ch_num, source_lang=source_lang, target_lang=target_lang,
             source=source, source_profile=source_profile,
             last_error=last_error, primary_provider=primary_provider,
         )
@@ -1040,10 +1045,10 @@ def translate_one(
             "promptProfile": prompt_profile or "faithful_default",
             "sourceLang": source_lang,
             "sourceProfile": source_profile,
-            "score": score_result["score"],
+            "score": score_result.get("score", 0) if isinstance(score_result, dict) else 0,
             "quality": quality_record,
-            "judge": judge_result["feedback"][:200] if judge_result.get("ok") else "judge_error",
-            "discovery": f"{discovery_result['discovered']} found, {discovery_result['saved']} saved" if discovery_result.get('discovered', 0) > 0 else "none",
+            "judge": (judge_result.get("feedback")[:200] if isinstance(judge_result, dict) and judge_result.get("ok") else "judge_error"),
+            "discovery": f"{discovery_result.get('discovered', 0)} found, {discovery_result.get('saved', 0)} saved" if isinstance(discovery_result, dict) and discovery_result.get('discovered', 0) > 0 else "none",
         }
 
     except Exception as e:

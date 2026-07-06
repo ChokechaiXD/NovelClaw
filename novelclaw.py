@@ -69,7 +69,7 @@ _CONFIG_SCHEMA = {
     "prompt_profile": {"type": str, "default": ""},
     "sequential": {"type": bool, "default": False},
     "judge_enabled": {"type": bool, "default": True},
-    "judge_threshold": {"type": float, "min": 0.0, "max": 100.0, "default": 95.0},
+    "judge_threshold": {"type": float, "min": 0.0, "max": 100.0, "default": 85.0},
     "glossary_discovery": {"type": bool, "default": True},
     "fallback_provider": {"type": str, "default": "custom"},
     "fallback_model": {"type": str, "default": ""},
@@ -158,7 +158,7 @@ def cmd_translate(args: list[str]) -> None:
     ap.add_argument("--sequential", action="store_true", help="Force sequential batch mode")
     ap.add_argument("--parallel", type=int, default=_default_parallel_workers(), const=3, nargs="?",
                     help="Parallel batch with N workers (default: NOVELCLAW_DEFAULT_PARALLEL or 3)")
-    ap.add_argument("--retry", type=int, default=0, help="Retry failed chapters up to N times")
+    ap.add_argument("--retry", type=int, default=2, help="Retry failed chapters up to N times")
     ap.add_argument("--json", action="store_true", help="JSON output")
 
     parsed = ap.parse_args(args)
@@ -250,6 +250,8 @@ def _cmd_translate_parallel(ch_nums: list[int], parsed) -> None:
     if not parsed.json:
         print(f"   ขนาน {n_workers} worker\n")
 
+    scorer_history = ScorerHistory()
+
     def run_chapter(ch: int) -> dict:
         last_result = None
         for attempt in range(max(1, parsed.retry + 1)):
@@ -264,6 +266,7 @@ def _cmd_translate_parallel(ch_nums: list[int], parsed) -> None:
                 model_override=parsed.model,
                 provider_override=parsed.provider,
                 prompt_profile=parsed.profile,
+                scorer_history=scorer_history,
             )
             last_result = result
             if result.get("status") in {"ok", "dry_run", "needs_review"}:
