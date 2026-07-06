@@ -21,7 +21,7 @@ BOILERPLATE_RE = re.compile(r"全球降臨|投票推薦|加入書籤|小說報�
 END_MARKER_RE = re.compile(r"^\s*(จบตอน|END)\s*$", re.I)
 TITLE_RE = re.compile(r"^\s*(第\d+章|ตอนที่\s*\d+|บทที่\s*\d+)")
 DIALOGUE_RE = re.compile(r"[「“\"]")
-SYSTEM_RE = re.compile(r"【[^】]+】")
+SYSTEM_LINE_RE = re.compile(r"^\s*[【\[][\s\S]+[】\]]\s*$")
 
 
 def visible_text(paragraphs: list[Any]) -> str:
@@ -48,7 +48,7 @@ def count_structure(lines: list[str]) -> dict[str, int]:
     return {
         "paragraphCount": len(lines),
         "dialogueCount": sum(1 for line in lines if DIALOGUE_RE.search(line)),
-        "systemMarkerCount": sum(len(SYSTEM_RE.findall(line)) for line in lines),
+        "systemMarkerCount": sum(1 for line in lines if SYSTEM_LINE_RE.match(line)),
     }
 
 
