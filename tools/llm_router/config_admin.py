@@ -14,8 +14,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from atomic_io import atomic_write_json, atomic_write_text
-from llm_router.config_providers import (
+from tools.atomic_io import atomic_write_json, atomic_write_text
+from .config_providers import (
     _CONFIG_PATH,
     _PROJECT_ROOT,
     _provider_key_field,
