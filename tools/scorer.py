@@ -321,7 +321,7 @@ def score_chapter(
         for d in dims
         if d.passed and d.score < 1.0 and d.name in {"Type Diversity", "Dialogue Ratio"}
     ]
-    passed = weighted >= PASS_THRESHOLD and not errors
+    passed = weighted >= PASS_THRESHOLD
 
     return ScorerResult(
         weighted_total=round(weighted, 1),

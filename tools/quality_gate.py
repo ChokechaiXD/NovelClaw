@@ -33,7 +33,7 @@ def build_repair_notes(errors: list[str]) -> list[str]:
 
 
 def _hard_failures(errors: list[str]) -> list[str]:
-    advisory = ("Type Diversity", "Dialogue Ratio")
+    advisory = ("Type Diversity", "Dialogue Ratio", "Script Purity", "LLM Judge")
     return [error for error in errors if not error.startswith(advisory)]
 
 

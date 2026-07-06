@@ -87,12 +87,10 @@ terms:
     action: preserve
     category: game_term
   BUFF:
-    action: replace
-    value: บัฟ
+    action: preserve
     category: game_mechanic
   DEBUFF:
-    action: replace
-    value: ดีบัฟ
+    action: preserve
     category: game_mechanic
   ELITE:
     action: preserve
@@ -104,6 +102,27 @@ terms:
     action: preserve
     category: game_term
   SOLO:
+    action: preserve
+    category: game_term
+  NPC:
+    action: preserve
+    category: game_term
+  ID:
+    action: preserve
+    category: game_term
+  PS:
+    action: preserve
+    category: game_term
+  AUX:
+    action: preserve
+    category: game_term
+  GG:
+    action: preserve
+    category: game_term
+  GZ:
+    action: preserve
+    category: game_term
+  NET:
     action: preserve
     category: game_term
 

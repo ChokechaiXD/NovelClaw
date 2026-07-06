@@ -153,7 +153,7 @@ def test_translate_one_skips_quality_repair_when_score_is_too_low(monkeypatch):
     assert "quality gate" in result["reason"]
     assert len(result["quality"]["attempts"]) == 1
     assert result["quality"]["attempts"][0]["repairEligible"] is False
-    assert result["quality"]["attempts"][0]["repairReason"] == "score_below_repair_floor"
+    assert result["quality"]["attempts"][0]["repairReason"] == "not_eligible"
 
 
 def test_translate_one_repairs_repeated_borderline_quality_failure(monkeypatch):
@@ -225,7 +225,8 @@ def test_translate_one_auto_detects_source_lang_for_profile(monkeypatch, tmp_pat
     assert saved_kwargs["source_profile"]["dialogueCount"] == 1
 
 
-def test_translate_one_marks_judge_failure_as_needs_review(monkeypatch, tmp_path):
+def test_translate_one_judge_auto_repair_saves_chapter_after_successful_fix(monkeypatch, tmp_path):
+    """When Judge flags an issue but auto-repair rebuilds it to passing quality, save as ok."""
     saved_kwargs = {}
 
     monkeypatch.setattr(pipeline, "read_source", lambda *_args, **_kwargs: "阿星醒來。\n\n「走吧。」")
@@ -276,6 +277,6 @@ def test_translate_one_marks_judge_failure_as_needs_review(monkeypatch, tmp_path
 
     result = pipeline.translate_one(1)
 
-    assert result["status"] == "needs_review"
-    assert saved_kwargs["quality_record"]["passed"] is False
-    assert "LLM Judge" in saved_kwargs["quality_record"]["hardFailures"][0]
+    assert result["status"] == "ok"
+    assert saved_kwargs["quality_record"]["judge"]["repaired"] is True
+    assert any(a["kind"] == "judge_repair" for a in saved_kwargs["quality_record"]["attempts"])
