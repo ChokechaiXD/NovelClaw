@@ -1,4 +1,6 @@
-from llm_router import config_providers
+"""Tests for llm_router config — core (config_providers) + admin (config_admin)."""
+
+from llm_router import config_admin, config_providers
 
 
 class _FakeModelResponse:
@@ -10,6 +12,12 @@ class _FakeModelResponse:
 
     def read(self):
         return b'{"data":[{"id":"alpha/latest"},{"id":"beta-fast"}]}'
+
+
+def _patch_config_path(monkeypatch, config_path):
+    """Patch _CONFIG_PATH in both core and admin modules."""
+    monkeypatch.setattr(config_providers, "_CONFIG_PATH", config_path)
+    monkeypatch.setattr(config_admin, "_CONFIG_PATH", config_path)
 
 
 def test_get_provider_config_caches_until_save(tmp_path, monkeypatch):
@@ -25,8 +33,8 @@ def test_get_provider_config_caches_until_save(tmp_path, monkeypatch):
         + "\n",
         encoding="utf-8",
     )
-    monkeypatch.setattr(config_providers, "_CONFIG_PATH", config_path)
-    getattr(config_providers, "clear_provider_config_cache", lambda: None)()
+    _patch_config_path(monkeypatch, config_path)
+    config_providers.clear_provider_config_cache()
 
     first = config_providers.get_provider_config()
     config_path.write_text(
@@ -45,7 +53,7 @@ def test_get_provider_config_caches_until_save(tmp_path, monkeypatch):
     assert first["active"] == "alpha"
     assert second["active"] == "alpha"
 
-    assert config_providers.save_provider_config(active="gamma") is True
+    assert config_admin.save_provider_config(active="gamma") is True
     third = config_providers.get_provider_config()
 
     assert third["active"] == "gamma"
@@ -65,9 +73,9 @@ def test_save_provider_config_updates_discovery_model(tmp_path, monkeypatch):
         + "\n",
         encoding="utf-8",
     )
-    monkeypatch.setattr(config_providers, "_CONFIG_PATH", config_path)
+    _patch_config_path(monkeypatch, config_path)
 
-    saved = config_providers.save_provider_config(
+    saved = config_admin.save_provider_config(
         active="openrouter",
         default_model="google/gemma-4-26b-a4b-it:free",
         discovery_model="openai/gpt-oss-120b:free",
@@ -99,10 +107,10 @@ def test_save_provider_config_updates_custom_endpoint(tmp_path, monkeypatch):
         + "\n",
         encoding="utf-8",
     )
-    monkeypatch.setattr(config_providers, "_CONFIG_PATH", config_path)
+    _patch_config_path(monkeypatch, config_path)
     config_providers.clear_provider_config_cache()
 
-    saved = config_providers.save_provider_config(
+    saved = config_admin.save_provider_config(
         custom_base_url="http://127.0.0.1:1234/v1",
     )
 
@@ -132,21 +140,22 @@ def test_save_provider_config_updates_local_provider_api_key(tmp_path, monkeypat
         + "\n",
         encoding="utf-8",
     )
-    monkeypatch.setattr(config_providers, "_CONFIG_PATH", config_path)
+    _patch_config_path(monkeypatch, config_path)
     monkeypatch.setattr(config_providers, "_PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(config_admin, "_PROJECT_ROOT", tmp_path)
     config_providers.clear_provider_config_cache()
 
-    saved = config_providers.save_provider_config(
+    saved = config_admin.save_provider_config(
         api_key_provider="openai",
-        api_key="sk-local-test",
+        api_key="«redacted:sk-…»",
     )
 
     assert saved is True
-    assert '"openai_api_key": "sk-local-test"' in (tmp_path / "llm.json").read_text(encoding="utf-8")
-    assert "sk-local-test" not in config_path.read_text(encoding="utf-8")
+    assert '"openai_api_key": "«redacted:sk-…»"' in (tmp_path / "llm.json").read_text(encoding="utf-8")
+    assert "«redacted:sk-…»" not in config_path.read_text(encoding="utf-8")
     config_providers.clear_provider_config_cache()
     cfg = config_providers.get_provider_config()
-    assert cfg["providers"]["openai"]["api_key"] == "sk-local-test"
+    assert cfg["providers"]["openai"]["api_key"] == "«redacted:sk-…»"
 
 
 def test_get_providers_list_can_refresh_live_models(tmp_path, monkeypatch):
@@ -177,11 +186,11 @@ def test_get_providers_list_can_refresh_live_models(tmp_path, monkeypatch):
         captured["headers"] = dict(req.header_items())
         return _FakeModelResponse()
 
-    monkeypatch.setattr(config_providers, "_CONFIG_PATH", config_path)
-    monkeypatch.setattr(config_providers.urllib.request, "urlopen", fake_urlopen)
+    _patch_config_path(monkeypatch, config_path)
+    monkeypatch.setattr(config_admin.urllib.request, "urlopen", fake_urlopen)
     config_providers.clear_provider_config_cache()
 
-    providers = config_providers.get_providers_list(refresh=True)
+    providers = config_admin.get_providers_list(refresh=True)
 
     assert providers[0]["model_source"] == "live"
     assert [model["id"] for model in providers[0]["models"]] == ["alpha/latest", "beta-fast"]
@@ -210,7 +219,7 @@ def test_provider_config_resolves_root_placeholders_in_profiles(tmp_path, monkey
         + "\n",
         encoding="utf-8",
     )
-    monkeypatch.setattr(config_providers, "_CONFIG_PATH", config_path)
+    _patch_config_path(monkeypatch, config_path)
     config_providers.clear_provider_config_cache()
 
     cfg = config_providers.get_provider_config()

@@ -110,3 +110,4 @@ staging/
 # Cleanup 2026-06-22
 _Archive/
 docs/
+*.db
