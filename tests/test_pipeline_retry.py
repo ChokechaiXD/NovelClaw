@@ -116,6 +116,53 @@ def test_translate_one_uses_discovery_model_as_fallback_after_empty_output(monke
     assert result["quality"]["attempts"][1]["kind"] == "fallback"
 
 
+def test_safety_fallback_runs_after_empty_output_and_saves_with_source_lang(monkeypatch, tmp_path):
+    saved_kwargs = {}
+
+    monkeypatch.setattr(
+        pipeline,
+        "call_llm",
+        lambda **_kwargs: (
+            "เฉาซิงลืมตาขึ้น\n\nเมืองทั้งเมืองเงียบกริบ\n\n(จบบท)",
+            "custom",
+            "fallback-model",
+        ),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "_score_and_report",
+        lambda *_args, **_kwargs: {"score": 91, "passed": True, "hardFailures": []},
+    )
+
+    def fake_save_chapter(**kwargs):
+        saved_kwargs.update(kwargs)
+        return tmp_path / "0001.th.json"
+
+    monkeypatch.setattr(pipeline, "save_chapter", fake_save_chapter)
+
+    succeeded, score, classified, model, provider, out_path = pipeline._try_safety_fallback(
+        user_text="Translate.",
+        system_text=None,
+        ch_num=1,
+        source_lang="cn",
+        target_lang="th",
+        source="阿星醒來。",
+        source_profile={"sourceLang": "cn"},
+        last_error="Empty LLM output",
+        primary_provider="openrouter",
+    )
+
+    assert succeeded is True
+    assert score["score"] == 91
+    assert classified
+    assert model == "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+    assert provider == "custom"
+    assert out_path == tmp_path / "0001.th.json"
+    assert saved_kwargs["source_lang"] == "cn"
+    assert saved_kwargs["target_lang"] == "th"
+    assert saved_kwargs["quality_record"]["passed"] is True
+
+
 def test_translate_one_skips_quality_repair_when_score_is_too_low(monkeypatch):
     monkeypatch.setattr(pipeline, "read_source", lambda *_args, **_kwargs: "阿星醒來。")
     monkeypatch.setattr(pipeline, "build_translate_prompt", lambda **_kwargs: "SYSTEM\n<glossary>\nTranslate.")

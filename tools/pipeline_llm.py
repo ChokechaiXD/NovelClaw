@@ -120,7 +120,8 @@ def call_llm(
 
     # ── Model validation: only allowed model prefixes ──
     ALLOWED_PREFIXES = {"openrouter/", "poli/", "9router/", "custom/"}
-    if not any(model_name.startswith(p) for p in ALLOWED_PREFIXES):
+    provider_is_openrouter = cfg["provider_name"] == "openrouter"
+    if not provider_is_openrouter and not any(model_name.startswith(p) for p in ALLOWED_PREFIXES):
         raise ValueError(
             f"Model '{model_name}' blocked. Translation pipeline may only use "
             f"models starting with: {', '.join(sorted(ALLOWED_PREFIXES))}. "
