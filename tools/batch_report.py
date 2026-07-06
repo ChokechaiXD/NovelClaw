@@ -17,7 +17,11 @@ NAME_RULES = {
     "柳慕雪": {"expected": "หลิวมู่เสวี่ย", "bad": ["หลิ่วมู่เสวี่ย"]},
 }
 
-BOILERPLATE_RE = re.compile(r"全球降臨|投票推薦|加入書籤|小說報錯|首次合區")
+BOILERPLATE_RE = re.compile(r"全球降臨|投票推薦|加入書籤|小說報錯|首次合區|投票|推薦|書籤")
+END_MARKER_RE = re.compile(r"^\s*(จบตอน|END)\s*$", re.I)
+TITLE_RE = re.compile(r"^\s*(第\d+章|ตอนที่\s*\d+|บทที่\s*\d+)")
+DIALOGUE_RE = re.compile(r"[「“\"]")
+SYSTEM_RE = re.compile(r"【[^】]+】")
 
 
 def visible_text(paragraphs: list[Any]) -> str:
@@ -29,6 +33,23 @@ def visible_text(paragraphs: list[Any]) -> str:
 
 def strip_boilerplate(lines: list[str]) -> list[str]:
     return [line for line in lines if not BOILERPLATE_RE.search(line)]
+
+
+def content_lines(paragraphs: list[Any], *, source: bool = False) -> list[str]:
+    lines = [line.strip() for line in visible_text(paragraphs).splitlines() if line.strip()]
+    lines = strip_boilerplate(lines)
+    return [
+        line for line in lines
+        if not END_MARKER_RE.match(line) and not TITLE_RE.match(line) and (source or line != "")
+    ]
+
+
+def count_structure(lines: list[str]) -> dict[str, int]:
+    return {
+        "paragraphCount": len(lines),
+        "dialogueCount": sum(1 for line in lines if DIALOGUE_RE.search(line)),
+        "systemMarkerCount": sum(len(SYSTEM_RE.findall(line)) for line in lines),
+    }
 
 
 def name_flags(source_text: str, output_text: str) -> list[str]:
@@ -49,7 +70,7 @@ def ratio(out: int, src: int) -> float | None:
     return round(out / src, 3) if src else None
 
 
-def warn_flags(q: dict[str, Any], source_text: str = "", output_text: str = "") -> list[str]:
+def warn_flags(q: dict[str, Any], source_text: str = "", output_text: str = "", structure_override: dict[str, Any] | None = None) -> list[str]:
     flags: list[str] = []
     length = q.get("lengthRatio") or 0
     if length < 0.85:
@@ -57,7 +78,7 @@ def warn_flags(q: dict[str, Any], source_text: str = "", output_text: str = "") 
     elif length < 0.95:
         flags.append("length_low")
 
-    structure = q.get("structure") or {}
+    structure = structure_override or q.get("structure") or {}
     src = structure.get("source") or {}
     out = structure.get("output") or {}
     para = ratio(out.get("paragraphCount", 0), src.get("paragraphCount", 0))
@@ -98,16 +119,17 @@ def load_row(chapters_dir: Path, ch: int) -> dict[str, Any]:
     data = json.loads(path.read_text(encoding="utf-8"))
     source_path = chapters_dir / f"{ch:04d}.cn.json"
     source_data = json.loads(source_path.read_text(encoding="utf-8")) if source_path.exists() else {}
-    source_lines = visible_text(source_data.get("paragraphs") or source_data.get("content") or []).splitlines()
-    source_text = "\n".join(strip_boilerplate(source_lines))
-    output_text = visible_text(data.get("paragraphs", []))
+    source_lines = content_lines(source_data.get("paragraphs") or source_data.get("content") or [], source=True)
+    output_lines = content_lines(data.get("paragraphs", []))
+    source_text = "\n".join(source_lines)
+    output_text = "\n".join(output_lines)
 
     q = data.get("qualityRecord") or {}
-    structure = q.get("structure") or {}
+    adjusted_structure = {"source": count_structure(source_lines), "output": count_structure(output_lines)}
+    src = adjusted_structure["source"]
+    out = adjusted_structure["output"]
+    flags = warn_flags(q, source_text, output_text, adjusted_structure)
 
-    src = structure.get("source") or {}
-    out = structure.get("output") or {}
-    flags = warn_flags(q, source_text, output_text)
     return {
         "chapter": ch,
         "status": "review" if flags else "ok",
