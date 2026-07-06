@@ -675,6 +675,79 @@ def _try_safety_fallback(
     return (False, {}, [], "", "", "")
 
 
+def _attempt_record(
+    attempt_cfg: dict[str, Any],
+    result: dict[str, Any],
+    status: str,
+    score_result: dict[str, Any] | None = None,
+    reason: str | None = None,
+) -> dict[str, Any]:
+    record = {
+        "kind": attempt_cfg["kind"],
+        "model": result.get("model", ""),
+        "provider": result.get("provider", ""),
+        "status": status,
+    }
+    if score_result is not None:
+        record.update({
+            "score": score_result.get("score", 0),
+            "hardFailures": score_result.get("hardFailures", score_result.get("errors", [])),
+            "structure": score_result.get("structure", {}),
+        })
+    if reason is not None:
+        record["reason"] = reason
+    return record
+
+
+def _failed_translation_result(
+    *,
+    ch_num: int,
+    reason: str,
+    attempts: list[dict[str, Any]],
+    source_lang: str,
+    source_profile: dict[str, Any],
+    quality: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "status": "failed", "ch": ch_num, "reason": reason,
+        "classified": [], "score_result": {}, "judge_result": {},
+        "attempts": attempts, "provider_name": "", "model_name": "",
+        "discovery_result": {}, "source_lang": source_lang,
+        "source_profile": source_profile,
+        **({"quality": quality} if quality is not None else {}),
+    }
+
+
+def _needs_review_result(
+    *,
+    ch_num: int,
+    reason: str,
+    classified: list[dict[str, str]],
+    score_result: dict[str, Any],
+    judge_result: dict[str, Any],
+    attempts: list[dict[str, Any]],
+    provider_name: str,
+    model_name: str,
+    source_lang: str,
+    source_profile: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "status": "needs_review", "ch": ch_num,
+        "reason": reason,
+        "score": score_result.get("score", 0),
+        "classified": classified,
+        "score_result": score_result,
+        "judge_result": judge_result,
+        "attempts": attempts,
+        "provider_name": provider_name,
+        "model_name": model_name,
+        "discovery_result": {},
+        "quality": _quality_summary(score_result, attempts),
+        "source_lang": source_lang,
+        "source_profile": source_profile,
+    }
+
+
 # ── Real Translation Orchestration ──────────────────────────────────────
 
 
@@ -742,48 +815,26 @@ def _run_real_translate(
             score_result = result["score_result"]
             provider_name = result["provider"]
             model_name = result["model"]
-            attempts.append({
-                "kind": attempt_cfg["kind"],
-                "model": model_name,
-                "provider": provider_name,
-                "status": "passed",
-                "score": score_result.get("score", 0),
-                "hardFailures": score_result.get("hardFailures", score_result.get("errors", [])),
-                "structure": score_result.get("structure", {}),
-            })
+            attempts.append(_attempt_record(attempt_cfg, result, "passed", score_result))
             translation_ready = True
             break
 
         if result["status"] == "empty_output":
             last_error = "Empty LLM output"
-            attempts.append({
-                "kind": attempt_cfg["kind"],
-                "model": result["model"],
-                "provider": result["provider"],
-                "status": "empty_output",
-            })
+            attempts.append(_attempt_record(attempt_cfg, result, "empty_output"))
             allow_repair = False
             continue
 
         if result["status"] == "error":
             last_error = result.get("reason", "unknown")
-            attempts.append({
-                "kind": attempt_cfg["kind"],
-                "model": result["model"],
-                "provider": result["provider"],
-                "status": "error",
-                "reason": last_error,
-            })
+            attempts.append(_attempt_record(attempt_cfg, result, "error", reason=last_error))
             allow_repair = False
             if attempt_cfg["kind"] != "fallback":
                 continue
-            return {
-                "status": "failed", "ch": ch_num, "reason": last_error[:300],
-                "classified": [], "score_result": {}, "judge_result": {},
-                "attempts": attempts, "provider_name": "", "model_name": "",
-                "discovery_result": {}, "source_lang": source_lang,
-                "source_profile": source_profile,
-            }
+            return _failed_translation_result(
+                ch_num=ch_num, reason=last_error[:300], attempts=attempts,
+                source_lang=source_lang, source_profile=source_profile,
+            )
 
         # quality_failed
         classified = result["classified"]
@@ -791,15 +842,7 @@ def _run_real_translate(
         provider_name = result["provider"]
         model_name = result["model"]
         last_error = f"scorer: {score_result.get('score', 0)}/100 < {PASS_THRESHOLD}"
-        attempts.append({
-            "kind": attempt_cfg["kind"],
-            "model": model_name,
-            "provider": provider_name,
-            "status": "quality_failed",
-            "score": score_result.get("score", 0),
-            "hardFailures": score_result.get("hardFailures", score_result.get("errors", [])),
-            "structure": score_result.get("structure", {}),
-        })
+        attempts.append(_attempt_record(attempt_cfg, result, "quality_failed", score_result))
 
         repair_decision = _quality_repair_decision(score_result)
         attempts[-1]["repairEligible"] = repair_decision["eligible"]
@@ -844,21 +887,18 @@ def _run_real_translate(
         if attempt_cfg["kind"] == "translate" and repair_instruction:
             continue
 
-        return {
-            "status": "needs_review", "ch": ch_num,
-            "reason": f"quality gate failed after retry: {last_error}",
-            "score": score_result.get("score", 0),
-            "classified": classified,
-            "score_result": score_result,
-            "judge_result": judge_result,
-            "attempts": attempts,
-            "provider_name": provider_name,
-            "model_name": model_name,
-            "discovery_result": {},
-            "quality": _quality_summary(score_result, attempts),
-            "source_lang": source_lang,
-            "source_profile": source_profile,
-        }
+        return _needs_review_result(
+            ch_num=ch_num,
+            reason=f"quality gate failed after retry: {last_error}",
+            classified=classified,
+            score_result=score_result,
+            judge_result=judge_result,
+            attempts=attempts,
+            provider_name=provider_name,
+            model_name=model_name,
+            source_lang=source_lang,
+            source_profile=source_profile,
+        )
 
     if not translation_ready:
         succeeded, fb_score, fb_classified, fb_model, fb_prov, out_path = _try_safety_fallback(
@@ -882,14 +922,11 @@ def _run_real_translate(
                 "source_profile": source_profile,
                 "quality": fb_score,
             }
-        return {
-            "status": "failed", "ch": ch_num, "reason": last_error,
-            "classified": [], "score_result": {}, "judge_result": {},
-            "attempts": attempts, "provider_name": "", "model_name": "",
-            "discovery_result": {}, "source_lang": source_lang,
-            "source_profile": source_profile,
-            "quality": {"attempts": attempts, "repairHistory": attempts},
-        }
+        return _failed_translation_result(
+            ch_num=ch_num, reason=last_error, attempts=attempts,
+            source_lang=source_lang, source_profile=source_profile,
+            quality={"attempts": attempts, "repairHistory": attempts},
+        )
 
     # ── Station 6.75: LLM Judge + Auto Repair ──
     judge_model = model_override or cfg.get("discovery_model") or primary_model
