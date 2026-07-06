@@ -368,16 +368,16 @@ def cmd_judge(args: list[str]) -> None:
 
 def cmd_status(args: list[str]) -> None:
     """novelclaw status — แสดงสถานะนิยาย"""
-    from llm_router.config_providers import get_provider_config
+    from pipeline_llm import get_active_config
 
     novels_dir = _PROJECT_ROOT / "novels"
     if not novels_dir.exists():
         print("❌ ไม่พบ novels/")
         return
 
-    # Show active config
-    cfg = get_provider_config()
-    print(f"⚙️  Translate: {cfg.get('active', '?')} / {cfg.get('default_model', '?')}")
+    # Show active runtime config
+    cfg = get_active_config()
+    print(f"⚙️  Translate: {cfg.get('provider_name', '?')} / {cfg.get('model', '?')}")
     print(f"   Discovery: {cfg.get('discovery_model', '—')}")
     print()
 
@@ -469,10 +469,11 @@ def cmd_config(args: list[str]) -> None:
         )
         print(f"✅ บันทึกแล้ว")
 
-    from llm_router.config_providers import get_provider_config, get_providers_list
-    cfg = get_provider_config()
-    active = cfg.get("active", "?")
-    model = cfg.get("default_model", "?")
+    from llm_router.config_providers import get_providers_list
+    from pipeline_llm import get_active_config
+    cfg = get_active_config()
+    active = cfg.get("provider_name", "?")
+    model = cfg.get("model", "?")
     disc = cfg.get("discovery_model", "—")
     print(f"⚙️  ปัจจุบัน")
     print(f"   Provider:   {active}")
