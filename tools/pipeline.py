@@ -28,12 +28,13 @@ from typing import Any, TypedDict
 
 class _TranslateOneResult(TypedDict, total=False):
     """Return value from translate_one()."""
-    status: str  # ok, failed, dry_run
+    status: str  # ok, needs_review, failed, dry_run
     ch: int
     paragraphs: int
     types: dict[str, float]
     path: str
     score: float
+    quality: dict[str, Any]
     source_chars: int
     source_preview: str
     provider: str
@@ -999,9 +1000,9 @@ def translate_one(
                 model_override=model_override, provider_override=provider_override,
             )
 
-            if r["status"] in ("failed", "needs_review"):
+            if r["status"] == "failed":
                 return {
-                    "status": r["status"],
+                    "status": "failed",
                     "ch": ch_num,
                     "reason": r.get("reason", ""),
                     "score": r.get("score", 0),
@@ -1025,6 +1026,7 @@ def translate_one(
 
         quality_record = _quality_summary(score_result, attempts if not mock else [], judge_result)
         final_status = "needs_review" if quality_record.get("passed") is False else "ok"
+        review_reason = r.get("reason", "") if not mock and final_status == "needs_review" else ""
         out_path = save_chapter(
             classified=classified, ch_num=ch_num, slug=slug,
             source_text=source, source_lang=source_lang, target_lang=target_lang,
@@ -1036,7 +1038,7 @@ def translate_one(
         return {
             "status": final_status,
             "ch": ch_num,
-            "reason": "LLM judge flagged quality risk" if final_status == "needs_review" else "",
+            "reason": review_reason or ("LLM judge flagged quality risk" if final_status == "needs_review" else ""),
             "paragraphs": len(classified),
             "types": estimate_type_ratios(classified),
             "path": str(out_path),
