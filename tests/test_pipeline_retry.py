@@ -163,7 +163,7 @@ def test_safety_fallback_runs_after_empty_output_and_saves_with_source_lang(monk
     assert saved_kwargs["quality_record"]["passed"] is True
 
 
-def test_translate_one_skips_quality_repair_when_score_is_too_low(monkeypatch):
+def test_translate_one_skips_quality_repair_when_score_is_too_low(monkeypatch, tmp_path):
     monkeypatch.setattr(pipeline, "read_source", lambda *_args, **_kwargs: "阿星醒來。")
     monkeypatch.setattr(pipeline, "build_translate_prompt", lambda **_kwargs: "SYSTEM\n<glossary>\nTranslate.")
     monkeypatch.setattr(
@@ -193,6 +193,7 @@ def test_translate_one_skips_quality_repair_when_score_is_too_low(monkeypatch):
             "warnings": [],
         },
     )
+    monkeypatch.setattr(pipeline, "save_chapter", lambda **_kwargs: tmp_path / "0001.th.json")
 
     result = pipeline.translate_one(1)
 
@@ -236,7 +237,7 @@ def test_translate_one_needs_review_keeps_usable_output_contract(monkeypatch, tm
     assert result["model"] == "primary-model"
 
 
-def test_translate_one_repairs_repeated_borderline_quality_failure(monkeypatch):
+def test_translate_one_repairs_repeated_borderline_quality_failure(monkeypatch, tmp_path):
     monkeypatch.setattr(pipeline, "read_source", lambda *_args, **_kwargs: "阿星醒來。")
     monkeypatch.setattr(pipeline, "build_translate_prompt", lambda **_kwargs: "SYSTEM\n<glossary>\nTranslate.")
     monkeypatch.setattr(
@@ -266,6 +267,7 @@ def test_translate_one_repairs_repeated_borderline_quality_failure(monkeypatch):
             "warnings": [],
         },
     )
+    monkeypatch.setattr(pipeline, "save_chapter", lambda **_kwargs: tmp_path / "0001.th.json")
 
     result = pipeline.translate_one(1)
 
