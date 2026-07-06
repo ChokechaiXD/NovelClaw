@@ -138,7 +138,7 @@ class RoyalRoadAdapter(StaticHtmlAdapter):
     id = "royalroad"
     display_name = "Royal Road"
     source_lang = "en"
-    quality = "experimental"
+    quality = "fixture"
     domains = ("royalroad.com",)
     toc_link_patterns = (r"/fiction/\d+/.+/chapter/\d+",)
     content_attrs = ("chapter-inner", "chapter-content")
