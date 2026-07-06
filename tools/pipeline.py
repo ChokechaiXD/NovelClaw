@@ -86,6 +86,7 @@ from classifier import classify_and_format, estimate_type_ratios  # noqa: E402
 from novel_paths import chapter_path, source_md_path  # noqa: E402
 from pipeline_llm import call_llm, get_active_config as _get_active_config  # noqa: E402
 from pipeline_llm import FatalError  # noqa: E402
+from scorer import ScorerHistory  # noqa: E402
 from pipeline_parser import parse_output  # noqa: E402
 from pipeline_save import apply_glossary_post, save_chapter, get_title as _get_title  # noqa: E402
 from prompt_builder import build_prompt  # noqa: E402
@@ -343,15 +344,36 @@ def _run_one_attempt(
 
 # ── Station 6.75: LLM Judge ────────────────────────────────────────────
 
-_JUDGE_SYSTEM = """You are a translation quality judge. Review a Thai novel translation.
-Check for:
-1. Naturalness — does it read like natural Thai?
-2. Consistency — are character names/pronouns consistent?
-3. Clarity — is there any confusing or ambiguous phrasing?
-4. Flow — does the paragraph sequence flow naturally?
+_JUDGE_SYSTEM = """You are a literary translation quality evaluator (G-Eval protocol).
+Assess the translation on 4 dimensions, each 0-100. For each dimension, reason
+step-by-step before assigning a score, then output structured JSON.
 
-Rate each 1-10. If any score < 8, provide 1-2 specific improvement suggestions.
-Keep response to 3-5 lines max."""
+SCORING RUBRIC:
+1. **Accuracy** (weight 0.40): All events, entities, and actions preserved
+   from source. No omission, addition, or hallucination.
+2. **Fluency** (weight 0.15): Natural target-language grammar and phrasing.
+   Reads like native writing.
+3. **Terminology** (weight 0.25): Glossary terms and proper nouns used
+   correctly and consistently.
+4. **Coherence** (weight 0.20): Logical flow between paragraphs. Dialogue
+   and narration transitions feel natural.
+
+For each dimension:
+- Reason: 1-2 sentences explaining your reasoning.
+- Score: 0-100 integer.
+- If score < 70, list specific error(s).
+
+OUTPUT FORMAT — ONLY valid JSON, no other text:
+{
+  "dimensions": {"accuracy": 85, "fluency": 90, "terminology": 75, "coherence": 88},
+  "weighted_score": 83.5,
+  "passed": true,
+  "errors": [
+    {"type": "terminology/leak", "severity": "minor", "span": "untranslated term 'HP'", "position": 3}
+  ],
+  "repair_notes": ["Replace 'HP' with Thai equivalent 'พลังชีวิต'."],
+  "untranslated_scripts": []
+}"""
 
 
 def judge_translation(
@@ -360,7 +382,7 @@ def judge_translation(
     model: str | None = None,
     source_profile: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """LLM Judge — optional quality review after scoring passes."""
+    """G-Eval quality judge via LLM. Returns structured JSON with dimensions + errors."""
     try:
         content = [p for p in paragraphs if p.get("type") != "end"]
         sample_indexes = {0, 1, 2}
@@ -378,11 +400,12 @@ def judge_translation(
             for i in sorted(i for i in sample_indexes if 0 <= i < len(content))
         )
         structure = source_profile or {}
-        prompt = f"""Review this Thai novel translation using sampled beginning/middle/end/risk paragraphs:
+        prompt = f"""Review this translation using G-Eval protocol with chain-of-thought.
 
+Sample paragraphs (beginning / middle / end / risk):
 {text_preview}
 
-Source (first 300 chars):
+Source sample (first 300 chars):
 {source_text[:300]}
 
 Source structure:
@@ -390,22 +413,53 @@ Source structure:
 - dialogue: {structure.get('dialogueCount', '?')}
 - system markers: {structure.get('systemMarkerCount', '?')}
 
-Rate each: Naturalness / Consistency / Clarity / Flow / Completeness
-If any score < 8, start with FAIL: and give 1-2 specific repair suggestions.
-Otherwise start with PASS: and keep feedback brief."""
+For each of the 4 rubric dimensions, reason 1-2 sentences then assign 0-100.
+Respond with ONLY valid JSON matching the specified format."""
 
         response, provider, model_name = call_llm(
             prompt=prompt, system=_JUDGE_SYSTEM,
-            model=model, temperature=0.1, max_tokens=500,
+            model=model, temperature=0.1, max_tokens=800,
         )
-        feedback = response.strip()
+        raw = response.strip()
+        # Parse JSON from response (handle possible markdown fences)
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1]
+            raw = raw.rsplit("```", 1)[0]
+        parsed = json.loads(raw)
+        dims: dict[str, int] = parsed.get("dimensions", {})
+        weighted = parsed.get("weighted_score", 0)
+        errors: list[dict[str, Any]] = parsed.get("errors", [])
+        passed = parsed.get("passed", True)
+        repair_notes: list[str] = parsed.get("repair_notes", [])
         return {
             "ok": True,
-            "passed": not feedback.upper().startswith("FAIL:"),
-            "feedback": feedback,
+            "passed": passed,
+            "score": weighted,
+            "dimensions": dims,
+            "errors": errors,
+            "repair_notes": repair_notes,
+            "feedback": repair_notes[0] if repair_notes else ("ok" if passed else "needs review"),
             "model": model_name,
             "sampledParagraphs": len(sample_indexes),
         }
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        # Fallback: try plain text parse for non-JSON responses
+        try:
+            raw_local = response if isinstance(response, str) else str(response)
+            passed_local = not raw_local.upper().startswith("FAIL:")
+            return {
+                "ok": True,
+                "passed": passed_local,
+                "score": 0,
+                "dimensions": {},
+                "errors": [],
+                "repair_notes": [],
+                "feedback": raw_local[:200],
+                "model": model_name,
+                "sampledParagraphs": 0,
+            }
+        except Exception:
+            return {"ok": False, "passed": True, "feedback": f"parse error: {e}"[:200]}
     except Exception as e:
         return {"ok": False, "passed": True, "feedback": str(e)[:200]}
 
@@ -783,6 +837,7 @@ def translate_one(
     prompt_profile: str = "",
     dry_run: bool = False,
     mock: bool = False,
+    scorer_history: ScorerHistory | None = None,
 ) -> dict[str, Any]:
     """Run the full 7-station assembly line for one chapter.
 
@@ -862,6 +917,10 @@ def translate_one(
             model_name = r["model_name"]
             discovery_result = r["discovery_result"]
             attempts = r["attempts"]
+
+        # Track score for adaptive threshold (Phase 3)
+        if scorer_history is not None and "score" in score_result:
+            scorer_history.update(score_result["score"])
 
         quality_record = _quality_summary(score_result, attempts if not mock else [], judge_result)
         final_status = "needs_review" if quality_record.get("passed") is False else "ok"

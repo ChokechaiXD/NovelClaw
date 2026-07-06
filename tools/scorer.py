@@ -21,6 +21,31 @@ from typing import Any
 
 
 @dataclass
+class ScorerHistory:
+    """Adaptive threshold tracking: adjusts PASS_THRESHOLD based on real chapters.
+
+    Starts at PASS_THRESHOLD (85.0). After 3+ chapters, threshold =
+    max(85.0, mean - 1.5σ). This prevents inflated expectations and
+    catches genuine outliers instead of fighting a fixed number.
+    """
+    scores: list[float] = field(default_factory=list)
+    _threshold_override: float | None = None
+
+    def update(self, score: float) -> None:
+        self.scores.append(score)
+        n = len(self.scores)
+        if n >= 3:
+            mean = sum(self.scores) / n
+            variance = sum((s - mean) ** 2 for s in self.scores) / n
+            std = variance ** 0.5
+            self._threshold_override = max(85.0, mean - 1.5 * std)
+
+    @property
+    def effective_threshold(self) -> float:
+        return self._threshold_override or PASS_THRESHOLD
+
+
+@dataclass
 class DimensionScore:
     name: str
     weight: float  # 0.0-1.0
