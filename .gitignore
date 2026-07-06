@@ -110,6 +110,9 @@ staging/
 # Automatically created `sqlite_mcp_server.db` by MCP server instantiation
 *.db
 
+# Documentation (regenerated, not source of truth)
+docs/
+
 # Pipeline runtime artifacts (regenerated per run)
 tools/.batch_checkpoint.json
 tools/.batch_log.jsonl
