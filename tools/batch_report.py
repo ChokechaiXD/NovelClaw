@@ -4,18 +4,52 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from statistics import mean
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# ponytail: report-only guard; move to glossary when canonical name registry exists.
+NAME_RULES = {
+    "曹星": {"expected": "เฉาซิง", "bad": ["อู๋เจียฮุย"]},
+    "柳慕雪": {"expected": "หลิวมู่เสวี่ย", "bad": ["หลิ่วมู่เสวี่ย"]},
+}
+
+BOILERPLATE_RE = re.compile(r"全球降臨|投票推薦|加入書籤|小說報錯|首次合區")
+
+
+def visible_text(paragraphs: list[Any]) -> str:
+    parts = []
+    for p in paragraphs:
+        parts.append(str(p.get("text", "") if isinstance(p, dict) else p))
+    return "\n".join(parts)
+
+
+def strip_boilerplate(lines: list[str]) -> list[str]:
+    return [line for line in lines if not BOILERPLATE_RE.search(line)]
+
+
+def name_flags(source_text: str, output_text: str) -> list[str]:
+    flags = []
+    for source, rule in NAME_RULES.items():
+        if source not in source_text:
+            continue
+        expected = rule["expected"]
+        if expected not in output_text:
+            flags.append(f"name_missing:{source}->{expected}")
+        for bad in rule.get("bad", []):
+            if bad in output_text:
+                flags.append(f"name_bad:{source}->{bad}")
+    return flags
+
 
 def ratio(out: int, src: int) -> float | None:
     return round(out / src, 3) if src else None
 
 
-def warn_flags(q: dict[str, Any]) -> list[str]:
+def warn_flags(q: dict[str, Any], source_text: str = "", output_text: str = "") -> list[str]:
     flags: list[str] = []
     length = q.get("lengthRatio") or 0
     if length < 0.85:
@@ -40,6 +74,7 @@ def warn_flags(q: dict[str, Any]) -> list[str]:
         flags.append("script_leaks")
     if any(a.get("kind") == "fallback" for a in q.get("attempts", [])):
         flags.append("used_fallback")
+    flags.extend(name_flags(source_text, output_text))
     return flags
 
 
@@ -61,11 +96,18 @@ def load_row(chapters_dir: Path, ch: int) -> dict[str, Any]:
             "path": str(path),
         }
     data = json.loads(path.read_text(encoding="utf-8"))
+    source_path = chapters_dir / f"{ch:04d}.cn.json"
+    source_data = json.loads(source_path.read_text(encoding="utf-8")) if source_path.exists() else {}
+    source_lines = visible_text(source_data.get("paragraphs") or source_data.get("content") or []).splitlines()
+    source_text = "\n".join(strip_boilerplate(source_lines))
+    output_text = visible_text(data.get("paragraphs", []))
+
     q = data.get("qualityRecord") or {}
     structure = q.get("structure") or {}
+
     src = structure.get("source") or {}
     out = structure.get("output") or {}
-    flags = warn_flags(q)
+    flags = warn_flags(q, source_text, output_text)
     return {
         "chapter": ch,
         "status": "review" if flags else "ok",
