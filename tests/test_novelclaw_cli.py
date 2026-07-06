@@ -87,3 +87,15 @@ def test_translate_parallel_retries_failed_chapters(monkeypatch):
     novelclaw.cmd_translate(["1-2", "--parallel", "2", "--retry", "1"])
 
     assert attempts == {1: 2, 2: 1}
+
+
+
+def test_import_sites_loads_archived_importer(capsys):
+    try:
+        novelclaw.cmd_import_sites([])
+    except SystemExit as exc:
+        assert exc.code == 0
+
+    output = capsys.readouterr().out
+    assert '"sites"' in output
+    assert '69shu' in output

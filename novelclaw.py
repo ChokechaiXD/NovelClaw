@@ -508,11 +508,20 @@ def cmd_scrape(args: list[str]) -> None:
 # ── IMPORT SOURCE ───────────────────────────────────────────────────────
 
 
+def _import_sources_main():
+    """Load archived importer only when the import commands are used."""
+    archive_dir = _TOOLS_DIR / "_archive"
+    if str(archive_dir) not in sys.path:
+        sys.path.insert(0, str(archive_dir))
+    from import_sources import main as import_sources_main
+    return import_sources_main
+
+
 def cmd_import_url(args: list[str]) -> None:
     """novelclaw import-url <url> [options] — import source chapters from a TOC URL."""
     import argparse
 
-    from import_sources import main as import_sources_main
+    import_sources_main = _import_sources_main()
 
     ap = argparse.ArgumentParser(prog="novelclaw import-url")
     ap.add_argument("url", help="Novel TOC URL")
@@ -535,8 +544,7 @@ def cmd_import_url(args: list[str]) -> None:
 
 def cmd_import_sites(args: list[str]) -> None:
     """novelclaw import-sites — list supported source import adapters."""
-    from import_sources import main as import_sources_main
-
+    import_sources_main = _import_sources_main()
     raise SystemExit(import_sources_main(["sites", *args]))
 
 
