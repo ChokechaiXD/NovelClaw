@@ -113,9 +113,18 @@ staging/
 # Documentation (regenerated, not source of truth)
 docs/
 
+# One-shot audit reports (not code)
+reports/
+
 # Pipeline runtime artifacts (regenerated per run)
 tools/.batch_checkpoint.json
 tools/.batch_log.jsonl
 tools/.batch_report_final.md
 tools/.retry_log.jsonl
 tools/.retry_report_final.md
+
+# Runtime logs
+novelclaw.log
+
+# One-shot audit reports (not code)
+reader/security-audit-report.md
