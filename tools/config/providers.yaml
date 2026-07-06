@@ -17,9 +17,6 @@ providers:
       - id: "google/gemma-4-26b-a4b-it:free"
         name: "Gemma 4 26B (free)"
         tier: free
-      - id: "google/gemma-4-31b-it:free"
-        name: "Gemma 4 31B (free)"
-        tier: free
       - id: "openai/gpt-oss-120b:free"
         name: "GPT-OSS 120B (free)"
         tier: free
@@ -106,8 +103,8 @@ providers:
     max_tokens: 4096
     temperature: 0.3
     models:
-      - id: "openrouter/google/gemma-4-31b-it:free"
-        name: "Gemma 4 31B via 9Router (free)"
+      - id: "openrouter/google/gemma-4-26b-a4b-it:free"
+        name: "Gemma 4 26B via 9Router (free)"
         tier: free
       - id: "openrouter/openai/gpt-oss-120b:free"
         name: "GPT-OSS 120B via 9Router (free)"
