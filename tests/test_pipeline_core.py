@@ -1,7 +1,11 @@
 """Tests for pipeline pure functions (no LLM, no IO)."""
 from __future__ import annotations
 
+import logging
+
 import pytest
+
+import pipeline
 
 from pipeline import (
     _build_repair_instruction,
@@ -11,6 +15,34 @@ from pipeline import (
     _quality_summary,
     _split_prompt,
 )
+
+
+def test_logging_reports_file_handler_when_available(monkeypatch):
+    messages = []
+    monkeypatch.setattr(pipeline, "_LOGGING_CONFIGURED", False)
+    monkeypatch.setattr(pipeline.logging, "FileHandler", lambda *_args, **_kwargs: logging.NullHandler())
+    monkeypatch.setattr(pipeline.logging, "basicConfig", lambda **_kwargs: None)
+    monkeypatch.setattr(pipeline.logger, "info", lambda *args: messages.append(args))
+
+    pipeline._ensure_logging()
+
+    assert messages == [("Logging initialized (file=%s)", pipeline._PROJECT_ROOT / "novelclaw.log")]
+
+
+def test_logging_reports_stdout_only_when_file_handler_fails(monkeypatch):
+    messages = []
+    monkeypatch.setattr(pipeline, "_LOGGING_CONFIGURED", False)
+    monkeypatch.setattr(
+        pipeline.logging,
+        "FileHandler",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("read-only filesystem")),
+    )
+    monkeypatch.setattr(pipeline.logging, "basicConfig", lambda **_kwargs: None)
+    monkeypatch.setattr(pipeline.logger, "info", lambda *args: messages.append(args))
+
+    pipeline._ensure_logging()
+
+    assert messages == [("Logging initialized (stdout only)",)]
 
 
 # ── _split_prompt ──────────────────────────────────────────────────────────
