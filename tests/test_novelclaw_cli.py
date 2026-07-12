@@ -90,7 +90,7 @@ def test_translate_parallel_retries_failed_chapters(monkeypatch):
 
 
 
-def test_import_sites_loads_archived_importer(capsys):
+def test_import_sites_loads_active_importer(capsys):
     try:
         novelclaw.cmd_import_sites([])
     except SystemExit as exc:
