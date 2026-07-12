@@ -5,6 +5,7 @@
  * Env:  PORT (default 4173), ADMIN_TOKEN (optional)
  *
  * Tests:
+ *   ✓ /api/health reports reader readiness
  *   ✓ /api/novels returns novels with translatedTitle
  *   ✓ /api/novel/:slug/chapters returns chapter list
  *   ✓ /api/novel/:slug/chapter/:num?lang=th returns Thai
@@ -19,11 +20,21 @@
  */
 
 const http = require('node:http');
+const fs = require('node:fs/promises');
+const path = require('node:path');
 const PORT = parseInt(process.env.PORT, 10) || 4173;
 const BASE = `http://localhost:${PORT}`;
 const TEST_SLUG = 'global-descent';
 const TEST_NUM = 9999; // unlikely to exist
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
+const NOVELS_DIR = process.env.NOVELCLAW_ROOT
+  ? path.resolve(process.env.NOVELCLAW_ROOT)
+  : path.resolve(__dirname, '..', '..', 'novels');
+const TEST_CHAPTER_FILE = path.join(NOVELS_DIR, TEST_SLUG, 'chapters', `${TEST_NUM}.th.json`);
+const TRACKED_INDEX_FILES = [
+  path.join(NOVELS_DIR, TEST_SLUG, 'chapters.json'),
+  path.join(NOVELS_DIR, TEST_SLUG, 'chapters', 'index.json'),
+];
 
 let passed = 0;
 let failed = 0;
@@ -78,6 +89,23 @@ function test(name, fn) {
 async function get(url) { return request('GET', url); }
 async function post(url, body) { return request('POST', url, body); }
 
+async function snapshotFile(filePath) {
+  try {
+    return { filePath, contents: await fs.readFile(filePath) };
+  } catch (error) {
+    if (error.code === 'ENOENT') return { filePath, contents: null };
+    throw error;
+  }
+}
+
+async function restoreFile(snapshot) {
+  if (snapshot.contents === null) {
+    await fs.rm(snapshot.filePath, { force: true });
+    return;
+  }
+  await fs.writeFile(snapshot.filePath, snapshot.contents);
+}
+
 async function main() {
   console.log(`NovelClaw API Smoke Tests — ${BASE}\n`);
   const preflight = await get('/');
@@ -87,7 +115,18 @@ async function main() {
     process.exit(1);
   }
 
-  // ── Test 1: Novel listing ─────────────────────────────────────────
+  const indexSnapshots = await Promise.all(TRACKED_INDEX_FILES.map(snapshotFile));
+  try {
+
+  // ── Test 1: Health ────────────────────────────────────────────────
+  await test('/api/health reports reader readiness', async () => {
+    const res = await get('/api/health');
+    return res.status === 200
+      && res.body?.ok === true
+      && res.body?.service === 'novelclaw-reader';
+  });
+
+  // ── Test 2: Novel listing ─────────────────────────────────────────
   await test('/api/novels returns novels', async () => {
     const res = await get('/api/novels');
     if (res.status !== 200) return false;
@@ -198,10 +237,16 @@ async function main() {
     return !res.body.chapters.some(c => c.num === TEST_NUM);
   });
 
+  } finally {
+    await fs.rm(TEST_CHAPTER_FILE, { force: true });
+    await Promise.all(indexSnapshots.map(restoreFile));
+    await post('/api/invalidate-cache', {});
+  }
+
   // ── Summary ───────────────────────────────────────────────────────
   console.log(`\n${'━'.repeat(40)}`);
   console.log(`  ${passed} passed, ${failed} failed`);
-  process.exit(failed > 0 ? 1 : 0);
+  process.exitCode = failed > 0 ? 1 : 0;
 }
 
 main().catch((err) => {
