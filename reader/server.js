@@ -128,15 +128,9 @@ const adminWriteLimiter = rateLimit({
   skip: () => isTrustedAdminMode(),
 });
 
-// Static files with cache disabled for dev
-app.use(express.static(PUBLIC_DIR, {
-  etag: false, lastModified: false,
-  setHeaders: (res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-  },
-}));
+// Native ETag + Last-Modified validation avoids retransferring unchanged
+// assets while still revalidating on every navigation (max-age=0).
+app.use(express.static(PUBLIC_DIR));
 
 // Slug validation param middleware
 app.param('slug', (req, res, next, slug) => {
