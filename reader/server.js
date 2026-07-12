@@ -7,7 +7,6 @@
 //   NOVELCLAW_ROOT   — path to novels/ directory (default ../novels)
 //   ADMIN_TOKEN      — bearer token for write endpoints
 //   TRUSTED_LAN      — set 'true' to allow write APIs on LAN without ADMIN_TOKEN
-//   AUTO_KILL_PORT   — set 'true' to auto-kill old process (default off)
 
 const express = require('express');
 // Subprocess output sanitizer for error responses.
@@ -82,11 +81,6 @@ function fail(res, status, code, message, details) {
   return res.status(status).json(body);
 }
 
-// Cache disabled for Local 100%
-function invalidateCache(prefix) {
-  // Cache is disabled, nothing to invalidate
-}
-
 // ── Middleware ─────────────────────────────────────────────────────
 const app = express();
 // Helmet defaults turn on a strict Content-Security-Policy that breaks
@@ -113,6 +107,15 @@ app.use(helmet({
 }));
 app.use(compression({ threshold: 1024 }));
 app.use(express.json({ limit: '8mb' }));
+
+app.get('/api/health', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({
+    ok: true,
+    service: 'novelclaw-reader',
+    uptimeSeconds: Math.floor(process.uptime()),
+  });
+});
 
 // Rate-limit admin write APIs in case ADMIN_TOKEN is leaked. The reader is
 // intended for single-user localhost or small-LAN use, so 60 req/min/IP is
@@ -341,8 +344,6 @@ async function finalizeSourceImport(slug) {
   assertValidSlug(slug);
   await chapterRepo.rebuildChaptersIndex(slug);
   chapterRepo.invalidateAll(slug);
-  invalidateCache('/api/novel/' + slug);
-  invalidateCache('/api/novels');
 }
 
 // ── Novel listing and metadata ─────────────────────────────────────
@@ -567,7 +568,6 @@ adminPost('/api/novel/update', async (req, res) => {
     return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');
   }
   await novelRepo.saveNovelMeta(slug, { title, author, source_lang, target_lang, status, total_chapters, translatedTitle });
-  invalidateCache('/api/novels');
   ok(res, { slug });
 });
 
@@ -596,7 +596,6 @@ adminPost('/api/novel/:slug/cover', async (req, res) => {
     coverExt: parsed.ext,
     coverUpdatedAt,
   });
-  invalidateCache('/api/novels');
   ok(res, { slug, coverImage, coverExt: parsed.ext, coverUpdatedAt });
 });
 
@@ -610,7 +609,6 @@ adminPost('/api/novel/:slug/cover/delete', async (req, res) => {
     coverExt: '',
     coverUpdatedAt: new Date().toISOString(),
   });
-  invalidateCache('/api/novels');
   ok(res, { slug, deleted: true });
 });
 
@@ -666,10 +664,6 @@ adminPost('/api/import/repair', async (req, res) => {
   if (!slug || !SLUG_RE.test(slug)) return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');
   try {
     const result = await importHealth.repairNovelImport(slug, action || 'rebuild-index', { dryRun: dryRun === true });
-    if (dryRun !== true) {
-      invalidateCache('/api/novel/' + slug);
-      invalidateCache('/api/novels');
-    }
     ok(res, { slug, action: action || 'rebuild-index', ...result });
   } catch (err) {
     fail(res, err.status || 500, 'IMPORT_REPAIR_FAILED', err.message);
@@ -858,8 +852,6 @@ adminPost('/api/novel/:slug/chapter/:num/save', async (req, res) => {
 
   await chapterRepo.rebuildChaptersIndex(slug);
   chapterRepo.invalidateAll(slug);
-  invalidateCache('/api/novel/' + slug);
-  invalidateCache('/api/novels');
   ok(res, { slug, num });
 });
 
@@ -872,8 +864,6 @@ adminPost('/api/novel/:slug/chapter/:num/delete', async (req, res) => {
   await chapterRepo.deleteChapter(slug, num);
   await chapterRepo.rebuildChaptersIndex(slug);
   chapterRepo.invalidateAll(slug);
-  invalidateCache('/api/novel/' + slug);
-  invalidateCache('/api/novels');
   ok(res, { slug, num });
 });
 
@@ -885,8 +875,6 @@ adminPost('/api/novel/:slug/translations/delete', async (req, res) => {
   await chapterRepo.rebuildChaptersIndex(slug);
   chapterRepo.invalidateAll(slug);
   invalidateQualityMeta(slug);
-  invalidateCache('/api/novel/' + slug);
-  invalidateCache('/api/novels');
   ok(res, { slug, ...result });
 });
 
@@ -983,8 +971,6 @@ app.get('/api/admin/logs/:slug/:num', requireAdmin, asyncHandler(async (req, res
 
 // ── Server startup ─────────────────────────────────────────────────
 
-const START_TIME = Date.now();
-
 if (!isLocalBind(BIND_HOST) && !ADMIN_TOKEN && !TRUSTED_LAN) {
   console.error('Refusing to bind write-capable Reader on LAN without protection.');
   console.error('Set ADMIN_TOKEN for bearer auth, or set TRUSTED_LAN=true for a private trusted network.');
@@ -1031,34 +1017,9 @@ function shutdown(signal) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-// ── EADDRINUSE recovery (opt-in) ───────────────────────────────────
-
-let _eaddrRetries = 0;
-const AUTO_KILL = process.env.AUTO_KILL_PORT === 'true';
 server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE' && AUTO_KILL && _eaddrRetries < 3) {
-    _eaddrRetries++;
-    console.log(`⚠️  Port ${PORT} already in use — killing old server (attempt ${_eaddrRetries}/3)...`);
-    const { execSync } = require('node:child_process');
-    try {
-      if (process.platform === 'win32') {
-        const out = execSync(`netstat -ano | findstr :${PORT}`, { encoding: 'utf8' });
-        for (const line of out.trim().split('\n')) {
-          const parts = line.trim().split(/\s+/);
-          const pid = parts[parts.length - 1];
-          if (pid && pid !== '0') {
-            execSync(`taskkill /PID ${pid} /F`, { encoding: 'utf8' });
-            console.log(`  Killed old process (PID ${pid})`);
-          }
-        }
-      } else {
-        execSync(`lsof -ti:${PORT} | xargs kill -9 2>/dev/null || true`, { encoding: 'utf8' });
-      }
-    } catch (e) { /* ignore */ }
-    setTimeout(() => { server.listen(PORT, BIND_HOST); }, 500);
-  } else {
-    console.error('Server error:', err);
-  }
+  console.error(`Reader failed to listen on ${BIND_HOST}:${PORT}:`, err.message);
+  process.exitCode = 1;
 });
 
 // ── Unhandled rejection guard ──────────────────────────────────────
@@ -1725,7 +1686,6 @@ function startTranslateRun(slug, range, args, options = {}) {
     );
     chapterRepo.invalidateAll(slug);
     invalidateQualityMeta(slug);
-    invalidateCache('/api/novels');
     activeTranslateRuns.delete(run.runId);
     persistTranslateRun(run).catch(err => console.error('Persist translate run failed:', err));
   });
