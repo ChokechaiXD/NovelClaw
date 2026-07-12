@@ -51,7 +51,8 @@ async function readProviderConfig(options = {}) {
   const load = (async () => {
     const stdout = await runProviderConfigScript(`
 import sys; sys.path.insert(0, 'tools')
-from llm_router.config_providers import get_provider_config, get_providers_list
+from llm_router.config_providers import get_provider_config
+from llm_router.config_admin import get_providers_list
 import json
 refresh = ${refreshModels ? 'True' : 'False'}
 cfg = get_provider_config()
@@ -91,7 +92,7 @@ async function saveProviderConfig(payload) {
   await runProviderConfigScript(`
 import json, sys
 sys.path.insert(0, 'tools')
-from llm_router.config_providers import save_provider_config
+from llm_router.config_admin import save_provider_config
 payload = json.load(sys.stdin)
 saved = save_provider_config(**payload)
 if not saved:
