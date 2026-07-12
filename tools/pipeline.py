@@ -41,7 +41,7 @@ class _TranslateOneResult(TypedDict, total=False):
     model: str
     promptProfile: str
     sourceLang: str
-    sourceProfile: str
+    sourceProfile: dict[str, Any]
     discovery: str
     judge: str
     reason: str
@@ -76,7 +76,7 @@ def _ensure_logging() -> None:
             format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
             force=True,
         )
-    logger.info("Logging initialized (stdout only)")
+        logger.info("Logging initialized (stdout only)")
 
 
 # ── Paths ─────────────────────────────────────────────────────────────
