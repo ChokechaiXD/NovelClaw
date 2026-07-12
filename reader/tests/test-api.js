@@ -13,6 +13,7 @@
  *   ✓ /api/novel/:slug/chapter/:num?lang=cn returns Chinese
  *   ✓ /api/novel/:slug/glossary/data returns terms (no 500)
  *   ✓ /api/local/llm-config returns provider catalog
+ *   ✓ source importer catalog and manual paste work end-to-end
  *   ✓ /api/novel/:slug/chapters/search?mode=content finds Chinese terms
  *   ✓ admin save/create temp chapter
  *   ✓ chapters list includes temp chapter after save
@@ -27,11 +28,13 @@ const PORT = parseInt(process.env.PORT, 10) || 4173;
 const BASE = `http://localhost:${PORT}`;
 const TEST_SLUG = 'global-descent';
 const TEST_NUM = 9999; // unlikely to exist
+const TEST_IMPORT_SLUG = 'api-import-smoke';
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const NOVELS_DIR = process.env.NOVELCLAW_ROOT
   ? path.resolve(process.env.NOVELCLAW_ROOT)
   : path.resolve(__dirname, '..', '..', 'novels');
 const TEST_CHAPTER_FILE = path.join(NOVELS_DIR, TEST_SLUG, 'chapters', `${TEST_NUM}.th.json`);
+const TEST_IMPORT_DIR = path.join(NOVELS_DIR, TEST_IMPORT_SLUG);
 const TRACKED_INDEX_FILES = [
   path.join(NOVELS_DIR, TEST_SLUG, 'chapters.json'),
   path.join(NOVELS_DIR, TEST_SLUG, 'chapters', 'index.json'),
@@ -198,6 +201,27 @@ async function main() {
       && res.body.default_provider;
   });
 
+  await test('/api/import/sites returns active adapters', async () => {
+    const res = await get('/api/import/sites');
+    return res.status === 200
+      && res.body?.ok === true
+      && res.body?.data?.sites?.some(site => site.id === '69shu');
+  });
+
+  await test('manual paste import writes a source chapter', async () => {
+    const res = await post('/api/import/paste', {
+      slug: TEST_IMPORT_SLUG,
+      title: 'API Import Smoke',
+      sourceLang: 'en',
+      content: 'Chapter 1\n\nA deterministic local import paragraph.',
+    });
+    if (res.status !== 200 || res.body?.data?.imported !== 1) return false;
+
+    const health = await get(`/api/import/health?slug=${TEST_IMPORT_SLUG}`);
+    return health.status === 200
+      && health.body?.data?.sourceFileCount === 1;
+  });
+
   // ── Test 7: Content search (Chinese term) ─────────────────────────
   await test('/api/novel/.../search?q=曹星&mode=content', async () => {
     const res = await get(`/api/novel/${TEST_SLUG}/chapters/search?q=%E6%9B%B9%E6%98%9F&mode=content&limit=2`);
@@ -249,6 +273,7 @@ async function main() {
 
   } finally {
     await fs.rm(TEST_CHAPTER_FILE, { force: true });
+    await fs.rm(TEST_IMPORT_DIR, { recursive: true, force: true });
     await Promise.all(indexSnapshots.map(restoreFile));
     await post('/api/invalidate-cache', {});
   }

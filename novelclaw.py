@@ -578,11 +578,9 @@ def cmd_scrape(args: list[str]) -> None:
 
 
 def _import_sources_main():
-    """Load archived importer only when the import commands are used."""
-    archive_dir = _TOOLS_DIR / "_archive"
-    if str(archive_dir) not in sys.path:
-        sys.path.insert(0, str(archive_dir))
-    from import_sources import main as import_sources_main
+    """Load the importer only when an import command is used."""
+    from tools.import_sources import main as import_sources_main
+
     return import_sources_main
 
 
