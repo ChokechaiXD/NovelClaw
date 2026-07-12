@@ -6,6 +6,7 @@
  *
  * Tests:
  *   ✓ /api/health reports reader readiness
+ *   ✓ static assets support HTTP validation caching
  *   ✓ /api/novels returns novels with translatedTitle
  *   ✓ /api/novel/:slug/chapters returns chapter list
  *   ✓ /api/novel/:slug/chapter/:num?lang=th returns Thai
@@ -39,7 +40,7 @@ const TRACKED_INDEX_FILES = [
 let passed = 0;
 let failed = 0;
 
-function request(method, urlPath, body) {
+function request(method, urlPath, body, headers = {}) {
   return new Promise((resolve) => {
     const url = new URL(urlPath, BASE);
     const opts = {
@@ -47,7 +48,7 @@ function request(method, urlPath, body) {
       hostname: url.hostname,
       port: url.port,
       path: url.pathname + url.search,
-      headers: {},
+      headers: { ...headers },
       timeout: 10_000,
     };
     if (ADMIN_TOKEN) {
@@ -62,7 +63,7 @@ function request(method, urlPath, body) {
       res.on('end', () => {
         let parsed = null;
         try { parsed = JSON.parse(data); } catch {}
-        resolve({ status: res.statusCode, body: parsed, raw: data });
+        resolve({ status: res.statusCode, body: parsed, raw: data, headers: res.headers });
       });
     });
     req.on('error', (err) => resolve({ status: 0, body: null, raw: err.message }));
@@ -86,7 +87,7 @@ function test(name, fn) {
   });
 }
 
-async function get(url) { return request('GET', url); }
+async function get(url, headers) { return request('GET', url, null, headers); }
 async function post(url, body) { return request('POST', url, body); }
 
 async function snapshotFile(filePath) {
@@ -124,6 +125,15 @@ async function main() {
     return res.status === 200
       && res.body?.ok === true
       && res.body?.service === 'novelclaw-reader';
+  });
+
+  await test('static assets support HTTP validation caching', async () => {
+    const first = await get('/design-system.css');
+    const etag = first.headers?.etag;
+    if (first.status !== 200 || !etag) return false;
+
+    const second = await get('/design-system.css', { 'If-None-Match': etag });
+    return second.status === 304 && second.raw === '';
   });
 
   // ── Test 2: Novel listing ─────────────────────────────────────────
