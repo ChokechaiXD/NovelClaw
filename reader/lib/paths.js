@@ -3,7 +3,7 @@
  *
  * Every route must use these helpers. Never construct chapter file paths
  * manually. This is the ONLY module that knows file naming conventions
- * (.th.json / .cn.json / legacy .json / .md).
+ * (.th.json / .cn.json and source/{num}.md).
  */
 
 const path = require('node:path');
@@ -39,18 +39,6 @@ function chapterPath(slug, num, lang) {
 }
 exports.chapterPath = chapterPath;
 
-/** Return path to legacy combined {num}.json (deprecated, write never) */
-function legacyChapterPath(slug, num) {
-  return path.join(NOVELS_DIR, slug, 'chapters', `${pad(num)}.json`);
-}
-exports.legacyChapterPath = legacyChapterPath;
-
-/** Return path to legacy {num}.md (deprecated) */
-function legacyMdPath(slug, num) {
-  return path.join(NOVELS_DIR, slug, 'chapters', `${pad(num)}.md`);
-}
-exports.legacyMdPath = legacyMdPath;
-
 /** Return path to source/{num}.md (original scraped source) */
 function sourceMdPath(slug, num) {
   return path.join(NOVELS_DIR, slug, 'chapters', 'source', `${pad(num)}.md`);
@@ -71,23 +59,11 @@ function novelCoverPath(slug, ext) {
 }
 exports.novelCoverPath = novelCoverPath;
 
-/** Return path to meta.md (legacy, for backward compat) */
-function metaMdPath(slug) {
-  return path.join(NOVELS_DIR, slug, 'meta.md');
-}
-exports.metaMdPath = metaMdPath;
-
 /** Return path to chapters.json (fast chapter index) */
 function chaptersIndexPath(slug) {
   return path.join(NOVELS_DIR, slug, 'chapters.json');
 }
 exports.chaptersIndexPath = chaptersIndexPath;
-
-/** Return path to chapters/index.json (legacy compat index) */
-function legacyIndexPath(slug) {
-  return path.join(NOVELS_DIR, slug, 'chapters', 'index.json');
-}
-exports.legacyIndexPath = legacyIndexPath;
 
 /** Return path to glossary/{glossary,yml,json} files */
 function glossaryJsonPath(slug) {
@@ -117,8 +93,6 @@ function allChapterVariants(slug, num) {
   return [
     path.join(NOVELS_DIR, slug, 'chapters', `${p}.th.json`),
     path.join(NOVELS_DIR, slug, 'chapters', `${p}.cn.json`),
-    path.join(NOVELS_DIR, slug, 'chapters', `${p}.json`),
-    path.join(NOVELS_DIR, slug, 'chapters', `${p}.md`),
   ];
 }
 exports.allChapterVariants = allChapterVariants;

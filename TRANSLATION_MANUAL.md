@@ -151,7 +151,7 @@ python tools/scorer.py chapters/ --source source/
 1. Create `novels/<slug>/` directory
 2. Add source chapters to `chapters/source/` as `NNNN.md`
 3. Create `glossary/` with `locked.md`, `reference.md`, `auto.md`
-4. Add to `novels/<slug>/meta.md` for reader discovery
+4. Add metadata to `novels/<slug>/novel.json` for reader discovery
 
 ## Design Principles
 
