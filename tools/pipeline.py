@@ -99,7 +99,7 @@ from source_cleaner import clean_source  # noqa: E402
 from quality_gate import evaluate_translation_quality  # noqa: E402
 from glossary_pre import build_glossary_pre_chunk  # noqa: E402
 from glossary_discovery import discover_and_save  # noqa: E402
-from source_profile import build_source_profile, resolve_source_lang  # noqa: E402
+from source_profile import build_source_profile, resolve_source_lang, script_mix  # noqa: E402
 
 # ── Glossary discovery persistence ────────────────────────────────────
 # Previously a global set() that only lasted one session.
@@ -244,13 +244,15 @@ def _split_prompt(
     prompt: str,
     repair_instruction: str = "",
 ) -> tuple[str | None, str]:
-    """Split assembled prompt into system + user parts at the first structured marker.
+    """Split an assembled prompt at its earliest dynamic marker.
 
     Returns (system_text or None, user_text).
     """
-    split_point = prompt.find("<continuity>")
-    if split_point < 0:
-        split_point = prompt.find("<glossary>")
+    marker_re = re.compile(
+        r"(?m)^<(?:chapter_context|glossary|continuity|source_chapter)>[ \t]*$"
+    )
+    split_points = [match.start() for match in marker_re.finditer(prompt)]
+    split_point = min(split_points, default=-1)
     if split_point > 0 and split_point < len(prompt):
         system_text = prompt[:split_point].strip()
         user_text = prompt[split_point:].strip()
@@ -993,13 +995,18 @@ def translate_one(
         raw = read_source(ch_num, slug)
         if raw is None:
             return {"status": "failed", "ch": ch_num, "reason": "source_not_found"}
-        source_lang, source_lang_source = resolve_source_lang(raw, source_lang, slug)
         source = clean_source(raw)
         if not source:
             return {"status": "failed", "ch": ch_num, "reason": "empty_after_clean"}
+        # Reuse one Unicode scan for language detection and the structure contract.
+        source_script_mix = script_mix(source)
+        source_lang, source_lang_source = resolve_source_lang(
+            raw, source_lang, slug, script_counts=source_script_mix,
+        )
         source_profile = build_source_profile(
             source, source_lang=source_lang, target_lang=target_lang,
             ch_num=ch_num, lang_source=source_lang_source,
+            script_counts=source_script_mix,
         )
 
         if dry_run:

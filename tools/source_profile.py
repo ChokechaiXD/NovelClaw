@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import re
 import unicodedata
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -76,9 +77,8 @@ def script_mix(text: str) -> dict[str, int]:
     return dict(sorted(counts.items(), key=lambda item: (-item[1], item[0])))
 
 
-def detect_source_lang(text: str) -> str:
-    """Detect dominant source language from Unicode script mix."""
-    counts = script_mix(text)
+def _detect_source_lang_from_mix(counts: Mapping[str, int]) -> str:
+    """Detect a source language from an already-counted script mix."""
     han = counts.get("Han", 0)
     kana = counts.get("Hiragana", 0) + counts.get("Katakana", 0)
     hangul = counts.get("Hangul", 0)
@@ -96,6 +96,15 @@ def detect_source_lang(text: str) -> str:
     if thai:
         return "th"
     return "cn"
+
+
+def detect_source_lang(text: str, *, script_counts: Mapping[str, int] | None = None) -> str:
+    """Detect dominant source language from Unicode script mix.
+
+    ``script_counts`` lets callers that also build a source profile reuse one
+    Unicode scan. Omitting it preserves the original public behavior.
+    """
+    return _detect_source_lang_from_mix(script_counts if script_counts is not None else script_mix(text))
 
 
 def _read_novel_meta_lang(slug: str) -> str:
@@ -117,7 +126,13 @@ def _read_frontmatter_lang(raw_text: str) -> str:
     return ""
 
 
-def resolve_source_lang(raw_text: str, requested_lang: str | None = None, slug: str = "global-descent") -> tuple[str, str]:
+def resolve_source_lang(
+    raw_text: str,
+    requested_lang: str | None = None,
+    slug: str = "global-descent",
+    *,
+    script_counts: Mapping[str, int] | None = None,
+) -> tuple[str, str]:
     """Resolve source language without silently assuming Chinese.
 
     Priority: explicit CLI/API value -> source frontmatter -> novel metadata ->
@@ -136,7 +151,7 @@ def resolve_source_lang(raw_text: str, requested_lang: str | None = None, slug: 
     if meta and meta not in AUTO_LANG_VALUES:
         return meta, "novel_meta"
 
-    return detect_source_lang(raw_text), "auto_detect"
+    return detect_source_lang(raw_text, script_counts=script_counts), "auto_detect"
 
 
 def split_source_paragraphs(text: str) -> list[str]:
@@ -168,22 +183,25 @@ def build_source_profile(
     target_lang: str = "th",
     ch_num: int | None = None,
     lang_source: str = "",
+    *,
+    script_counts: Mapping[str, int] | None = None,
 ) -> dict[str, Any]:
     """Build the structure contract used by prompt, gate, and saved metadata."""
     paragraphs = split_source_paragraphs(source_text)
     text = source_text or ""
+    counts = dict(script_counts) if script_counts is not None else script_mix(text)
     dialogue_count = sum(1 for para in paragraphs if DIALOGUE_RE.search(para))
     system_marker_count = len(SYSTEM_MARKER_RE.findall(text))
     return {
         "chapterNo": ch_num,
-        "sourceLang": normalize_lang(source_lang) or detect_source_lang(text),
+        "sourceLang": normalize_lang(source_lang) or _detect_source_lang_from_mix(counts),
         "targetLang": normalize_lang(target_lang) or "th",
         "sourceLangSource": lang_source or "unknown",
         "charCount": len(text),
         "paragraphCount": len(paragraphs),
         "dialogueCount": dialogue_count,
         "systemMarkerCount": system_marker_count,
-        "sourceScriptMix": script_mix(text),
+        "sourceScriptMix": counts,
         "specialSymbolInventory": _special_symbol_inventory(text),
         "lengthTarget": {"minRatio": 0.85, "idealMinRatio": 1.0, "maxRatio": 3.5},
     }

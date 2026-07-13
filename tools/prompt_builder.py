@@ -468,7 +468,7 @@ scene order, sentence rhythm, and intentional flatness.
     format_section = f"""<format_rules>
 {_format_rules(source_lang, target_lang)}
 
-{_latin_policy(target_lang, glossary_text)}
+{_latin_policy(target_lang)}
 
 - **Preserve numbers exactly.**
 - **Keep paragraph rhythm source-anchored, not exact-count forced.**
@@ -493,16 +493,14 @@ Before finishing, silently check:
     chapter_meta = f"<chapter_meta>\nChapter: {title}\n</chapter_meta>"
 
     # ── Assembly (prefix-caching layout: static first, dynamic last) ──
+    # Everything before <chapter_context> is stable for the same novel/profile/
+    # language pair. The pipeline uses this marker as the system/user boundary.
     parts = [
         identity,
-        "",
-        chapter_meta,
         "",
         profile_section,
         "",
         universal_rules_empty,
-        "",
-        structure_contract,
         "",
         src_specific,
         "",
@@ -511,9 +509,14 @@ Before finishing, silently check:
         review_gate,
         "",
         _examples(source_lang, target_lang),
+        "",
+        "<chapter_context>",
+        chapter_meta,
+        "",
+        structure_contract,
     ]
 
-    # Glossary (semi-static — changes per chapter but reuses prefix)
+    # Chapter glossary stays after the cache boundary.
     if glossary_text:
         parts.extend(["", "<glossary>", glossary_text, "</glossary>"])
 
@@ -528,6 +531,8 @@ Before finishing, silently check:
     # Extra rules
     if extra_rules:
         parts.extend(["", extra_rules])
+
+    parts.extend(["", "</chapter_context>"])
 
     # Source
     parts.extend([
@@ -544,10 +549,12 @@ Before finishing, silently check:
 
 # ── Latin policy generator ────────────────────────────────────────────
 
-def _latin_policy(target_lang: str, glossary_text: str = "") -> str:
-    """Generate Latin token policy for target language.
+def _latin_policy(target_lang: str) -> str:
+    """Generate the static Latin-token policy for a target language.
 
-    Injects glossary term keys dynamically so LLM knows which terms to preserve."""
+    Per-chapter glossary content stays in ``<chapter_context>`` so the system
+    prefix can be reused across chapters by providers with prompt caching.
+    """
     if target_lang == "en":
         return "- Latin script is native — no restriction."
 
@@ -560,23 +567,7 @@ def _latin_policy(target_lang: str, glossary_text: str = "") -> str:
         "SOLO", "R", "SR", "G1", "No.", "no.", "STAT", "RES",
     ]
 
-    # Dynamic: extract term keys from glossary text
-    dyn_tokens = set()
-    if glossary_text:
-        for line in glossary_text.split("\n"):
-            line = line.strip()
-            # Match lines like "ATK → พลังโจมตี" or just "HP" as a key
-            if "→" in line:
-                key = line.split("→")[0].strip()
-            elif ":" in line and not line.startswith("#"):
-                key = line.split(":")[0].strip()
-            else:
-                continue
-            # Keep if it's a short all-caps Latin token
-            if key and key.isupper() and len(key) <= 12 and key.isascii():
-                dyn_tokens.add(key)
-
-    all_tokens = sorted(set(base_tokens) | dyn_tokens)
+    all_tokens = sorted(set(base_tokens))
     token_list = ", ".join(all_tokens)
 
     lines = [
@@ -585,6 +576,7 @@ def _latin_policy(target_lang: str, glossary_text: str = "") -> str:
         "- **Translate ALL other English/foreign words to Thai.**",
         "  This includes skill names, item names, status effects, stat labels.",
         "- **NO raw English game terms outside the allowed list above.**",
+        "- An explicit output spelling in <glossary> overrides this base list.",
     ]
 
     # Add translation hints for common stats

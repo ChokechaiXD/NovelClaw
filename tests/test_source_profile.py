@@ -1,3 +1,4 @@
+import source_profile
 from source_profile import build_source_profile, detect_source_lang, resolve_source_lang, split_source_paragraphs
 
 
@@ -35,3 +36,50 @@ def test_split_source_paragraphs_expands_line_based_blocks():
     paragraphs = split_source_paragraphs("line one\nline two\n\nline three\nline four")
 
     assert paragraphs == ["line one", "line two", "line three", "line four"]
+
+
+def test_script_mix_can_be_reused_for_detection_and_profile(monkeypatch):
+    text = "田中は深く息を吸い込んだ。\n\n「行こう。」"
+    calls = 0
+    original = source_profile.script_mix
+
+    def counted_script_mix(value):
+        nonlocal calls
+        calls += 1
+        return original(value)
+
+    monkeypatch.setattr(source_profile, "script_mix", counted_script_mix)
+
+    counts = source_profile.script_mix(text)
+    lang = detect_source_lang(text, script_counts=counts)
+    resolved_lang, source = resolve_source_lang(
+        text,
+        requested_lang="auto",
+        slug="missing-test",
+        script_counts=counts,
+    )
+    profile = build_source_profile(text, lang, script_counts=counts)
+
+    assert calls == 1
+    assert resolved_lang == "jp"
+    assert source == "auto_detect"
+    assert profile["sourceLang"] == "jp"
+    assert profile["sourceScriptMix"] == counts
+
+
+def test_source_profile_without_language_reuses_its_own_script_scan(monkeypatch):
+    text = "김철수는 눈을 떴다."
+    calls = 0
+    original = source_profile.script_mix
+
+    def counted_script_mix(value):
+        nonlocal calls
+        calls += 1
+        return original(value)
+
+    monkeypatch.setattr(source_profile, "script_mix", counted_script_mix)
+
+    profile = build_source_profile(text, source_lang="")
+
+    assert calls == 1
+    assert profile["sourceLang"] == "kr"
