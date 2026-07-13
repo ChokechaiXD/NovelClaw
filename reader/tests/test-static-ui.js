@@ -71,6 +71,7 @@ const jsFiles = walkJs(PUBLIC_JS);
 const uiFiles = jsFiles.concat(PUBLIC_HTML);
 const htmlText = fs.readFileSync(PUBLIC_HTML, 'utf8');
 const cssText = fs.readFileSync(DESIGN_CSS, 'utf8');
+const uiText = uiFiles.map(file => fs.readFileSync(file, 'utf8')).join('\n');
 
 for (const file of uiFiles) {
   const text = fs.readFileSync(file, 'utf8');
@@ -98,6 +99,27 @@ for (const deadSelector of ['.c-hero', '.c-update', '.c-popular', '.c-ranking', 
     fail(`design-system.css still ships unused selector/token ${deadSelector}`);
   }
 }
+
+const generatedCssClasses = new Set([
+  'c-admin-edit__status--error',
+  'c-admin-edit__status--muted',
+  'c-admin-edit__status--success',
+  'c-glossary-admin__status--error',
+  'c-glossary-admin__status--success',
+  'c-icon--md',
+  'c-toast--error',
+  'c-toast--success',
+  'c-toast--warning',
+  ...Array.from({ length: 11 }, (_, index) => `u-progress-w-${index * 10}`),
+]);
+const cssClasses = [...cssText.matchAll(/\.([A-Za-z_][A-Za-z0-9_-]*)/g)]
+  .map(match => match[1]);
+const orphanCssClasses = [...new Set(cssClasses)]
+  .filter(className => !uiText.includes(className) && !generatedCssClasses.has(className));
+if (orphanCssClasses.length) {
+  fail(`design-system.css has orphan class selectors: ${orphanCssClasses.join(', ')}`);
+}
+
 if (!cssText.includes('.c-table-wrap { overflow-x: auto; }')) {
   fail('design-system.css must keep semantic tables scrollable on narrow screens');
 }
