@@ -93,10 +93,13 @@ if (!htmlText.includes('data-page="settings"') || !htmlText.includes('aria-label
   fail('index.html mobile navigation must expose local settings');
 }
 
-for (const deadSelector of ['.c-hero', '.c-update', '.c-popular', '.c-ranking', '.c-profile', '.c-avatar', '--c-hero']) {
+for (const deadSelector of ['.c-hero', '.c-update', '.c-popular', '.c-ranking', '.c-profile', '.c-avatar', '--c-hero', '.c-table-wrap td::before']) {
   if (cssText.includes(deadSelector)) {
     fail(`design-system.css still ships unused selector/token ${deadSelector}`);
   }
+}
+if (!cssText.includes('.c-table-wrap { overflow-x: auto; }')) {
+  fail('design-system.css must keep semantic tables scrollable on narrow screens');
 }
 
 const homeText = fs.readFileSync(HOME_JS, 'utf8');

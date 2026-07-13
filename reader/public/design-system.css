@@ -656,49 +656,6 @@ button.c-form__input,
 
 
 /* ═══════════════════════════════════════════════════════════════════════
-   MOBILE ADMIN TABLES → CARDS
-   ═══════════════════════════════════════════════════════════════════════ */
-
-@media (max-width: 719px) {
-  .c-table-wrap table,
-  .c-table-wrap thead,
-  .c-table-wrap tbody,
-  .c-table-wrap th,
-  .c-table-wrap td,
-  .c-table-wrap tr {
-    display: block;
-  }
-  .c-table-wrap thead {
-    display: none; /* hide header row */
-  }
-  .c-table-wrap tbody tr {
-    background: var(--c-surface);
-    border: 1px solid var(--c-border);
-    border-radius: var(--radius);
-    padding: var(--space-md);
-    margin-bottom: var(--space-sm);
-  }
-  .c-table-wrap td {
-    padding: var(--space-xs) 0;
-    border: none;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: var(--space-sm);
-    font-size: var(--text-sm);
-  }
-  .c-table-wrap td::before {
-    content: attr(data-label);
-    font-weight: var(--font-weight-semibold);
-    color: var(--c-text-muted);
-    font-size: var(--text-xs);
-    text-transform: none;
-    white-space: nowrap;
-  }
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════
    SETTINGS SINGLE COLUMN
    ═══════════════════════════════════════════════════════════════════════ */
 
