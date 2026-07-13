@@ -11,14 +11,14 @@ window.AdminNovelEditPage = {
       novel = novels.find(n => n.slug === slug);
       page.innerHTML =
         '<div class="c-container">' + Ui.adminNav('novels') +
-        '<div class="c-section__header c-admin-page__header c-admin-edit__header">' +
-        '<div><h3 class="c-section__title">แก้ไขนิยาย: ' + Ui.esc(slug || '') + '</h3><p class="u-text-muted">แก้ metadata และปก จากนั้นไปจัดตอนหรือนำเข้าต้นฉบับต่อได้ทันที</p></div>' +
-        '<div class="c-admin-edit__quick-actions">' +
+        '<header class="c-page-heading c-page-heading--studio">' +
+        '<div><span class="c-page-heading__eyebrow">Book profile</span><h1>แก้ไขข้อมูลนิยาย</h1><p>' + Ui.esc(slug || '') + ' · จัดการชื่อ ผู้แต่ง และภาพปก</p></div>' +
+        '<div class="c-page-heading__actions c-admin-edit__quick-actions">' +
         '<a class="c-btn c-btn--sm c-btn--ghost" href="#admin/novels" data-nav>' + Ui.icon('library', 'xs') + '<span>รายการนิยาย</span></a>' +
         '<a class="c-btn c-btn--sm c-btn--secondary" href="#novel/' + Ui.esc(slug || '') + '" data-nav>' + Ui.icon('book', 'xs') + '<span>อ่าน</span></a>' +
         '<a class="c-btn c-btn--sm c-btn--secondary" href="#admin/chapters/' + Ui.esc(slug || '') + '" data-nav>' + Ui.icon('bookmarks', 'xs') + '<span>จัดตอน</span></a>' +
         '<a class="c-btn c-btn--sm c-btn--secondary" href="#admin/import/' + Ui.esc(slug || '') + '" data-nav>' + Ui.icon('info', 'xs') + '<span>สุขภาพนำเข้า</span></a>' +
-        '</div></div>' +
+        '</div></header>' +
         '<div class="c-admin-edit-layout">' +
         '<div class="c-admin-cover-panel"><div class="c-admin-cover-preview" id="edit-cover-preview">' + Ui.coverHtml(novel || { slug }) + '</div>' +
         '<input class="c-admin-cover-input" id="edit-cover-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif">' +

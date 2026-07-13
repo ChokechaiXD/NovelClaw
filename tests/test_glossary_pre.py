@@ -40,3 +40,25 @@ def test_character_prompt_marks_name_map_as_hard_constraint(tmp_path, monkeypatc
     assert "HARD CONSTRAINTS" in prompt
     assert "Never substitute one character" in prompt
     assert "曹星 → เฉาซิง" in prompt
+
+
+def test_unverified_terms_are_not_injected_into_translation_prompt(tmp_path, monkeypatch):
+    glossary_path = tmp_path / "glossary.json"
+    glossary_path.write_text(
+        """{
+          "terms": [
+            {"source":"LOCKED","thai":"ล็อก","category":"system","priority":1},
+            {"source":"PENDING","thai":"รอตรวจ","category":"auto_discovered","priority":3,"verified":false,"notes":"freq=9"},
+            {"source":"APPROVED","thai":"อนุมัติ","category":"auto_discovered","priority":3,"verified":true,"notes":"freq=3"}
+          ]
+        }""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(glossary_pre, "_get_glossary_path", lambda _slug: glossary_path)
+    glossary_pre.load_known_terms.cache_clear()
+
+    prompt = glossary_pre.build_term_map("test-novel")
+
+    assert "LOCKED → ล็อก" in prompt
+    assert "APPROVED → อนุมัติ" in prompt
+    assert "PENDING" not in prompt

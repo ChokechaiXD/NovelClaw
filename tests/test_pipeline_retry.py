@@ -172,6 +172,7 @@ def test_safety_fallback_runs_after_empty_output_and_saves_with_source_lang(monk
         source_profile={"sourceLang": "cn"},
         last_error="Empty LLM output",
         primary_provider="openrouter",
+        slug="fallback-novel",
     )
 
     assert succeeded is True
@@ -182,6 +183,7 @@ def test_safety_fallback_runs_after_empty_output_and_saves_with_source_lang(monk
     assert out_path == tmp_path / "0001.th.json"
     assert saved_kwargs["source_lang"] == "cn"
     assert saved_kwargs["target_lang"] == "th"
+    assert saved_kwargs["slug"] == "fallback-novel"
     assert saved_kwargs["quality_record"]["passed"] is True
 
 
@@ -330,8 +332,9 @@ def test_translate_one_auto_detects_source_lang_for_profile(monkeypatch, tmp_pat
 
 
 def test_translate_one_judge_auto_repair_saves_chapter_after_successful_fix(monkeypatch, tmp_path):
-    """When Judge flags an issue but auto-repair rebuilds it to passing quality, save as ok."""
+    """A repair is saved only after both deterministic and rerun Judge gates pass."""
     saved_kwargs = {}
+    judge_calls = []
 
     monkeypatch.setattr(pipeline, "read_source", lambda *_args, **_kwargs: "阿星醒來。\n\n「走吧。」")
     monkeypatch.setattr(pipeline, "build_translate_prompt", lambda **_kwargs: "SYSTEM\n<glossary>\nTranslate.")
@@ -362,11 +365,13 @@ def test_translate_one_judge_auto_repair_saves_chapter_after_successful_fix(monk
             "warnings": [],
         },
     )
-    monkeypatch.setattr(
-        pipeline,
-        "judge_translation",
-        lambda *_args, **_kwargs: {"ok": True, "passed": False, "feedback": "FAIL: tone drift"},
-    )
+    def fake_judge(*_args, **_kwargs):
+        judge_calls.append(True)
+        if len(judge_calls) == 1:
+            return {"ok": True, "passed": False, "feedback": "FAIL: tone drift"}
+        return {"ok": True, "passed": True, "feedback": "repaired output verified"}
+
+    monkeypatch.setattr(pipeline, "judge_translation", fake_judge)
     monkeypatch.setattr(
         pipeline,
         "discover_and_save",
@@ -382,8 +387,83 @@ def test_translate_one_judge_auto_repair_saves_chapter_after_successful_fix(monk
     result = pipeline.translate_one(1)
 
     assert result["status"] == "ok"
+    assert len(judge_calls) == 2
     assert saved_kwargs["quality_record"]["judge"]["repaired"] is True
+    assert saved_kwargs["quality_record"]["judge"]["repairAccepted"] is True
+    assert saved_kwargs["quality_record"]["judge"]["initialVerdict"]["passed"] is False
     assert any(a["kind"] == "judge_repair" for a in saved_kwargs["quality_record"]["attempts"])
+
+
+def test_translate_one_retains_original_when_repair_judge_is_unavailable(monkeypatch, tmp_path):
+    saved_kwargs = {}
+    judge_calls = []
+
+    monkeypatch.setattr(pipeline, "read_source", lambda *_args, **_kwargs: "阿星醒來。\n\n「走吧。」")
+    monkeypatch.setattr(pipeline, "build_translate_prompt", lambda **_kwargs: "SYSTEM\n<glossary>\nTranslate.")
+    monkeypatch.setattr(
+        pipeline,
+        "_get_active_config",
+        lambda *_args, **_kwargs: {
+            "model": "primary-model",
+            "provider_name": "openrouter",
+            "discovery_model": "judge-model",
+        },
+    )
+
+    def fake_call_llm(*args, **kwargs):
+        prompt = kwargs.get("prompt", args[0] if args else "")
+        text = "ข้อความฉบับแก้ที่ยังไม่ได้รับการยืนยัน" if "<judge_repair>" in prompt else "ข้อความเดิมที่ผ่านตัวตรวจแบบกำหนดกฎ"
+        return text + "\n\n(จบบท)", "fake", kwargs.get("model") or "fake-model"
+
+    monkeypatch.setattr(pipeline, "call_llm", fake_call_llm)
+    monkeypatch.setattr(
+        pipeline,
+        "_score_and_report",
+        lambda *_args, **_kwargs: {
+            "score": 92,
+            "passed": True,
+            "hardFailures": [],
+            "repairNotes": [],
+        },
+    )
+
+    def fake_judge(*_args, **_kwargs):
+        judge_calls.append(True)
+        if len(judge_calls) == 1:
+            return {"ok": True, "passed": False, "feedback": "missing source event"}
+        return {
+            "ok": False,
+            "passed": False,
+            "unavailable": True,
+            "feedback": "LLM Judge unavailable: timeout",
+        }
+
+    monkeypatch.setattr(pipeline, "judge_translation", fake_judge)
+    monkeypatch.setattr(
+        pipeline,
+        "discover_and_save",
+        lambda **_kwargs: {"discovered": 0, "saved": 0, "terms": []},
+    )
+
+    def fake_save_chapter(**kwargs):
+        saved_kwargs.update(kwargs)
+        return tmp_path / "0001.th.json"
+
+    monkeypatch.setattr(pipeline, "save_chapter", fake_save_chapter)
+
+    result = pipeline.translate_one(1)
+
+    saved_text = [item["text"] for item in saved_kwargs["classified"]]
+    judge = saved_kwargs["quality_record"]["judge"]
+    assert result["status"] == "needs_review"
+    assert len(judge_calls) == 2
+    assert "ข้อความเดิม" in saved_text[0]
+    assert all("ฉบับแก้" not in text for text in saved_text)
+    assert saved_kwargs["quality_record"]["passed"] is False
+    assert judge["repairAccepted"] is False
+    assert judge["repairJudge"]["unavailable"] is True
+    assert "original output retained" in judge["feedback"]
+    assert any(attempt["status"] == "judge_unavailable" for attempt in saved_kwargs["quality_record"]["attempts"])
 
 
 

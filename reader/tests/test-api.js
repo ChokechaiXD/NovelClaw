@@ -14,7 +14,7 @@
  *   ✓ /api/novel/:slug/chapter/:num?lang=cn returns Chinese
  *   ✓ /api/novel/:slug/glossary/data returns terms (no 500)
  *   ✓ /api/local/llm-config returns provider catalog
- *   ✓ source importer catalog and manual paste work end-to-end
+ *   ✓ source importer catalog, paste, and local files work end-to-end
  *   ✓ /api/novel/:slug/chapters/search?mode=content finds Chinese terms
  *   ✓ admin save/create temp chapter
  *   ✓ chapters list includes temp chapter after save
@@ -249,6 +249,68 @@ async function main() {
     const health = await get(`/api/import/health?slug=${TEST_IMPORT_SLUG}`);
     return health.status === 200
       && health.body?.data?.sourceFileCount === 1;
+  });
+
+  await test('local JSON file import writes normalized source chapters', async () => {
+    const document = JSON.stringify({
+      title: 'API File Import',
+      chapters: [
+        { num: 2, title: 'Chapter 2 - File', paragraphs: ['A local JSON paragraph.', 'A second paragraph.'] },
+      ],
+    });
+    const res = await post('/api/import/file', {
+      slug: TEST_IMPORT_SLUG,
+      title: 'API Import Smoke',
+      sourceLang: 'en',
+      filename: 'fixture.json',
+      dataBase64: Buffer.from(document, 'utf8').toString('base64'),
+    });
+    if (res.status !== 200
+      || res.body?.data?.format !== 'json'
+      || res.body?.data?.encoding !== 'utf-8'
+      || res.body?.data?.imported !== 1) return false;
+
+    const health = await get(`/api/import/health?slug=${TEST_IMPORT_SLUG}`);
+    return health.status === 200
+      && health.body?.data?.sourceFileCount === 2;
+  });
+
+  await test('glossary save preserves document metadata', async () => {
+    const glossaryPath = path.join(TEST_IMPORT_DIR, 'glossary', 'glossary.json');
+    await fs.mkdir(path.dirname(glossaryPath), { recursive: true });
+    await fs.writeFile(glossaryPath, JSON.stringify({
+      version: 3,
+      review: { owner: 'api-smoke' },
+      terms: [{ source: 'Old', thai: 'เก่า' }],
+    }), 'utf8');
+    const terms = [{ source: 'Mana Core', thai: 'แก่นมานา', verified: true }];
+    const snapshot = await get(`/api/novel/${TEST_IMPORT_SLUG}/glossary/data`);
+    const res = await post(`/api/novel/${TEST_IMPORT_SLUG}/glossary/save`, {
+      terms,
+      revision: snapshot.body?.revision,
+    });
+    if (res.status !== 200) return false;
+
+    const stored = JSON.parse(await fs.readFile(glossaryPath, 'utf8'));
+    return stored.version === 3
+      && stored.review?.owner === 'api-smoke'
+      && stored.terms?.[0]?.source === 'Mana Core';
+  });
+
+  await test('stale glossary save returns conflict without losing new terms', async () => {
+    const glossaryPath = path.join(TEST_IMPORT_DIR, 'glossary', 'glossary.json');
+    const snapshot = await get(`/api/novel/${TEST_IMPORT_SLUG}/glossary/data`);
+    const current = JSON.parse(await fs.readFile(glossaryPath, 'utf8'));
+    current.terms.push({ source: 'Fresh Discovery', thai: 'คำใหม่', verified: false });
+    await fs.writeFile(glossaryPath, JSON.stringify(current), 'utf8');
+
+    const res = await post(`/api/novel/${TEST_IMPORT_SLUG}/glossary/save`, {
+      terms: snapshot.body.terms,
+      revision: snapshot.body.revision,
+    });
+    const stored = JSON.parse(await fs.readFile(glossaryPath, 'utf8'));
+    return res.status === 409
+      && stored.terms.some(term => term.source === 'Fresh Discovery');
   });
 
   // ── Test 7: Content search (Chinese term) ─────────────────────────

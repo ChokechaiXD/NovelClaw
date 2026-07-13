@@ -7,6 +7,7 @@
 const AdminGlossaryPage = {
   _terms: [],
   _slug: '',
+  _revision: '',
   _editingIndex: -1,
 
   _setStatus(message, type = 'success') {
@@ -17,10 +18,15 @@ const AdminGlossaryPage = {
     const res = await fetch('/api/novel/' + this._slug + '/glossary/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ terms: this._terms })
+      body: JSON.stringify({ terms: this._terms, revision: this._revision })
     });
-    if (!res.ok) throw new Error('ไม่สามารถเซฟข้อมูลลง Server ได้');
-    return res.json();
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (res.status === 409) throw new Error('คลังคำศัพท์มีข้อมูลใหม่ กรุณารีโหลดหน้าก่อนบันทึกอีกครั้ง');
+      throw new Error(data.error?.message || 'ไม่สามารถบันทึกข้อมูลลง Server ได้');
+    }
+    this._revision = data.data?.revision || data.revision || this._revision;
+    return data;
   },
 
   async render(params) {
@@ -43,8 +49,10 @@ const AdminGlossaryPage = {
       if (glossRes.ok) {
         const data = await glossRes.json();
         this._terms = data.terms || data || [];
+        this._revision = data.revision || '';
       } else {
         this._terms = [];
+        this._revision = '';
       }
 
       this._editingIndex = -1;
@@ -62,21 +70,17 @@ const AdminGlossaryPage = {
     const novel = (this._novels || []).find(n => n.slug === this._slug) || { slug: this._slug };
 
     let html = '<div class="c-container">' + Ui.adminNav('glossary') +
-      '<section class="c-control-center c-admin-cockpit c-glossary-admin__cockpit">' +
-      '<div class="c-control-center__head"><div>' +
-      '<h2 class="c-control-center__title">' + Ui.icon('bookmarks', 'sm') + 'Glossary Workspace</h2>' +
-      '<p class="c-control-center__subtitle">' + Ui.esc(Ui.displayTitle(novel) || this._slug) + ' · คุมชื่อคน สถานที่ สกิล และคำเฉพาะให้แปลสม่ำเสมอ</p>' +
-      '</div><a class="c-btn c-btn--primary" href="#admin/translate/' + Ui.esc(this._slug) + '" data-nav>' + Ui.icon('book', 'xs') + '<span>แปลเรื่องนี้</span></a></div>' +
-      '<div class="c-control-center__stats">' +
-      Ui.stat('terms', stats.total) +
-      Ui.stat('verified', stats.verified, { tone: 'success' }) +
-      Ui.stat('locked', stats.locked) +
-      Ui.stat('needs review', stats.needsReview, { tone: stats.needsReview ? 'warn' : 'success' }) +
+      '<header class="c-page-heading c-page-heading--studio">' +
+      '<div>' +
+      '<p class="c-page-heading__eyebrow">เครื่องมือคุณภาพ · Glossary</p>' +
+      '<h1>คลังคำแปลเฉพาะเรื่อง</h1>' +
+      '<p>' + Ui.esc(Ui.displayTitle(novel) || this._slug) + ' · ' + stats.total + ' คำ · ตรวจแล้ว ' + stats.verified + ' · ล็อก ' + stats.locked + ' · รอตรวจ ' + stats.needsReview + '</p>' +
       '</div>' +
-      '<div class="c-control-center__actions">' +
+      '<div class="c-page-heading__actions">' +
       '<a class="c-btn c-btn--secondary" href="#novel/' + Ui.esc(this._slug) + '" data-nav>' + Ui.icon('book', 'xs') + '<span>เปิดนิยาย</span></a>' +
-      '<a class="c-btn c-btn--ghost" href="#admin/import/' + Ui.esc(this._slug) + '" data-nav>' + Ui.icon('library', 'xs') + '<span>ตรวจ source</span></a>' +
-      '</div></section>' +
+      '<a class="c-btn c-btn--ghost" href="#admin/import/' + Ui.esc(this._slug) + '" data-nav>' + Ui.icon('library', 'xs') + '<span>ตรวจต้นฉบับ</span></a>' +
+      '<a class="c-btn c-btn--primary" href="#admin/translate/' + Ui.esc(this._slug) + '" data-nav>' + Ui.icon('book', 'xs') + '<span>แปลเรื่องนี้</span></a>' +
+      '</div></header>' +
       '<div class="c-form__group c-glossary-admin__novel-select">' +
         '<label class="c-form__label">เลือกนิยายเพื่อจัดการ Glossary</label>' +
         '<select class="c-form__select" id="glossary-novel-select">' +
@@ -192,8 +196,10 @@ const AdminGlossaryPage = {
           if (glossRes.ok) {
             const data = await glossRes.json();
             this._terms = data.terms || data || [];
+            this._revision = data.revision || '';
           } else {
             this._terms = [];
+            this._revision = '';
           }
           this._editingIndex = -1;
           this._renderUI(page);
@@ -317,6 +323,7 @@ const AdminGlossaryPage = {
           badge.classList.add('is-busy');
           const res = await Api.verifyGlossaryTerm(this._slug, index, newVerified);
           this._terms[index].verified = res.data.verified;
+          this._revision = res.data.revision || this._revision;
           Ui.showToast(newVerified ? 'ยืนยันคำศัพท์แล้ว' : 'ตั้งเป็นรอตรวจแล้ว');
           this._renderUI(page);
         } catch (err) {

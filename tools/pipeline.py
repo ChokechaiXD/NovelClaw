@@ -101,56 +101,67 @@ from glossary_pre import build_glossary_pre_chunk  # noqa: E402
 from glossary_discovery import discover_and_save  # noqa: E402
 from source_profile import build_source_profile, resolve_source_lang, script_mix  # noqa: E402
 
-# ── Glossary discovery persistence ────────────────────────────────────
-# Previously a global set() that only lasted one session.
-# Now checks glossary.json on disk — persists across sessions.
-
-_GLOSSARY_CACHE: dict[str, bool] = {}  # slug → has_auto_discovered
-
-
-def _glossary_has_been_discovered(slug: str) -> bool:
-    """Check if glossary.json already contains auto-discovered terms.
-    
-    Cached per slug to avoid re-reading disk every chapter.
-    """
-    if slug in _GLOSSARY_CACHE:
-        return _GLOSSARY_CACHE[slug]
-
-    from novel_paths import glossary_json_path
-    path = glossary_json_path(slug)
-    if not path.exists():
-        _GLOSSARY_CACHE[slug] = False
-        return False
-
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        terms = data.get("terms", [])
-        has_auto = any(t.get("category") == "auto_discovered" for t in terms)
-        _GLOSSARY_CACHE[slug] = has_auto
-        return has_auto
-    except Exception:
-        _GLOSSARY_CACHE[slug] = False
-        return False
-
 # ── Station 1: Source Reader ─────────────────────────────────────────
 
 
 def read_source(ch_num: int, slug: str = "global-descent") -> str | None:
     """Station 1: Read source file. Supports .md and .cn.json."""
-    src_json = chapter_path(slug, ch_num, "cn")
-
-    if src_json.exists():
-        data = json.loads(src_json.read_text(encoding="utf-8"))
-        return "\n".join(data.get("paragraphs", []))
-
     src_md = source_md_path(slug, ch_num)
     if src_md.exists():
         return src_md.read_text(encoding="utf-8")
+
+    src_json = chapter_path(slug, ch_num, "cn")
+    if src_json.exists():
+        data = json.loads(src_json.read_text(encoding="utf-8"))
+        return "\n".join(data.get("paragraphs", []))
 
     return None
 
 
 # ── Station 3: Prompt Builder ─────────────────────────────────────────
+
+
+def _source_chunk_char_limit(source_lang: str, max_tokens: int) -> int:
+    """Estimate a safe source size for a target-language output token budget."""
+    language_ratio = {
+        # CJK-to-Thai can use more than two completion tokens per source char.
+        "cn": 0.4,
+        "zh": 0.4,
+        "jp": 0.4,
+        "ja": 0.4,
+        "kr": 0.65,
+        "ko": 0.65,
+        "en": 1.4,
+    }.get(source_lang.lower(), 0.6)
+    return max(64, min(6000, int(max_tokens * language_ratio)))
+
+
+def _split_source_chunks(source_text: str, max_chars: int) -> list[str]:
+    """Split source without losing characters, preferring paragraph boundaries."""
+    if max_chars < 1:
+        raise ValueError("max_chars must be positive")
+    if len(source_text) <= max_chars:
+        return [source_text]
+
+    chunks: list[str] = []
+    cursor = 0
+    while len(source_text) - cursor > max_chars:
+        window = source_text[cursor:cursor + max_chars]
+        minimum_break = max_chars // 2
+        paragraph_break = window.rfind("\n\n", minimum_break)
+        if paragraph_break >= 0:
+            cut = paragraph_break + 2
+        else:
+            sentence_break = max(
+                (window.rfind(mark, minimum_break) for mark in ".!?。！？…"),
+                default=-1,
+            )
+            cut = sentence_break + 1 if sentence_break >= 0 else max_chars
+        chunks.append(source_text[cursor:cursor + cut])
+        cursor += cut
+    if cursor < len(source_text):
+        chunks.append(source_text[cursor:])
+    return chunks
 
 
 def build_translate_prompt(
@@ -275,6 +286,7 @@ def _run_one_attempt(
     source: str,
     source_profile: dict[str, Any] | None,
     attempt_cfg: dict[str, Any],
+    chunk_prompts: list[str] | None = None,
 ) -> dict[str, Any]:
     """Run one LLM attempt through Stations 4-6 (call → parse → gloss → classify → score).
 
@@ -288,33 +300,74 @@ def _run_one_attempt(
         attempt_cfg: Attempt config with 'kind', 'model', 'provider' keys.
 
     Returns:
-        Dict with 'status' key: 'passed', 'quality_failed', 'empty_output', or 'error'.
+        Dict with 'status' key: 'passed', 'quality_failed', 'empty_output',
+        'truncated_output', or 'error'.
         Plus 'classified', 'score_result', 'provider', 'model', 'system_text',
         'user_text', and for errors: 'reason'.
     """
-    system_text, user_text = _split_prompt(prompt, repair_instruction)
-
+    prompts = chunk_prompts or [prompt]
+    chunk_count = len(prompts)
+    system_text: str | None = None
+    user_text = ""
     try:
-        response, provider_name, model_name = call_llm(
-            prompt=user_text,
-            system=system_text,
-            model=attempt_cfg["model"],
-            provider=attempt_cfg["provider"],
-        )
+        paragraph_strings: list[str] = []
+        provider_name = attempt_cfg["provider"]
+        model_name = attempt_cfg["model"]
 
-        if not response or len(response.strip()) < 10:
-            return {
-                "status": "empty_output",
-                "provider": provider_name,
-                "model": model_name,
-                "system_text": system_text,
-                "user_text": user_text,
-            }
+        for chunk_index, chunk_prompt in enumerate(prompts, start=1):
+            system_text, user_text = _split_prompt(chunk_prompt, repair_instruction)
+            if chunk_count > 1:
+                chunk_instruction = (
+                    "<chunk_context>\n"
+                    f"Part {chunk_index} of {chunk_count}. Translate only this consecutive "
+                    "source part. Preserve paragraph order and all content. Do not add a "
+                    "chapter title or an end-of-chapter marker.\n"
+                    "</chunk_context>\n\n"
+                )
+                user_text = chunk_instruction + user_text
 
-        # ── Station 5: Parse ──
-        paragraph_strings = parse_output(response, ch_num)
-        if paragraph_strings[-1] != "(จบบท)":
-            paragraph_strings.append("(จบบท)")
+            response_metadata: dict[str, Any] = {}
+            response, provider_name, model_name = call_llm(
+                prompt=user_text,
+                system=system_text,
+                model=attempt_cfg["model"],
+                provider=attempt_cfg["provider"],
+                response_metadata=response_metadata,
+            )
+
+            if response_metadata.get("finish_reason") in {
+                "length", "max_tokens", "max_output_tokens",
+            }:
+                return {
+                    "status": "truncated_output",
+                    "reason": "provider stopped at the output token limit",
+                    "provider": provider_name,
+                    "model": model_name,
+                    "system_text": system_text,
+                    "user_text": user_text,
+                    "chunk_count": chunk_count,
+                    "failed_chunk": chunk_index,
+                }
+
+            if not response or len(response.strip()) < 10:
+                return {
+                    "status": "empty_output",
+                    "provider": provider_name,
+                    "model": model_name,
+                    "system_text": system_text,
+                    "user_text": user_text,
+                    "chunk_count": chunk_count,
+                    "failed_chunk": chunk_index,
+                }
+
+            # ── Station 5: Parse ──
+            parsed_chunk = parse_output(response, ch_num)
+            paragraph_strings.extend(
+                paragraph for paragraph in parsed_chunk
+                if paragraph not in {"(จบบท)", "(End)", "（終）", "(끝)"}
+            )
+
+        paragraph_strings.append("(จบบท)")
 
         # ── Station 5.5: Glossary Post-Process ──
         paragraph_strings = apply_glossary_post(paragraph_strings, target_lang)
@@ -334,6 +387,7 @@ def _run_one_attempt(
             "model": model_name,
             "system_text": system_text,
             "user_text": user_text,
+            "chunk_count": chunk_count,
         }
     except FatalError:
         raise  # propagate fatal errors — no point retrying
@@ -345,6 +399,7 @@ def _run_one_attempt(
             "model": attempt_cfg["model"],
             "system_text": system_text,
             "user_text": user_text,
+            "chunk_count": chunk_count,
         }
 
 
@@ -412,8 +467,7 @@ def _repair_script_leaks(
 # ── Station 6.75: LLM Judge ────────────────────────────────────────────
 
 _JUDGE_SYSTEM = """You are a literary translation quality evaluator (G-Eval protocol).
-Assess the translation on 4 dimensions, each 0-100. For each dimension, reason
-step-by-step before assigning a score, then output structured JSON.
+Assess the translation on 4 dimensions, each 0-100, and return a concise structured verdict.
 
 SCORING RUBRIC:
 1. **Accuracy** (weight 0.40): All events, entities, and actions preserved
@@ -425,10 +479,8 @@ SCORING RUBRIC:
 4. **Coherence** (weight 0.20): Logical flow between paragraphs. Dialogue
    and narration transitions feel natural.
 
-For each dimension:
-- Reason: 1-2 sentences explaining your reasoning.
-- Score: 0-100 integer.
-- If score < 70, list specific error(s).
+Pass only when weighted_score is at least 80, accuracy is at least 75, and there
+are no major or critical errors. List concrete repair notes for every failure.
 
 OUTPUT FORMAT — ONLY valid JSON, no other text:
 {
@@ -442,6 +494,108 @@ OUTPUT FORMAT — ONLY valid JSON, no other text:
   "untranslated_scripts": []
 }"""
 
+_JUDGE_DIMENSION_WEIGHTS = {
+    "accuracy": 0.40,
+    "fluency": 0.15,
+    "terminology": 0.25,
+    "coherence": 0.20,
+}
+
+
+_JUDGE_SECTION_QUANTILES = (0.0, 0.25, 0.5, 0.75, 1.0)
+
+
+def _quantile_index(length: int, quantile: float) -> int:
+    """Return a stable index for a normalized chapter position."""
+
+    return round(max(0, length - 1) * quantile)
+
+
+def _source_section_sample(source_text: str, section_chars: int = 190) -> str:
+    """Sample five aligned chapter sections with a constant-size Judge budget."""
+
+    text = str(source_text or "").strip()
+    if len(text) <= section_chars * len(_JUDGE_SECTION_QUANTILES):
+        return text
+
+    samples: list[str] = []
+    half_window = section_chars // 2
+    for quantile in _JUDGE_SECTION_QUANTILES:
+        center = _quantile_index(len(text), quantile)
+        start = min(max(0, center - half_window), len(text) - section_chars)
+        label = f"{round(quantile * 100)}%"
+        samples.append(f"[{label}] {text[start:start + section_chars]}")
+    return "\n".join(samples)
+
+
+def _validated_judge_payload(raw: str) -> dict[str, Any]:
+    """Validate the model contract; malformed verdicts must never become silent passes."""
+
+    value = str(raw or "").strip()
+    if value.startswith("```"):
+        value = value.split("\n", 1)[-1]
+        value = value.rsplit("```", 1)[0].strip()
+    if not value:
+        raise ValueError("empty Judge response")
+    parsed = json.loads(value)
+    if not isinstance(parsed, dict):
+        raise ValueError("Judge response must be a JSON object")
+
+    dimensions_raw = parsed.get("dimensions")
+    if not isinstance(dimensions_raw, dict):
+        raise ValueError("Judge dimensions are missing")
+    dimensions: dict[str, float] = {}
+    for name in _JUDGE_DIMENSION_WEIGHTS:
+        score_raw = dimensions_raw.get(name)
+        if isinstance(score_raw, bool):
+            raise ValueError(f"Judge dimension {name} is invalid")
+        try:
+            score = float(score_raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Judge dimension {name} is missing or invalid") from exc
+        if score != score or not 0 <= score <= 100:
+            raise ValueError(f"Judge dimension {name} is outside 0-100")
+        dimensions[name] = score
+
+    if not isinstance(parsed.get("passed"), bool):
+        raise ValueError("Judge passed flag is missing or invalid")
+    errors = parsed.get("errors")
+    repair_notes = parsed.get("repair_notes")
+    if not isinstance(errors, list) or not all(isinstance(item, dict) for item in errors):
+        raise ValueError("Judge errors must be a list of objects")
+    if not isinstance(repair_notes, list) or not all(isinstance(item, str) for item in repair_notes):
+        raise ValueError("Judge repair_notes must be a list of strings")
+
+    weighted_score = round(sum(dimensions[name] * weight for name, weight in _JUDGE_DIMENSION_WEIGHTS.items()), 2)
+    reported_score_raw = parsed.get("weighted_score")
+    if isinstance(reported_score_raw, bool):
+        raise ValueError("Judge weighted_score is invalid")
+    try:
+        reported_score = float(reported_score_raw)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Judge weighted_score is missing or invalid") from exc
+    if reported_score != reported_score or not 0 <= reported_score <= 100:
+        raise ValueError("Judge weighted_score is outside 0-100")
+    if abs(reported_score - weighted_score) > 2.5:
+        raise ValueError("Judge weighted_score is inconsistent with its dimensions")
+    severe_error = any(
+        str(item.get("severity") or "").strip().lower() in {"major", "critical", "blocking"}
+        for item in errors
+    )
+    passed = bool(
+        parsed["passed"]
+        and weighted_score >= 80
+        and dimensions["accuracy"] >= 75
+        and not severe_error
+    )
+    return {
+        "dimensions": dimensions,
+        "weighted_score": weighted_score,
+        "passed": passed,
+        "errors": errors,
+        "repair_notes": repair_notes,
+    }
+
 
 def judge_translation(
     paragraphs: list[dict[str, str]],
@@ -452,52 +606,49 @@ def judge_translation(
     """G-Eval quality judge via LLM. Returns structured JSON with dimensions + errors."""
     try:
         content = [p for p in paragraphs if p.get("type") != "end"]
-        sample_indexes = {0, 1, 2}
-        if content:
-            mid = len(content) // 2
-            sample_indexes.update({max(0, mid - 1), mid, min(len(content) - 1, mid + 1)})
-            sample_indexes.update({max(0, len(content) - 3), max(0, len(content) - 2), len(content) - 1})
+        # Five section-aligned samples cover long/chunked chapters without growing
+        # the Judge prompt with chapter length. Risk samples remain separately capped.
+        sample_indexes = {
+            _quantile_index(len(content), quantile)
+            for quantile in _JUDGE_SECTION_QUANTILES
+        } if content else set()
         risky_indexes = [
             i for i, p in enumerate(content)
             if p.get("type") in {"dialogue", "system"} or re.search(r"[A-Za-z\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af]", p.get("text", ""))
         ][:4]
         sample_indexes.update(risky_indexes)
+        sampled_indexes = sorted(i for i in sample_indexes if 0 <= i < len(content))
         text_preview = "\n".join(
             f"[{i + 1}:{content[i].get('type', 'narration')}] {content[i].get('text', '')[:180]}"
-            for i in sorted(i for i in sample_indexes if 0 <= i < len(content))
+            for i in sampled_indexes
         )
         structure = source_profile or {}
-        prompt = f"""Review this translation using G-Eval protocol with chain-of-thought.
+        source_sample = _source_section_sample(source_text)
+        prompt = f"""Review this literary translation using the G-Eval rubric.
 
-Sample paragraphs (beginning / middle / end / risk):
+Sample paragraphs (section-aligned at 0% / 25% / 50% / 75% / 100%, plus risk):
 {text_preview}
 
-Source sample (first 300 chars):
-{source_text[:300]}
+Source sample (section-aligned at 0% / 25% / 50% / 75% / 100%):
+{source_sample}
 
 Source structure:
 - paragraphs: {structure.get('paragraphCount', '?')}
 - dialogue: {structure.get('dialogueCount', '?')}
 - system markers: {structure.get('systemMarkerCount', '?')}
 
-For each of the 4 rubric dimensions, reason 1-2 sentences then assign 0-100.
 Respond with ONLY valid JSON matching the specified format."""
 
         response, provider, model_name = call_llm(
             prompt=prompt, system=_JUDGE_SYSTEM,
             model=model, temperature=0.1, max_tokens=800,
         )
-        raw = response.strip()
-        # Parse JSON from response (handle possible markdown fences)
-        if raw.startswith("```"):
-            raw = raw.split("\n", 1)[-1]
-            raw = raw.rsplit("```", 1)[0]
-        parsed = json.loads(raw)
-        dims: dict[str, int] = parsed.get("dimensions", {})
-        weighted = parsed.get("weighted_score", 0)
-        errors: list[dict[str, Any]] = parsed.get("errors", [])
-        passed = parsed.get("passed", True)
-        repair_notes: list[str] = parsed.get("repair_notes", [])
+        parsed = _validated_judge_payload(response)
+        dims = parsed["dimensions"]
+        weighted = parsed["weighted_score"]
+        errors = parsed["errors"]
+        passed = parsed["passed"]
+        repair_notes = parsed["repair_notes"]
         return {
             "ok": True,
             "passed": passed,
@@ -507,28 +658,15 @@ Respond with ONLY valid JSON matching the specified format."""
             "repair_notes": repair_notes,
             "feedback": repair_notes[0] if repair_notes else ("ok" if passed else "needs review"),
             "model": model_name,
-            "sampledParagraphs": len(sample_indexes),
+            "sampledParagraphs": len(sampled_indexes),
         }
-    except (json.JSONDecodeError, KeyError, TypeError) as e:
-        # Fallback: try plain text parse for non-JSON responses
-        try:
-            raw_local = response if isinstance(response, str) else str(response)
-            passed_local = not raw_local.upper().startswith("FAIL:")
-            return {
-                "ok": True,
-                "passed": passed_local,
-                "score": 0,
-                "dimensions": {},
-                "errors": [],
-                "repair_notes": [],
-                "feedback": raw_local[:200],
-                "model": model_name,
-                "sampledParagraphs": 0,
-            }
-        except Exception:
-            return {"ok": False, "passed": True, "feedback": f"parse error: {e}"[:200]}
     except Exception as e:
-        return {"ok": False, "passed": True, "feedback": str(e)[:200]}
+        return {
+            "ok": False,
+            "passed": False,
+            "unavailable": True,
+            "feedback": f"LLM Judge unavailable: {e}"[:240],
+        }
 
 
 # ── Station 6.75: LLM Judge + Auto Repair Orchestration ──────────────
@@ -547,6 +685,7 @@ def _judge_and_auto_repair(
     ch_num: int,
     target_lang: str,
     attempts: list[dict[str, Any]],
+    chunk_prompts: list[str] | None = None,
 ) -> tuple[list[dict[str, str]], dict[str, Any], dict[str, Any]]:
     """Station 6.75: Run LLM Judge if score warrants, attempt auto-repair on failure.
 
@@ -565,43 +704,152 @@ def _judge_and_auto_repair(
     else:
         judge_result = {"ok": True, "passed": True, "skipped": True}
 
-    if judge_result.get("ok") and judge_result.get("passed") is False:
+    if not judge_result.get("ok"):
+        judge_feedback = str(judge_result.get("feedback") or "LLM Judge unavailable")[:240]
+        score_result = {
+            **score_result,
+            "passed": False,
+            "hardFailures": [
+                *score_result.get("hardFailures", []),
+                judge_feedback,
+            ],
+            "repairNotes": [
+                *score_result.get("repairNotes", score_result.get("repair_notes", [])),
+                "Review this chapter manually because the quality Judge did not return a valid verdict.",
+            ],
+        }
+    elif judge_result.get("passed") is False:
         judge_feedback = str(judge_result.get("feedback", ""))[:400]
+        initial_judge = dict(judge_result)
         judge_repair_instruction = (
             "\n\n<judge_repair>\nAn LLM quality reviewer suggested improvements."
             " Rewrite the full chapter addressing these points before returning:\n"
             + judge_feedback + "\n</judge_repair>"
         )
         judge_repaired = False
+        repair_status = "quality_failed"
+        repair_failure = "Auto-repair did not pass the deterministic quality gate; original output retained."
+        repair_score = 0
         try:
-            resp2, _, _ = call_llm(
-                prompt=user_text + judge_repair_instruction,
-                system=system_text,
-                model=primary_model,
-                provider=primary_provider,
-            )
-            if resp2 and len(resp2.strip()) >= 10:
-                paras2 = parse_output(resp2, ch_num)
-                if paras2[-1] != "(จบบท)":
-                    paras2.append("(จบบท)")
-                paras2 = apply_glossary_post(paras2, target_lang)
-                classified2 = classify_and_format(paras2)
-                score2 = _score_and_report(classified2, source, target_lang, source_profile=source_profile)
-                if isinstance(score2, dict) and score2.get("passed"):
-                    classified = classified2
-                    score_result = score2
-                    judge_repaired = True
-                    judge_result["repaired"] = True
-                    judge_result["scoreAfterRepair"] = score2.get("score", 0)
-                    attempts.append({
+            if chunk_prompts:
+                repair_result = _run_one_attempt(
+                    prompt=chunk_prompts[0],
+                    chunk_prompts=chunk_prompts,
+                    repair_instruction=judge_repair_instruction,
+                    ch_num=ch_num,
+                    target_lang=target_lang,
+                    source=source,
+                    source_profile=source_profile,
+                    attempt_cfg={
                         "kind": "judge_repair",
                         "model": primary_model,
                         "provider": primary_provider,
-                        "status": "passed",
-                        "score": score2.get("score", 0),
-                    })
-        except Exception:
-            pass
+                    },
+                )
+                classified2 = repair_result.get("classified", [])
+                score2 = repair_result.get("score_result", {})
+            else:
+                resp2, _, _ = call_llm(
+                    prompt=user_text + judge_repair_instruction,
+                    system=system_text,
+                    model=primary_model,
+                    provider=primary_provider,
+                )
+                paras2 = parse_output(resp2, ch_num) if resp2 and len(resp2.strip()) >= 10 else []
+                if paras2 and paras2[-1] != "(จบบท)":
+                    paras2.append("(จบบท)")
+                paras2 = apply_glossary_post(paras2, target_lang)
+                classified2 = classify_and_format(paras2) if paras2 else []
+                score2 = (
+                    _score_and_report(classified2, source, target_lang, source_profile=source_profile)
+                    if classified2 else {}
+                )
+
+            if isinstance(score2, dict) and score2.get("passed"):
+                repair_score = score2.get("score", 0)
+                repair_judge = judge_translation(
+                    classified2,
+                    source,
+                    judge_model,
+                    source_profile=source_profile,
+                )
+                repair_judge_passed = bool(
+                    repair_judge.get("ok") and repair_judge.get("passed") is True
+                )
+                if repair_judge_passed:
+                    classified = classified2
+                    score_result = score2
+                    judge_repaired = True
+                    repair_status = "passed"
+                    judge_result = {
+                        **repair_judge,
+                        "initialVerdict": initial_judge,
+                        "repairJudge": dict(repair_judge),
+                        "repairAttempted": True,
+                        "repairAccepted": True,
+                        "repaired": True,
+                        "scoreAfterRepair": repair_score,
+                    }
+                else:
+                    repair_status = (
+                        "judge_unavailable" if not repair_judge.get("ok") else "judge_failed"
+                    )
+                    repair_judge_feedback = str(
+                        repair_judge.get("feedback") or "repaired output did not pass the LLM Judge"
+                    )[:240]
+                    repair_failure = (
+                        "Auto-repair rejected; original output retained. "
+                        f"Repair Judge: {repair_judge_feedback}. "
+                        f"Initial Judge: {judge_feedback or 'quality risk detected'}."
+                    )[:500]
+                    judge_result = {
+                        **repair_judge,
+                        "initialVerdict": initial_judge,
+                        "repairJudge": dict(repair_judge),
+                        "repairAttempted": True,
+                        "repairAccepted": False,
+                        "repaired": False,
+                        "candidateScoreAfterRepair": repair_score,
+                        "feedback": repair_failure,
+                    }
+            else:
+                repair_score = score2.get("score", 0) if isinstance(score2, dict) else 0
+                repair_failure = (
+                    "Auto-repair rejected by the deterministic quality gate; original output retained. "
+                    f"Candidate score: {repair_score}. Initial Judge: "
+                    f"{judge_feedback or 'quality risk detected'}."
+                )[:500]
+                judge_result = {
+                    **initial_judge,
+                    "repairAttempted": True,
+                    "repairAccepted": False,
+                    "repaired": False,
+                    "candidateScoreAfterRepair": repair_score,
+                    "feedback": repair_failure,
+                }
+        except Exception as exc:
+            repair_status = "error"
+            repair_failure = (
+                "Auto-repair failed before validation; original output retained. "
+                f"{exc}"
+            )[:500]
+            judge_result = {
+                **initial_judge,
+                "repairAttempted": True,
+                "repairAccepted": False,
+                "repaired": False,
+                "feedback": repair_failure,
+            }
+
+        attempts.append({
+            "kind": "judge_repair",
+            "model": primary_model,
+            "provider": primary_provider,
+            "status": repair_status,
+            "score": repair_score,
+            **({"reason": repair_failure[:240]} if not judge_repaired else {}),
+            **({"chunkCount": len(chunk_prompts)} if chunk_prompts else {}),
+        })
 
         if not judge_repaired:
             score_result = {
@@ -609,11 +857,11 @@ def _judge_and_auto_repair(
                 "passed": False,
                 "hardFailures": [
                     *score_result.get("hardFailures", []),
-                    "LLM Judge: repair attempted but still flagged.",
+                    repair_failure,
                 ],
                 "repairNotes": [
                     *score_result.get("repairNotes", score_result.get("repair_notes", [])),
-                    judge_feedback[:240],
+                    (judge_feedback or repair_failure)[:240],
                 ],
             }
 
@@ -644,6 +892,8 @@ def _try_safety_fallback(
     source_profile: dict[str, Any] | None,
     last_error: str,
     primary_provider: str,
+    chunk_prompts: list[str] | None = None,
+    slug: str = "global-descent",
 ) -> tuple[bool, dict[str, Any], list[dict[str, str]], str, str, str]:
     """Attempt OpenRouter safety filter auto-fallback to 9Router.
 
@@ -655,26 +905,48 @@ def _try_safety_fallback(
 
     fallback_model = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
     try:
-        response_retry, prov_retry, _ = call_llm(
-            prompt=user_text,
-            system=system_text,
-            model=fallback_model,
-            provider="custom",
-        )
-        if response_retry and len(response_retry.strip()) >= 5:
-            paras = parse_output(response_retry, ch_num)
-            if paras[-1] != "(จบบท)":
+        if chunk_prompts:
+            fallback_result = _run_one_attempt(
+                prompt=chunk_prompts[0],
+                chunk_prompts=chunk_prompts,
+                repair_instruction="",
+                ch_num=ch_num,
+                target_lang=target_lang,
+                source=source,
+                source_profile=source_profile,
+                attempt_cfg={
+                    "kind": "safety_fallback",
+                    "model": fallback_model,
+                    "provider": "custom",
+                },
+            )
+            classified = fallback_result.get("classified", [])
+            score_result = fallback_result.get("score_result", {})
+            prov_retry = fallback_result.get("provider", "custom")
+        else:
+            response_retry, prov_retry, _ = call_llm(
+                prompt=user_text,
+                system=system_text,
+                model=fallback_model,
+                provider="custom",
+            )
+            paras = parse_output(response_retry, ch_num) if response_retry and len(response_retry.strip()) >= 5 else []
+            if paras and paras[-1] != "(จบบท)":
                 paras.append("(จบบท)")
             paras = apply_glossary_post(paras, target_lang)
-            classified = classify_and_format(paras)
-            score_result = _score_and_report(classified, source, target_lang, source_profile=source_profile)
-            if score_result.get("passed"):
-                out_path = save_chapter(
-                    classified=classified, ch_num=ch_num, source_text=source,
-                    source_lang=source_lang, target_lang=target_lang, source_profile=source_profile,
-                    quality_record=score_result,
-                )
-                return (True, score_result, classified, fallback_model, prov_retry, out_path)
+            classified = classify_and_format(paras) if paras else []
+            score_result = (
+                _score_and_report(classified, source, target_lang, source_profile=source_profile)
+                if classified else {}
+            )
+
+        if score_result.get("passed"):
+            out_path = save_chapter(
+                classified=classified, ch_num=ch_num, slug=slug, source_text=source,
+                source_lang=source_lang, target_lang=target_lang, source_profile=source_profile,
+                quality_record=score_result,
+            )
+            return (True, score_result, classified, fallback_model, prov_retry, out_path)
     except Exception:
         pass
     return (False, {}, [], "", "", "")
@@ -701,6 +973,10 @@ def _attempt_record(
         })
     if reason is not None:
         record["reason"] = reason
+    if result.get("chunk_count"):
+        record["chunkCount"] = result["chunk_count"]
+    if result.get("failed_chunk"):
+        record["failedChunk"] = result["failed_chunk"]
     return record
 
 
@@ -765,8 +1041,10 @@ def _run_real_translate(
     target_lang: str,
     source_profile: dict[str, Any],
     prompt: str,
+    chunk_prompts: list[str] | None,
     model_override: str | None,
     provider_override: str | None,
+    runtime_cfg: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run the real (non-mock) translation loop: retry → judge → glossary.
 
@@ -775,7 +1053,7 @@ def _run_real_translate(
       plus classified, score_result, judge_result, attempts, provider_name,
       model_name, discovery_result, source_lang, source_profile, reason, score
     """
-    cfg = _get_active_config(provider_override)
+    cfg = runtime_cfg or _get_active_config(provider_override)
     primary_model = model_override or cfg["model"]
     discovery_model = cfg.get("discovery_model") or primary_model
     primary_provider = cfg["provider_name"]
@@ -810,6 +1088,7 @@ def _run_real_translate(
             source=source,
             source_profile=source_profile,
             attempt_cfg=attempt_cfg,
+            chunk_prompts=chunk_prompts,
         )
 
         system_text = result["system_text"]
@@ -827,6 +1106,17 @@ def _run_real_translate(
         if result["status"] == "empty_output":
             last_error = "Empty LLM output"
             attempts.append(_attempt_record(attempt_cfg, result, "empty_output"))
+            allow_repair = False
+            continue
+
+        if result["status"] == "truncated_output":
+            last_error = (
+                f"LLM output truncated at chunk {result.get('failed_chunk', '?')}"
+                f"/{result.get('chunk_count', '?')}"
+            )
+            attempts.append(_attempt_record(
+                attempt_cfg, result, "truncated_output", reason=last_error,
+            ))
             allow_repair = False
             continue
 
@@ -911,6 +1201,8 @@ def _run_real_translate(
             ch_num=ch_num, source_lang=source_lang, target_lang=target_lang,
             source=source, source_profile=source_profile,
             last_error=last_error, primary_provider=primary_provider,
+            chunk_prompts=chunk_prompts,
+            slug=slug,
         )
         if succeeded:
             return {
@@ -942,10 +1234,11 @@ def _run_real_translate(
         primary_provider=primary_provider,
         system_text=system_text, user_text=user_text,
         ch_num=ch_num, target_lang=target_lang, attempts=attempts,
+        chunk_prompts=chunk_prompts,
     )
 
     # ── Station 6.8: Auto Glossary Discovery ──
-    if source and not _glossary_has_been_discovered(slug):
+    if source:
         cfg = _get_active_config()
         discovery_result = discover_and_save(
             source_text=source, slug=slug, source_lang=source_lang,
@@ -1019,12 +1312,31 @@ def translate_one(
             }
 
         # ── Station 3: Build Prompt ──
-        prompt = build_translate_prompt(
-            source_text=source, ch_num=ch_num,
-            source_lang=source_lang, target_lang=target_lang,
-            slug=slug, prompt_profile=prompt_profile,
-            source_profile=source_profile,
-        )
+        runtime_cfg = None if mock else _get_active_config(provider_override)
+        max_tokens = int((runtime_cfg or {}).get("max_tokens") or 4096)
+        source_chunks = _split_source_chunks(
+            source,
+            max_chars=_source_chunk_char_limit(source_lang, max_tokens),
+        ) if not mock else [source]
+        chunk_prompts: list[str] = []
+        for source_chunk in source_chunks:
+            chunk_profile = source_profile
+            if len(source_chunks) > 1:
+                chunk_profile = build_source_profile(
+                    source_chunk,
+                    source_lang=source_lang,
+                    target_lang=target_lang,
+                    ch_num=ch_num,
+                    lang_source=source_lang_source,
+                    script_counts=script_mix(source_chunk),
+                )
+            chunk_prompts.append(build_translate_prompt(
+                source_text=source_chunk, ch_num=ch_num,
+                source_lang=source_lang, target_lang=target_lang,
+                slug=slug, prompt_profile=prompt_profile,
+                source_profile=chunk_profile,
+            ))
+        prompt = chunk_prompts[0]
 
         if mock:
             paragraph_strings = [
@@ -1044,7 +1356,9 @@ def translate_one(
                 source=source, source_lang=source_lang,
                 target_lang=target_lang, source_profile=source_profile,
                 prompt=prompt,
+                chunk_prompts=chunk_prompts if len(chunk_prompts) > 1 else None,
                 model_override=model_override, provider_override=provider_override,
+                runtime_cfg=runtime_cfg,
             )
 
             if r["status"] == "failed":
@@ -1074,6 +1388,8 @@ def translate_one(
         quality_record = _quality_summary(score_result, attempts if not mock else [], judge_result)
         final_status = "needs_review" if quality_record.get("passed") is False else "ok"
         review_reason = r.get("reason", "") if not mock and final_status == "needs_review" else ""
+        if not review_reason and final_status == "needs_review" and isinstance(judge_result, dict):
+            review_reason = str(judge_result.get("feedback") or "")[:240]
         out_path = save_chapter(
             classified=classified, ch_num=ch_num, slug=slug,
             source_text=source, source_lang=source_lang, target_lang=target_lang,
@@ -1096,7 +1412,10 @@ def translate_one(
             "sourceProfile": source_profile,
             "score": score_result.get("score", 0) if isinstance(score_result, dict) else 0,
             "quality": quality_record,
-            "judge": (str(judge_result.get("feedback") or "")[:200] if isinstance(judge_result, dict) and judge_result.get("ok") else "judge_error"),
+            "judge": (
+                str(judge_result.get("feedback") or ("" if judge_result.get("ok") else "judge_error"))[:200]
+                if isinstance(judge_result, dict) else "judge_error"
+            ),
             "discovery": f"{discovery_result.get('discovered', 0)} found, {discovery_result.get('saved', 0)} saved" if isinstance(discovery_result, dict) and discovery_result.get('discovered', 0) > 0 else "none",
         }
 

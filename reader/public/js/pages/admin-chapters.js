@@ -9,7 +9,9 @@ window.AdminChaptersPage = {
       const firstReal = novels.find(Ui.isVisibleNovel);
       const slug = params.slug || firstReal?.slug || novels[0]?.slug;
       if (!slug) {
-        page.innerHTML = '<div class="c-container">' + Ui.adminNav('chapters') + '<p class="u-text-muted u-p-lg">ไม่มีนิยายในระบบ</p></div>';
+        page.innerHTML = '<div class="c-container">' + Ui.adminNav('chapters') +
+          '<header class="c-page-heading c-page-heading--studio"><div><span class="c-page-heading__eyebrow">Chapter library</span><h1>จัดการตอนทั้งหมด</h1><p>เพิ่มนิยายหรือนำเข้าต้นฉบับก่อนเริ่มจัดการตอน</p></div></header>' +
+          '<div class="c-empty c-empty--compact"><div class="c-empty__title">ยังไม่มีนิยายในระบบ</div><div class="c-empty__desc">สร้างคลังเรื่องแรกจากไฟล์ URL หรือข้อความ</div><div class="c-page-heading__actions"><a class="c-btn c-btn--primary" href="#admin/import" data-nav>นำเข้าต้นฉบับ</a></div></div></div>';
         return;
       }
       const [chapters, importHealthResp] = await Promise.all([
@@ -17,7 +19,9 @@ window.AdminChaptersPage = {
         Api.getImportHealth(slug, { includeChapters: true }).catch(() => ({ data: { chapters: [] } })),
       ]);
       if (!chapters || chapters.length === 0) {
-        page.innerHTML = '<div class="c-container">' + Ui.adminNav('chapters') + '<p class="u-text-muted u-p-lg">ไม่มีตอนในนิยายนี้</p></div>';
+        page.innerHTML = '<div class="c-container">' + Ui.adminNav('chapters') +
+          '<header class="c-page-heading c-page-heading--studio"><div><span class="c-page-heading__eyebrow">Chapter library</span><h1>จัดการตอนทั้งหมด</h1><p>' + Ui.esc(slug) + ' · ยังไม่มีตอนที่พร้อมจัดการ</p></div></header>' +
+          '<div class="c-empty c-empty--compact"><div class="c-empty__title">ยังไม่มีตอนในเรื่องนี้</div><div class="c-empty__desc">นำเข้าต้นฉบับเพื่อสร้างรายการตอน</div><div class="c-page-heading__actions"><a class="c-btn c-btn--primary" href="#admin/import/' + Ui.esc(slug) + '" data-nav>นำเข้าต้นฉบับ</a></div></div></div>';
         return;
       }
 
@@ -64,7 +68,7 @@ window.AdminChaptersPage = {
         const pageList = list.slice(start, start + pageSize);
 
         let html = '<div class="c-container">' + Ui.adminNav('chapters') +
-          '<div class="c-section__header c-admin-page__header"><h3 class="c-section__title">' + Ui.icon('book', 'sm') + 'ตอนทั้งหมด: ' + Ui.esc(slug) + '</h3><span class="c-admin-page__meta">' + totalFiltered + ' / ' + chapters.length + ' ตอน</span></div>' +
+          '<header class="c-page-heading c-page-heading--studio"><div><span class="c-page-heading__eyebrow">Chapter library</span><h1>จัดการตอนทั้งหมด</h1><p>' + Ui.esc(slug) + ' · เลือก ตรวจ และส่งตอนเข้า workflow การแปล</p></div><div class="c-page-heading__actions"><span class="c-admin-page__meta">' + totalFiltered + ' / ' + chapters.length + ' ตอน</span></div></header>' +
           '<div class="c-admin-chapters__summary">' +
           Ui.stat('แปลแล้ว', chapters.filter(c => c.status === 'translated').length, { tone: 'success' }) +
           Ui.stat('ต้นฉบับ', chapters.filter(c => c.status === 'source_only').length, { tone: 'warn' }) +

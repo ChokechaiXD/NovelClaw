@@ -124,7 +124,7 @@ window.AdminNovelsPage = {
       };
 
       page.innerHTML = '<div class="c-container">' + Ui.adminNav('novels') +
-        '<div class="c-admin-page__toolbar"><h3 class="c-admin-page__title">รายการนิยายทั้งหมด</h3><span id="admin-novel-count" class="c-admin-page__meta"></span></div>' +
+        '<header class="c-page-heading c-page-heading--studio"><div><span class="c-page-heading__eyebrow">Library</span><h1>รายการนิยายทั้งหมด</h1><p>ค้นหา ตรวจสุขภาพ และจัดการนิยายในคลังจากหน้าเดียว</p></div><div class="c-page-heading__actions"><span id="admin-novel-count" class="c-admin-page__meta"></span></div></header>' +
         '<div class="c-admin-novels__filters">' +
         '<input id="admin-novel-search" class="c-form__input c-admin-novels__search" placeholder="ค้นหา title, slug, author..." />' +
         '<select id="admin-novel-filter" class="c-form__select c-admin-novels__select"><option value="all">ทั้งหมด</option><option value="source">มี source</option><option value="warn">ต้องตรวจ</option><option value="translated">มีแปลแล้ว</option><option value="empty-cover">ยังไม่มีปก</option></select>' +

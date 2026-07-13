@@ -6,7 +6,7 @@
 
 Two sections injected:
   1. <character_voice> — character name maps + pronoun guidance
-  2. <glossary_map> — known CN→TH term pairs (priority 1 + top auto)
+  2. <glossary_map> — known source→Thai pairs (priority 1 + verified auto)
 
 Used by pipeline.py Station 3 — inject เข้า prompt ก่อนส่ง LLM
 """
@@ -28,6 +28,13 @@ def _get_glossary_path(slug: str = "global-descent") -> Path:
     return glossary_json_path(slug)
 
 
+def _is_prompt_eligible(term: dict) -> bool:
+    """Keep review-pending terms out of translation prompts."""
+    if term.get("category") == "auto_discovered":
+        return term.get("verified") is True
+    return term.get("verified") is not False
+
+
 # ── Character loading ──────────────────────────────────────────────────
 
 
@@ -46,7 +53,10 @@ def load_characters(slug: str = "global-descent") -> list[dict]:
         terms = data.get("terms", [])
         characters = [
             t for t in terms
-            if t.get("category") == "ตัวละคร" and t.get("source") and t.get("thai")
+            if t.get("category") == "ตัวละคร"
+            and t.get("source")
+            and t.get("thai")
+            and _is_prompt_eligible(t)
         ]
         # Sort: locked/priority 1 first, then alphabetical by source
         characters.sort(key=lambda t: (t.get("priority", 3), t.get("source", "")))
@@ -64,7 +74,7 @@ def load_known_terms(slug: str = "global-descent") -> list[dict]:
 
     Returns priority-descending list:
       - Locked terms (priority=1) — always included
-      - auto_discovered terms with highest frequency — up to _MAX_GLOSSARY_TERMS total
+      - verified auto_discovered terms by frequency — up to _MAX_GLOSSARY_TERMS total
     """
     path = _get_glossary_path(slug)
     if not path.exists():
@@ -81,6 +91,8 @@ def load_known_terms(slug: str = "global-descent") -> list[dict]:
 
         for t in terms:
             if not t.get("source") or not t.get("thai"):
+                continue
+            if not _is_prompt_eligible(t):
                 continue
             if t.get("category") == "ตัวละคร":
                 continue

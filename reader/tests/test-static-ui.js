@@ -112,10 +112,16 @@ const generatedCssClasses = new Set([
   'c-toast--warning',
   ...Array.from({ length: 11 }, (_, index) => `u-progress-w-${index * 10}`),
 ]);
+// The studio headings no longer render these cockpit classes. Their CSS is
+// intentionally removed in the dedicated stylesheet cleanup slice.
+const retiredStudioHeaderCssClasses = new Set([
+]);
 const cssClasses = [...cssText.matchAll(/\.([A-Za-z_][A-Za-z0-9_-]*)/g)]
   .map(match => match[1]);
 const orphanCssClasses = [...new Set(cssClasses)]
-  .filter(className => !uiText.includes(className) && !generatedCssClasses.has(className));
+  .filter(className => !uiText.includes(className)
+    && !generatedCssClasses.has(className)
+    && !retiredStudioHeaderCssClasses.has(className));
 if (orphanCssClasses.length) {
   fail(`design-system.css has orphan class selectors: ${orphanCssClasses.join(', ')}`);
 }
@@ -140,10 +146,37 @@ for (const eagerModelSurface of ['reader-model-select', 'reader-model-list', 'Ap
     fail(`reader.js must not load or edit provider config while reading: ${eagerModelSurface}`);
   }
 }
+for (const accessibleReaderSurface of [
+  'id="reader-bookmark-toggle"',
+  "'novelclaw-bookmarks'",
+  'aria-pressed="false"',
+  'role="dialog"',
+  'aria-modal="true"',
+  'aria-labelledby="reader-glossary-title"',
+  "event.key === 'Escape'",
+]) {
+  if (!readerText.includes(accessibleReaderSurface)) {
+    fail(`reader.js must preserve accessible reading controls: ${accessibleReaderSurface}`);
+  }
+}
 
 const novelText = fs.readFileSync(NOVEL_JS, 'utf8');
 if (!novelText.includes('continueNum') || !novelText.includes('อ่านต่อตอนที่')) {
   fail('novel.js primary action must resume the last-read chapter');
+}
+for (const chapterIndexSurface of [
+  '<ol class="c-detail__chapters c-chapter-list"',
+  'c-chapter-row__number',
+  'c-chapter-row__title',
+  'c-chapter-row__read-status',
+  'c-chapter-row__source-status',
+]) {
+  if (!novelText.includes(chapterIndexSurface)) {
+    fail(`novel.js must render a semantic chapter index: ${chapterIndexSurface}`);
+  }
+}
+if (!novelText.includes('เปิดสตูดิโอเรื่องนี้') || ['สั่งแปล</span>', 'นำเข้า/ซ่อม source', 'แก้ข้อมูล/ปก'].some(label => novelText.includes(label))) {
+  fail('novel.js must consolidate hero admin actions into one studio entry point');
 }
 
 const pagesText = fs.readFileSync(PAGES_JS, 'utf8');

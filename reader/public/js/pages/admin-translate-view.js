@@ -2,6 +2,7 @@
 
 (function () {
   const Model = window.AdminTranslateModel;
+  const DEFAULT_CHAPTER_PAGE_SIZE = 100;
 
   function sourceIssueText(health = {}) {
     const byCode = health.issueSummary?.byCode || {};
@@ -45,12 +46,48 @@
       '</div>' + warnings;
   }
 
-  function chapterTable({ chapters = [], visibleChapters = [], selectedNums = new Set(), sourceIssueByNum = {}, lastResultByNum = {} } = {}) {
+  function paginateChapters(chapters = [], requestedPage = 1, requestedPageSize = DEFAULT_CHAPTER_PAGE_SIZE) {
+    const parsedSize = Number.parseInt(requestedPageSize, 10);
+    const pageSize = Number.isFinite(parsedSize) && parsedSize > 0
+      ? parsedSize
+      : DEFAULT_CHAPTER_PAGE_SIZE;
+    const pageCount = Math.max(1, Math.ceil(chapters.length / pageSize));
+    const parsedPage = Number.parseInt(requestedPage, 10);
+    const page = Math.min(pageCount, Math.max(1, Number.isFinite(parsedPage) ? parsedPage : 1));
+    const startIndex = (page - 1) * pageSize;
+    const items = chapters.slice(startIndex, startIndex + pageSize);
+    return {
+      items,
+      page,
+      pageCount,
+      pageSize,
+      start: items.length ? startIndex + 1 : 0,
+      end: startIndex + items.length,
+      total: chapters.length,
+    };
+  }
+
+  function chapterPaginationHtml(pagination) {
+    if (pagination.pageCount <= 1) return '';
+    const previousPage = Math.max(1, pagination.page - 1);
+    const nextPage = Math.min(pagination.pageCount, pagination.page + 1);
+    return `<nav class="c-admin-translate__chapter-actions" aria-label="แบ่งหน้ารายการตอน">
+      <button class="c-btn c-btn--xs c-btn--ghost" id="translate-page-prev" data-translate-page="${previousPage}" type="button"${pagination.page === 1 ? ' disabled' : ''} aria-label="ไปหน้าก่อนหน้า">ก่อนหน้า</button>
+      <span class="u-text-muted" id="translate-page-status" tabindex="-1" aria-live="polite">หน้า ${pagination.page} / ${pagination.pageCount} · ตอน ${pagination.start}–${pagination.end} จาก ${pagination.total}</span>
+      <button class="c-btn c-btn--xs c-btn--ghost" id="translate-page-next" data-translate-page="${nextPage}" type="button"${pagination.page === pagination.pageCount ? ' disabled' : ''} aria-label="ไปหน้าถัดไป">ถัดไป</button>
+    </nav>`;
+  }
+
+  function chapterTable({ chapters = [], visibleChapters = null, selectedNums = new Set(), sourceIssueByNum = {}, lastResultByNum = {}, page = 1, pageSize = DEFAULT_CHAPTER_PAGE_SIZE } = {}) {
     const selected = selectedNums instanceof Set ? selectedNums : new Set(selectedNums || []);
     if (!chapters.length) {
       return {
         summary: 'ยังไม่มีตอนในนิยายนี้',
         html: '<div class="c-admin-translate__chapter-empty">ไม่มีตอนให้แสดง</div>',
+        page: 1,
+        pageCount: 1,
+        visibleCount: 0,
+        renderedCount: 0,
       };
     }
 
@@ -60,9 +97,21 @@
       counts[status] = (counts[status] || 0) + 1;
     }
 
-    const visible = visibleChapters.length ? visibleChapters : chapters;
-    const summary = `ทั้งหมด ${chapters.length} ตอน · แสดง ${visible.length} · แปลแล้ว ${counts.translated || 0} · ยังไม่แปล ${counts.untranslated || 0} · ควรดู ${counts.needs_review || 0} · source error ${counts.source_not_ready || 0} · เลือก ${selected.size}`;
-    const rows = visible.map(ch => {
+    const filtered = Array.isArray(visibleChapters) ? visibleChapters : chapters;
+    const pagination = paginateChapters(filtered, page, pageSize);
+    const summary = `ทั้งหมด ${chapters.length} ตอน · แสดง ${filtered.length} · หน้า ${pagination.page}/${pagination.pageCount} · แปลแล้ว ${counts.translated || 0} · ยังไม่แปล ${counts.untranslated || 0} · ควรดู ${counts.needs_review || 0} · source error ${counts.source_not_ready || 0} · เลือก ${selected.size}`;
+    if (!filtered.length) {
+      return {
+        summary,
+        html: '<div class="c-admin-translate__chapter-empty">ไม่พบตอนที่ตรงกับตัวกรอง</div>',
+        page: 1,
+        pageCount: 1,
+        visibleCount: 0,
+        renderedCount: 0,
+      };
+    }
+
+    const rows = pagination.items.map(ch => {
       const resultIssue = lastResultByNum[ch.num];
       const sourceIssue = sourceIssueByNum[ch.num];
       const status = Model.chapterStatus(ch, sourceIssue, resultIssue);
@@ -88,12 +137,13 @@
         </td>
       </tr>`;
     }).join('');
-    const allChecked = visible.length > 0 && visible.every(ch => selected.has(ch.num)) ? ' checked' : '';
-    const html = `<div class="c-admin-translate__table-wrap">
+    const allChecked = filtered.every(ch => selected.has(ch.num)) ? ' checked' : '';
+    const html = `${chapterPaginationHtml(pagination)}
+    <div class="c-admin-translate__table-wrap">
       <table class="c-table c-admin-translate__table">
         <thead>
           <tr>
-            <th><input id="translate-select-all" type="checkbox"${allChecked} aria-label="เลือกทุกตอน"></th>
+            <th><input id="translate-select-all" type="checkbox"${allChecked} aria-label="เลือกทุกตอนที่ตรงกับตัวกรอง"></th>
             <th>ตอน</th>
             <th>ชื่อ</th>
             <th>สถานะ</th>
@@ -106,7 +156,14 @@
         <tbody>${rows}</tbody>
       </table>
     </div>`;
-    return { summary, html };
+    return {
+      summary,
+      html,
+      page: pagination.page,
+      pageCount: pagination.pageCount,
+      visibleCount: pagination.total,
+      renderedCount: pagination.items.length,
+    };
   }
 
   function chapterDetailHtml({ num, chapter = {}, sourceIssue = null, resultIssue = null } = {}) {
@@ -155,6 +212,7 @@
     sourceHealthHtml,
     queueStateHtml,
     queuePreviewHtml,
+    paginateChapters,
     chapterTable,
     chapterDetailHtml,
     repairPreviewHtml,

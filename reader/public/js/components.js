@@ -125,19 +125,34 @@ const Ui = {
 
   // ── Shared Admin Nav ─────────────────────────────────────────────────────
   adminNav(active) {
-    const links = [
-      { name: 'dashboard', label: 'ภาพรวม', page: 'admin', icon: 'home' },
+    const workflow = [
       { name: 'import', label: 'นำเข้า', page: 'admin/import', icon: 'library' },
-      { name: 'translate', label: 'สั่งแปล', page: 'admin/translate', icon: 'book' },
-      { name: 'novels', label: 'นิยาย', page: 'admin/novels', icon: 'library' },
-      { name: 'chapters', label: 'ตอน', page: 'admin/chapters', icon: 'book' },
+      { name: 'translate', label: 'แปล', page: 'admin/translate', icon: 'book' },
+      { name: 'chapters', label: 'ตรวจผล', page: 'admin/chapters', icon: 'search' },
       { name: 'glossary', label: 'คำศัพท์', page: 'admin/glossary', icon: 'bookmarks' },
-      { name: 'provider', label: 'ระบบ AI', page: 'admin/provider', icon: 'settings' },
+    ];
+    const tools = [
+      { name: 'novels', label: 'คลัง', page: 'admin/novels', icon: 'library' },
+      { name: 'chapters', label: 'ทุกตอน', page: 'admin/chapters', icon: 'book' },
+      { name: 'provider', label: 'AI', page: 'admin/provider', icon: 'settings' },
       { name: 'logs', label: 'ล็อก', page: 'admin/logs', icon: 'info' },
     ];
-    return '<div class="c-admin-nav">' + links.map(l =>
-      '<a href="#' + l.page + '" class="c-admin-nav__link' + (l.name === active ? ' c-admin-nav__link--active' : '') + '" data-nav>' + Ui.icon(l.icon, 'xs') + '<span>' + l.label + '</span></a>'
-    ).join('') + '</div>';
+    const workflowNames = new Set(workflow.map(link => link.name));
+    const linkHtml = (link, className, isActive) =>
+      '<a href="#' + link.page + '" class="c-admin-nav__link ' + className +
+      (isActive ? ' c-admin-nav__link--active' : '') + '" data-nav' +
+      (isActive ? ' aria-current="page"' : '') + '>' + Ui.icon(link.icon, 'xs') +
+      '<span>' + link.label + '</span></a>';
+
+    return '<nav class="c-admin-nav c-studio-nav" aria-label="งานในสตูดิโอ">' +
+      linkHtml({ name: 'dashboard', label: 'สตูดิโอ', page: 'admin', icon: 'home' }, 'c-studio-nav__home', active === 'dashboard') +
+      '<ol class="c-studio-nav__workflow" aria-label="ลำดับงานหลัก">' + workflow.map((link, index) =>
+        '<li class="c-studio-nav__step"><span class="c-studio-nav__step-number" aria-hidden="true">' + (index + 1) + '</span>' +
+        linkHtml(link, 'c-studio-nav__workflow-link', link.name === active) + '</li>'
+      ).join('') + '</ol>' +
+      '<div class="c-studio-nav__tools" role="group" aria-label="เครื่องมือเสริม">' + tools.map(link =>
+        linkHtml(link, 'c-studio-nav__tool-link', link.name === active && !workflowNames.has(active))
+      ).join('') + '</div></nav>';
   },
   statusMap: {
     ongoing: 'กำลังแปล',

@@ -78,30 +78,30 @@ const AdminProviderSettingsPage = {
       <div class="c-container c-container--wide">
         ${Ui.adminNav('provider')}
 
-        <section class="c-control-center c-admin-provider__cockpit">
-          <div class="c-control-center__head">
-            <div>
-              <h2 class="c-control-center__title">${Ui.icon('settings', 'sm')}AI Model Center</h2>
-              <p class="c-control-center__subtitle">เห็น provider/model ที่ใช้อยู่จริงก่อนแก้ค่า เพื่อกันสั่งแปลผิดโมเดล</p>
-            </div>
-            <div class="c-admin-provider__hero-actions">
-              <button class="c-btn c-btn--secondary" id="provider-refresh-models" type="button">${Ui.icon('search', 'xs')}<span>Refresh catalog</span></button>
-              <a class="c-btn c-btn--ghost" href="#admin/translate" data-nav>${Ui.icon('book', 'xs')}<span>ไปหน้าแปล</span></a>
-            </div>
+        <header class="c-page-heading c-page-heading--studio">
+          <div>
+            <p class="c-page-heading__eyebrow">การเชื่อมต่อ · AI models</p>
+            <h1>ตั้งค่าโมเดล AI</h1>
+            <p>ตรวจ provider และโมเดลที่ใช้งานจริงก่อนบันทึก เพื่อให้งานแปลและงานตรวจคุณภาพใช้ค่าที่ตั้งใจ</p>
           </div>
-          <div class="c-admin-provider__active-card">
-            <div>
-              <span class="c-badge c-badge--teal">Active provider</span>
-              <h4>${Ui.esc(this._providerName(activeProvider))}</h4>
-              <p>${Ui.esc(this._catalogSummary(activeProvider))}</p>
-            </div>
-            <div class="c-admin-provider__active-models">
-              <span><strong>${Ui.esc(this._state.defaultModel || '-')}</strong><small>Translate model · ${Ui.esc(this._providerName(activeModelProvider))}</small></span>
-              <span><strong>${Ui.esc(this._state.discoveryModel || '-')}</strong><small>Discovery/Judge model</small></span>
-              <span><strong>${Ui.esc(activeKeyLabel)}</strong><small>Credential state</small></span>
-            </div>
+          <div class="c-page-heading__actions c-admin-provider__hero-actions">
+            <button class="c-btn c-btn--secondary" id="provider-refresh-models" type="button">${Ui.icon('search', 'xs')}<span>รีเฟรชรายการโมเดล</span></button>
+            <a class="c-btn c-btn--ghost" href="#admin/translate" data-nav>${Ui.icon('book', 'xs')}<span>ไปหน้าแปล</span></a>
           </div>
-        </section>
+        </header>
+
+        <div class="c-admin-provider__active-card">
+          <div>
+            <span class="c-badge c-badge--teal">Active provider</span>
+            <h4>${Ui.esc(this._providerName(activeProvider))}</h4>
+            <p>${Ui.esc(this._catalogSummary(activeProvider))}</p>
+          </div>
+          <div class="c-admin-provider__active-models">
+            <span><strong>${Ui.esc(this._state.defaultModel || '-')}</strong><small>Translate model · ${Ui.esc(this._providerName(activeModelProvider))}</small></span>
+            <span><strong>${Ui.esc(this._state.discoveryModel || '-')}</strong><small>Discovery/Judge model</small></span>
+            <span><strong>${Ui.esc(activeKeyLabel)}</strong><small>Credential state</small></span>
+          </div>
+        </div>
 
         <div class="c-admin-provider__layout">
           <section class="c-admin-provider__rail" aria-label="Providers">
