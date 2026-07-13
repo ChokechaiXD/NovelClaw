@@ -23,6 +23,14 @@ const NovelPage = {
 
       const chapters = await Api.getChapters(slug);
       const enriched = Ui.enrichNovel(novel);
+      const hasLastRead = chapters.some(chapter => chapter.num === enriched.lastRead);
+      const continueNum = hasLastRead ? enriched.lastRead : chapters[0]?.num;
+      const readHref = continueNum
+        ? `#novel/${Ui.esc(slug)}/${Ui.esc(continueNum)}`
+        : `#admin/import/${Ui.esc(slug)}`;
+      const readLabel = hasLastRead
+        ? `อ่านต่อตอนที่ ${Ui.esc(continueNum)}`
+        : (continueNum ? 'เริ่มอ่าน' : 'นำเข้าตอนแรก');
 
       const pageSize = 100;
       let selectedPageIdx = 0;
@@ -40,7 +48,7 @@ const NovelPage = {
           ${Ui.coverHtml(novel)}
         </div>
         <div class="c-detail__info">
-          <h2 class="c-detail__title">${Ui.esc(Ui.displayTitle(novel))}</h2>
+          <h1 class="c-detail__title">${Ui.esc(Ui.displayTitle(novel))}</h1>
           <p class="c-detail__author">ผู้แต่ง: ${Ui.esc(novel.author||'ไม่ระบุ')}</p>
           <div class="c-detail__meta">
             <span class="c-meta-tag c-meta-tag--accent">${novel.source_lang||'cn'} → ${novel.target_lang||'th'}</span>
@@ -49,7 +57,7 @@ const NovelPage = {
           </div>
           <p class="c-detail__synopsis">กำลังโหลดคำอธิบาย...</p>
           <div class="c-detail__workflow-actions">
-            <a href="#novel/${slug}/${chapters[0]?.num||1}" class="c-btn c-btn--primary" data-nav>${Ui.icon('book', 'xs')}<span>เริ่มอ่าน</span>${Ui.icon('arrow-right', 'xs')}</a>
+            <a href="${readHref}" class="c-btn c-btn--primary" data-nav>${Ui.icon('book', 'xs')}<span>${readLabel}</span>${Ui.icon('arrow-right', 'xs')}</a>
             <a href="#admin/translate" class="c-btn c-btn--secondary" data-nav>${Ui.icon('book', 'xs')}<span>สั่งแปล</span></a>
             <a href="#admin/import/${Ui.esc(slug)}" class="c-btn c-btn--ghost" data-nav>${Ui.icon('library', 'xs')}<span>นำเข้า/ซ่อม source</span></a>
             <a href="#admin/novel-edit/${Ui.esc(slug)}" class="c-btn c-btn--ghost" data-nav>${Ui.icon('settings', 'xs')}<span>แก้ข้อมูล/ปก</span></a>
