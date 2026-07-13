@@ -43,9 +43,9 @@ const NovelPage = {
           <h2 class="c-detail__title">${Ui.esc(Ui.displayTitle(novel))}</h2>
           <p class="c-detail__author">ผู้แต่ง: ${Ui.esc(novel.author||'ไม่ระบุ')}</p>
           <div class="c-detail__meta">
-            <span class="c-hero__tag c-hero__tag--lang">${novel.source_lang||'cn'} → ${novel.target_lang||'th'}</span>
-            <span class="c-hero__tag">${Ui.statusMap[novel.status]||'ไม่ระบุ'}</span>
-            <span class="c-hero__tag">แปลไป ${enriched.translatedCount} / ${enriched.totalCount} ตอน (${enriched.translationPct}%)</span>
+            <span class="c-meta-tag c-meta-tag--accent">${novel.source_lang||'cn'} → ${novel.target_lang||'th'}</span>
+            <span class="c-meta-tag">${Ui.statusMap[novel.status]||'ไม่ระบุ'}</span>
+            <span class="c-meta-tag">แปลไป ${enriched.translatedCount} / ${enriched.totalCount} ตอน (${enriched.translationPct}%)</span>
           </div>
           <p class="c-detail__synopsis">กำลังโหลดคำอธิบาย...</p>
           <div class="c-detail__workflow-actions">

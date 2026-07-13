@@ -226,16 +226,6 @@ const Ui = {
       </article>`;
   },
 
-  // ── Update topbar avatar ───────────────────────────────────────────────
-  updateAvatar() {
-    const prof = Store.getProfile();
-    const el = document.getElementById('profile-avatar');
-    if (!el) return;
-    el.textContent = prof.name ? prof.name.charAt(0).toUpperCase() : 'P';
-    el.classList.remove('u-avatar-gradient-0', 'u-avatar-gradient-1', 'u-avatar-gradient-2', 'u-avatar-gradient-3', 'u-avatar-gradient-4');
-    el.classList.add(`u-avatar-gradient-${prof.avatarColorIndex || 0}`);
-  },
-
   // ── Debounce Utility ──────────────────────────────────────────────────
   debounce(fn, delay) {
     let timer = null;
