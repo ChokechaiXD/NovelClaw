@@ -44,6 +44,7 @@ const translationHealth = require('./lib/translation-health');
 const { parseTranslateJsonOutput, parseBatchTranslateSummary } = require('./lib/translate-result');
 const { parseMarkdownToBlocks } = require('./lib/blocks');
 const { writeJsonAtomic } = require('./lib/atomic-write');
+const { isLocalStateObject, readLocalState, saveLocalState } = require('./lib/local-state');
 const { buildRetryPlan } = require('./lib/translate-run-retry');
 
 // Re-export for tests
@@ -1206,18 +1207,14 @@ adminPost('/api/novel/:slug/glossary/verify', async (req, res) => {
 });
 
 app.get('/api/local/state', asyncHandler(async (req, res) => {
-  const filepath = path.join(__dirname, 'local_state.json');
-  try {
-    const raw = await fs.readFile(filepath, 'utf8');
-    res.json(JSON.parse(raw));
-  } catch (err) {
-    res.json({});
-  }
+  res.json(await readLocalState());
 }));
 
 adminPost('/api/local/state', async (req, res) => {
-  const filepath = path.join(__dirname, 'local_state.json');
-  await fs.writeFile(filepath, JSON.stringify(req.body, null, 2), 'utf8');
+  if (!isLocalStateObject(req.body)) {
+    return fail(res, 400, 'INVALID_LOCAL_STATE', 'Local state must be a JSON object');
+  }
+  await saveLocalState(req.body);
   ok(res, { saved: true });
 });
 
