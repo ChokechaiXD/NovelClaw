@@ -46,6 +46,11 @@ const { parseMarkdownToBlocks } = require('./lib/blocks');
 const { writeJsonAtomic } = require('./lib/atomic-write');
 const { isLocalStateObject, readLocalState, saveLocalState } = require('./lib/local-state');
 const { buildRetryPlan } = require('./lib/translate-run-retry');
+const {
+  DEFAULT_OUTPUT_TAIL_CHARS,
+  appendBoundedTail,
+  createPersistScheduler,
+} = require('./lib/translate-run-runtime');
 
 // Re-export for tests
 module.exports = { parseMarkdownToBlocks, chapterRepo, novelRepo, searchService };
@@ -58,6 +63,7 @@ const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const TRUSTED_LAN = process.env.TRUSTED_LAN === 'true';
 const PERF_LOG = process.env.PERF_LOG === 'true';
 const COVER_MAX_BYTES = 4 * 1024 * 1024;
+const TRANSLATE_RUN_PERSIST_DELAY_MS = 250;
 const COVER_MIME_EXT = {
   'image/webp': 'webp',
   'image/png': 'png',
@@ -1541,6 +1547,29 @@ async function persistTranslateRun(run) {
   }
 }
 
+function reportTranslateRunPersistError(err) {
+  console.error('Persist translate run failed:', err);
+}
+
+function attachTranslateRunPersistScheduler(run) {
+  run.persistScheduler = createPersistScheduler(
+    () => persistTranslateRun(run),
+    {
+      delayMs: TRANSLATE_RUN_PERSIST_DELAY_MS,
+      onError: reportTranslateRunPersistError,
+    },
+  );
+}
+
+function scheduleTranslateRunPersist(run) {
+  run.persistScheduler.schedule();
+}
+
+function flushTranslateRunPersist(run) {
+  run.persistScheduler.schedule();
+  return run.persistScheduler.flush();
+}
+
 async function readTranslateRun(runId) {
   const active = activeTranslateRuns.get(runId);
   if (active) return publicTranslateRun(active);
@@ -1624,8 +1653,9 @@ function startTranslateRun(slug, range, args, options = {}) {
     env: { ...process.env, NOVEL_SLUG: slug, PYTHONIOENCODING: 'utf-8' },
   });
   run.child = child;
+  attachTranslateRunPersistScheduler(run);
   activeTranslateRuns.set(run.runId, run);
-  persistTranslateRun(run).catch(err => console.error('Persist translate run failed:', err));
+  flushTranslateRunPersist(run).catch(reportTranslateRunPersistError);
 
   const consumeStdoutLine = (line) => {
     const text = line.trim();
@@ -1635,37 +1665,54 @@ function startTranslateRun(slug, range, args, options = {}) {
         const item = JSON.parse(text);
         recordTranslateRunChapter(run, item);
         pushTranslateRunEvent(run, item.status || 'chapter', `ตอน ${item.ch || item.num || '-'}: ${item.status || 'updated'}`);
-        persistTranslateRun(run).catch(err => console.error('Persist translate run failed:', err));
+        scheduleTranslateRunPersist(run);
         return;
       } catch {}
     }
     pushTranslateRunEvent(run, 'stdout', text);
+    scheduleTranslateRunPersist(run);
   };
 
   child.stdout.on('data', (buffer) => {
     const chunk = buffer.toString('utf8');
-    run.stdout += chunk;
-    run.lineBuffer += chunk;
-    const lines = run.lineBuffer.split(/\r?\n/);
-    run.lineBuffer = lines.pop() || '';
+    run.stdout = appendBoundedTail(run.stdout, chunk);
+    const lines = `${run.lineBuffer}${chunk}`.split(/\r?\n/);
+    run.lineBuffer = appendBoundedTail('', lines.pop() || '', DEFAULT_OUTPUT_TAIL_CHARS);
     for (const line of lines) consumeStdoutLine(line);
   });
   child.stderr.on('data', (buffer) => {
     const text = buffer.toString('utf8');
-    run.stderr += text;
+    run.stderr = appendBoundedTail(run.stderr, text);
     const trimmed = text.trim();
-    if (trimmed) pushTranslateRunEvent(run, 'stderr', trimmed);
+    if (trimmed) {
+      pushTranslateRunEvent(run, 'stderr', trimmed);
+      scheduleTranslateRunPersist(run);
+    }
   });
   child.on('error', (err) => {
     run.status = 'failed';
     run.finishedAt = new Date().toISOString();
     pushTranslateRunEvent(run, 'error', err.message);
     activeTranslateRuns.delete(run.runId);
-    persistTranslateRun(run).catch(persistErr => console.error('Persist translate run failed:', persistErr));
+    flushTranslateRunPersist(run).catch(reportTranslateRunPersistError);
   });
   child.on('close', (code) => {
     if (run.lineBuffer) consumeStdoutLine(run.lineBuffer);
-    const summary = parseBatchTranslateSummary(run.stdout);
+    const outputSummary = parseBatchTranslateSummary(run.stdout);
+    const trackedChapters = Object.values(run.chapterResults || {});
+    const summary = trackedChapters.length ? {
+      passed: trackedChapters.filter(ch => ch.status === 'translated' || ch.status === 'ok').length,
+      failed: trackedChapters.filter(ch => ch.status === 'failed' || ch.status === 'needs_review').length,
+      total: trackedChapters.length,
+      chapters: trackedChapters.map(ch => ({
+        ch: ch.num,
+        status: ch.status === 'translated' ? 'ok' : ch.status,
+        score: ch.score,
+        reason: ch.reason,
+        hardFailures: ch.hardFailures,
+        warnings: ch.warnings,
+      })),
+    } : outputSummary;
     run.summary = summary;
     if (!Object.keys(run.chapterResults).length && Array.isArray(summary.chapters)) {
       for (const item of summary.chapters) recordTranslateRunChapter(run, item);
@@ -1681,7 +1728,7 @@ function startTranslateRun(slug, range, args, options = {}) {
     chapterRepo.invalidateAll(slug);
     invalidateQualityMeta(slug);
     activeTranslateRuns.delete(run.runId);
-    persistTranslateRun(run).catch(err => console.error('Persist translate run failed:', err));
+    flushTranslateRunPersist(run).catch(reportTranslateRunPersistError);
   });
 
   return publicTranslateRun(run);
@@ -1936,7 +1983,7 @@ adminPost('/api/translate/runs/:runId/cancel', async (req, res) => {
   run.status = 'cancelling';
   pushTranslateRunEvent(run, 'cancel', 'กำลังยกเลิกงานแปล');
   run.child?.kill?.();
-  persistTranslateRun(run).catch(err => console.error('Persist translate run failed:', err));
+  await flushTranslateRunPersist(run).catch(reportTranslateRunPersistError);
   ok(res, publicTranslateRun(run));
 });
 
