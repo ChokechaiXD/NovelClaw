@@ -90,6 +90,6 @@ def save_chapter(
         "updatedAt": datetime.now(timezone.utc).isoformat(),
     }
 
-    out_path = chapter_path(slug, ch_num, "th")
+    out_path = chapter_path(slug, ch_num, target_lang)
     atomic_write_json(out_path, data, ensure_ascii=False, indent=2)
     return out_path

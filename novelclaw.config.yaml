@@ -1,11 +1,11 @@
-provider: custom
-model: openrouter/google/gemma-4-26b-a4b-it:free
-discovery_model: openrouter/openai/gpt-oss-120b:free
+provider: openrouter
+model: google/gemma-4-26b-a4b-it:free
+discovery_model: openai/gpt-oss-120b:free
 temperature: 0.28
 max_tokens: 4096
 timeout_sec: 120
 parallel_workers: 3
-prompt_profile: ""
+prompt_profile: ''
 sequential: false
 judge_enabled: true
 judge_threshold: 85.0
