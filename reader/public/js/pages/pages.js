@@ -228,46 +228,6 @@ const HistoryPage = {
   }
 };
 
-// ── RANKING ──────────────────────────────────────────────────────────────
-const RankingPage = {
-  async render(params = {}) {
-    const page = Ui.$('page-ranking');
-    if (!page) return;
-    try {
-      const novels = (await Api.getNovels()).filter(Ui.isVisibleNovel).map(Ui.enrichNovel);
-      if (!novels.length) {
-        Ui.showEmpty(page.querySelector('.c-container') || page, 'ไม่มีข้อมูลอันดับ', 'เริ่มอ่านนิยายเพื่อสะสมสถิติ');
-        return;
-      }
-      const sorted = [...novels].sort((a, b) => (b.translatedChapters || 0) - (a.translatedChapters || 0));
-      let html = `<div class="c-container c-ranking-page">
-        <section class="c-control-center c-ranking-cockpit">
-          <div class="c-control-center__head">
-            <div>
-              <h2 class="c-control-center__title">${Ui.icon('ranking', 'sm')}Progress Ranking</h2>
-              <p class="c-control-center__subtitle">ดูเรื่องที่คืบหน้ามากสุด และเปิดไปจัดการงานต่อได้ทันที</p>
-            </div>
-            <a class="c-btn c-btn--secondary" href="#admin/translate" data-nav>${Ui.icon('settings', 'xs')}<span>Translate Queue</span></a>
-          </div>
-        </section>
-        <section class="c-section"><div class="c-popular c-ranking-list">`;
-      for (let i = 0; i < Math.min(10, sorted.length); i++) {
-        const n = sorted[i];
-        const rankClass = 'c-popular__rank--' + (i + 1);
-        html += '<a href="#novel/' + Ui.esc(n.slug) + '" class="c-popular__item c-ranking-item" data-nav>' +
-          '<span class="c-popular__rank ' + rankClass + '">' + (i + 1) + '</span>' +
-          '<div class="c-popular__cover">' + Ui.coverHtml(n) + '</div>' +
-          '<div class="c-popular__info"><span class="c-popular__title">' + Ui.esc(Ui.displayTitle(n)) + '</span>' +
-          '<span class="c-popular__meta">' + Ui.esc(n.source_lang || 'auto') + ' -> ' + Ui.esc(n.target_lang || 'th') + ' · ' + Ui.esc(n.author || 'ไม่ระบุ') + '</span>' +
-          '<div class="c-card__progress c-ranking-item__progress"><span class="c-card__progress-bar"><span class="c-card__progress-fill ' + Ui.progressClass(n.translationPct) + '"></span></span><span class="c-card__progress-pct">' + Ui.esc(n.translationPct) + '%</span></div></div>' +
-          '<span class="c-popular__views">' + (n.translatedChapters || 0) + '/' + (n.totalChapters || n.chapterCount || 0) + ' ตอน</span></a>';
-      }
-      html += '</div></section></div>';
-      page.innerHTML = html;
-    } catch (err) { Ui.showError(page, 'โหลดไม่สำเร็จ', err.message); }
-  }
-};
-
 // ── SETTINGS ─────────────────────────────────────────────────────────────
 const SettingsPage = {
   render(params = {}) {
@@ -407,80 +367,5 @@ const SettingsPage = {
     applyLeading(leading);
     document.getElementById('settings-leading-tight')?.addEventListener('click', () => applyLeading(leading - 0.05));
     document.getElementById('settings-leading-loose')?.addEventListener('click', () => applyLeading(leading + 0.05));
-  }
-};
-
-// ── PROFILE ──────────────────────────────────────────────────────────────
-const ProfilePage = {
-  render(params = {}) {
-    const page = Ui.$('page-profile');
-    if (!page) return;
-    const prof = Store.getProfile();
-    const GRADIENTS = [
-      { name: 'Flame', value: 'linear-gradient(135deg,#f59e0b,#ef4444)' },
-      { name: 'Neon', value: 'linear-gradient(135deg,#00f5d4,#38bdf8)' },
-      { name: 'Forest', value: 'linear-gradient(135deg,#10b981,#059669)' },
-      { name: 'Twilight', value: 'linear-gradient(135deg,#a78bfa,#ec4899)' },
-      { name: 'Obsidian', value: 'linear-gradient(135deg,#64748b,#1e293b)' }
-    ];
-
-    let html = `<div class="c-container c-profile-page">
-      <section class="c-control-center c-profile-cockpit">
-        <div class="c-control-center__head">
-          <div class="c-profile-card c-profile-card--flat">
-            <div class="c-avatar c-profile-avatar u-avatar-gradient-${prof.avatarColorIndex || 0}">${Ui.esc(prof.name.charAt(0).toUpperCase())}</div>
-            <div>
-              <h2 class="c-control-center__title">Profile</h2>
-              <div class="c-profile-summary__name">${Ui.esc(prof.name)}</div>
-              <div class="c-profile-summary__meta">${Ui.esc(prof.email)} · ${Ui.esc(prof.role)}</div>
-            </div>
-          </div>
-          <a class="c-btn c-btn--secondary" href="#settings" data-nav>${Ui.icon('settings', 'xs')}<span>Settings</span></a>
-        </div>
-      </section>
-      <section class="c-settings-grid">
-        <div class="c-settings-card c-profile-form">
-          <div class="c-settings-card__title">${Ui.icon('info', 'sm')}ข้อมูลผู้ใช้ local</div>
-          <div class="c-form">
-            <div class="c-form__group"><label class="c-form__label" for="profile-name">ชื่อ</label><input class="c-form__input" id="profile-name" value="${Ui.esc(prof.name)}" /></div>
-            <div class="c-form__group"><label class="c-form__label" for="profile-email">อีเมล</label><input class="c-form__input" id="profile-email" value="${Ui.esc(prof.email)}" /></div>
-            <div class="c-form__group"><label class="c-form__label" for="profile-role">บทบาท</label><select class="c-form__select" id="profile-role"><option value="admin"${prof.role === 'admin' ? ' selected' : ''}>ผู้ดูแลระบบ</option><option value="paid"${prof.role === 'paid' ? ' selected' : ''}>สมาชิกพิเศษ</option><option value="user"${prof.role === 'user' ? ' selected' : ''}>สมาชิกทั่วไป</option><option value="bot"${prof.role === 'bot' ? ' selected' : ''}>บอท</option></select></div>
-          </div>
-        </div>
-        <div class="c-settings-card">
-          <div class="c-settings-card__title">${Ui.icon('moon', 'sm')}Avatar</div>
-          <div class="c-form__group"><span class="c-form__label" id="profile-gradient-label">สี Avatar</span><div class="c-profile-gradient-row" role="group" aria-labelledby="profile-gradient-label">`;
-
-    GRADIENTS.forEach((g, idx) => {
-      html += '<button class="c-btn profile-gradient-btn u-avatar-gradient-' + idx + (idx === (prof.avatarColorIndex || 0) ? ' is-active' : '') + '" data-idx="' + idx + '" type="button" title="' + g.name + '" aria-label="เลือกสี Avatar ' + Ui.esc(g.name) + '"></button>';
-    });
-
-    html += '</div></div><button class="c-btn c-btn--primary c-btn--full" id="profile-save-btn" type="button">' + Ui.icon('settings', 'xs') + '<span>บันทึกโปรไฟล์</span></button></div></section></div>';
-    page.innerHTML = html;
-
-    document.getElementById('profile-save-btn')?.addEventListener('click', () => {
-      const currentProf = Store.getProfile();
-      const newProf = {
-        name: Ui.$('profile-name')?.value || prof.name,
-        email: Ui.$('profile-email')?.value || prof.email,
-        role: Ui.$('profile-role')?.value || prof.role,
-        avatarColorIndex: currentProf.avatarColorIndex
-      };
-      Store.saveProfile(newProf);
-      Ui.updateAvatar();
-      Ui.showToast('บันทึกโปรไฟล์แล้ว');
-    });
-
-    page.querySelectorAll('.profile-gradient-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.idx, 10);
-        const prof2 = Store.getProfile();
-        prof2.avatarColorIndex = idx;
-        Store.saveProfile(prof2);
-        Ui.updateAvatar();
-        page.querySelectorAll('.profile-gradient-btn').forEach(b => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
-      });
-    });
   }
 };

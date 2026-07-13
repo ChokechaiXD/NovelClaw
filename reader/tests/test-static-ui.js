@@ -14,12 +14,16 @@ const path = require('node:path');
 const ROOT = path.resolve(__dirname, '..');
 const PUBLIC_JS = path.join(ROOT, 'public', 'js');
 const PUBLIC_HTML = path.join(ROOT, 'public', 'index.html');
+const DESIGN_CSS = path.join(ROOT, 'public', 'design-system.css');
 const PACKAGE_JSON = path.join(ROOT, 'package.json');
 const SERVER_JS = path.join(ROOT, 'server.js');
 const API_JS = path.join(PUBLIC_JS, 'api.js');
 const ADMIN_JS = path.join(PUBLIC_JS, 'pages', 'admin.js');
 const ADMIN_TRANSLATE_JS = path.join(PUBLIC_JS, 'pages', 'admin-translate.js');
 const ADMIN_TRANSLATE_JOB_JS = path.join(PUBLIC_JS, 'pages', 'admin-translate-job.js');
+const HOME_JS = path.join(PUBLIC_JS, 'pages', 'home.js');
+const PAGES_JS = path.join(PUBLIC_JS, 'pages', 'pages.js');
+const STATE_JS = path.join(PUBLIC_JS, 'state.js');
 
 const FORBIDDEN = [
   { label: 'inline style attribute', pattern: 'style="' },
@@ -48,6 +52,8 @@ function fail(message) {
 
 const jsFiles = walkJs(PUBLIC_JS);
 const uiFiles = jsFiles.concat(PUBLIC_HTML);
+const htmlText = fs.readFileSync(PUBLIC_HTML, 'utf8');
+const cssText = fs.readFileSync(DESIGN_CSS, 'utf8');
 
 for (const file of uiFiles) {
   const text = fs.readFileSync(file, 'utf8');
@@ -59,6 +65,43 @@ for (const file of uiFiles) {
       }
     });
   }
+}
+
+for (const removedSurface of ['data-page="profile"', 'id="page-profile"', 'id="page-ranking"', 'id="profile-avatar"']) {
+  if (htmlText.includes(removedSurface)) {
+    fail(`index.html still exposes removed local-only surface ${removedSurface}`);
+  }
+}
+if (!htmlText.includes('data-page="settings"') || !htmlText.includes('aria-label="ตั้งค่า"')) {
+  fail('index.html mobile navigation must expose local settings');
+}
+
+for (const deadSelector of ['.c-hero', '.c-update', '.c-popular', '.c-ranking', '.c-profile', '.c-avatar', '--c-hero']) {
+  if (cssText.includes(deadSelector)) {
+    fail(`design-system.css still ships unused selector/token ${deadSelector}`);
+  }
+}
+
+const homeText = fs.readFileSync(HOME_JS, 'utf8');
+for (const fakeHomeSection of ['c-hero', 'c-update', 'c-popular', 'ยอดนิยมประจำสัปดาห์']) {
+  if (homeText.includes(fakeHomeSection)) {
+    fail(`home.js still renders duplicate/fake discovery section ${fakeHomeSection}`);
+  }
+}
+if (!homeText.includes('Ui.novelCard')) {
+  fail('home.js must reuse the canonical novel card instead of maintaining another card implementation');
+}
+
+const pagesText = fs.readFileSync(PAGES_JS, 'utf8');
+for (const removedPage of ['const RankingPage', 'const ProfilePage']) {
+  if (pagesText.includes(removedPage)) {
+    fail(`pages.js still ships unused page ${removedPage}`);
+  }
+}
+
+const stateText = fs.readFileSync(STATE_JS, 'utf8');
+if (stateText.includes('_PROFILE_KEY') || stateText.includes('chokechai@gmail.com')) {
+  fail('state.js must not ship a fake local profile or personal email');
 }
 
 const pkg = JSON.parse(fs.readFileSync(PACKAGE_JSON, 'utf8'));

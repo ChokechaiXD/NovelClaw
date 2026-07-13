@@ -106,27 +106,6 @@ const Store = {
     if (key === 'theme') document.body.dataset.theme = val;
   },
 
-  // ── Profile (novelclaw-profile) ────────────────────────────────────
-  _PROFILE_KEY: 'novelclaw-profile',
-  _profile: null,
-
-  getProfile() {
-    if (this._profile) return this._profile;
-    const def = { name: "P'Choke", email: 'chokechai@gmail.com', role: 'admin', avatarColorIndex: 0 };
-    try {
-      const saved = localStorage.getItem(this._PROFILE_KEY);
-      if (saved) { this._profile = { ...def, ...JSON.parse(saved) }; }
-      else { this._profile = def; localStorage.setItem(this._PROFILE_KEY, JSON.stringify(def)); }
-    } catch(e) { this._profile = def; }
-    return this._profile;
-  },
-
-  saveProfile(prof) {
-    this._profile = prof;
-    try { localStorage.setItem(this._PROFILE_KEY, JSON.stringify(prof)); } catch(e) {}
-    this._notify('profile', prof);
-  },
-
   // ── Observer pattern ───────────────────────────────────────────────
   on(key, fn) {
     if (!this._listeners[key]) this._listeners[key] = [];

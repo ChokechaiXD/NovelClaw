@@ -305,8 +305,6 @@ function init() {
     if (p.num) ReaderPage.render(p);
     else NovelPage.render(p);
   });
-  Router.register('ranking', (p) => RankingPage.render(p));
-  Router.register('profile', (p) => ProfilePage.render(p));
   Router.register('history', (p) => HistoryPage.render(p));
   Router.register('bookmarks', (p) => BookmarksPage.render(p));
   Router.register('settings', (p) => SettingsPage.render(p));
@@ -331,8 +329,6 @@ function init() {
       disableReaderMode();
     }
   };
-  Ui.updateAvatar();
-
   // Start router
   Router.init();
 
