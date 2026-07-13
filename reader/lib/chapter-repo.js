@@ -11,10 +11,12 @@ const { chapterDir, chapterPath, legacyChapterPath, legacyMdPath,
         sourceMdPath, chaptersIndexPath, legacyIndexPath, allChapterVariants,
         pad, NOVELS_DIR } = require('./paths');
 const { extractMarkdownTitle, parseFrontmatter, parseMarkdownToBlocks } = require('./blocks');
+const { writeJsonAtomic } = require('./atomic-write');
 
 // ── Cache ──────────────────────────────────────────────────────────
 const cache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000;
+const CHAPTER_FILE_RE = /^(\d{4})\.(?:th\.json|cn\.json|json|md)$/;
 
 function invalidateList(slug) {
   if (slug) { cache.delete('list:' + slug); cache.delete('listq:' + slug); }
@@ -57,6 +59,19 @@ function sourceTitleForList(title, num) {
 }
 
 async function readSourceTitle(dir, files, num) {
+  if (files.cn) {
+    try {
+      const data = JSON.parse(await fs.readFile(path.join(dir, files.cn), 'utf8'));
+      const title = typeof data.title === 'object' ? data.title?.source : data.title;
+      const firstParagraph = Array.isArray(data.paragraphs)
+        ? (typeof data.paragraphs[0] === 'string' ? data.paragraphs[0] : data.paragraphs[0]?.text)
+        : '';
+      for (const candidate of [title, firstParagraph]) {
+        const clean = sourceTitleForList(candidate, num);
+        if (clean && !isGenericChapterTitle(clean, num)) return clean;
+      }
+    } catch {}
+  }
   if (!files.source) return '';
   try {
     const raw = await fs.readFile(path.join(dir, 'source', files.source), 'utf8');
@@ -104,12 +119,11 @@ async function scanChapters(slug, options = {}) {
   catch (err) { if (err.code === 'ENOENT') return []; throw err; }
 
   const entries = await fs.readdir(dir, { withFileTypes: true });
-  const fileRe = /^(\d{4})\.(?:th\.json|cn\.json|json|md)$/;
   const chapterFiles = {};
 
   for (const e of entries) {
     if (!e.isFile()) continue;
-    const m = e.name.match(fileRe);
+    const m = e.name.match(CHAPTER_FILE_RE);
     if (!m) continue;
     const num = parseInt(m[1], 10);
     if (!chapterFiles[num]) chapterFiles[num] = {};
@@ -186,6 +200,55 @@ async function scanChapters(slug, options = {}) {
 
   titleEntries.sort((a, b) => a.num - b.num);
   return titleEntries;
+}
+
+async function chapterFileNums(dir) {
+  const nums = new Set();
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const match = entry.name.match(CHAPTER_FILE_RE);
+    if (match) nums.add(parseInt(match[1], 10));
+  }
+  try {
+    const sourceEntries = await fs.readdir(path.join(dir, 'source'), { withFileTypes: true });
+    for (const entry of sourceEntries) {
+      if (!entry.isFile()) continue;
+      const match = entry.name.match(/^(\d{4})\.md$/);
+      if (match) nums.add(parseInt(match[1], 10));
+    }
+  } catch {}
+  return nums;
+}
+
+async function indexMatchesChapterFiles(dir, chapters) {
+  const fileNums = await chapterFileNums(dir);
+  return fileNums.size === chapters.length
+    && chapters.every(chapter => fileNums.has(chapter.num));
+}
+
+async function writeChaptersIndexes(slug, chapters) {
+  const index = {
+    slug,
+    totalChapters: chapters.length,
+    chapters: chapters.map(chapter => ({
+      num: chapter.num,
+      title: chapter.title,
+      hasCn: chapter.hasCn,
+      hasTh: chapter.hasTh,
+      status: chapter.status,
+    })),
+  };
+  await writeJsonAtomic(chaptersIndexPath(slug), index);
+  await writeJsonAtomic(legacyIndexPath(slug), {
+    slug,
+    chapters: chapters.map(chapter => ({
+      num: chapter.num,
+      title: chapter.title,
+      isTranslated: chapter.isTranslated,
+    })),
+  });
+  return index;
 }
 
 // ── Read a single chapter ──────────────────────────────────────────
@@ -454,9 +517,11 @@ async function listChapters(slug, options = {}) {
         isTranslated: c.status !== 'source_only',
         status: c.status || 'translated',
       }));
-      const hasStaleSourceTitles = out.some(c => isGenericChapterTitle(c.title, c.num));
-      if (hasStaleSourceTitles) {
+      const needsRepair = out.some(c => isGenericChapterTitle(c.title, c.num))
+        || !(await indexMatchesChapterFiles(dir, out));
+      if (needsRepair) {
         const scanned = await scanChapters(slug, options);
+        await writeChaptersIndexes(slug, scanned);
         cache.set(listCacheKey, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: scanned });
         return scanned;
       }
@@ -499,27 +564,6 @@ exports.listChapters = listChapters;
 
 async function rebuildChaptersIndex(slug) {
   const chapters = await scanChapters(slug);
-  const idx = {
-    slug,
-    totalChapters: chapters.length,
-    chapters: chapters.map(c => ({
-      num: c.num,
-      title: c.title,
-      hasCn: c.hasCn,
-      hasTh: c.hasTh,
-      status: c.status,
-    })),
-  };
-  // Write to chapters/ directory
-  await fs.writeFile(chaptersIndexPath(slug), JSON.stringify(idx, null, 2), 'utf8');
-  // Also write legacy index.json for backward compat
-  try {
-    await fs.writeFile(
-      legacyIndexPath(slug),
-      JSON.stringify({ slug, chapters: chapters.map(c => ({ num: c.num, title: c.title, isTranslated: c.isTranslated })) }, null, 2),
-      'utf8'
-    );
-  } catch {}
-  return idx;
+  return writeChaptersIndexes(slug, chapters);
 }
 exports.rebuildChaptersIndex = rebuildChaptersIndex;

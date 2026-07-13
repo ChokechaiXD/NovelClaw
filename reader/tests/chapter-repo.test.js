@@ -80,6 +80,74 @@ test('listChapters bypasses stale generic index titles and scans source titles',
   assert.equal(chapters[0].status, 'source_only');
 });
 
+test('listChapters repairs a generic translated title from the CN chapter heading', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-chapter-repo-cn-title-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const slug = 'generic-cn-title';
+  const chaptersDir = path.join(root, slug, 'chapters');
+  await fs.mkdir(chaptersDir, { recursive: true });
+  await fs.writeFile(path.join(root, slug, 'chapters.json'), JSON.stringify({
+    slug,
+    totalChapters: 1,
+    chapters: [
+      { num: 12, title: 'ตอนที่ 12', hasCn: true, hasTh: true, status: 'translated' },
+    ],
+  }), 'utf8');
+  await fs.writeFile(path.join(chaptersDir, '0012.th.json'), JSON.stringify({
+    chapterNo: 12,
+    title: { source: '', translated: 'ตอนที่ 12' },
+    status: 'translated',
+    paragraphs: ['ข้อความแปล'],
+  }), 'utf8');
+  await fs.writeFile(path.join(chaptersDir, '0012.cn.json'), JSON.stringify({
+    chapterNo: 12,
+    title: { source: 'ตอนที่ 12' },
+    status: 'source',
+    paragraphs: ['第12章 Clean CN Heading', 'Source body.'],
+  }), 'utf8');
+
+  const { listChapters } = require('../lib/chapter-repo');
+  const chapters = await listChapters(slug);
+  const repairedIndex = JSON.parse(await fs.readFile(path.join(root, slug, 'chapters.json'), 'utf8'));
+
+  assert.equal(chapters[0].title, 'ตอนที่ 12 Clean CN Heading');
+  assert.equal(repairedIndex.chapters[0].title, 'ตอนที่ 12 Clean CN Heading');
+});
+
+test('listChapters repairs an index missing chapter files', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-chapter-repo-missing-index-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const slug = 'missing-index-entry';
+  const chaptersDir = path.join(root, slug, 'chapters');
+  await fs.mkdir(chaptersDir, { recursive: true });
+  await fs.writeFile(path.join(root, slug, 'chapters.json'), JSON.stringify({
+    slug,
+    totalChapters: 1,
+    chapters: [
+      { num: 1, title: 'ตอนที่ 1 Existing', hasCn: true, hasTh: false, status: 'source_only' },
+    ],
+  }), 'utf8');
+  for (const num of [1, 2]) {
+    await fs.writeFile(path.join(chaptersDir, String(num).padStart(4, '0') + '.cn.json'), JSON.stringify({
+      chapterNo: num,
+      title: { source: `第${num}章 Chapter ${num}` },
+      status: 'source',
+      paragraphs: ['Source body.'],
+    }), 'utf8');
+  }
+
+  const { listChapters } = require('../lib/chapter-repo');
+  const chapters = await listChapters(slug);
+  const repairedIndex = JSON.parse(await fs.readFile(path.join(root, slug, 'chapters.json'), 'utf8'));
+
+  assert.deepEqual(chapters.map(chapter => chapter.num), [1, 2]);
+  assert.equal(repairedIndex.totalChapters, 2);
+});
+
 test('listChapters does not promote dirty category source titles', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-chapter-repo-dirty-title-'));
   process.env.NOVELCLAW_ROOT = root;
