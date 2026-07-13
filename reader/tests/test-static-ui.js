@@ -43,6 +43,7 @@ const FORBIDDEN = [
   { label: 'untranslated Settings heading', pattern: '>Settings</' },
   { label: 'untranslated Local tools heading', pattern: '>Local tools</' },
   { label: 'untranslated About heading', pattern: '>About</' },
+  { label: 'manual asset version query', pattern: '?_v=' },
 ];
 
 function walkJs(dir) {

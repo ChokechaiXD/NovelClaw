@@ -23,25 +23,25 @@ function loadLazyScript(src, errorMessage) {
 function ensureAdminLoaded() {
   if (!adminModulePromise) {
     adminModulePromise = loadLazyScript(
-      '/js/pages/admin-page-loader.js?_v=20260704_admin_modular_5',
+      '/js/pages/admin-page-loader.js',
       'Failed to load admin-page-loader.js'
     ).then(() => loadLazyScript(
-      '/js/pages/admin-ui.js?_v=20260704_admin_modular_5',
+      '/js/pages/admin-ui.js',
       'Failed to load admin-ui.js'
     )).then(() => loadLazyScript(
-      '/js/pages/admin-format.js?_v=20260704_admin_modular_5',
+      '/js/pages/admin-format.js',
       'Failed to load admin-format.js'
     )).then(() => loadLazyScript(
-      '/js/pages/admin-translate-model.js?_v=20260704_chapter_state_1',
+      '/js/pages/admin-translate-model.js',
       'Failed to load admin-translate-model.js'
     )).then(() => loadLazyScript(
-      '/js/pages/admin-glossary-model.js?_v=20260704_admin_modular_5',
+      '/js/pages/admin-glossary-model.js',
       'Failed to load admin-glossary-model.js'
     )).then(() => loadLazyScript(
-      '/js/pages/admin-import-model.js?_v=20260704_admin_modular_6',
+      '/js/pages/admin-import-model.js',
       'Failed to load admin-import-model.js'
     )).then(() => loadLazyScript(
-      '/js/pages/admin.js?_v=20260704_chapter_state_3',
+      '/js/pages/admin.js',
       'Failed to load admin.js'
     ));
   }
