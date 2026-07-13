@@ -155,7 +155,7 @@ def call_llm(
     last_error = ""
     retry_count = 0
 
-    for attempt in range(max_attempts):
+    for _attempt in range(max_attempts):
         try:
             with limit_llm_call(cfg["provider_name"]):
                 with urllib.request.urlopen(req, timeout=timeout_sec) as resp:

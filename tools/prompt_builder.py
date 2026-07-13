@@ -580,7 +580,7 @@ def _latin_policy(target_lang: str, glossary_text: str = "") -> str:
     token_list = ", ".join(all_tokens)
 
     lines = [
-        f"- **Latin script restriction:** only the following tokens are allowed.",
+        "- **Latin script restriction:** only the following tokens are allowed.",
         f"  {token_list}",
         "- **Translate ALL other English/foreign words to Thai.**",
         "  This includes skill names, item names, status effects, stat labels.",

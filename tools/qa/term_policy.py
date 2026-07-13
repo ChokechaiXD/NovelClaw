@@ -94,7 +94,7 @@ class TermPolicy:
         if self.preserve_patterns:
             tokens_found = list(set(re.findall(r"\b([A-Za-z][A-Za-z0-9.]*)\b", result.text)))
             for token in tokens_found:
-                for pattern_name, patterns in self.preserve_patterns.items():
+                for patterns in self.preserve_patterns.values():
                     for pat in patterns:
                         if pat.search(token):
                             result.preserved.add(token)

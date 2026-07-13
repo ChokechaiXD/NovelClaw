@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any
 
 
 # ── Exported noise sets (shared with glossary_discovery) ──────────────
@@ -41,9 +40,9 @@ UI_NOISE: set[str] = {
     "入", "進", "到", "說", "看", "聽", "做", "想", "知",
     "道", "見", "給", "把", "被", "讓", "使", "用", "對",
     "於", "與", "和", "或", "從", "而", "但", "因", "所",
-    "當", "如", "果", "雖", "然", "可", "是", "為", "比",
+    "當", "如", "果", "雖", "然", "為", "比",
     "中", "大", "小", "多", "少", "長", "高", "低", "重",
-    "新", "舊", "好", "壞", "美", "醜", "真", "假", "對",
+    "新", "舊", "好", "壞", "美", "醜", "真", "假",
 }
 
 KOREAN_MARKERS: set[str] = {

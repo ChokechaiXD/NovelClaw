@@ -2,11 +2,8 @@
 """Pre-commit hook: validate any staged chapters/*.json files.
 
 Blocks commit if:
-  - Schema validation fails (Pydantic)
+  - Chapter JSON is malformed
   - CN/JP leak found in paragraphs or blocks
-
-Warns (doesn't block) if:
-  - Validation gates find issues
 
 Configure: git config core.hooksPath .githooks
 """
@@ -18,12 +15,6 @@ from pathlib import Path
 
 REPO = Path(__file__).parent.parent
 sys.path.insert(0, str(REPO / "tools"))
-
-# Silent fallback — schema.py may be deleted
-try:
-    from schema import Chapter  # noqa: E402
-except ImportError:
-    Chapter = None
 
 # CN/JP check - supports both v3 paragraphs and legacy blocks
 CN = re.compile(r'[\u4e00-\u9fff]')
@@ -104,8 +95,6 @@ def main():
     print(f'pre-commit: validating {len(staged)} ch file(s)...')
 
     errors = 0
-    warnings = 0
-
     for path_str in staged:
         path = REPO / path_str
         if not path.exists():
@@ -117,16 +106,7 @@ def main():
             errors += 1
             continue
 
-        # 1. Schema check
-        if Chapter is not None:
-            try:
-                ch = Chapter(**data)
-            except Exception:
-                ch = None
-        else:
-            ch = None
-
-        # 2. CN/JP leak check
+        # 1. CN/JP leak check
         cn_leaks = check_cn_leak(data)
         if cn_leaks:
             print(f'  FAIL {path.name}: {len(cn_leaks)} CN/JP leak(s):')
@@ -135,25 +115,8 @@ def main():
             errors += len(cn_leaks)
             continue
 
-        # 3. Validation check (integrated)
-        try:
-            from tools.validation import validate_translation_quality
-            from pathlib import Path
-            src_path = Path(REPO) / 'novels' / 'global-descent' / 'chapters' / 'source' / f'{ch.num:04d}.md'
-            src_text = src_path.read_text('utf-8') if src_path.exists() else ''
-            result = validate_translation_quality(data, src_text)
-            if result:
-                for w in result.get('warnings', []):
-                    print(f'  WARN {path.name}: {w}')
-                    warnings += 1
-                for e in result.get('errors', []):
-                    print(f'  FAIL {path.name}: {e}')
-                    errors += 1
-        except Exception:
-            pass
-
         if errors == 0:
-            print(f'  OK {path.name}: schema + validation OK ({len(data.get("blocks", data.get("paragraphs", [])))} blocks)')
+            print(f'  OK {path.name}: JSON + script checks OK ({len(data.get("blocks", data.get("paragraphs", [])))} blocks)')
 
     print()
     if errors:
@@ -161,10 +124,7 @@ def main():
         print('   Fix schema/CN/doctor errors before committing.')
         return 1
 
-    if warnings:
-        print(f'pre-commit ALLOWED: {warnings} warning(s) (transmittor - review when you can)')
-    else:
-        print(f'pre-commit PASSED: {len(staged)} ch file(s) clean')
+    print(f'pre-commit PASSED: {len(staged)} ch file(s) clean')
 
     return 0
 

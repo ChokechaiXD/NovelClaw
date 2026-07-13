@@ -159,7 +159,7 @@ def detect_script_leaks(
             if script in hard_fail_scripts:
                 char_counts[script] = char_counts.get(script, 0) + 1
                 # Only report first occurrence per paragraph for brevity
-                if not any(l.script == script and l.index == para_idx for l in result.leaks):
+                if not any(leak.script == script and leak.index == para_idx for leak in result.leaks):
                     context_start = max(0, i - 5)
                     context_end = min(len(para), i + 5)
                     leak = ScriptLeak(

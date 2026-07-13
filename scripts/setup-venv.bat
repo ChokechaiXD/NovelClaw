@@ -39,13 +39,14 @@ if %ERRORLEVEL%==0 (
 echo Installing test dependencies...
 where uv >nul 2>nul
 if %ERRORLEVEL%==0 (
-    uv pip install --python .venv312\Scripts\python.exe pydantic pyyaml jsonschema pytest pytest-asyncio
+    uv pip install --python .venv312\Scripts\python.exe -e ".[test]"
 ) else (
-    .venv312\Scripts\python.exe -m pip install pydantic pyyaml jsonschema pytest pytest-asyncio
+    .venv312\Scripts\python.exe -m pip install -e ".[test]"
 )
 
 echo.
 echo Venv ready. Run tests:
 echo     .venv312\Scripts\python.exe -m pytest tests/ -q
+echo     .venv312\Scripts\python.exe -m ruff check novelclaw.py tools tests
 echo.
 endlocal

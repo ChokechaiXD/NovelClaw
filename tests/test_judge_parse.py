@@ -1,10 +1,6 @@
 """Tests: LLM Judge JSON parsing (Phase 1 G-Eval)."""
 import json
-import re
-from unittest.mock import ANY
-from types import SimpleNamespace
 
-import pytest
 
 # Patch call_llm before import
 import pipeline as _pmod

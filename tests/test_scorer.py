@@ -1,6 +1,5 @@
 from types import SimpleNamespace
 
-import pytest
 
 import quality_gate
 import scorer
