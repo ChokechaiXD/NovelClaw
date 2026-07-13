@@ -175,16 +175,16 @@ def _score_completeness(
     return DimensionScore("Completeness", 0.20, score, detail)
 
 
-def _score_script_purity(
+def _detect_script_leaks_for_paragraphs(
     paragraphs: list[dict[str, str]], target_lang: str = "th"
-) -> DimensionScore:
-    """Script purity check via script_policy."""
+):
+    """Run the shared script policy with the configured term allowlist."""
     from qa.script_policy import detect_script_leaks
 
     texts = [p["text"] for p in paragraphs
              if p["text"] not in ("(จบบท)", "(End)", "（終）", "(끝)")]
     if not texts:
-        return DimensionScore("Script Purity", 0.20, 0.0, "no paragraphs", False)
+        return None
 
     # Load allowed tokens from the cached policy.
     try:
@@ -199,7 +199,16 @@ def _score_script_purity(
     except ImportError:
         allowed = set()
 
-    result = detect_script_leaks(texts, target_lang=target_lang, allowed_latin_tokens=allowed)
+    return detect_script_leaks(texts, target_lang=target_lang, allowed_latin_tokens=allowed)
+
+
+def _score_script_purity(
+    paragraphs: list[dict[str, str]], target_lang: str = "th", detected=None
+) -> DimensionScore:
+    """Script purity check via script_policy."""
+    result = detected or _detect_script_leaks_for_paragraphs(paragraphs, target_lang)
+    if result is None:
+        return DimensionScore("Script Purity", 0.20, 0.0, "no paragraphs", False)
 
     if result.ok:
         return DimensionScore("Script Purity", 0.20, 1.0, "✅ clean")
@@ -222,7 +231,7 @@ def _score_script_purity(
         score = 0.0
 
     return DimensionScore("Script Purity", 0.20, score,
-                          f"⚠️ {count} leaks ({scripts})", passed=count <= 1)
+                          f"⚠️ {count} leaks ({scripts})", passed=False)
 
 
 def _score_end_marker(paragraphs: list[dict[str, str]], target_lang: str = "th") -> DimensionScore:
@@ -421,9 +430,10 @@ def score_chapter(
     output_chars = sum(len(t) for t in texts)
     length_ratio = round(output_chars / source_char_count, 3) if source_char_count else 0.0
 
+    script_leaks = _detect_script_leaks_for_paragraphs(paragraphs, target_lang)
     dims = [
         _score_completeness(paragraphs, source_char_count, target_lang),
-        _score_script_purity(paragraphs, target_lang),
+        _score_script_purity(paragraphs, target_lang, script_leaks),
         _score_end_marker(paragraphs, target_lang),
         _score_type_diversity(paragraphs, source_has_dialogue),
         _score_dialogue_ratio(paragraphs, source_has_dialogue, target_lang),
@@ -462,7 +472,8 @@ def score_chapter(
             "sourceHasDialogue": source_has_dialogue,
             "source_has_dialogue": source_has_dialogue,
             "scriptLeaks": next(
-                (0 if d.passed else 1 for d in dims if d.name == "Script Purity"),
+                (script_leaks.error_count if script_leaks is not None else 0
+                 for d in dims if d.name == "Script Purity"),
                 0,
             ),
         },

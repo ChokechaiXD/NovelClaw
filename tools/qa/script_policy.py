@@ -68,10 +68,16 @@ class ScriptLeak:
     """A single script leak found in text."""
     script: str
     token: str
-    index: int
+    paragraph_index: int
+    char_offset: int
     context: str
     severity: str  # "error" | "warning"
     suggestion: str = ""
+
+    @property
+    def index(self) -> int:
+        """Backward-compatible paragraph coordinate."""
+        return self.paragraph_index
 
 
 @dataclass
@@ -139,7 +145,8 @@ def detect_script_leaks(
                     leak = ScriptLeak(
                         script="Latin",
                         token=m.group(1),
-                        index=m.start(),
+                        paragraph_index=para_idx,
+                        char_offset=m.start(),
                         context=f"...{para[context_start:context_end]}...",
                         severity="error",
                     )
@@ -159,13 +166,17 @@ def detect_script_leaks(
             if script in hard_fail_scripts:
                 char_counts[script] = char_counts.get(script, 0) + 1
                 # Only report first occurrence per paragraph for brevity
-                if not any(leak.script == script and leak.index == para_idx for leak in result.leaks):
+                if not any(
+                    leak.script == script and leak.paragraph_index == para_idx
+                    for leak in result.leaks
+                ):
                     context_start = max(0, i - 5)
                     context_end = min(len(para), i + 5)
                     leak = ScriptLeak(
                         script=script,
                         token=ch,
-                        index=para_idx,
+                        paragraph_index=para_idx,
+                        char_offset=i,
                         context=f"...{para[context_start:context_end]}...",
                         severity="error",
                     )

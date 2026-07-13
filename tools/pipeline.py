@@ -368,9 +368,9 @@ def _repair_script_leaks(
     # Group leaks by paragraph index
     para_errors: dict[int, set[str]] = {}
     for leak in result.leaks:
-        if leak.index not in para_errors:
-            para_errors[leak.index] = set()
-        para_errors[leak.index].add(leak.script)
+        if leak.paragraph_index not in para_errors:
+            para_errors[leak.paragraph_index] = set()
+        para_errors[leak.paragraph_index].add(leak.script)
 
     # Fix only paragraphs with leaks
     fixed = list(paragraph_strings)

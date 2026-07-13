@@ -64,7 +64,7 @@ def _mqm_to_note(e: Any) -> str:
 
 
 def _hard_failures(errors: list[str]) -> list[str]:
-    advisory = ("Type Diversity", "Dialogue Ratio", "Script Purity", "LLM Judge")
+    advisory = ("Type Diversity", "Dialogue Ratio", "LLM Judge")
     return [error for error in errors if not error.startswith(advisory)]
 
 
