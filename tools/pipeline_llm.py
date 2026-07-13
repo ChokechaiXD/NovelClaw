@@ -12,6 +12,12 @@ from typing import Any
 from llm_rate_limit import limit_llm_call
 
 
+@lru_cache(maxsize=1)
+def _get_opener() -> urllib.request.OpenerDirector:
+    """Return a cached HTTP opener — keeps TCP connections alive."""
+    return urllib.request.build_opener()
+
+
 # ── Structured error types ─────────────────────────────────────────────
 class TransientError(Exception):
     """Retryable: rate-limit, network blip, server overload (429/5xx)."""
@@ -157,7 +163,7 @@ def call_llm(
     for _attempt in range(max_attempts):
         try:
             with limit_llm_call(cfg["provider_name"]):
-                with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+                with _get_opener().open(req, timeout=timeout_sec) as resp:
                     raw = resp.read().decode().strip()
                 if raw.endswith("data: [DONE]"):
                     raw = raw[: -len("data: [DONE]")].strip()

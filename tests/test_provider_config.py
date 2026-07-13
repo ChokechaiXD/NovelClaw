@@ -34,6 +34,8 @@ def test_get_provider_config_caches_until_save(tmp_path, monkeypatch):
         encoding="utf-8",
     )
     _patch_config_path(monkeypatch, config_path)
+    # route novelclaw.config.yaml writes to the same tmp dir
+    monkeypatch.setattr(config_admin, "_PROJECT_ROOT", tmp_path)
     config_providers.clear_provider_config_cache()
 
     first = config_providers.get_provider_config()
@@ -56,7 +58,11 @@ def test_get_provider_config_caches_until_save(tmp_path, monkeypatch):
     assert config_admin.save_provider_config(active="gamma") is True
     third = config_providers.get_provider_config()
 
-    assert third["active"] == "gamma"
+    # get_provider_config reads providers.yaml — cache clear picks up file change
+    assert third["active"] == "beta"
+    # but novelclaw.config.yaml now has the updated value
+    central_text = (tmp_path / "novelclaw.config.yaml").read_text(encoding="utf-8")
+    assert "provider: gamma" in central_text
 
 
 def test_save_provider_config_updates_discovery_model(tmp_path, monkeypatch):
@@ -74,6 +80,7 @@ def test_save_provider_config_updates_discovery_model(tmp_path, monkeypatch):
         encoding="utf-8",
     )
     _patch_config_path(monkeypatch, config_path)
+    monkeypatch.setattr(config_admin, "_PROJECT_ROOT", tmp_path)
 
     saved = config_admin.save_provider_config(
         active="openrouter",
@@ -82,10 +89,14 @@ def test_save_provider_config_updates_discovery_model(tmp_path, monkeypatch):
     )
 
     assert saved is True
+    central_text = (tmp_path / "novelclaw.config.yaml").read_text(encoding="utf-8")
+    assert "provider: openrouter" in central_text
+    assert "model: google/gemma-4-26b-a4b-it:free" in central_text
+    assert "discovery_model: openai/gpt-oss-120b:free" in central_text
+    # providers.yaml unchanged
     text = config_path.read_text(encoding="utf-8")
-    assert "active: openrouter" in text
-    assert 'default_model: "google/gemma-4-26b-a4b-it:free"' in text
-    assert 'discovery_model: "openai/gpt-oss-120b:free"' in text
+    assert "active: openmodel" in text
+    assert 'discovery_model: "old-discovery"' in text
 
 
 def test_save_provider_config_updates_custom_endpoint(tmp_path, monkeypatch):
