@@ -5,6 +5,7 @@ import logging
 
 
 import pipeline
+from prompt_builder import build_prompt
 
 from pipeline import (
     _build_repair_instruction,
@@ -58,6 +59,65 @@ def test_split_prompt_falls_back_to_glossary_marker():
     prompt = "Translate carefully.\n\n<glossary>\nBlack Dragon = มังกรดำ"
     system, user = _split_prompt(prompt)
     assert system == "Translate carefully."
+    assert user.startswith("<glossary>")
+
+
+def test_split_prompt_keeps_source_in_user_without_optional_context():
+    prompt = build_prompt(
+        source_text="第1章 起点\n正文",
+        ch_num=1,
+        source_lang="cn",
+        target_lang="th",
+        novel_title="cache-test",
+    )
+
+    system, user = _split_prompt(prompt)
+
+    assert system is not None
+    assert "<source_chapter>" not in system
+    assert "第1章 起点" not in system
+    assert user.startswith("<chapter_context>")
+    assert "<source_chapter>\n第1章 起点\n正文\n</source_chapter>" in user
+
+
+def test_split_prompt_system_prefix_is_stable_across_chapters():
+    first = build_prompt(
+        source_text="第1章 起点\n第一章正文",
+        ch_num=1,
+        source_lang="cn",
+        target_lang="th",
+        novel_title="cache-test",
+        glossary_text="缓存专名甲 → ชื่อเฉพาะหนึ่ง",
+        continuity_text="previous chapter one",
+        source_profile={"paragraphCount": 2, "dialogueCount": 0},
+    )
+    second = build_prompt(
+        source_text="第2章 远行\n第二章正文\n\n「走吧。」",
+        ch_num=2,
+        source_lang="cn",
+        target_lang="th",
+        novel_title="cache-test",
+        glossary_text="缓存专名乙 → ชื่อเฉพาะสอง",
+        continuity_text="previous chapter two",
+        source_profile={"paragraphCount": 3, "dialogueCount": 1},
+    )
+
+    first_system, first_user = _split_prompt(first)
+    second_system, second_user = _split_prompt(second)
+
+    assert first_system == second_system
+    assert "Chapter: ตอนที่ 1" in first_user
+    assert "Chapter: ตอนที่ 2" in second_user
+    assert "缓存专名甲" not in first_system
+    assert "缓存专名乙" not in second_system
+
+
+def test_split_prompt_uses_earliest_legacy_dynamic_marker():
+    prompt = "Static.\n\n<glossary>\nTerm\n\n<continuity>\nContext\n<source_chapter>\nText"
+
+    system, user = _split_prompt(prompt)
+
+    assert system == "Static."
     assert user.startswith("<glossary>")
 
 
