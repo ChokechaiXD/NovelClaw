@@ -46,6 +46,19 @@ def test_quality_gate_returns_structured_quality_fields():
     assert "scriptLeaks" in result
 
 
+def test_quality_gate_hard_fails_and_counts_foreign_script_leaks():
+    classified = [
+        {"type": "narration", "text": "ข้อความนี้ยังมี Open Beta ปะปนอยู่"},
+        {"type": "end", "text": "(จบบท)"},
+    ]
+
+    result = evaluate_translation_quality(classified, "原" * 40)
+
+    assert result["passed"] is False
+    assert result["scriptLeaks"] == 2
+    assert any(error.startswith("Script Purity") for error in result["hardFailures"])
+
+
 def test_quality_gate_fails_missing_source_structure(monkeypatch):
     fake_result = SimpleNamespace(
         weighted_total=95.0,

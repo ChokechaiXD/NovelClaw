@@ -1,6 +1,28 @@
 import pipeline
 
 
+def test_script_leak_repair_targets_the_leaking_paragraph(monkeypatch):
+    paragraphs = [
+        "ย่อหน้าแรกเป็นภาษาไทยและต้องคงเดิมทุกคำ",
+        "ย่อหน้าที่สองยังมี OpenBeta ซึ่งต้องถูกแก้ไข",
+        "(จบบท)",
+    ]
+    calls = []
+
+    def fake_call_llm(**kwargs):
+        calls.append(kwargs["prompt"])
+        return "ย่อหน้าที่สองถูกแก้เป็นภาษาไทยแล้ว", "fake", "repair-model"
+
+    monkeypatch.setattr(pipeline, "call_llm", fake_call_llm)
+
+    repaired = pipeline._repair_script_leaks(paragraphs, "th")
+
+    assert repaired[0] == paragraphs[0]
+    assert repaired[1] == "ย่อหน้าที่สองถูกแก้เป็นภาษาไทยแล้ว"
+    assert repaired[2] == "(จบบท)"
+    assert calls == [f"Fix script leaks in this paragraph:\n\n{paragraphs[1]}"]
+
+
 def test_translate_one_retries_with_quality_repair_notes(monkeypatch, tmp_path):
     calls = []
 
