@@ -7,6 +7,7 @@
  * Tests:
  *   ✓ /api/health reports reader readiness
  *   ✓ static assets support HTTP validation caching
+ *   ✓ missing static assets return 404 instead of the SPA shell
  *   ✓ /api/novels returns novels with translatedTitle
  *   ✓ /api/novel/:slug/chapters returns chapter list
  *   ✓ /api/novel/:slug/chapter/:num?lang=th returns Thai
@@ -137,6 +138,13 @@ async function main() {
 
     const second = await get('/design-system.css', { 'If-None-Match': etag });
     return second.status === 304 && second.raw === '';
+  });
+
+  await test('missing static assets return 404 instead of the SPA shell', async () => {
+    const res = await get('/js/pages/does-not-exist.js');
+    return res.status === 404
+      && !res.raw.includes('<!doctype html>')
+      && res.headers['cache-control'] === 'no-store';
   });
 
   // ── Test 2: Novel listing ─────────────────────────────────────────
