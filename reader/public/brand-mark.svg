@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">NovelClaw</title>
   <rect x="2" y="2" width="60" height="60" rx="16" fill="#172033"/>
   <path d="M12 17.5c7.8-1.1 14.3.8 20 5.7v28.1c-5.9-4-12.6-5.6-20-4.2V17.5Z" fill="#fff"/>
   <path d="M52 17.5c-7.8-1.1-14.3.8-20 5.7v28.1c5.9-4 12.6-5.6 20-4.2V17.5Z" fill="#eef1ff"/>

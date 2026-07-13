@@ -57,13 +57,13 @@ const Ui = {
   showEmpty(container, title, desc) {
     const el = typeof container === 'string' ? Ui.$(container) : container;
     if (!el) return;
-    el.innerHTML = `<div class="c-empty"><svg class="c-empty__mascot"><use xlink:href="#mascot-crab-reading"/></svg><div class="c-empty__title">${Ui.esc(title || 'ยังไม่มีข้อมูล')}</div><div class="c-empty__desc">${Ui.esc(desc || '')}</div></div>`;
+    el.innerHTML = `<div class="c-empty"><svg class="c-empty__mascot" aria-hidden="true"><use href="#brand-mark"/></svg><div class="c-empty__title">${Ui.esc(title || 'ยังไม่มีข้อมูล')}</div><div class="c-empty__desc">${Ui.esc(desc || '')}</div></div>`;
   },
 
   showError(container, title, desc) {
     const el = typeof container === 'string' ? Ui.$(container) : container;
     if (!el) return;
-    el.innerHTML = `<div class="c-error"><svg class="c-error__mascot"><use xlink:href="#mascot-crab-excited"/></svg><div class="c-error__title">${Ui.esc(title || 'เกิดข้อผิดพลาด')}</div><div class="c-empty__desc">${Ui.esc(desc || '')}</div><button class="c-error__retry" data-ui-reload>ลองอีกครั้ง</button></div>`;
+    el.innerHTML = `<div class="c-error"><svg class="c-error__mascot" aria-hidden="true"><use href="#brand-mark"/></svg><div class="c-error__title">${Ui.esc(title || 'เกิดข้อผิดพลาด')}</div><div class="c-empty__desc">${Ui.esc(desc || '')}</div><button class="c-error__retry" data-ui-reload>ลองอีกครั้ง</button></div>`;
   },
 
   // ── Display Title (fallback: translatedTitle → title → slug) ──────────
@@ -86,38 +86,25 @@ const Ui = {
     const initial = (title || slug || '?').charAt(0).toUpperCase();
     const coverLabel = (slug || title || '').slice(0, 18);
     const hue = Ui.slugToHue(slug || '');
-    // NovelClaw palette: teal gradient base + purple accent
-    const c1 = `hsl(${hue % 360}, 60%, 35%)`;
-    const c2 = `hsl(${(hue + 40) % 360}, 50%, 25%)`;
-    const id = `c${slug || 'x'}`;
-    return `<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg" class="c-cover-svg">
-      <defs>
-        <linearGradient id="g-${id}" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="${c1}"/>
-          <stop offset="100%" stop-color="${c2}"/>
-        </linearGradient>
-        <linearGradient id="c-${id}" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.6"/>
-          <stop offset="100%" stop-color="#14b8a6" stop-opacity="0.6"/>
-        </linearGradient>
-      </defs>
-      <rect width="200" height="260" rx="10" fill="url(#g-${id})"/>
-      <g transform="translate(70,30) scale(0.8)">
-        <path d="M2 28C3 24 6 22 10 21 11.5 22.5 11 25 7 28 5 29.5 3 29 2 28Z" fill="url(#c-${id})"/>
-        <path d="M8 20C6.5 13 10.5 7 18 9.5 16 11 12 12 11 16.5 10.5 18 9.5 19.5 8 20Z" fill="url(#c-${id})"/>
-        <rect x="13" y="7" width="12" height="18" rx="2" fill="#a78bfa" opacity="0.8"/>
-        <rect x="14.5" y="8" width="9.5" height="16" rx="1" fill="#fffdf5"/>
-      </g>
-      <text x="100" y="220" text-anchor="middle" fill="rgba(255,255,255,0.15)" font-size="60" font-weight="700" font-family="system-ui,sans-serif">${Ui.esc(initial)}</text>
-      <text x="100" y="248" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="14" font-weight="600" font-family="system-ui,sans-serif">${Ui.esc(coverLabel)}</text>
+    const base = `hsl(${hue % 360} 28% 24%)`;
+    const accent = `hsl(${(hue + 32) % 360} 48% 62%)`;
+    return `<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg" class="c-cover-svg" role="img" aria-label="ปก ${Ui.esc(title || slug)}">
+      <rect width="200" height="260" rx="8" fill="${base}"/>
+      <rect x="14" width="6" height="260" fill="${accent}"/>
+      <path d="M40 42h120M40 48h74" stroke="rgba(255,255,255,.38)" stroke-width="2" stroke-linecap="round"/>
+      <text x="100" y="152" text-anchor="middle" fill="rgba(255,255,255,.92)" font-size="72" font-weight="600" font-family="ui-serif,serif">${Ui.esc(initial)}</text>
+      <path d="M68 176h64" stroke="${accent}" stroke-width="3" stroke-linecap="round"/>
+      <text x="100" y="226" text-anchor="middle" fill="rgba(255,255,255,.9)" font-size="13" font-weight="600" font-family="system-ui,sans-serif">${Ui.esc(coverLabel)}</text>
+      <text x="100" y="244" text-anchor="middle" fill="rgba(255,255,255,.55)" font-size="8" letter-spacing="2" font-family="system-ui,sans-serif">NOVELCLAW</text>
     </svg>`;
   },
 
-  coverHtml(novel) {
+  coverHtml(novel, options = {}) {
     const title = Ui.displayTitle(novel);
     const src = novel?.coverImage || '';
     if (src) {
-      return `<img class="c-cover-img" src="${Ui.esc(src)}" alt="${Ui.esc(title || 'Novel cover')}" loading="lazy">`;
+      const priority = options.priority === true;
+      return `<img class="c-cover-img" src="${Ui.esc(src)}" alt="${Ui.esc(title || 'ปกนิยาย')}" width="200" height="260" loading="${priority ? 'eager' : 'lazy'}"${priority ? ' fetchpriority="high"' : ''}>`;
     }
     return Ui.coverSVG(novel?.slug || '', title);
   },
@@ -194,11 +181,7 @@ const Ui = {
     const status = Ui.novelStatus(n);
     const pct = n.translationPct || 0;
     const readHref = n.lastRead ? `#novel/${Ui.esc(n.slug)}/${Ui.esc(n.lastRead)}` : `#novel/${Ui.esc(n.slug)}`;
-    const meta = [
-      `${Ui.esc((n.source_lang || 'auto').toUpperCase())} -> ${Ui.esc((n.target_lang || 'th').toUpperCase())}`,
-      Ui.esc(n.author || 'ไม่ระบุผู้แต่ง'),
-      `${n.totalCount || 0} ตอน`,
-    ].join(' · ');
+    const meta = `${Ui.esc(n.author || 'ไม่ระบุผู้แต่ง')} · ${n.totalCount || 0} ตอน`;
     const compact = options.compact ? ' c-novel-card--compact' : '';
     return `
       <article class="c-card c-novel-card${compact}">
@@ -219,8 +202,7 @@ const Ui = {
           </div>
           <div class="c-novel-card__actions">
             <a class="c-btn c-btn--xs c-btn--primary" href="${readHref}" data-nav>${Ui.icon('book', 'xs')}<span>${n.lastRead ? 'อ่านต่อ' : 'เริ่มอ่าน'}</span></a>
-            <a class="c-btn c-btn--xs c-btn--ghost" href="#admin/translate/${Ui.esc(n.slug)}" data-nav>${Ui.icon('settings', 'xs')}<span>แปล</span></a>
-            <a class="c-btn c-btn--xs c-btn--ghost" href="#admin/novel-edit/${Ui.esc(n.slug)}" data-nav>${Ui.icon('info', 'xs')}<span>แก้ไข</span></a>
+            <a class="c-novel-card__detail-link" href="#novel/${Ui.esc(n.slug)}" data-nav><span>สารบัญ</span>${Ui.icon('arrow-right', 'xs')}</a>
           </div>
         </div>
       </article>`;

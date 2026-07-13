@@ -6,40 +6,24 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="theme-color" content="#0a0b0e" />
-  <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="pragma" content="no-cache" />
-  <meta http-equiv="expires" content="0" />
-  <title>NovelClaw Reader</title>
+  <meta name="theme-color" content="#eef1f4" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="description" content="ห้องอ่านและสตูดิโอแปลนิยายแบบ local-first สำหรับใช้งานในวง LAN" />
+  <title>NovelClaw · ห้องอ่าน</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="apple-touch-icon" href="/favicon.svg" />
   <meta name="apple-mobile-web-app-title" content="NovelClaw" />
   <link rel="stylesheet" href="/design-system.css" />
 </head>
-<body data-theme="sepia">
+<body data-theme="paper">
+  <a class="c-skip-link" href="#main-content">ข้ามไปยังเนื้อหา</a>
   <!-- SVG Symbols -->
   <svg class="u-hidden">
-    <symbol id="logo-crab-claw" viewBox="0 0 32 32">
-      <defs>
-        <linearGradient id="lcg" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.95"/>
-          <stop offset="100%" stop-color="#14b8a6" stop-opacity="0.95"/>
-        </linearGradient>
-      </defs>
-      <g transform="rotate(-8 18 16)">
-        <rect x="13" y="7" width="12" height="18" rx="2" fill="#a78bfa"/>
-        <rect x="11.5" y="7" width="1.5" height="18" rx="0.5" fill="#8b5cf6"/>
-        <rect x="14.5" y="8" width="9.5" height="16" rx="1" fill="#fffdf5"/>
-        <line x1="16.5" y1="12" x2="21.5" y2="12" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round"/>
-        <line x1="16.5" y1="15" x2="21.5" y2="15" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round"/>
-        <line x1="16.5" y1="18" x2="20" y2="18" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round"/>
-      </g>
-      <path d="M2 28C3 24 6 22 10 21 11.5 22.5 11 25 7 28 5 29.5 3 29 2 28Z" fill="url(#lcg)"/>
-      <path d="M8 20C6.5 13 10.5 7 18 9.5 16 11 12 12 11 16.5 10.5 18 9.5 19.5 8 20Z" fill="url(#lcg)"/>
-      <path d="M8 20C10 22 12.5 24 18 19.5 14.5 18 11.5 18.5 9.5 19 8.8 19.2 8.3 19.6 8 20Z" fill="url(#lcg)"/>
-      <circle cx="11.5" cy="14" r="1.5" fill="#1e293b"/>
-      <circle cx="11" cy="13.5" r="0.5" fill="#fff"/>
-      <ellipse cx="12.5" cy="15" rx="1" ry="0.5" fill="#ff8da1" opacity="0.8"/>
+    <symbol id="brand-mark" viewBox="0 0 64 64">
+      <rect x="2" y="2" width="60" height="60" rx="16" fill="var(--brand-ink, #172033)"/>
+      <path d="M12 17.5c7.8-1.1 14.3.8 20 5.7v28.1c-5.9-4-12.6-5.6-20-4.2V17.5Z" fill="var(--brand-paper, #fff)"/>
+      <path d="M52 17.5c-7.8-1.1-14.3.8-20 5.7v28.1c5.9-4 12.6-5.6 20-4.2V17.5Z" fill="var(--brand-paper-soft, #eef1ff)"/>
+      <path d="M32 23.2c5.7-4.9 12.2-6.8 20-5.7v5.4c-7.6-1.1-14.2 1-20 6.2v-5.9Z" fill="var(--brand-accent, #7d8eeb)"/>
+      <path d="m40 31 9-3.4M40 38l9-3.4M40 45l7-2.6" fill="none" stroke="var(--brand-ink, #172033)" stroke-width="2.4" stroke-linecap="round" opacity=".58"/>
     </symbol>
     <symbol id="icon-home" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="icon-library" viewBox="0 0 24 24"><path d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -57,90 +41,50 @@
     <symbol id="icon-bookmarks" viewBox="0 0 24 24"><path d="M7 3h10a2 2 0 0 1 2 2v16l-7-5-7 5V5a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="icon-fullscreen" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
-    <symbol id="mascot-crab" viewBox="0 0 80 80">
-      <ellipse cx="40" cy="48" rx="24" ry="20" fill="currentColor" opacity="0.15"/>
-      <circle cx="40" cy="32" r="14" fill="currentColor" opacity="0.2"/>
-      <circle cx="34" cy="30" r="3" fill="var(--c-text)"/>
-      <circle cx="46" cy="30" r="3" fill="var(--c-text)"/>
-      <circle cx="35" cy="29" r="1.2" fill="var(--c-bg)"/>
-      <circle cx="47" cy="29" r="1.2" fill="var(--c-bg)"/>
-      <path d="M18 50 Q14 42 20 38" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
-      <path d="M62 50 Q66 42 60 38" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
-      <rect x="30" y="42" width="20" height="14" rx="2" fill="currentColor" opacity="0.1"/>
-    </symbol>
-    <symbol id="mascot-crab-reading" viewBox="0 0 80 80">
-      <use xlink:href="#mascot-crab"/>
-      <rect x="28" y="20" width="24" height="18" rx="2" fill="currentColor" opacity="0.1"/>
-    </symbol>
-    <symbol id="mascot-crab-excited" viewBox="0 0 80 80">
-      <use xlink:href="#mascot-crab"/>
-      <circle cx="34" cy="30" r="4" fill="var(--c-text)"/>
-      <circle cx="46" cy="30" r="4" fill="var(--c-text)"/>
-      <circle cx="34" cy="29" r="1.5" fill="var(--c-bg)"/>
-      <circle cx="46" cy="29" r="1.5" fill="var(--c-bg)"/>
-      <ellipse cx="40" cy="38" rx="3" ry="2" fill="var(--c-bg)"/>
-      <path d="M18 42 Q10 32 16 26" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
-      <path d="M62 42 Q70 32 64 26" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
-    </symbol>
   </svg>
 
   <!-- ═══ LAYOUT ═══ -->
   <div class="c-app" id="app-layout">
-    <!-- Sidebar -->
-    <nav class="c-app__sidebar" id="sidebar-nav" aria-label="เมนูหลัก">
-      <div class="c-sidebar__brand">
-        <div class="c-sidebar__logo">
-          <svg><use xlink:href="#logo-crab-claw"/></svg>
-        </div>
+    <!-- Desktop masthead -->
+    <header class="c-app__sidebar" id="sidebar-nav">
+      <a class="c-sidebar__brand" href="#home" data-nav aria-label="NovelClaw หน้าหลัก">
+        <span class="c-sidebar__logo" aria-hidden="true">
+          <svg><use href="#brand-mark"/></svg>
+        </span>
         <div class="c-sidebar__brand-text">
           <div class="c-sidebar__title">NovelClaw</div>
-          <div class="c-sidebar__subtitle">โลกของนักอ่าน ไม่สิ้นสุด</div>
+          <div class="c-sidebar__subtitle">ห้องอ่าน · สตูดิโอแปล</div>
         </div>
-        <button class="c-btn c-btn--icon c-sidebar__close" id="sidebar-close" aria-label="ปิดเมนู" type="button">
-          <svg class="c-icon c-icon--xs" aria-hidden="true"><use xlink:href="#icon-close"/></svg>
-        </button>
-      </div>
+      </a>
 
-      <div class="c-sidebar__nav">
-        <div class="c-nav-divider"></div>
-        <button class="c-nav-item c-nav-item--active" data-page="home" type="button" aria-current="page" aria-label="หน้าหลัก">
-          <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-home"/></svg> หน้าหลัก
-        </button>
-        <button class="c-nav-item" data-page="library" type="button" aria-label="หอสมุด">
-          <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-library"/></svg> หอสมุด
-        </button>
-        <button class="c-nav-item" data-page="search" type="button" aria-label="ค้นหา">
-          <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-search"/></svg> ค้นหา
-        </button>
-        <hr class="c-nav-hr">
-        <button class="c-nav-item" data-page="settings" type="button" aria-label="ตั้งค่า">
-          <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-settings"/></svg> ตั้งค่า
-        </button>
-        <hr class="c-nav-hr">
-        <button class="c-nav-item" data-page="admin" type="button" aria-label="จัดการระบบ">
-          <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-shield"/></svg> จัดการ
-        </button>
-      </div>
+      <nav class="c-sidebar__nav" aria-label="ห้องอ่าน">
+        <a class="c-nav-item c-nav-item--active" data-page="home" href="#home" data-nav aria-current="page">หน้าหลัก</a>
+        <a class="c-nav-item" data-page="library" href="#library" data-nav>คลังนิยาย</a>
+        <a class="c-nav-item" data-page="search" href="#search" data-nav>ค้นหา</a>
+        <a class="c-nav-item" data-page="history" href="#history" data-nav>อ่านล่าสุด</a>
+      </nav>
 
-      <div class="c-sidebar__toggles">
-        <div class="c-toggle__row">
-          <span class="c-toggle__label">
-            <svg class="c-icon c-icon--sm" aria-hidden="true"><use xlink:href="#icon-moon"/></svg> โหมดกลางคืน
-          </span>
-          <button class="c-toggle" id="theme-toggle-new" type="button" role="switch" aria-checked="false" aria-label="เปิดหรือปิดโหมดกลางคืน"></button>
-        </div>
+      <div class="c-sidebar__tools">
+        <a class="c-nav-item c-nav-item--studio" data-page="admin" href="#admin" data-nav>
+          <svg class="c-nav-item__icon" aria-hidden="true"><use href="#icon-shield"/></svg><span>สตูดิโอ</span>
+        </a>
+        <a class="c-nav-item c-nav-item--icon-only" data-page="settings" href="#settings" data-nav aria-label="ตั้งค่า" title="ตั้งค่า">
+          <svg class="c-nav-item__icon" aria-hidden="true"><use href="#icon-settings"/></svg>
+        </a>
+        <button class="c-toggle" id="theme-toggle-new" data-theme-toggle type="button" role="switch" aria-checked="false" aria-label="เปิดหรือปิดโหมดกลางคืน"></button>
       </div>
-    </nav>
+    </header>
 
     <!-- Main Content -->
-    <main class="c-app__main">
+    <main class="c-app__main" id="main-content" tabindex="-1">
       <div class="c-header">
         <div class="c-header__left">
-          <button class="c-btn c-btn--icon" id="sidebar-toggle" aria-label="สลับแถบเมนู" aria-controls="drawer-sidebar" aria-expanded="false" type="button">
+          <button class="c-btn c-btn--icon" id="sidebar-toggle" aria-label="เปิดเครื่องมือ" aria-controls="drawer-sidebar" aria-expanded="false" type="button">
             <svg class="c-icon c-icon--sm" aria-hidden="true"><use xlink:href="#icon-hamburger"/></svg>
           </button>
           <span class="c-header__title" id="page-title">หน้าหลัก</span>
         </div>
+        <a class="c-header__studio" href="#admin" data-nav>สตูดิโอ</a>
       </div>
 
       <div class="c-content">
@@ -169,59 +113,48 @@
   <!-- Mobile drawer overlay -->
   <div class="c-drawer-overlay" id="drawer-overlay" aria-hidden="true"></div>
 
-  <!-- Mobile drawer sidebar (cloned contents dynamically) -->
+  <!-- Mobile utility drawer -->
   <div class="c-drawer" id="drawer-sidebar" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true">
     <div class="c-sidebar__brand">
-      <div class="c-sidebar__logo">
-        <svg><use xlink:href="#logo-crab-claw"/></svg>
-      </div>
+      <div class="c-sidebar__logo"><svg><use href="#brand-mark"/></svg></div>
       <div class="c-sidebar__brand-text">
         <div class="c-sidebar__title" id="drawer-title">NovelClaw</div>
-        <div class="c-sidebar__subtitle">โลกของนักอ่าน ไม่สิ้นสุด</div>
+        <div class="c-sidebar__subtitle">เครื่องมือในเครื่องนี้</div>
       </div>
       <button class="c-btn c-btn--icon" id="drawer-close" aria-label="ปิดเมนู" type="button">
         <svg class="c-icon c-icon--xs" aria-hidden="true"><use xlink:href="#icon-close"/></svg>
       </button>
     </div>
-    <nav class="c-sidebar__nav" id="drawer-nav" aria-label="เมนูมือถือ">
-      <div class="c-nav-divider"></div>
-      <button class="c-nav-item c-nav-item--active" data-page="home" type="button" aria-current="page" aria-label="หน้าหลัก">
-        <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-home"/></svg> หน้าหลัก
-      </button>
-      <button class="c-nav-item" data-page="library" type="button" aria-label="หอสมุด">
-        <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-library"/></svg> หอสมุด
-      </button>
-      <button class="c-nav-item" data-page="search" type="button" aria-label="ค้นหา">
-        <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-search"/></svg> ค้นหา
-      </button>
-      <hr class="c-nav-hr">
-      <button class="c-nav-item" data-page="settings" type="button" aria-label="ตั้งค่า">
-        <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-settings"/></svg> ตั้งค่า
-      </button>
-      <hr class="c-nav-hr">
-      <button class="c-nav-item" data-page="admin" type="button" aria-label="จัดการระบบ">
-        <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-shield"/></svg> จัดการ
-      </button>
+    <nav class="c-sidebar__nav" id="drawer-nav" aria-label="เครื่องมือมือถือ">
+      <a class="c-nav-item" data-page="admin" href="#admin" data-nav>
+        <svg class="c-nav-item__icon" aria-hidden="true"><use href="#icon-shield"/></svg> สตูดิโอแปล
+      </a>
+      <a class="c-nav-item" data-page="settings" href="#settings" data-nav aria-label="ตั้งค่า">
+        <svg class="c-nav-item__icon" aria-hidden="true"><use href="#icon-settings"/></svg> ตั้งค่าการอ่าน
+      </a>
     </nav>
+    <div class="c-sidebar__toggles">
+      <div class="c-toggle__row">
+        <span class="c-toggle__label"><svg class="c-icon c-icon--sm" aria-hidden="true"><use href="#icon-moon"/></svg>โหมดกลางคืน</span>
+        <button class="c-toggle" id="drawer-theme-toggle" data-theme-toggle type="button" role="switch" aria-checked="false" aria-label="เปิดหรือปิดโหมดกลางคืน"></button>
+      </div>
+    </div>
   </div>
 
   <!-- Mobile bottom nav -->
-  <nav class="c-mobile-nav" id="mobile-nav" aria-label="เมนูด้านล่าง">
-    <button class="c-mobile-nav__item c-mobile-nav__item--active" data-page="home" type="button" aria-current="page" aria-label="หน้าหลัก">
+  <nav class="c-mobile-nav" id="mobile-nav" aria-label="ห้องอ่าน">
+    <a class="c-mobile-nav__item c-mobile-nav__item--active" data-page="home" href="#home" data-nav aria-current="page" aria-label="หน้าหลัก">
       <svg aria-hidden="true"><use xlink:href="#icon-home"/></svg>หน้าแรก
-    </button>
-    <button class="c-mobile-nav__item" data-page="library" type="button" aria-label="หอสมุด">
+    </a>
+    <a class="c-mobile-nav__item" data-page="library" href="#library" data-nav aria-label="คลังนิยาย">
       <svg aria-hidden="true"><use xlink:href="#icon-library"/></svg>หอสมุด
-    </button>
-    <button class="c-mobile-nav__item" data-page="search" type="button" aria-label="ค้นหา">
+    </a>
+    <a class="c-mobile-nav__item" data-page="search" href="#search" data-nav aria-label="ค้นหา">
       <svg aria-hidden="true"><use xlink:href="#icon-search"/></svg>ค้นหา
-    </button>
-    <button class="c-mobile-nav__item" data-page="settings" type="button" aria-label="ตั้งค่า">
-      <svg aria-hidden="true"><use xlink:href="#icon-settings"/></svg>ตั้งค่า
-    </button>
-    <button class="c-mobile-nav__item" data-page="admin" type="button" aria-label="จัดการ">
-      <svg aria-hidden="true"><use xlink:href="#icon-shield"/></svg>จัดการ
-    </button>
+    </a>
+    <a class="c-mobile-nav__item" data-page="history" href="#history" data-nav aria-label="อ่านล่าสุด">
+      <svg aria-hidden="true"><use xlink:href="#icon-history"/></svg>ล่าสุด
+    </a>
   </nav>
 
   <div id="toast-container" class="c-toast-container" role="status" aria-live="polite" aria-atomic="true"></div>
