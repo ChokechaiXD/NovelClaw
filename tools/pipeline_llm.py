@@ -95,8 +95,12 @@ def call_llm(
     timeout: int | None = None,
     max_tokens: int | None = None,
     temperature: float | None = None,
+    response_metadata: dict[str, Any] | None = None,
 ) -> tuple[str, str, str]:
     """Direct HTTP call to the active LLM provider with retries.
+
+    When ``response_metadata`` is provided, it receives the provider's
+    ``finish_reason`` and reported completion-token count for truncation checks.
 
     Returns:
         (response_text, provider_name, model_name)
@@ -161,7 +165,14 @@ def call_llm(
                 if json_start >= 0:
                     raw = raw[json_start:]
                 data = json.loads(raw)
-            content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            choice = data.get("choices", [{}])[0]
+            content = choice.get("message", {}).get("content", "")
+            if response_metadata is not None:
+                response_metadata.clear()
+                response_metadata["finish_reason"] = choice.get("finish_reason")
+                completion_tokens = data.get("usage", {}).get("completion_tokens")
+                if completion_tokens is not None:
+                    response_metadata["completion_tokens"] = completion_tokens
             if content and len(content.strip()) >= 5:
                 return content, cfg["provider_name"], model_name
             # Empty/short content — retry

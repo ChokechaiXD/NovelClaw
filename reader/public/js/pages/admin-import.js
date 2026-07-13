@@ -25,6 +25,15 @@
     return AdminImportModel.slugFromTitle(title);
   },
 
+  _fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || '').split(',', 2)[1] || '');
+      reader.onerror = () => reject(new Error('อ่านไฟล์ไม่สำเร็จ'));
+      reader.readAsDataURL(file);
+    });
+  },
+
   _summary(data) {
     return AdminImportModel.summary(data);
   },
@@ -225,33 +234,25 @@
       this._health = { summary: {}, novels: [] };
     }
 
-    const importSummary = this._health?.summary || {};
     page.innerHTML = `
       <div class="c-container">
         ${Ui.adminNav('import')}
-        <section class="c-control-center c-admin-cockpit c-admin-import__cockpit">
-          <div class="c-control-center__head">
-            <div>
-              <h2 class="c-control-center__title">${Ui.icon('library', 'sm')}ศูนย์นำเข้า</h2>
-              <p class="c-control-center__subtitle">URL, วางข้อความ และตรวจ source ผ่าน pipeline เดียวกันเพื่อให้ต้นฉบับสะอาดพร้อมแปล</p>
-            </div>
-            <a class="c-btn c-btn--primary" href="#admin/translate${params?.slug ? '/' + Ui.esc(params.slug) : ''}" data-nav>${Ui.icon('book', 'xs')}<span>คิวแปล</span></a>
+        <header class="c-page-heading c-page-heading--studio">
+          <div>
+            <p class="c-page-heading__eyebrow">ขั้นตอน 1 · Source intake</p>
+            <h1>นำเข้าต้นฉบับ</h1>
+            <p>นำเข้าจากเว็บไซต์ ไฟล์ หรือข้อความ ระบบจะจัดรูปแบบเป็น canonical source และตรวจความพร้อมก่อนแปล</p>
           </div>
-          <div class="c-control-center__stats">
-            ${Ui.stat('adapters', this._sites.length)}
-            ${Ui.stat('source files', importSummary.sourceFiles || 0)}
-            ${Ui.stat('errors', importSummary.errors || 0, { tone: importSummary.errors ? 'warn' : 'success' })}
-            ${Ui.stat('warnings', importSummary.warnings || 0, { tone: importSummary.warnings ? 'warn' : 'success' })}
+          <div class="c-page-heading__actions">
+            <button class="c-btn c-btn--ghost import-health-refresh-btn" type="button">${Ui.icon('search', 'xs')}<span>ตรวจสุขภาพใหม่</span></button>
+            <a class="c-btn c-btn--primary" href="#admin/translate${params?.slug ? '/' + Ui.esc(params.slug) : ''}" data-nav>${Ui.icon('book', 'xs')}<span>ไปคิวแปล</span></a>
           </div>
-          <div class="c-control-center__actions">
-            <a class="c-btn c-btn--secondary" href="#admin/novels" data-nav>${Ui.icon('info', 'xs')}<span>จัดการคลัง</span></a>
-            <button class="c-btn c-btn--ghost import-health-refresh-btn" type="button">${Ui.icon('search', 'xs')}<span>Refresh Health</span></button>
-          </div>
-        </section>
+        </header>
         <div class="c-admin-import">
           ${this._renderHealthPanel()}
           <div class="c-card c-admin-import__panel">
-            <h3 class="c-admin-import__title">URL Import</h3>
+            <p class="c-page-heading__eyebrow">เว็บไซต์ที่รองรับ</p>
+            <h2 class="c-admin-import__title">นำเข้าจาก URL</h2>
             <div class="c-form c-admin-import__form">
               <div class="c-form__group c-admin-import__url-group">
                 <label class="c-form__label" for="import-url">URL สารบัญ</label>
@@ -277,12 +278,33 @@
             <div id="import-preview" hidden></div>
           </div>
 
+          <div class="c-card c-admin-import__panel c-admin-import__file-panel">
+            <p class="c-page-heading__eyebrow">TXT · Markdown · HTML · JSON · EPUB</p>
+            <h2 class="c-admin-import__title">นำเข้าจากไฟล์</h2>
+            <p class="u-text-muted">รองรับ UTF-8 และ encoding จีน ญี่ปุ่น เกาหลี ขนาดไม่เกิน 5 MB</p>
+            <div class="c-form c-admin-import__file-form">
+              <label class="c-admin-import__file-drop" for="file-source">
+                ${Ui.icon('library', 'sm')}
+                <span><strong>เลือกไฟล์ต้นฉบับ</strong><small id="file-source-name">ยังไม่ได้เลือกไฟล์</small></span>
+                <input id="file-source" type="file" accept=".txt,.md,.markdown,.html,.htm,.json,.epub,text/plain,text/markdown,text/html,application/json,application/epub+zip" />
+              </label>
+              <div class="c-form__group"><label class="c-form__label" for="file-slug">Slug</label><input class="c-form__input" id="file-slug" value="${Ui.esc(params?.slug || '')}" /></div>
+              <div class="c-form__group"><label class="c-form__label" for="file-title">ชื่อเรื่อง</label><input class="c-form__input" id="file-title" /></div>
+              <div class="c-form__group"><label class="c-form__label" for="file-author">ผู้เขียน</label><input class="c-form__input" id="file-author" /></div>
+              <div class="c-form__group"><label class="c-form__label" for="file-lang">ภาษาต้นฉบับ</label><select class="c-form__select" id="file-lang"><option value="auto">ตรวจอัตโนมัติ</option><option value="cn">จีน</option><option value="jp">ญี่ปุ่น</option><option value="kr">เกาหลี</option><option value="en">อังกฤษ</option></select></div>
+              <div class="c-form__group"><label class="c-form__label" for="file-rule">Split rule <span class="u-text-muted">(ถ้าจำเป็น)</span></label><input class="c-form__input" id="file-rule" placeholder="ใช้ตัวแบ่งตอนมาตรฐานอัตโนมัติ" /></div>
+              <label class="c-admin-import__check"><input type="checkbox" id="file-force" /> เขียนทับตอนเดิม</label>
+              <button class="c-btn c-btn--primary" id="file-run" type="button">${Ui.icon('library', 'xs')}<span>นำเข้าไฟล์</span></button>
+            </div>
+          </div>
+
           <div class="c-card c-admin-import__panel">
-            <h3 class="c-admin-import__title">Paste Text</h3>
+            <p class="c-page-heading__eyebrow">Quick capture</p>
+            <h2 class="c-admin-import__title">วางข้อความ</h2>
             <div class="c-form c-admin-import__paste-form">
               <div class="c-form__group"><label class="c-form__label" for="paste-slug">Slug</label><input class="c-form__input" id="paste-slug" /></div>
               <div class="c-form__group"><label class="c-form__label" for="paste-title">ชื่อเรื่อง</label><input class="c-form__input" id="paste-title" /></div>
-              <div class="c-form__group"><label class="c-form__label" for="paste-lang">ภาษา source</label><input class="c-form__input" id="paste-lang" value="cn" /></div>
+              <div class="c-form__group"><label class="c-form__label" for="paste-lang">ภาษาต้นฉบับ</label><select class="c-form__select" id="paste-lang"><option value="cn">จีน</option><option value="jp">ญี่ปุ่น</option><option value="kr">เกาหลี</option><option value="en">อังกฤษ</option><option value="auto">ตรวจอัตโนมัติ</option></select></div>
               <div class="c-form__group"><label class="c-form__label" for="paste-rule">Split rule</label><input class="c-form__input" id="paste-rule" placeholder="(?:ตอนที่|第|Chapter)\\s*(\\d+)" /></div>
               <div class="c-form__group c-admin-import__textarea-group"><label class="c-form__label" for="paste-content">ข้อความ</label><textarea class="c-form__textarea" id="paste-content"></textarea></div>
               <label class="c-admin-import__check"><input type="checkbox" id="paste-force" /> overwrite</label>
@@ -473,6 +495,57 @@
       } finally {
         btn.disabled = false;
         AdminUi.setButton(btn, 'search', 'ตรวจ source');
+      }
+    });
+
+    document.getElementById('file-source')?.addEventListener('change', (event) => {
+      const file = event.target.files?.[0];
+      const name = document.getElementById('file-source-name');
+      if (name) name.textContent = file ? `${file.name} · ${(file.size / 1024).toFixed(1)} KB` : 'ยังไม่ได้เลือกไฟล์';
+      if (!file) return;
+      const stem = file.name.replace(/\.[^.]+$/, '');
+      const slug = document.getElementById('file-slug');
+      const title = document.getElementById('file-title');
+      if (slug && !slug.value.trim()) slug.value = this._slugFromTitle(stem);
+      if (title && !title.value.trim()) title.value = stem.replace(/[-_]+/g, ' ');
+    });
+
+    document.getElementById('file-run')?.addEventListener('click', async () => {
+      const btn = document.getElementById('file-run');
+      const file = document.getElementById('file-source')?.files?.[0];
+      const slug = document.getElementById('file-slug')?.value.trim();
+      if (!file || !slug) {
+        Ui.showToast('กรุณาเลือกไฟล์และระบุ slug', 'error');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        Ui.showToast('ไฟล์ต้องมีขนาดไม่เกิน 5 MB', 'error');
+        return;
+      }
+      btn.disabled = true;
+      AdminUi.setButton(btn, 'library', 'กำลังอ่านไฟล์...');
+      this.setConsole('running', 'File import running', `Reading ${file.name} and normalizing chapters...`);
+      try {
+        const dataBase64 = await this._fileToBase64(file);
+        AdminUi.setButton(btn, 'library', 'กำลังนำเข้า...');
+        const result = this._data(await Api.importFile({
+          slug,
+          title: document.getElementById('file-title')?.value.trim() || '',
+          author: document.getElementById('file-author')?.value.trim() || '',
+          sourceLang: document.getElementById('file-lang')?.value || 'auto',
+          splitRule: document.getElementById('file-rule')?.value.trim() || '',
+          force: document.getElementById('file-force')?.checked === true,
+          filename: file.name,
+          dataBase64,
+        }));
+        this.setConsole('success', 'File import complete', `${this._summary(result)}\nformat: ${result.format || '-'}\nencoding: ${result.encoding || '-'}`);
+        Ui.showToast(`นำเข้า ${result.chapterCount || 0} ตอนสำเร็จ`);
+      } catch (err) {
+        this.setConsole('error', 'File import failed', err.message);
+        Ui.showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        AdminUi.setButton(btn, 'library', 'นำเข้าไฟล์');
       }
     });
 

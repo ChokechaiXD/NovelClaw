@@ -17,15 +17,13 @@
           ).join('');
 
           const selectHtml = '<div class="c-container">' + Ui.adminNav('logs') +
-            '<section class="c-control-center c-admin-cockpit c-admin-logs__cockpit">' +
-            '<div class="c-control-center__head"><div>' +
-            '<h2 class="c-control-center__title">' + Ui.icon('search', 'sm') + 'บันทึกตรวจสอบ</h2>' +
-            '<p class="c-control-center__subtitle">ใช้ตรวจรายละเอียดรายตอนเมื่อผลแปลแปลก, failed, หรือ needs review</p>' +
-            '</div><a class="c-btn c-btn--secondary" href="#admin/translate" data-nav>' + Ui.icon('book', 'xs') + '<span>ศูนย์งานแปล</span></a></div>' +
-            '<div class="c-control-center__stats">' +
-            Ui.stat('novels', novels.length) +
-            Ui.stat('mode', 'read-only') +
-            '</div></section>' +
+            '<header class="c-page-heading c-page-heading--studio">' +
+            '<div>' +
+            '<p class="c-page-heading__eyebrow">ตรวจสอบคุณภาพ · ' + novels.length + ' เรื่อง</p>' +
+            '<h1>บันทึกงานแปล</h1>' +
+            '<p>เปิดรายละเอียดรายตอนเพื่อตรวจสาเหตุเมื่อผลแปลผิดปกติ ล้มเหลว หรือรอการทบทวน โดยไม่มีการแก้ไขข้อมูลจากหน้านี้</p>' +
+            '</div><div class="c-page-heading__actions"><a class="c-btn c-btn--secondary" href="#admin/translate" data-nav>' + Ui.icon('book', 'xs') + '<span>ไปหน้างานแปล</span></a></div>' +
+            '</header>' +
             '<div class="c-settings-card c-admin-logs__panel">' +
             '<div class="c-form">' +
             '<div class="c-admin-logs__form-grid">' +
@@ -66,15 +64,16 @@
         const data = await res.json();
         let html = '<div class="c-container">' +
           Ui.adminNav('logs') +
-          '<section class="c-control-center c-admin-cockpit c-admin-logs__cockpit">' +
-          '<div class="c-control-center__head"><div>' +
-          '<h2 class="c-control-center__title">' + Ui.icon('search', 'sm') + 'Audit Log</h2>' +
-          '<p class="c-control-center__subtitle">' + Ui.esc(slug) + ' · ตอน ' + Ui.esc(num) + '</p>' +
-          '</div><a href="#admin/logs" class="c-btn c-btn--secondary c-admin-logs__link" data-nav>' + Ui.icon('search', 'xs') + '<span>ค้นหาใหม่</span></a></div>' +
-          '<div class="c-control-center__actions">' +
+          '<header class="c-page-heading c-page-heading--studio">' +
+          '<div>' +
+          '<p class="c-page-heading__eyebrow">รายละเอียดงานแปล · ตอน ' + Ui.esc(num) + '</p>' +
+          '<h1>บันทึกการตรวจสอบรายตอน</h1>' +
+          '<p>' + Ui.esc(slug) + ' · อ่านเหตุการณ์และไฟล์วิเคราะห์ของตอนนี้เพื่อหาสาเหตุของผลแปล</p>' +
+          '</div><div class="c-page-heading__actions">' +
+          '<a href="#admin/logs" class="c-btn c-btn--secondary c-admin-logs__link" data-nav>' + Ui.icon('search', 'xs') + '<span>ค้นหาใหม่</span></a>' +
           '<a class="c-btn c-btn--ghost" href="#novel/' + Ui.esc(slug) + '/' + Ui.esc(num) + '" data-nav>' + Ui.icon('book', 'xs') + '<span>เปิดตอน</span></a>' +
           '<a class="c-btn c-btn--ghost" href="#admin/translate/' + Ui.esc(slug) + '" data-nav>' + Ui.icon('settings', 'xs') + '<span>ไปหน้าแปล</span></a>' +
-          '</div></section>';
+          '</div></header>';
 
         const files = data.ok && data.data ? data.data.files : [];
 

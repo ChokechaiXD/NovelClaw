@@ -368,6 +368,19 @@ const Api = {
     return data;
   },
 
+  async importFile(payload) {
+    const res = await fetch('/api/import/file', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || {})
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error?.message || `${res.status} ${res.statusText}`);
+    const slug = payload?.slug;
+    if (slug) this.invalidateAll(slug);
+    return data;
+  },
+
   // ── Provider Config API (YAML-based) ──────────────────────────
   async getProviderConfig(options = {}) {
     const suffix = options.refreshModels ? '?refreshModels=1' : '';

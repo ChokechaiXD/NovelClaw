@@ -1,134 +1,164 @@
-/* ═══════════════════════════════════════════════════════════════════════
-   novel.js — Novel Detail Page
-   NovelClaw Reader
-   ═══════════════════════════════════════════════════════════════════════ */
+/* Novel detail page: content-first overview and chapter index. */
 
 const NovelPage = {
   async render(params) {
     const page = Ui.$('page-novel-detail');
     if (!page) return;
     const slug = params.slug;
-    if (!slug) { Ui.showError(page, 'ไม่พบ Slug'); return; }
+    if (!slug) { Ui.showError(page, 'ไม่พบนิยาย'); return; }
 
     Ui.showSkeleton('page-novel-detail');
 
     try {
       const novels = await Api.getNovels();
-      const novel = novels.find(n => n.slug === slug);
+      const novel = novels.find(item => item.slug === slug);
       if (!novel) { Ui.showError(page, 'ไม่พบนิยาย'); return; }
 
-      // Update topbar title with novel name
       const titleEl = document.getElementById('page-title');
       if (titleEl) titleEl.textContent = Ui.displayTitle(novel);
 
       const chapters = await Api.getChapters(slug);
       const enriched = Ui.enrichNovel(novel);
-      const hasLastRead = chapters.some(chapter => chapter.num === enriched.lastRead);
+      const hasLastRead = enriched.lastRead != null && chapters.some(chapter => String(chapter.num) === String(enriched.lastRead));
       const continueNum = hasLastRead ? enriched.lastRead : chapters[0]?.num;
       const readHref = continueNum
         ? `#novel/${Ui.esc(slug)}/${Ui.esc(continueNum)}`
         : `#admin/import/${Ui.esc(slug)}`;
       const readLabel = hasLastRead
         ? `อ่านต่อตอนที่ ${Ui.esc(continueNum)}`
-        : (continueNum ? 'เริ่มอ่าน' : 'นำเข้าตอนแรก');
+        : (continueNum ? 'เริ่มอ่านตอนแรก' : 'นำเข้าตอนแรก');
+
+      const languageNames = {
+        cn: 'จีน', zh: 'จีน', ja: 'ญี่ปุ่น', jp: 'ญี่ปุ่น',
+        ko: 'เกาหลี', kr: 'เกาหลี', en: 'อังกฤษ', th: 'ไทย',
+      };
+      const sourceLang = languageNames[String(novel.source_lang || 'cn').toLowerCase()] || String(novel.source_lang || 'จีน').toUpperCase();
+      const targetLang = languageNames[String(novel.target_lang || 'th').toLowerCase()] || String(novel.target_lang || 'ไทย').toUpperCase();
 
       const pageSize = 100;
       let selectedPageIdx = 0;
-      if (enriched.lastRead) {
-        const readIdx = chapters.findIndex(c => c.num === enriched.lastRead);
+      if (enriched.lastRead != null) {
+        const readIdx = chapters.findIndex(chapter => String(chapter.num) === String(enriched.lastRead));
         if (readIdx !== -1) selectedPageIdx = Math.floor(readIdx / pageSize);
       }
 
-      let html = '<div class="c-container">';
-
-      // ── Header Card ──────────────────────────────────────────────────
-      html += `
-      <div class="c-detail">
-        <div class="c-detail__cover">
-          ${Ui.coverHtml(novel)}
-        </div>
-        <div class="c-detail__info">
-          <h1 class="c-detail__title">${Ui.esc(Ui.displayTitle(novel))}</h1>
-          <p class="c-detail__author">ผู้แต่ง: ${Ui.esc(novel.author||'ไม่ระบุ')}</p>
-          <div class="c-detail__meta">
-            <span class="c-meta-tag c-meta-tag--accent">${novel.source_lang||'cn'} → ${novel.target_lang||'th'}</span>
-            <span class="c-meta-tag">${Ui.statusMap[novel.status]||'ไม่ระบุ'}</span>
-            <span class="c-meta-tag">แปลไป ${enriched.translatedCount} / ${enriched.totalCount} ตอน (${enriched.translationPct}%)</span>
-          </div>
-          <p class="c-detail__synopsis">กำลังโหลดคำอธิบาย...</p>
-          <div class="c-detail__workflow-actions">
-            <a href="${readHref}" class="c-btn c-btn--primary" data-nav>${Ui.icon('book', 'xs')}<span>${readLabel}</span>${Ui.icon('arrow-right', 'xs')}</a>
-            <a href="#admin/translate" class="c-btn c-btn--secondary" data-nav>${Ui.icon('book', 'xs')}<span>สั่งแปล</span></a>
-            <a href="#admin/import/${Ui.esc(slug)}" class="c-btn c-btn--ghost" data-nav>${Ui.icon('library', 'xs')}<span>นำเข้า/ซ่อม source</span></a>
-            <a href="#admin/novel-edit/${Ui.esc(slug)}" class="c-btn c-btn--ghost" data-nav>${Ui.icon('settings', 'xs')}<span>แก้ข้อมูล/ปก</span></a>
-          </div>
-        </div>
-      </div>`;
-
-      // ── Tabs ──────────────────────────────────────────────────────────
-
-      // ── Chapter List ──────────────────────────────────────────────────
       const numPages = Math.ceil(chapters.length / pageSize);
       let rangesHtml = '';
       if (chapters.length > pageSize) {
-        rangesHtml = '<div class="c-pagination">';
-        for (let i = 0; i < numPages; i++) {
-          const startCh = chapters[i * pageSize].num;
-          const endCh = chapters[Math.min((i + 1) * pageSize - 1, chapters.length - 1)].num;
-          rangesHtml += '<button class="c-btn c-btn--sm ' + (i === selectedPageIdx ? 'c-btn--primary' : 'c-btn--ghost') + ' page-range-btn" data-page-idx="' + i + '">' + startCh + ' - ' + endCh + '</button>';
+        rangesHtml = '<nav class="c-pagination c-chapter-index__pagination" aria-label="เลือกช่วงตอน">';
+        for (let index = 0; index < numPages; index++) {
+          const startCh = chapters[index * pageSize].num;
+          const endCh = chapters[Math.min((index + 1) * pageSize - 1, chapters.length - 1)].num;
+          const current = index === selectedPageIdx;
+          rangesHtml += '<button class="c-btn c-btn--sm ' + (current ? 'c-btn--primary' : 'c-btn--ghost') + ' page-range-btn" data-page-idx="' + index + '" type="button"' + (current ? ' aria-current="page"' : '') + '>ตอน ' + Ui.esc(startCh) + '–' + Ui.esc(endCh) + '</button>';
         }
-        rangesHtml += '</div>';
+        rangesHtml += '</nav>';
       }
 
-      const start = selectedPageIdx * pageSize;
-      const end = Math.min(start + pageSize, chapters.length);
-      const pageChapters = chapters.slice(start, end);
+      const renderChapterRow = (chapter) => {
+        const read = Store.isRead(slug, chapter.num);
+        const sourceOnly = chapter.status === 'source_only';
+        const translated = chapter.status === 'translated' || chapter.isTranslated === true;
+        const rawTitle = String(chapter.title || '').trim();
+        const genericTitles = new Set([`ตอนที่ ${chapter.num}`, `ตอน ${chapter.num}`, `Chapter ${chapter.num}`]);
+        const chapterTitle = rawTitle && !genericTitles.has(rawTitle) ? rawTitle : 'ไม่มีชื่อตอน';
+        const sourceStatus = sourceOnly
+          ? 'มีต้นฉบับ · รอแปลไทย'
+          : (translated ? 'พร้อมอ่านภาษาไทย' : (Ui.statusMap[chapter.status] || 'รอตรวจสถานะ'));
+        const statusClass = sourceOnly ? 'source-only' : (translated ? 'translated' : 'pending');
+        const rowClass = `c-detail__ch-wrapper c-chapter-row c-chapter-row--${statusClass}${read ? ' c-chapter-row--read' : ''}`;
 
-      const renderChapterButton = (ch) => {
-        const read = Store.isRead(slug, ch.num);
-        const sourceOnly = ch.status === 'source_only';
-        const chClass = `c-detail__ch-btn ${read ? 'c-detail__ch-btn--read' : ''} ${sourceOnly ? 'c-detail__ch-btn--source-only c-detail__ch-btn--with-action' : ''}`;
         return `
-          <div class="c-detail__ch-wrapper">
-            <a href="#novel/${Ui.esc(slug)}/${Ui.esc(ch.num)}" class="${chClass.trim()}" data-nav>
-              ${Ui.esc(ch.title || 'ตอนที่ ' + ch.num)}
-              ${read ? '<br><span class="c-detail__read-mark">อ่านแล้ว</span>' : ''}
+          <li class="${rowClass}" data-source-status="${Ui.esc(statusClass)}">
+            <a href="#novel/${Ui.esc(slug)}/${Ui.esc(chapter.num)}" class="c-detail__ch-btn c-chapter-row__link" data-nav aria-label="ตอนที่ ${Ui.esc(chapter.num)} ${Ui.esc(chapterTitle)}">
+              <span class="c-chapter-row__number">ตอนที่ ${Ui.esc(chapter.num)}</span>
+              <span class="c-chapter-row__main">
+                <span class="c-chapter-row__title">${Ui.esc(chapterTitle)}</span>
+                <span class="c-chapter-row__meta">
+                  <span class="c-chapter-row__source-status">${Ui.esc(sourceStatus)}</span>
+                  ${read ? '<span class="c-detail__read-mark c-chapter-row__read-status">อ่านแล้ว</span>' : '<span class="c-chapter-row__read-status">ยังไม่ได้อ่าน</span>'}
+                </span>
+              </span>
+              <span class="c-chapter-row__open"><span>อ่าน</span>${Ui.icon('arrow-right', 'xs')}</span>
             </a>
             ${sourceOnly ? `
-              <div class="c-detail__ch-actions">
-                <button class="ch-quick-translate-btn" data-slug="${Ui.esc(slug)}" data-num="${Ui.esc(ch.num)}" type="button" title="แปลไทยด้วย AI ทันที" aria-label="แปลตอนที่ ${Ui.esc(ch.num)}">
-                  <svg class="c-icon c-icon--xs c-icon--stroke"><use xlink:href="#icon-book"/></svg>
-                  <span>แปล</span>
+              <div class="c-detail__ch-actions c-chapter-row__actions">
+                <button class="ch-quick-translate-btn" data-slug="${Ui.esc(slug)}" data-num="${Ui.esc(chapter.num)}" type="button" title="แปลตอนนี้เป็นภาษาไทย" aria-label="แปลตอนที่ ${Ui.esc(chapter.num)} เป็นภาษาไทย">
+                  ${Ui.icon('book', 'xs')}
+                  <span>แปลตอนนี้</span>
                 </button>
               </div>
             ` : ''}
-          </div>`;
+          </li>`;
       };
 
-      // ฟังก์ชันสำหรับผูก Event สั่งแปลตอนแบบเจาะจง
+      const start = selectedPageIdx * pageSize;
+      const pageChapters = chapters.slice(start, Math.min(start + pageSize, chapters.length));
+      const synopsis = String(novel.description || '').trim() || 'ยังไม่มีเรื่องย่อ';
+
+      page.innerHTML = `
+        <article class="c-container c-novel-detail" aria-labelledby="novel-detail-title">
+          <header class="c-detail c-novel-detail__hero">
+            <figure class="c-detail__cover c-novel-detail__cover">
+              ${Ui.coverHtml(novel)}
+            </figure>
+            <div class="c-detail__info c-novel-detail__info">
+              <p class="c-novel-detail__eyebrow">ห้องอ่านหนังสือ</p>
+              <h1 class="c-detail__title c-novel-detail__title" id="novel-detail-title">${Ui.esc(Ui.displayTitle(novel))}</h1>
+              <p class="c-detail__author c-novel-detail__author">เขียนโดย ${Ui.esc(novel.author || 'ไม่ระบุชื่อผู้แต่ง')}</p>
+              <p class="c-detail__synopsis c-novel-detail__synopsis">${Ui.esc(synopsis.slice(0, 600))}</p>
+              <div class="c-detail__meta c-novel-detail__meta" aria-label="ข้อมูลนิยาย">
+                <span class="c-meta-tag c-meta-tag--accent">${Ui.esc(sourceLang)} → ${Ui.esc(targetLang)}</span>
+                <span class="c-meta-tag">${Ui.esc(Ui.statusMap[novel.status] || 'ไม่ระบุสถานะ')}</span>
+                <span class="c-meta-tag">แปลแล้ว ${Ui.esc(enriched.translatedCount)} จาก ${Ui.esc(enriched.totalCount)} ตอน</span>
+              </div>
+              <div class="c-detail__workflow-actions c-novel-detail__actions">
+                <a href="${readHref}" class="c-btn c-btn--primary c-novel-detail__resume" id="novel-primary-read" data-nav>
+                  ${Ui.icon('book', 'xs')}<span>${readLabel}</span>${Ui.icon('arrow-right', 'xs')}
+                </a>
+                <a href="#admin/novel-edit/${Ui.esc(slug)}" class="c-btn c-btn--secondary c-novel-detail__studio-link" data-nav>
+                  ${Ui.icon('settings', 'xs')}<span>เปิดสตูดิโอเรื่องนี้</span>
+                </a>
+              </div>
+            </div>
+          </header>
+
+          <section class="c-section c-chapter-index" aria-labelledby="novel-chapter-heading">
+            <div class="c-section__header c-chapter-index__header">
+              <div>
+                <p class="c-chapter-index__eyebrow">สารบัญ</p>
+                <h2 class="c-section__title c-chapter-index__title" id="novel-chapter-heading">${Ui.esc(chapters.length)} ตอน</h2>
+              </div>
+              ${rangesHtml}
+            </div>
+            <ol class="c-detail__chapters c-chapter-list" id="detail-chapters-grid-container">
+              ${pageChapters.map(renderChapterRow).join('')}
+            </ol>
+            ${chapters.length ? '' : '<p class="c-chapter-index__empty">ยังไม่มีตอนสำหรับอ่าน เปิดสตูดิโอเพื่อนำเข้าต้นฉบับตอนแรก</p>'}
+          </section>
+        </article>`;
+
       const bindTranslateEvents = (container) => {
-        const translateBtns = container.querySelectorAll('.ch-quick-translate-btn');
-        for (const btn of translateBtns) {
-          btn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
+        for (const btn of container.querySelectorAll('.ch-quick-translate-btn')) {
+          btn.addEventListener('click', async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
             const chSlug = btn.dataset.slug;
             const chNum = parseInt(btn.dataset.num, 10);
-            if (!chSlug || isNaN(chNum)) return;
-            
+            if (!chSlug || Number.isNaN(chNum)) return;
+
             btn.disabled = true;
             btn.classList.add('ch-quick-translate-btn--running');
             btn.innerHTML = '<span>กำลังแปล...</span>';
-            
+
             try {
               const res = await Api.translateSingle(chSlug, chNum, true);
               if (res.ok) {
-                Ui.showToast(`แปลตอนที่ ${chNum} สำเร็จเรียบร้อยแล้วค่ะ`, 'success');
-                // โหลดหน้านี้ใหม่เพื่ออัปเดตสถานะปุ่ม
+                Ui.showToast(`แปลตอนที่ ${chNum} สำเร็จแล้ว`, 'success');
                 await NovelPage.render(params);
               } else {
-                Ui.showToast('การแปลขัดข้อง: ' + (res.error?.message || 'ข้อผิดพลาดระบบ'), 'error');
+                Ui.showToast('แปลไม่สำเร็จ: ' + (res.error?.message || 'ระบบไม่ตอบกลับ'), 'error');
               }
             } catch (err) {
               if (err.code === 'SOURCE_NOT_READY') {
@@ -137,73 +167,47 @@ const NovelPage = {
                   const actionRow = wrapper.querySelector('.c-detail__ch-actions') || wrapper;
                   actionRow.insertAdjacentHTML('beforeend',
                     '<a class="c-btn c-btn--xs c-btn--ghost ch-source-inspect-link" href="#admin/import/' +
-                    Ui.esc(chSlug) + '/' + Ui.esc(chNum) + '" data-nav>ตรวจ source</a>'
+                    Ui.esc(chSlug) + '/' + Ui.esc(chNum) + '" data-nav>ตรวจต้นฉบับ</a>'
                   );
                 }
                 btn.classList.add('ch-quick-translate-btn--blocked');
-                btn.title = 'Source ยังไม่พร้อมแปล';
+                btn.title = 'ต้นฉบับยังไม่พร้อมแปล';
               }
-              Ui.showToast((err.code === 'SOURCE_NOT_READY' ? 'Source ยังไม่พร้อมแปล: ' : 'เกิดข้อผิดพลาดในการแปล: ') + err.message, 'error');
+              const prefix = err.code === 'SOURCE_NOT_READY' ? 'ต้นฉบับยังไม่พร้อมแปล: ' : 'แปลไม่สำเร็จ: ';
+              Ui.showToast(prefix + err.message, 'error');
             } finally {
               btn.disabled = false;
               btn.classList.remove('ch-quick-translate-btn--running');
-              btn.innerHTML = '<svg class="c-icon c-icon--xs c-icon--stroke"><use xlink:href="#icon-book"/></svg><span>แปล</span>';
+              btn.innerHTML = `${Ui.icon('book', 'xs')}<span>แปลตอนนี้</span>`;
             }
           });
         }
       };
 
-      html += `
-      <div class="c-section">
-        ${rangesHtml}
-        <div class="c-detail__chapters" id="detail-chapters-grid-container">`;
-
-      for (const ch of pageChapters) {
-        html += renderChapterButton(ch);
-      }
-
-      html += `</div></div>`;
-      html += '</div>';
-
-      page.innerHTML = html;
       bindTranslateEvents(page);
 
-      // ── Wire pagination ──────────────────────────────────────────────
-      const buttons = page.querySelectorAll('.page-range-btn');
-      for (let b = 0; b < buttons.length; b++) {
-        const btn = buttons[b];
-        btn.addEventListener('click', function() {
-          const idx = parseInt(this.dataset.pageIdx, 10);
-          const pStart = idx * pageSize;
-          const pEnd = Math.min(pStart + pageSize, chapters.length);
-          const pChs = chapters.slice(pStart, pEnd);
-          const grid = document.getElementById('detail-chapters-grid-container');
-          if (!grid) return;
-          grid.innerHTML = pChs.map(renderChapterButton).join('');
-          bindTranslateEvents(grid);
-          // Swap classes: remove primary from all, add ghost; add primary to clicked, remove ghost
-          const allBtns = page.querySelectorAll('.page-range-btn');
-          for (let i = 0; i < allBtns.length; i++) {
-            allBtns[i].classList.remove('c-btn--primary');
-            allBtns[i].classList.add('c-btn--ghost');
+      for (const button of page.querySelectorAll('.page-range-btn')) {
+        button.addEventListener('click', function() {
+          const index = parseInt(this.dataset.pageIdx, 10);
+          const rangeStart = index * pageSize;
+          const rangeChapters = chapters.slice(rangeStart, Math.min(rangeStart + pageSize, chapters.length));
+          const list = document.getElementById('detail-chapters-grid-container');
+          if (!list) return;
+          list.innerHTML = rangeChapters.map(renderChapterRow).join('');
+          bindTranslateEvents(list);
+
+          for (const rangeButton of page.querySelectorAll('.page-range-btn')) {
+            const current = rangeButton === this;
+            rangeButton.classList.toggle('c-btn--primary', current);
+            rangeButton.classList.toggle('c-btn--ghost', !current);
+            if (current) rangeButton.setAttribute('aria-current', 'page');
+            else rangeButton.removeAttribute('aria-current');
           }
-          this.classList.remove('c-btn--ghost');
-          this.classList.add('c-btn--primary');
+          list.querySelector('a')?.focus();
         });
       }
-
-      // ── Load synopsis ────────────────────────────────────────────────
-      this._loadSynopsis(novel);
-
     } catch (err) {
-      Ui.showError(page, 'โหลดไม่สำเร็จ', err.message);
-    }
-  },
-
-  _loadSynopsis(novel) {
-    const synopsis = document.querySelector('.c-detail__synopsis');
-    if (synopsis) {
-      synopsis.textContent = (novel.description || '').slice(0, 300) || 'ยังไม่มีคำอธิบาย';
+      Ui.showError(page, 'โหลดนิยายไม่สำเร็จ', err.message);
     }
   },
 };

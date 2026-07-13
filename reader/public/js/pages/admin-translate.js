@@ -17,6 +17,11 @@ const AdminTranslatePage = {
     AdminUi.setConsole('translate', state, title, message);
   },
 
+  cleanup() {
+    if (this._pollTimer) clearInterval(this._pollTimer);
+    this._pollTimer = null;
+  },
+
   _formatBatchResult(result = {}) {
     const summary = result.summary || {};
     const chapters = result.chapters || summary.chapters || [];
@@ -47,10 +52,7 @@ const AdminTranslatePage = {
   async render(params) {
     const page = Ui.$('page-admin-translate');
     if (!page) return;
-    if (this._pollTimer) {
-      clearInterval(this._pollTimer);
-      this._pollTimer = null;
-    }
+    this.cleanup();
     Ui.showSkeleton('page-admin-translate');
 
     try {
@@ -98,28 +100,17 @@ const AdminTranslatePage = {
         ${Ui.adminNav('translate')}
         
         <div class="c-admin-translate">
-          <section class="c-control-center c-admin-translate__hero">
-            <div class="c-control-center__head">
-              <div>
-                <h2 class="c-control-center__title">${Ui.icon('book', 'sm')}ศูนย์งานแปล</h2>
-                <p class="c-control-center__subtitle">เลือกนิยาย ตรวจ source เลือก model สั่งแปล และติดตามงานจากจุดเดียว</p>
-              </div>
-              <div class="c-admin-translate__hero-actions">
-                <a class="c-btn c-btn--secondary" href="#admin/provider" data-nav>${Ui.icon('settings', 'xs')}<span>ตั้งค่า AI</span></a>
-                <button class="c-btn c-btn--ghost" id="translate-health-refresh" type="button">${Ui.icon('search', 'xs')}<span>รีเฟรชสถานะ</span></button>
-              </div>
+          <header class="c-page-heading c-page-heading--studio">
+            <div>
+              <p class="c-page-heading__eyebrow">ขั้นตอน 2 · Translation</p>
+              <h1>แปลและตรวจคุณภาพ</h1>
+              <p>เลือกนิยาย ตรวจต้นฉบับ กำหนดโมเดล แล้วติดตามผลแปลและตอนที่ต้องทบทวนจากหน้าเดียว</p>
             </div>
-            <div class="c-control-center__stats">
-              ${Ui.stat('active', bucketStat('active'))}
-              ${Ui.stat('done', bucketStat('done'), { tone: 'success' })}
-              ${Ui.stat('needs review', bucketStat('needs_review'), { tone: bucketStat('needs_review') ? 'warn' : 'success' })}
-              ${Ui.stat('failed', bucketStat('failed'), { tone: bucketStat('failed') ? 'warn' : 'success' })}
+            <div class="c-page-heading__actions c-admin-translate__hero-actions">
+              <a class="c-btn c-btn--secondary" href="#admin/provider" data-nav>${Ui.icon('settings', 'xs')}<span>ตั้งค่า AI</span></a>
+              <button class="c-btn c-btn--ghost" id="translate-health-refresh" type="button">${Ui.icon('search', 'xs')}<span>รีเฟรชสถานะ</span></button>
             </div>
-            <div class="c-admin-translate__health-note">
-              <span>${latestFailed ? 'ต้องตรวจล่าสุด: ' + latestFailed : 'ยังไม่มีรายการ failed หรือ needs review ล่าสุด'}</span>
-              ${activeBatch ? '<span>batch ล่าสุด: ' + Ui.esc(activeBatch.name) + ' · ' + Ui.esc(activeBatch.percent || 0) + '%</span>' : '<span>ยังไม่พบ batch log</span>'}
-            </div>
-          </section>
+          </header>
 
           <div class="c-card c-admin-translate__panel c-admin-translate__health-panel">
             <div class="c-admin-translate__console-head">
@@ -386,6 +377,8 @@ const AdminTranslatePage = {
       let lastResultByNum = {};
       let filterState = 'all';
       let searchQuery = '';
+      let chapterPage = 1;
+      const chapterPageSize = 100;
       const selectedNums = new Set();
       let activeRunId = '';
       let panelRunId = '';
@@ -494,7 +487,10 @@ const AdminTranslatePage = {
           selectedNums,
           sourceIssueByNum,
           lastResultByNum,
+          page: chapterPage,
+          pageSize: chapterPageSize,
         });
+        chapterPage = view.page;
         summaryEl.textContent = view.summary;
         table.innerHTML = view.html;
       };
@@ -527,6 +523,7 @@ const AdminTranslatePage = {
               };
             }
           }
+          chapterPage = 1;
           selectedNums.clear();
           if (!preserveResults) lastResultByNum = {};
           renderChapterTable();
@@ -593,6 +590,16 @@ const AdminTranslatePage = {
       });
 
       document.getElementById('translate-chapter-table')?.addEventListener('click', async (event) => {
+        const pageBtn = event.target.closest('[data-translate-page]');
+        if (pageBtn && !pageBtn.disabled) {
+          const requestedPage = parseInt(pageBtn.dataset.translatePage, 10);
+          if (Number.isFinite(requestedPage)) {
+            chapterPage = requestedPage;
+            renderChapterTable();
+            document.getElementById('translate-page-status')?.focus();
+          }
+          return;
+        }
         const detailBtn = event.target.closest('.translate-detail-btn');
         const inspectBtn = event.target.closest('.translate-inspect-btn');
         if (detailBtn) {
@@ -649,6 +656,7 @@ const AdminTranslatePage = {
       document.querySelectorAll('.translate-filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           filterState = btn.dataset.filter || 'all';
+          chapterPage = 1;
           document.querySelectorAll('.translate-filter-btn').forEach(item => {
             item.classList.toggle('c-btn--secondary', item === btn);
             item.classList.toggle('c-btn--ghost', item !== btn);
@@ -659,6 +667,7 @@ const AdminTranslatePage = {
       });
       document.getElementById('translate-chapter-search')?.addEventListener('input', (event) => {
         searchQuery = event.target.value || '';
+        chapterPage = 1;
         renderChapterTable();
       });
       const nextUntranslatedAfterProgress = (limit) => {

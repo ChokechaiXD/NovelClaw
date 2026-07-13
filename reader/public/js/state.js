@@ -57,6 +57,13 @@ const Store = {
     this.saveState();
   },
 
+  recordRead(slug, num) {
+    if (!this._state[slug]) this._state[slug] = {};
+    this._state[slug][num] = Date.now();
+    this._state[slug + '-last'] = num;
+    this.saveState();
+  },
+
   getLastPosition(slug) { return this._state[slug + '-last'] || null; },
 
   isRead(slug, num) {

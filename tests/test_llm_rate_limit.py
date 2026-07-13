@@ -11,10 +11,12 @@ def test_provider_rate_limiter_caps_concurrent_calls_per_provider():
     active = 0
     max_seen = 0
     lock = threading.Lock()
+    entered_pair = threading.Barrier(2)
 
     def worker() -> None:
         nonlocal active, max_seen
         with limiter.acquire("openrouter"):
+            entered_pair.wait(timeout=1)
             with lock:
                 active += 1
                 max_seen = max(max_seen, active)

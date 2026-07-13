@@ -6,29 +6,26 @@ window.BookmarksPage = {
     if (!page) return;
     try {
       const list = JSON.parse(localStorage.getItem('novelclaw-bookmarks')) || [];
-      if (list.length === 0) {
-        Ui.showEmpty(page, 'ยังไม่มีบุ๊กมาร์ก', 'เมื่อบุ๊กมาร์กตอนที่ชอบจะปรากฏที่นี่');
-        return;
-      }
       const novels = await Api.getNovels();
       let html = '<div class="c-container c-bookmarks-page">' +
-        '<section class="c-control-center c-bookmarks-cockpit">' +
-        '<div class="c-control-center__head"><div>' +
-        '<h2 class="c-control-center__title">' + Ui.icon('bookmarks', 'sm') + 'Bookmarks</h2>' +
-        '<p class="c-control-center__subtitle">รวมตอนที่ปักไว้ กลับไปอ่านต่อได้ทันทีโดยไม่ต้องค้นหาในรายการตอน</p>' +
-        '</div><a class="c-btn c-btn--secondary" href="#library" data-nav>' + Ui.icon('library', 'xs') + '<span>เปิดคลัง</span></a></div>' +
-        '<div class="c-control-center__stats">' +
-        Ui.stat('bookmarks', list.length) +
-        Ui.stat('novels', new Set(list.map(b => b.novel)).size) +
-        '</div></section>' +
+        '<header class="c-page-heading">' +
+        '<p class="c-page-heading__eyebrow">ห้องอ่าน</p>' +
+        '<h1 class="c-page-heading__title">ตอนที่บันทึกไว้</h1>' +
+        '<p class="c-page-heading__subtitle">เก็บตอนที่อยากกลับมาอ่านอีกครั้งไว้ในอุปกรณ์นี้</p>' +
+        '<div class="c-page-heading__actions"><a class="c-btn c-btn--ghost" href="#history" data-nav>' + Ui.icon('history', 'xs') + '<span>อ่านล่าสุด</span></a></div>' +
+        '</header>' +
         '<section class="c-section"><div class="c-list c-history-list">';
-      for (const b of list) {
-        const n = novels.find(x => x.slug === b.novel);
-        const title = Ui.displayTitle(n) || b.novel;
-        html += '<a href="#novel/' + Ui.esc(b.novel) + '/' + Ui.esc(b.num) + '" class="c-list__item c-history-item" data-nav>' +
-          '<div class="c-history-item__cover">' + Ui.coverHtml(n || { slug: b.novel, title }) + '</div>' +
-          '<div class="c-list__info"><span class="c-list__title">' + Ui.esc(title) + '</span><span class="c-list__meta">ตอนที่ ' + Ui.esc(b.num) + '</span></div>' +
-          '<span class="c-list__action">อ่าน ' + Ui.icon('arrow-right', 'xs') + '</span></a>';
+      if (list.length === 0) {
+        html += '<div class="c-empty c-empty--roomy"><svg class="c-empty__mascot" aria-hidden="true"><use href="#brand-mark"/></svg><div class="c-empty__title">ยังไม่มีตอนที่บันทึกไว้</div><div class="c-empty__desc">กดบันทึกจากหน้าอ่าน แล้วตอนนั้นจะปรากฏที่นี่</div></div>';
+      } else {
+        for (const b of list) {
+          const n = novels.find(x => x.slug === b.novel);
+          const title = Ui.displayTitle(n) || b.novel;
+          html += '<a href="#novel/' + Ui.esc(b.novel) + '/' + Ui.esc(b.num) + '" class="c-list__item c-history-item" data-nav>' +
+            '<div class="c-history-item__cover">' + Ui.coverHtml(n || { slug: b.novel, title }) + '</div>' +
+            '<div class="c-list__info"><span class="c-list__title">' + Ui.esc(title) + '</span><span class="c-list__meta">ตอนที่ ' + Ui.esc(b.num) + '</span></div>' +
+            '<span class="c-list__action">อ่าน ' + Ui.icon('arrow-right', 'xs') + '</span></a>';
+        }
       }
       html += '</div></section></div>';
       page.innerHTML = html;

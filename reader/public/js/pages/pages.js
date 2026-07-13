@@ -181,6 +181,7 @@ const HistoryPage = {
         <p class="c-page-heading__eyebrow">ห้องอ่าน</p>
         <h1 class="c-page-heading__title">อ่านล่าสุด</h1>
         <p class="c-page-heading__subtitle">กลับไปยังตอนที่เคยอ่าน โดยเรียงจากรายการล่าสุด</p>
+        <div class="c-page-heading__actions"><a class="c-btn c-btn--ghost" href="#bookmarks" data-nav>${Ui.icon('bookmarks', 'xs')}<span>ตอนที่บันทึกไว้</span></a></div>
       </header>
       <section class="c-section"><div class="c-list c-history-list">`;
     if (recent.length === 0) {

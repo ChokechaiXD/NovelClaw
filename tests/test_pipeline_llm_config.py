@@ -17,6 +17,21 @@ class _FakeResponse:
         ).encode("utf-8")
 
 
+class _FakeLengthResponse(_FakeResponse):
+    def read(self):
+        return json.dumps(
+            {
+                "choices": [
+                    {
+                        "message": {"content": "translated but incomplete"},
+                        "finish_reason": "length",
+                    }
+                ],
+                "usage": {"completion_tokens": 512},
+            }
+        ).encode("utf-8")
+
+
 def test_call_llm_uses_overridden_provider_runtime_config(monkeypatch):
     calls = {"config": 0}
     limited = []
@@ -153,3 +168,33 @@ def test_call_llm_rejects_missing_model_with_config_error(monkeypatch):
         assert str(exc) == "No model configured for provider 'ollama'."
     else:
         raise AssertionError("missing model must fail before making an HTTP request")
+
+
+def test_call_llm_reports_finish_reason_without_changing_tuple_contract(monkeypatch):
+    runtime_config = {
+        "base_url": "http://127.0.0.1:11434/v1",
+        "api_key": "",
+        "model": "local-model",
+        "discovery_model": "local-model",
+        "timeout": 30,
+        "max_tokens": 512,
+        "temperature": 0.2,
+        "provider_name": "local",
+    }
+
+    class FakeLimit:
+        def __enter__(self):
+            return None
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(pipeline_llm, "get_active_config", lambda _provider=None: dict(runtime_config))
+    monkeypatch.setattr(pipeline_llm.urllib.request, "urlopen", lambda *_args, **_kwargs: _FakeLengthResponse())
+    monkeypatch.setattr(pipeline_llm, "limit_llm_call", lambda _provider: FakeLimit())
+    metadata = {}
+
+    response = pipeline_llm.call_llm("Translate", response_metadata=metadata)
+
+    assert response == ("translated but incomplete", "local", "local-model")
+    assert metadata == {"finish_reason": "length", "completion_tokens": 512}

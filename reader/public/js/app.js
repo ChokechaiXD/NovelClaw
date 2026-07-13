@@ -356,6 +356,8 @@ function init() {
 
   // Wire reader mode toggle
   Router.onPageChange = (page, params) => {
+    const isTranslateStudio = page === 'admin' && params.page === 'translate';
+    if (!isTranslateStudio) window.AdminTranslatePage?.cleanup?.();
     if (page === 'novel' && params.num) {
       enableReaderMode();
     } else {

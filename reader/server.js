@@ -43,7 +43,7 @@ const providerConfigService = require('./lib/provider-config-service');
 const translationHealth = require('./lib/translation-health');
 const { parseTranslateJsonOutput, parseBatchTranslateSummary } = require('./lib/translate-result');
 const { parseMarkdownToBlocks } = require('./lib/blocks');
-const { writeJsonAtomic } = require('./lib/atomic-write');
+const { withFileLock, writeJsonAtomic } = require('./lib/atomic-write');
 const { isLocalStateObject, readLocalState, saveLocalState } = require('./lib/local-state');
 const { buildRetryPlan } = require('./lib/translate-run-retry');
 const {
@@ -63,6 +63,7 @@ const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
 const TRUSTED_LAN = process.env.TRUSTED_LAN === 'true';
 const PERF_LOG = process.env.PERF_LOG === 'true';
 const COVER_MAX_BYTES = 4 * 1024 * 1024;
+const FILE_IMPORT_MAX_BYTES = 5 * 1024 * 1024;
 const TRANSLATE_RUN_PERSIST_DELAY_MS = 250;
 const COVER_MIME_EXT = {
   'image/webp': 'webp',
@@ -514,6 +515,10 @@ app.get('/api/novel/:slug/source/:num', asyncHandler(async (req, res) => {
 
 // ── Glossary ───────────────────────────────────────────────────────
 
+function glossaryDocumentRevision(document) {
+  return crypto.createHash('sha256').update(JSON.stringify(document)).digest('hex').slice(0, 20);
+}
+
 app.get('/api/novel/:slug/glossary', asyncHandler(async (req, res) => {
   assertValidSlug(req.params.slug);
   const raw = await readTextOrNull(glossaryMdPath(req.params.slug));
@@ -524,35 +529,61 @@ app.get('/api/novel/:slug/glossary', asyncHandler(async (req, res) => {
 app.get('/api/novel/:slug/glossary/data', asyncHandler(async (req, res) => {
   assertValidSlug(req.params.slug);
   const raw = await readTextOrNull(glossaryJsonPath(req.params.slug));
-  if (raw === null) return res.json({ terms: [] });
+  if (raw === null) {
+    const document = { terms: [] };
+    return res.json({ terms: [], revision: glossaryDocumentRevision(document) });
+  }
   try {
     const data = JSON.parse(raw);
-    res.json({ terms: data.terms || [] });
+    res.json({ terms: data.terms || [], revision: glossaryDocumentRevision(data) });
   } catch (err) {
     fail(res, 500, 'GLOSSARY_PARSE_ERROR', 'Invalid glossary.json', err.message);
   }
 }));
 
-async function readGlossaryTerms(slug) {
-  const raw = await readTextOrNull(glossaryJsonPath(slug));
-  if (!raw) return [];
-  const data = JSON.parse(raw);
-  return Array.isArray(data.terms) ? data.terms : [];
+async function updateGlossaryDocument(slug, update) {
+  const filepath = glossaryJsonPath(slug);
+  return withFileLock(filepath, async () => {
+    const raw = await readTextOrNull(filepath);
+    let document = {};
+    if (raw !== null) {
+      document = JSON.parse(raw);
+      if (!document || Array.isArray(document) || typeof document !== 'object') {
+        throw new Error('glossary.json must contain an object');
+      }
+    }
+    if (!Array.isArray(document.terms)) document.terms = [];
+    const result = await update(document);
+    if (result?.write !== false) {
+      await writeJsonAtomic(filepath, document);
+      chapterRepo.invalidateAll(slug);
+      if (result && typeof result === 'object') result.revision = glossaryDocumentRevision(document);
+    }
+    return result || {};
+  });
 }
 
-async function writeGlossaryTerms(slug, terms) {
-  const filepath = glossaryJsonPath(slug);
-  await fs.mkdir(path.dirname(filepath), { recursive: true });
-  await fs.writeFile(filepath, JSON.stringify({ terms: Array.isArray(terms) ? terms : [] }, null, 2), 'utf8');
-  chapterRepo.invalidateAll(slug);
+async function writeGlossaryTerms(slug, terms, expectedRevision) {
+  return updateGlossaryDocument(slug, document => {
+    if (expectedRevision !== glossaryDocumentRevision(document)) {
+      return { write: false, conflict: true };
+    }
+    document.terms = Array.isArray(terms) ? terms : [];
+    return { saved: true, count: document.terms.length };
+  });
 }
 
 adminPost('/api/novel/:slug/glossary/save', async (req, res) => {
   assertValidSlug(req.params.slug);
   const slug = req.params.slug;
   const terms = Array.isArray(req.body?.terms) ? req.body.terms : [];
-  await writeGlossaryTerms(slug, terms);
-  ok(res, { saved: true, count: terms.length });
+  const revision = String(req.body?.revision || '');
+  if (!revision) return fail(res, 400, 'MISSING_REVISION', 'Glossary revision is required');
+  const result = await writeGlossaryTerms(slug, terms, revision);
+  if (result.conflict) {
+    return fail(res, 409, 'GLOSSARY_CONFLICT', 'Glossary changed since it was loaded. Reload before saving.');
+  }
+  ok(res, { saved: true, count: terms.length, revision: result.revision });
 });
 
 // ── Characters ─────────────────────────────────────────────────────
@@ -768,6 +799,45 @@ adminPost('/api/import/paste', async (req, res) => {
     ok(res, data);
   } catch (err) {
     fail(res, 500, 'IMPORT_PASTE_FAILED', err.message);
+  }
+});
+
+adminPost('/api/import/file', async (req, res) => {
+  const { slug, title, author, sourceLang, splitRule, filename, dataBase64, force } = req.body;
+  if (!slug || !SLUG_RE.test(slug)) return fail(res, 400, 'INVALID_SLUG', 'Invalid slug format');
+  const safeFilename = path.basename(String(filename || '')).slice(0, 200);
+  if (!safeFilename) return fail(res, 400, 'MISSING_FILENAME', 'Document filename is required');
+  const encoded = String(dataBase64 || '').replace(/\s/g, '');
+  if (!encoded || encoded.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded)) {
+    return fail(res, 400, 'INVALID_FILE_DATA', 'Document data must be valid base64');
+  }
+  const raw = Buffer.from(encoded, 'base64');
+  if (!raw.length || raw.length > FILE_IMPORT_MAX_BYTES) {
+    return fail(res, 413, 'FILE_TOO_LARGE', 'Document must be between 1 byte and 5 MB');
+  }
+
+  const args = [
+    path.join(__dirname, '..', 'tools', 'import_sources.py'),
+    'file',
+    '--stdin-name',
+    safeFilename,
+    '--slug',
+    slug,
+    '--title',
+    String(title || ''),
+    '--source-lang',
+    sourceLang || 'auto',
+  ];
+  if (author) args.push('--author', String(author));
+  if (splitRule) args.push('--split-rule', String(splitRule));
+  if (force) args.push('--force');
+
+  try {
+    const data = await runPythonJson(args, { input: raw, timeout: 180_000 });
+    await finalizeSourceImport(slug);
+    ok(res, data);
+  } catch (err) {
+    fail(res, 400, 'IMPORT_FILE_FAILED', err.message);
   }
 });
 
@@ -1089,30 +1159,32 @@ adminPost('/api/novel/:slug/glossary/add', async (req, res) => {
     return fail(res, 400, 'MISSING_FIELDS', 'Both source (Chinese) and thai (translation) are required.');
   }
 
-  let terms = [];
+  let result;
   try {
-    terms = await readGlossaryTerms(slug);
+    result = await updateGlossaryDocument(slug, document => {
+      const cleanSource = source.trim();
+      const exists = document.terms.some(term => String(term?.source || '').trim() === cleanSource);
+      if (exists) return { write: false, duplicate: true };
+      const term = {
+        source: cleanSource,
+        thai: thai.trim(),
+        category: (category || 'คำศัพท์').trim(),
+        priority: 3,
+        lock: 'auto',
+        verified: true,
+        explanation: '',
+        notes: (notes || 'Added from web reader').trim()
+      };
+      document.terms.push(term);
+      return { term };
+    });
   } catch (err) {
     return fail(res, 500, 'GLOSSARY_PARSE_ERROR', 'Invalid glossary.json', err.message);
   }
-
-  const exists = terms.some(t => t.source.trim() === source.trim());
-  if (exists) {
+  if (result.duplicate) {
     return fail(res, 400, 'DUPLICATE_TERM', `Term "${source}" already exists in glossary.`);
   }
-
-  terms.push({
-    source: source.trim(),
-    thai: thai.trim(),
-    category: (category || 'คำศัพท์').trim(),
-    priority: 3,
-    lock: 'auto',
-    explanation: '',
-    notes: (notes || 'Added from web reader').trim()
-  });
-
-  await writeGlossaryTerms(slug, terms);
-  ok(res, { added: true, term: { source, thai } });
+  ok(res, { added: true, term: result.term, revision: result.revision });
 });
 
 app.get('/api/novel/:slug/chapter/:num/unknown-terms', asyncHandler(async (req, res) => {
@@ -1191,25 +1263,23 @@ adminPost('/api/novel/:slug/glossary/verify', async (req, res) => {
     return fail(res, 400, 'MISSING_FIELDS', 'Both index and verified are required');
   }
   
-  // Load terms
-  const filepath = glossaryJsonPath(slug);
-  let terms = [];
+  let result;
   try {
-    const raw = await fs.readFile(filepath, 'utf8');
-    const data = JSON.parse(raw);
-    terms = data.terms || [];
+    result = await updateGlossaryDocument(slug, document => {
+      const idx = parseInt(index, 10);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= document.terms.length) {
+        return { write: false, invalidIndex: true };
+      }
+      document.terms[idx].verified = !!verified;
+      return { verified: document.terms[idx].verified };
+    });
   } catch (err) {
-    return fail(res, 404, 'GLOSSARY_NOT_FOUND', 'Glossary file not found');
+    return fail(res, 500, 'GLOSSARY_PARSE_ERROR', 'Invalid glossary.json', err.message);
   }
-  
-  const idx = parseInt(index, 10);
-  if (idx < 0 || idx >= terms.length) {
+  if (result.invalidIndex) {
     return fail(res, 400, 'INVALID_INDEX', 'Invalid glossary index');
   }
-  
-  terms[idx].verified = !!verified;
-  await writeGlossaryTerms(slug, terms);
-  ok(res, { verified: terms[idx].verified });
+  ok(res, { verified: result.verified, revision: result.revision });
 });
 
 app.get('/api/local/state', asyncHandler(async (req, res) => {

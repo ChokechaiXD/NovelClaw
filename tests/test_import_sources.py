@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import json
+import io
+import multiprocessing
+import threading
+import zipfile
 from pathlib import Path
 
 from tools import import_sources
@@ -11,6 +15,25 @@ from tools.import_adapters.static_sites import RoyalRoadAdapter, Shu69Adapter
 
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
+
+
+def _concurrent_document_import_worker(novels_dir, filename, chapter_num, ready, start, results):
+    import_sources.NOVELS_DIR = Path(novels_dir)
+    ready.put(filename)
+    if not start.wait(15):
+        results.put({"ok": False, "error": "start timeout"})
+        return
+    try:
+        result = import_sources.import_document_bytes(
+            slug="concurrent-novel",
+            title="Concurrent Novel",
+            filename=filename,
+            raw=f"Chapter {chapter_num}\nBody for chapter {chapter_num}.".encode(),
+            source_lang="en",
+        )
+        results.put({"ok": True, "imported": result["imported"]})
+    except Exception as exc:
+        results.put({"ok": False, "error": repr(exc)})
 
 
 def read_fixture(name: str) -> str:
@@ -120,6 +143,236 @@ def test_import_paste_writes_canonical_source_markdown(tmp_path, monkeypatch):
     meta = json.loads(novel_json.read_text(encoding="utf-8"))
     assert meta["sourceLang"] == "cn"
     assert meta["sourceRefs"][0]["site"] == "manual-paste"
+
+
+def test_split_paste_content_recognizes_common_novel_headings():
+    content = "\n".join([
+        "第1章 Arrival",
+        "中文正文。",
+        "第2話 Signal",
+        "日本語の本文。",
+        "제 3화 Return",
+        "한국어 본문.",
+        "Chapter 4 Home",
+        "English body.",
+    ])
+
+    chapters = import_sources.split_paste_content(content)
+
+    assert [chapter[0] for chapter in chapters] == [1, 2, 3, 4]
+    assert [chapter[1] for chapter in chapters] == [
+        "第1章 Arrival",
+        "第2話 Signal",
+        "제 3화 Return",
+        "Chapter 4 Home",
+    ]
+
+
+def test_import_document_markdown_strips_frontmatter(tmp_path, monkeypatch):
+    monkeypatch.setattr(import_sources, "NOVELS_DIR", tmp_path / "novels")
+    raw = b"---\ntitle: shell metadata\n---\n\n# Chapter 1 - Start\n\nFirst paragraph.\n\nSecond paragraph.\n"
+
+    result = import_sources.import_document_bytes(
+        slug="markdown-novel",
+        title="Markdown Novel",
+        filename="book.md",
+        raw=raw,
+        source_lang="en",
+    )
+
+    saved = (tmp_path / "novels" / "markdown-novel" / "chapters" / "source" / "0001.md").read_text(encoding="utf-8")
+    assert result["format"] == "markdown"
+    assert result["encoding"] == "utf-8"
+    assert result["chapterCount"] == 1
+    assert "shell metadata" not in saved
+    assert "# Chapter 1 - Start" in saved
+    assert "Second paragraph." in saved
+
+
+def test_import_document_html_ignores_shell_and_scripts(tmp_path, monkeypatch):
+    monkeypatch.setattr(import_sources, "NOVELS_DIR", tmp_path / "novels")
+    raw = """
+    <html><head><title>Fixture Book</title><style>.bad{display:block}</style></head>
+    <body><nav>Home Library Account</nav><script>alert('noise')</script>
+    <main><h1>Chapter 7 - Clean</h1><p>The first paragraph stays.</p>
+    <p>The second paragraph stays.</p></main><footer>Copyright shell</footer></body></html>
+    """.encode()
+
+    result = import_sources.import_document_bytes(
+        slug="html-novel",
+        title="HTML Novel",
+        filename="book.html",
+        raw=raw,
+        source_lang="en",
+    )
+
+    saved = (tmp_path / "novels" / "html-novel" / "chapters" / "source" / "0007.md").read_text(encoding="utf-8")
+    assert result["format"] == "html"
+    assert "The first paragraph stays." in saved
+    assert "Home Library Account" not in saved
+    assert "alert" not in saved
+    assert "Copyright shell" not in saved
+
+
+def test_import_document_html_preserves_article_header_chapter_heading(tmp_path, monkeypatch):
+    monkeypatch.setattr(import_sources, "NOVELS_DIR", tmp_path / "novels")
+    raw = """
+    <html><body>
+      <header><h2>Site navigation</h2></header>
+      <article>
+        <header><h2>Chapter 12 - Inside Article</h2></header>
+        <p>The chapter body remains readable.</p>
+      </article>
+      <footer>Site footer</footer>
+    </body></html>
+    """.encode()
+
+    result = import_sources.import_document_bytes(
+        slug="article-header-novel",
+        title="Article Header Novel",
+        filename="book.html",
+        raw=raw,
+        source_lang="en",
+    )
+
+    source_dir = tmp_path / "novels" / "article-header-novel" / "chapters" / "source"
+    saved = (source_dir / "0012.md").read_text(encoding="utf-8")
+    assert result["chapterCount"] == 1
+    assert "# Chapter 12 - Inside Article" in saved
+    assert "The chapter body remains readable." in saved
+    assert "Site navigation" not in saved
+    assert "Site footer" not in saved
+
+
+def test_import_document_json_accepts_common_chapter_shapes(tmp_path, monkeypatch):
+    monkeypatch.setattr(import_sources, "NOVELS_DIR", tmp_path / "novels")
+    raw = json.dumps({
+        "title": "JSON Fixture",
+        "chapters": [
+            {"chapter": 2, "name": "Chapter 2 - Lists", "paragraphs": ["One.", "Two."]},
+            {"index": 5, "title": "Chapter 5 - Body", "body": "Three.\n\nFour."},
+        ],
+    }).encode()
+
+    result = import_sources.import_document_bytes(
+        slug="json-novel",
+        title="",
+        filename="export.json",
+        raw=raw,
+        source_lang="en",
+    )
+
+    source_dir = tmp_path / "novels" / "json-novel" / "chapters" / "source"
+    assert result["title"] == "JSON Fixture"
+    assert result["chapterCount"] == 2
+    assert (source_dir / "0002.md").exists()
+    assert "Four." in (source_dir / "0005.md").read_text(encoding="utf-8")
+
+
+def _fixture_epub() -> bytes:
+    container = """<?xml version="1.0"?>
+    <container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+      <rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles>
+    </container>"""
+    package = """<?xml version="1.0" encoding="UTF-8"?>
+    <package xmlns="http://www.idpf.org/2007/opf" version="3.0">
+      <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>EPUB Fixture</dc:title></metadata>
+      <manifest>
+        <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+        <item id="c1" href="chapter-1.xhtml" media-type="application/xhtml+xml"/>
+        <item id="c2" href="chapter-2.xhtml" media-type="application/xhtml+xml"/>
+      </manifest>
+      <spine><itemref idref="c1"/><itemref idref="c2"/></spine>
+    </package>"""
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("mimetype", "application/epub+zip")
+        archive.writestr("META-INF/container.xml", container)
+        archive.writestr("OEBPS/content.opf", package)
+        archive.writestr("OEBPS/chapter-1.xhtml", "<html><head><title>Chapter 1 - Arrival</title></head><body><h1>Chapter 1 - Arrival</h1><p>First body.</p></body></html>")
+        archive.writestr("OEBPS/chapter-2.xhtml", "<html><head><title>Chapter 2 - Signal</title></head><body><h1>Chapter 2 - Signal</h1><p>Second body.</p></body></html>")
+    return output.getvalue()
+
+
+def test_import_document_epub_uses_spine_order(tmp_path, monkeypatch):
+    monkeypatch.setattr(import_sources, "NOVELS_DIR", tmp_path / "novels")
+
+    result = import_sources.import_document_bytes(
+        slug="epub-novel",
+        title="",
+        filename="book.epub",
+        raw=_fixture_epub(),
+        source_lang="en",
+    )
+
+    source_dir = tmp_path / "novels" / "epub-novel" / "chapters" / "source"
+    assert result["format"] == "epub"
+    assert result["encoding"] == "epub-xml"
+    assert result["title"] == "EPUB Fixture"
+    assert result["chapterCount"] == 2
+    assert "First body." in (source_dir / "0001.md").read_text(encoding="utf-8")
+    assert "Second body." in (source_dir / "0002.md").read_text(encoding="utf-8")
+
+
+def test_document_decoder_handles_legacy_cjk_encodings():
+    fixtures = [
+        ("cn", "第1章 开始\n这是中文正文。", "gb18030"),
+        ("jp", "第1話 はじまり\nこれは日本語の本文です。", "shift_jis"),
+        ("kr", "제 1화 시작\n이것은 한국어 본문입니다.", "euc_kr"),
+    ]
+
+    for source_lang, original, encoding in fixtures:
+        decoded, detected = import_sources.decode_document_bytes(original.encode(encoding), source_lang)
+        assert decoded == original
+        assert detected == encoding
+
+
+def test_document_decoder_auto_selects_plausible_legacy_cjk_encoding():
+    fixtures = [
+        ("第1話 はじまり\nこれは日本語の本文です。", "shift_jis"),
+        ("제 1화 시작\n이것은 한국어 본문입니다.", "euc_kr"),
+    ]
+
+    for original, encoding in fixtures:
+        decoded, detected = import_sources.decode_document_bytes(original.encode(encoding), "auto")
+        assert decoded == original
+        assert detected == encoding
+
+
+def test_split_paste_content_parses_chinese_numeral_headings():
+    content = "\n".join([
+        "第一章 初见",
+        "这里是初见正文。",
+        "第二章 重逢",
+        "这里是重逢正文。",
+        "第一万零二章 远行",
+        "万章编号也应正确。",
+    ])
+
+    chapters = import_sources.split_paste_content(content)
+
+    assert [chapter[0] for chapter in chapters] == [1, 2, 10_002]
+    assert [chapter[1] for chapter in chapters] == ["第一章 初见", "第二章 重逢", "第一万零二章 远行"]
+
+
+def test_import_document_rejects_unsupported_and_oversized_files():
+    try:
+        import_sources.parse_document_bytes(b"content", "book.pdf", "en")
+    except ValueError as exc:
+        assert "Unsupported document format" in str(exc)
+    else:
+        raise AssertionError("expected unsupported format error")
+
+    try:
+        import_sources.parse_document_bytes(
+            b"x" * (import_sources.MAX_DOCUMENT_BYTES + 1),
+            "book.txt",
+            "en",
+        )
+    except ValueError as exc:
+        assert "too large" in str(exc).lower()
+    else:
+        raise AssertionError("expected file size error")
 
 
 def test_parse_range_supports_commas_and_ranges():

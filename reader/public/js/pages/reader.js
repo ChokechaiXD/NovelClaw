@@ -5,6 +5,7 @@
 
 const ReaderPage = {
   _readerAbortController: null,
+  _glossaryReturnFocus: null,
 
   async render(params) {
     // ── Cleanup previous events before re-render ─────────────────────
@@ -14,55 +15,62 @@ const ReaderPage = {
     if (!page) return;
     const slug = params.slug;
     const num = parseInt(params.num, 10);
-    if (!slug || isNaN(num)) { Ui.showError(page, 'ไม่พบตอน'); return; }
+    if (!slug || Number.isNaN(num)) { Ui.showError(page, 'ไม่พบตอน'); return; }
 
     try {
       const chapters = await Api.getChapters(slug);
       const novels = await Api.getNovels();
       const novel = novels.find(n => n.slug === slug);
+      if (!chapters.length) {
+        Ui.showError(page, 'ยังไม่มีตอนสำหรับอ่าน', 'เปิดสตูดิโอเรื่องนี้เพื่อนำเข้าต้นฉบับตอนแรก');
+        return;
+      }
 
       let idx = chapters.findIndex(c => c.num === num);
       if (idx === -1) idx = 0;
 
+      const novelTitle = novel ? Ui.displayTitle(novel) : slug;
       let html = `
       <div class="reader-page">
-        <!-- Progress bar -->
-        <div class="reader-progress" id="reader-progress"><div class="reader-progress__fill" id="reader-progress-fill"></div></div>
+        <div class="reader-progress" id="reader-progress" role="progressbar" aria-label="ความคืบหน้าในการอ่าน" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="reader-progress__fill" id="reader-progress-fill"></div></div>
 
-        <div class="c-toolbar reader-toolbar">
-          <a href="#novel/${slug}" class="c-toolbar__back" data-nav>
+        <header class="c-toolbar reader-toolbar c-reader-masthead">
+          <a href="#novel/${Ui.esc(slug)}" class="c-toolbar__back c-reader-masthead__back" data-nav aria-label="กลับไปหน้ารายเรื่อง ${Ui.esc(novelTitle)}">
             <svg class="c-icon c-icon--sm"><use xlink:href="#icon-arrow-left"/></svg>
-            <span>กลับหน้ารายเรื่อง</span>
+            <span class="c-reader-masthead__novel">${Ui.esc(novelTitle)}</span>
           </a>
-          <span class="c-toolbar__title">${novel ? Ui.esc(Ui.displayTitle(novel)) : slug}</span>
-          <span class="c-toolbar__divider"></span>
-          <div class="c-toolbar__actions">
-            <button class="c-btn c-btn--sm c-btn--secondary c-reader-toolbar__editor" id="reader-open-editor" title="แก้ไข">
+          <nav class="c-reader-masthead__chapter-nav" aria-label="เปลี่ยนตอน">
+            <button class="c-reader__nav-btn c-reader__nav-btn--prev" id="reader-prev-top" type="button" aria-label="ไปตอนก่อนหน้า" title="ตอนก่อนหน้า">
+              ${Ui.icon('arrow-left', 'xs')}<span class="c-reader-masthead__nav-label">ก่อนหน้า</span>
+            </button>
+            <span class="c-reader__position" id="reader-position-top" aria-live="polite"></span>
+            <button class="c-reader__nav-btn c-reader__nav-btn--primary" id="reader-next-top" type="button" aria-label="ไปตอนถัดไป" title="ตอนถัดไป">
+              <span class="c-reader-masthead__nav-label">ถัดไป</span>${Ui.icon('arrow-right', 'xs')}
+            </button>
+          </nav>
+          <div class="c-toolbar__actions c-reader-masthead__actions">
+            <button class="c-btn c-btn--sm c-btn--ghost c-reader-toolbar__bookmark" id="reader-bookmark-toggle" type="button" aria-pressed="false" aria-label="บันทึกตอนนี้เป็นบุ๊กมาร์ก" title="บันทึกบุ๊กมาร์ก (B)">
+              ${Ui.icon('bookmarks', 'xs')}<span>บุ๊กมาร์ก</span>
+            </button>
+            <button class="c-btn c-btn--sm c-btn--ghost c-reader-toolbar__editor" id="reader-open-editor" type="button" title="เปิดไฟล์ตอนนี้เพื่อแก้ไข">
               <svg class="c-icon c-icon--xs c-icon--stroke"><use xlink:href="#icon-settings"/></svg>
-              <span>แก้ไข</span>
+              <span>แก้ไฟล์</span>
             </button>
           </div>
-        </div>
+        </header>
 
         <div class="reader-shell">
-          <div class="reader-body">
+          <article class="reader-body" aria-labelledby="reader-title" tabindex="-1">
             <h1 class="reader-title" id="reader-title"></h1>
             <div id="reader-translator-info" class="c-reader__translator-info"></div>
-            <div class="c-reader-actions c-reader-actions--top" aria-label="เปลี่ยนตอนด้านบน">
-              <div class="c-reader-actions__nav" aria-label="เปลี่ยนตอน">
-                <button class="c-reader__nav-btn c-reader__nav-btn--prev" id="reader-prev-top" type="button">${Ui.icon('arrow-left', 'xs')}<span>ก่อนหน้า</span></button>
-                <span class="c-reader__position" id="reader-position-top"></span>
-                <button class="c-reader__nav-btn c-reader__nav-btn--primary" id="reader-next-top" type="button"><span>ถัดไป</span>${Ui.icon('arrow-right', 'xs')}</button>
-              </div>
-            </div>
             <div id="reader-content"></div>
-          </div>
-          <div class="c-reader-actions" aria-label="เครื่องมือท้ายบท">
+          </article>
+          <footer class="c-reader-actions c-reader-footer" aria-label="เครื่องมือท้ายตอน">
             <div class="c-reader-actions__nav" aria-label="เปลี่ยนตอน">
-              <button class="c-reader__nav-btn c-reader__nav-btn--prev" id="reader-prev-bottom" type="button">${Ui.icon('arrow-left', 'xs')}<span>ก่อนหน้า</span></button>
-              <span class="c-reader__position" id="reader-position"></span>
-              <button class="c-reader__nav-btn" id="reader-back-top" type="button">${Ui.icon('arrow-left', 'xs')}<span>กลับบน</span></button>
-              <button class="c-reader__nav-btn c-reader__nav-btn--primary" id="reader-next-bottom" type="button"><span>ถัดไป</span>${Ui.icon('arrow-right', 'xs')}</button>
+              <button class="c-reader__nav-btn c-reader__nav-btn--prev" id="reader-prev-bottom" type="button" aria-label="ไปตอนก่อนหน้า">${Ui.icon('arrow-left', 'xs')}<span>ตอนก่อนหน้า</span></button>
+              <span class="c-reader__position" id="reader-position" aria-live="polite"></span>
+              <button class="c-reader__nav-btn" id="reader-back-top" type="button">${Ui.icon('arrow-left', 'xs')}<span>กลับด้านบน</span></button>
+              <button class="c-reader__nav-btn c-reader__nav-btn--primary" id="reader-next-bottom" type="button" aria-label="ไปตอนถัดไป"><span>ตอนถัดไป</span>${Ui.icon('arrow-right', 'xs')}</button>
             </div>
             <div class="c-reader-actions__tools" aria-label="ปรับการอ่าน">
               <div class="c-reader-tool-group" aria-label="ขนาดตัวอักษร">
@@ -77,25 +85,28 @@ const ReaderPage = {
               </div>
               <button class="c-reader-tool c-reader-tool--wide" id="reader-theme-toggle" type="button" title="เปลี่ยนธีม"></button>
             </div>
-          </div>
+          </footer>
         </div>
 
-        <!-- Custom Glossary Dialog Modal -->
-        <div class="c-modal c-reader-glossary-modal" id="reader-glossary-modal">
-          <div class="c-modal__card c-reader-glossary-modal__card">
-            <h3 class="c-reader-glossary-modal__title">เพิ่มคำศัพท์ลง Glossary</h3>
+        <div class="c-modal c-reader-glossary-modal" id="reader-glossary-modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="reader-glossary-title" aria-describedby="reader-glossary-description" tabindex="-1">
+          <div class="c-modal__card c-reader-glossary-modal__card" role="document">
+            <div class="c-reader-glossary-modal__header">
+              <h2 class="c-reader-glossary-modal__title" id="reader-glossary-title">เพิ่มคำลงคลังคำศัพท์</h2>
+              <button type="button" class="c-btn c-btn--ghost c-reader-glossary-modal__close" id="modal-glossary-close" aria-label="ปิดหน้าต่าง">${Ui.icon('close', 'xs')}</button>
+            </div>
+            <p class="c-reader-glossary-modal__description" id="reader-glossary-description">บันทึกคำแปลที่ต้องการใช้ให้สม่ำเสมอในเรื่องนี้</p>
             
             <div class="c-form c-reader-glossary-modal__form">
               <div class="c-form__group">
-                <label class="c-form__label">คำศัพท์ภาษาจีน</label>
+                <label class="c-form__label" for="modal-glossary-source">คำต้นฉบับ</label>
                 <input type="text" class="c-form__input c-reader-glossary-modal__source" id="modal-glossary-source" readonly />
               </div>
               <div class="c-form__group">
-                <label class="c-form__label">คำแปลภาษาไทย</label>
-                <input type="text" class="c-form__input" id="modal-glossary-thai" placeholder="ระบุคำแปลภาษาไทย..." required />
+                <label class="c-form__label" for="modal-glossary-thai">คำแปลภาษาไทย</label>
+                <input type="text" class="c-form__input" id="modal-glossary-thai" placeholder="พิมพ์คำแปลภาษาไทย" autocomplete="off" required />
               </div>
               <div class="c-form__group">
-                <label class="c-form__label">ประเภท</label>
+                <label class="c-form__label" for="modal-glossary-category">ประเภท</label>
                 <select class="c-form__select c-reader-glossary-modal__category" id="modal-glossary-category">
                   <option value="คำศัพท์">คำศัพท์ทั่วไป</option>
                   <option value="ตัวละคร">ตัวละคร</option>
@@ -106,8 +117,8 @@ const ReaderPage = {
               </div>
               
               <div class="c-reader-glossary-modal__actions">
-                <button type="button" class="c-btn c-btn--secondary c-reader-glossary-modal__button" id="modal-glossary-cancel">${Ui.icon('close', 'xs')}<span>ยกเลิก</span></button>
-                <button type="button" class="c-btn c-btn--primary c-reader-glossary-modal__button" id="modal-glossary-save">${Ui.icon('bookmarks', 'xs')}<span>บันทึก</span></button>
+                <button type="button" class="c-btn c-btn--secondary c-reader-glossary-modal__button" id="modal-glossary-cancel">ยกเลิก</button>
+                <button type="button" class="c-btn c-btn--primary c-reader-glossary-modal__button" id="modal-glossary-save">${Ui.icon('bookmarks', 'xs')}<span>บันทึกคำศัพท์</span></button>
               </div>
             </div>
           </div>
@@ -116,6 +127,53 @@ const ReaderPage = {
       </div>`;
 
       page.innerHTML = html;
+
+      // Keep the established bookmark format so the bookmarks page stays compatible.
+      const bookmarkKey = 'novelclaw-bookmarks';
+      const readBookmarks = () => {
+        try {
+          const saved = JSON.parse(localStorage.getItem(bookmarkKey));
+          return Array.isArray(saved) ? saved.filter(item => item && item.novel != null && item.num != null) : [];
+        } catch (_) {
+          return [];
+        }
+      };
+      const isCurrentChapterBookmarked = () => readBookmarks().some(item =>
+        String(item.novel) === String(slug) && String(item.num) === String(chapters[idx]?.num)
+      );
+      const syncBookmarkButton = () => {
+        const button = Ui.$('reader-bookmark-toggle');
+        if (!button) return;
+        const bookmarked = isCurrentChapterBookmarked();
+        button.setAttribute('aria-pressed', String(bookmarked));
+        button.setAttribute('aria-label', bookmarked ? 'นำตอนนี้ออกจากบุ๊กมาร์ก' : 'บันทึกตอนนี้เป็นบุ๊กมาร์ก');
+        button.title = bookmarked ? 'นำบุ๊กมาร์กออก (B)' : 'บันทึกบุ๊กมาร์ก (B)';
+        button.classList.toggle('is-bookmarked', bookmarked);
+        button.innerHTML = `${Ui.icon('bookmarks', 'xs')}<span>${bookmarked ? 'บันทึกแล้ว' : 'บุ๊กมาร์ก'}</span>`;
+      };
+      const bookmarkButton = Ui.$('reader-bookmark-toggle');
+      if (bookmarkButton) {
+        bookmarkButton.onclick = () => {
+          const currentNum = chapters[idx]?.num;
+          if (currentNum == null) return;
+          const bookmarks = readBookmarks();
+          const bookmarked = bookmarks.some(item =>
+            String(item.novel) === String(slug) && String(item.num) === String(currentNum)
+          );
+          const nextBookmarks = bookmarked
+            ? bookmarks.filter(item => !(String(item.novel) === String(slug) && String(item.num) === String(currentNum)))
+            : [...bookmarks, { novel: slug, num: currentNum }];
+          try {
+            localStorage.setItem(bookmarkKey, JSON.stringify(nextBookmarks));
+          } catch (_) {
+            Ui.showToast('บันทึกบุ๊กมาร์กในอุปกรณ์นี้ไม่สำเร็จ', 'error');
+            return;
+          }
+          syncBookmarkButton();
+          Ui.showToast(bookmarked ? 'นำตอนนี้ออกจากบุ๊กมาร์กแล้ว' : 'บันทึกตอนนี้เป็นบุ๊กมาร์กแล้ว', 'success');
+        };
+        syncBookmarkButton();
+      }
 
       // Show loading state while chapter loads
       Ui.$('reader-content').innerHTML = '<div class="c-skel c-reader-skel__block"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line c-reader-skel__line--medium"></div><div class="c-skel c-skel--line"></div><div class="c-skel c-skel--line c-reader-skel__line--short"></div>';
@@ -139,24 +197,24 @@ const ReaderPage = {
               const modelStr = data.model && data.model !== 'unknown' ? data.model : 'ไม่ทราบโมเดล';
               const providerStr = data.provider && data.provider !== 'unknown' ? ` (${data.provider})` : '';
               const scoreStr = data.score !== undefined ? ` • คุณภาพ: ${data.score}%` : '';
-              infoEl.textContent = `แปลโดย AI: ${modelStr}${providerStr}${scoreStr}`;
+              infoEl.textContent = `ฉบับแปลไทย · ${modelStr}${providerStr}${scoreStr}`;
             } else {
-              infoEl.textContent = 'แสดงบทต้นฉบับภาษาจีน (ยังไม่แปล)';
+              infoEl.textContent = 'ฉบับต้นฉบับ · ตอนนี้ยังไม่มีฉบับแปลไทย';
             }
           }
 
           // Update topbar title with novel + chapter info
           const titleEl = document.getElementById('page-title');
-          if (titleEl) titleEl.textContent = (Ui.displayTitle(novel) || slug) + ' — ตอนที่ ' + ch.num;
+          if (titleEl) titleEl.textContent = novelTitle + ' — ตอนที่ ' + ch.num;
 
           let contentHtml = '';
           if (!data.isTranslated) {
             contentHtml += `
             <div id="inline-translate-banner" class="c-inline-translate">
-              <p class="c-inline-translate__text">ตอนนี้ยังเป็นต้นฉบับ ยังไม่ได้แปลไทย</p>
+              <p class="c-inline-translate__text">ตอนนี้มีเฉพาะต้นฉบับ สั่งแปลไทยได้จากหน้านี้</p>
               <div class="c-inline-translate__actions">
-                <a class="c-btn c-btn--ghost c-inline-translate__button" href="#admin/provider" data-nav>${Ui.icon('settings', 'xs')}<span>ตั้งค่า AI</span></a>
-                <button id="inline-translate-btn" class="c-btn c-btn--primary c-inline-translate__button">${Ui.icon('book', 'xs')}<span>แปลไทยด้วย AI</span></button>
+                <a class="c-btn c-btn--ghost c-inline-translate__button" href="#admin/provider" data-nav>${Ui.icon('settings', 'xs')}<span>ตั้งค่าการแปล</span></a>
+                <button id="inline-translate-btn" class="c-btn c-btn--primary c-inline-translate__button" type="button">${Ui.icon('book', 'xs')}<span>แปลเป็นภาษาไทย</span></button>
               </div>
             </div>`;
           }
@@ -187,21 +245,20 @@ const ReaderPage = {
                 if (err.code === 'SOURCE_NOT_READY' && banner) {
                   banner.innerHTML = ReaderPage._sourceNotReadyHtml(slug, ch.num, err);
                 }
-                Ui.showToast((err.code === 'SOURCE_NOT_READY' ? 'Source ยังไม่พร้อมแปล: ' : 'เกิดข้อผิดพลาดในการแปล: ') + err.message, 'error');
+                Ui.showToast((err.code === 'SOURCE_NOT_READY' ? 'ต้นฉบับยังไม่พร้อมแปล: ' : 'แปลไม่สำเร็จ: ') + err.message, 'error');
               } finally {
                 const activeBtn = document.getElementById('inline-translate-btn');
                 if (activeBtn) {
                   activeBtn.disabled = false;
-                  activeBtn.innerHTML = `${Ui.icon('book', 'xs')}<span>แปลไทยด้วย AI</span>`;
+                  activeBtn.innerHTML = `${Ui.icon('book', 'xs')}<span>แปลเป็นภาษาไทย</span>`;
                 }
                 banner?.classList.remove('c-inline-translate--running');
               }
             });
           }
 
-          // Mark as read
-          Store.markRead(slug, ch.num);
-          Store.setLastPosition(slug, ch.num);
+          // Persist one atomic reading-state update for this chapter.
+          Store.recordRead(slug, ch.num);
 
           // Update nav buttons
           ['reader-prev-top', 'reader-prev-bottom'].forEach((id) => {
@@ -295,7 +352,7 @@ const ReaderPage = {
       };
       applyFont(fontStep);
       Ui.$('reader-font-sm').onclick = () => { fontStep = Math.max(-1, fontStep - 1); applyFont(fontStep); };
-      Ui.$('reader-font-lg').onclick = () => { fontStep = Math.min(2, fontStep + 1); applyFont(fontStep); };
+      Ui.$('reader-font-lg').onclick = () => { fontStep = Math.min(5, fontStep + 1); applyFont(fontStep); };
 
       // ── Line-height controls (persisted) ────────────────────────────────
       const LEADINGS = [1.6, 1.8, 2.0, 2.2];
@@ -340,9 +397,12 @@ const ReaderPage = {
       const doUpdateProgress = () => {
         const sc = document.querySelector('.c-content');
         if (!sc) return;
-        const pct = (sc.scrollTop / (sc.scrollHeight - sc.clientHeight)) * 100;
+        const scrollable = sc.scrollHeight - sc.clientHeight;
+        const pct = scrollable > 0 ? (sc.scrollTop / scrollable) * 100 : 0;
+        const safePct = Math.min(100, Math.max(0, pct));
         const fill = Ui.$('reader-progress-fill');
-        if (fill) fill.style.width = Math.min(100, Math.max(0, pct)) + '%';
+        if (fill) fill.style.width = safePct + '%';
+        Ui.$('reader-progress')?.setAttribute('aria-valuenow', String(Math.round(safePct)));
       };
       doUpdateProgress(); // initial
 
@@ -353,14 +413,14 @@ const ReaderPage = {
 
   _sourceNotReadyHtml(slug, num, err) {
     const first = err.details?.blocking?.[0] || {};
-    const issueText = (first.issues || []).map(issue => issue.code).slice(0, 4).join(', ') || 'source error';
+    const issueText = (first.issues || []).map(issue => issue.code).slice(0, 4).join(', ') || 'ตรวจพบปัญหาในต้นฉบับ';
     return `
       <div class="c-inline-translate__blocked">
-        <strong>Source ยังไม่พร้อมแปล</strong>
+        <strong>ต้นฉบับยังไม่พร้อมแปล</strong>
         <span>${Ui.esc(issueText)} · ตอน ${Ui.esc(first.num || num)}</span>
       </div>
       <div class="c-inline-translate__actions">
-        <a class="c-btn c-btn--secondary c-inline-translate__button" href="#admin/import/${Ui.esc(slug)}/${Ui.esc(first.num || num)}" data-nav>${Ui.icon('search', 'xs')}<span>ตรวจ source</span></a>
+        <a class="c-btn c-btn--secondary c-inline-translate__button" href="#admin/import/${Ui.esc(slug)}/${Ui.esc(first.num || num)}" data-nav>${Ui.icon('search', 'xs')}<span>ตรวจต้นฉบับ</span></a>
         <a class="c-btn c-btn--ghost c-inline-translate__button" href="#admin/chapters/${Ui.esc(slug)}" data-nav>${Ui.icon('book', 'xs')}<span>จัดการตอน</span></a>
       </div>`;
   },
@@ -371,115 +431,155 @@ const ReaderPage = {
     this._readerAbortController = new AbortController();
     const { signal } = this._readerAbortController;
 
-    // Scroll progress bar (debounced)
+    const modal = document.getElementById('reader-glossary-modal');
+    const closeGlossaryModal = (restoreFocus = true) => {
+      if (!modal) return;
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+      if (restoreFocus) this._glossaryReturnFocus?.focus?.();
+      this._glossaryReturnFocus = null;
+    };
+    const modalFocusable = () => modal
+      ? Array.from(modal.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      : [];
+
+    Ui.$('modal-glossary-cancel')?.addEventListener('click', () => closeGlossaryModal(), { signal });
+    Ui.$('modal-glossary-close')?.addEventListener('click', () => closeGlossaryModal(), { signal });
+    modal?.addEventListener('click', (event) => {
+      if (event.target === modal) closeGlossaryModal();
+    }, { signal });
+
     const updateProgress = () => {
       const sc = document.querySelector('.c-content');
       if (!sc) return;
-      const pct = (sc.scrollTop / (sc.scrollHeight - sc.clientHeight)) * 100;
+      const scrollable = sc.scrollHeight - sc.clientHeight;
+      const pct = scrollable > 0 ? (sc.scrollTop / scrollable) * 100 : 0;
+      const safePct = Math.min(100, Math.max(0, pct));
       const fill = Ui.$('reader-progress-fill');
-      if (fill) fill.style.width = Math.min(100, Math.max(0, pct)) + '%';
+      if (fill) fill.style.width = safePct + '%';
+      Ui.$('reader-progress')?.setAttribute('aria-valuenow', String(Math.round(safePct)));
     };
     const debouncedProgress = Ui.debounce(updateProgress, 100);
     document.querySelector('.c-content')?.addEventListener('scroll', debouncedProgress, { signal });
 
-    // Keyboard shortcuts
-    const keyHandler = (e) => {
-      if (e.target.matches('input, textarea')) return;
-      
-      // Page navigation
-      if (e.key === 'ArrowLeft') Ui.$('reader-prev-bottom')?.click();
-      if (e.key === 'ArrowRight') Ui.$('reader-next-bottom')?.click();
-      
-      // Toggle Themes
-      if (e.key === 't' || e.key === 'T') {
-        Ui.$('reader-theme-toggle')?.click();
+    const keyHandler = (event) => {
+      if (modal?.classList.contains('is-open')) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeGlossaryModal();
+          return;
+        }
+        if (event.key === 'Tab') {
+          const focusable = modalFocusable();
+          if (!focusable.length) {
+            event.preventDefault();
+            modal.focus();
+            return;
+          }
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
+        return;
       }
-      
-      // Adjust Font Size
-      if (e.key === '+' || e.key === '=') {
-        Ui.$('reader-font-lg')?.click();
+
+      const contextMenu = document.getElementById('glossary-ctx-menu');
+      if (event.key === 'Escape' && contextMenu?.classList.contains('is-open')) {
+        contextMenu.classList.remove('is-open');
+        document.querySelector('.reader-body')?.focus();
+        return;
       }
-      if (e.key === '-') {
-        Ui.$('reader-font-sm')?.click();
+      if (event.target?.matches?.('input, textarea, select, [contenteditable="true"]')) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+      const shortcuts = {
+        ArrowLeft: 'reader-prev-bottom',
+        ArrowRight: 'reader-next-bottom',
+        t: 'reader-theme-toggle',
+        T: 'reader-theme-toggle',
+        b: 'reader-bookmark-toggle',
+        B: 'reader-bookmark-toggle',
+        '+': 'reader-font-lg',
+        '=': 'reader-font-lg',
+        '-': 'reader-font-sm',
+        '[': 'reader-leading-sm',
+        ']': 'reader-leading-lg',
+      };
+      const targetId = shortcuts[event.key];
+      if (targetId) {
+        event.preventDefault();
+        Ui.$(targetId)?.click();
       }
-      
-      // Adjust line spacing
-      if (e.key === '[') {
-        Ui.$('reader-leading-sm')?.click();
-      }
-      if (e.key === ']') {
-        Ui.$('reader-leading-lg')?.click();
-      }
-      
     };
     document.addEventListener('keydown', keyHandler, { signal });
 
-    // Context menu for Glossary addition (right-click selection)
     const bodyEl = document.querySelector('.reader-body');
     if (bodyEl) {
-      bodyEl.addEventListener('contextmenu', (e) => {
-        const selected = window.getSelection().toString().trim();
-        if (!selected) return; // Native context menu if no selection
+      bodyEl.addEventListener('contextmenu', (event) => {
+        const selected = window.getSelection()?.toString().trim();
+        if (!selected) return;
 
-        e.preventDefault();
+        event.preventDefault();
 
-        // Create or show custom menu
         let menu = document.getElementById('glossary-ctx-menu');
         if (!menu) {
           menu = document.createElement('div');
           menu.id = 'glossary-ctx-menu';
           menu.className = 'c-glossary-context-menu';
+          menu.setAttribute('role', 'menu');
+          menu.setAttribute('aria-label', 'คำสั่งสำหรับข้อความที่เลือก');
           document.body.appendChild(menu);
         }
 
-        menu.innerHTML = `<button class="c-btn c-glossary-context-menu__button" id="glossary-ctx-add">
+        menu.innerHTML = `<button class="c-btn c-glossary-context-menu__button" id="glossary-ctx-add" type="button" role="menuitem">
           <svg class="c-icon c-icon--xs c-icon--stroke"><use xlink:href="#icon-book"/></svg>
-          <span>เพิ่มลง Glossary</span>
+          <span>เพิ่มลงคลังคำศัพท์</span>
         </button>`;
 
-        menu.setAttribute('style', `--ctx-x:${e.pageX}px;--ctx-y:${e.pageY}px;`);
+        menu.setAttribute('style', `--ctx-x:${event.pageX}px;--ctx-y:${event.pageY}px;`);
         menu.classList.add('is-open');
 
         const addBtn = document.getElementById('glossary-ctx-add');
         if (addBtn) {
+          addBtn.focus();
           addBtn.onclick = () => {
             menu.classList.remove('is-open');
-            
-            const modal = document.getElementById('reader-glossary-modal');
             const sourceInput = document.getElementById('modal-glossary-source');
             const thaiInput = document.getElementById('modal-glossary-thai');
             const categorySelect = document.getElementById('modal-glossary-category');
-            const cancelBtn = document.getElementById('modal-glossary-cancel');
             const saveBtn = document.getElementById('modal-glossary-save');
-            
-            if (!modal) return;
-            
+
+            if (!modal || !sourceInput || !thaiInput || !categorySelect || !saveBtn) return;
+
             sourceInput.value = selected;
             thaiInput.value = '';
             categorySelect.value = 'คำศัพท์';
-            
+            this._glossaryReturnFocus = bodyEl;
             modal.classList.add('is-open');
+            modal.setAttribute('aria-hidden', 'false');
             thaiInput.focus();
-            
-            cancelBtn.onclick = () => {
-              modal.classList.remove('is-open');
-            };
-            
+
             saveBtn.onclick = async () => {
               const thaiVal = thaiInput.value.trim();
               const categoryVal = categorySelect.value;
-              
+
               if (!thaiVal) {
                 Ui.showToast('กรุณากรอกคำแปลภาษาไทย', 'warning');
                 thaiInput.focus();
                 return;
               }
-              
+
               try {
                 saveBtn.disabled = true;
                 saveBtn.innerHTML = `${Ui.icon('bookmarks', 'xs')}<span>กำลังบันทึก...</span>`;
-                
-                const res = await fetch(`/api/novel/${currentReaderSlug}/glossary/add`, {
+
+                const res = await fetch(`/api/novel/${encodeURIComponent(currentReaderSlug)}/glossary/add`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -488,34 +588,30 @@ const ReaderPage = {
                     category: categoryVal
                   })
                 });
-                
+
                 const resData = await res.json();
                 if (resData.ok || res.ok) {
-                  Ui.showToast(`เพิ่ม "${selected} → ${thaiVal}" สำเร็จ`);
-                  modal.classList.remove('is-open');
-                  
-                  // Invalidate API caches & reload page
+                  Ui.showToast(`บันทึก “${selected} → ${thaiVal}” ลงคลังคำศัพท์แล้ว`);
+                  closeGlossaryModal(false);
                   Api.invalidateAll(currentReaderSlug);
                   window.location.reload();
                 } else {
-                  Ui.showToast(resData.error?.message || 'ไม่สามารถเพิ่มศัพท์ลง Glossary ได้', 'error');
+                  Ui.showToast(resData.error?.message || 'บันทึกคำศัพท์ไม่สำเร็จ', 'error');
                 }
               } catch (err) {
-                Ui.showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+                Ui.showToast('บันทึกคำศัพท์ไม่สำเร็จ: ' + err.message, 'error');
               } finally {
                 saveBtn.disabled = false;
-                saveBtn.innerHTML = `${Ui.icon('bookmarks', 'xs')}<span>บันทึก</span>`;
+                saveBtn.innerHTML = `${Ui.icon('bookmarks', 'xs')}<span>บันทึกคำศัพท์</span>`;
               }
             };
           };
         }
 
-        // Hide menu on click elsewhere
         const hideMenu = () => {
           menu.classList.remove('is-open');
-          document.removeEventListener('click', hideMenu);
         };
-        setTimeout(() => document.addEventListener('click', hideMenu), 10);
+        setTimeout(() => document.addEventListener('pointerdown', hideMenu, { once: true, signal }), 10);
       }, { signal });
     }
   },
@@ -526,6 +622,8 @@ const ReaderPage = {
       this._readerAbortController.abort();
       this._readerAbortController = null;
     }
+    document.getElementById('glossary-ctx-menu')?.remove();
+    this._glossaryReturnFocus = null;
   }
 };
 
