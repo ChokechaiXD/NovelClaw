@@ -7,16 +7,15 @@
 
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { chapterDir, chapterPath, legacyChapterPath, legacyMdPath,
-        sourceMdPath, chaptersIndexPath, legacyIndexPath, allChapterVariants,
-        pad, NOVELS_DIR } = require('./paths');
-const { extractMarkdownTitle, parseFrontmatter, parseMarkdownToBlocks } = require('./blocks');
+const { chapterDir, chapterPath, sourceMdPath, chaptersIndexPath,
+        allChapterVariants, NOVELS_DIR } = require('./paths');
+const { extractMarkdownTitle, parseMarkdownToBlocks } = require('./blocks');
 const { writeJsonAtomic } = require('./atomic-write');
 
 // ── Cache ──────────────────────────────────────────────────────────
 const cache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000;
-const CHAPTER_FILE_RE = /^(\d{4})\.(?:th\.json|cn\.json|json|md)$/;
+const CHAPTER_FILE_RE = /^(\d{4})\.(?:th|cn)\.json$/;
 
 function invalidateList(slug) {
   if (slug) { cache.delete('list:' + slug); cache.delete('listq:' + slug); }
@@ -129,8 +128,6 @@ async function scanChapters(slug, options = {}) {
     if (!chapterFiles[num]) chapterFiles[num] = {};
     if (e.name.endsWith('.th.json')) chapterFiles[num].th = e.name;
     else if (e.name.endsWith('.cn.json')) chapterFiles[num].cn = e.name;
-    else if (e.name.endsWith('.json')) chapterFiles[num].legacy = e.name;
-    else if (e.name.endsWith('.md')) chapterFiles[num].md = e.name;
   }
 
   // Source files — only when no other file exists for that num
@@ -156,10 +153,9 @@ async function scanChapters(slug, options = {}) {
       let status;
       let translationMeta = {};
       if (hasTh) status = 'translated';
-      else if (hasCn || files.source) status = 'source_only';
-      else status = 'legacy';
+      else status = 'source_only';
 
-      const titleFile = files.th || files.cn || files.legacy || files.md || files.source;
+      const titleFile = files.th || files.cn || files.source;
       if (titleFile) {
         try {
           // Source files live under chapters/source/, not chapters/
@@ -240,14 +236,6 @@ async function writeChaptersIndexes(slug, chapters) {
     })),
   };
   await writeJsonAtomic(chaptersIndexPath(slug), index);
-  await writeJsonAtomic(legacyIndexPath(slug), {
-    slug,
-    chapters: chapters.map(chapter => ({
-      num: chapter.num,
-      title: chapter.title,
-      isTranslated: chapter.isTranslated,
-    })),
-  });
   return index;
 }
 
@@ -255,7 +243,6 @@ async function writeChaptersIndexes(slug, chapters) {
 
 async function getChapter(slug, num, lang) {
   lang = lang || 'th';
-  const padded = pad(num);
 
   // Per-language JSON: try {num}.{lang}.json first
   const langFile = chapterPath(slug, num, lang);
@@ -303,34 +290,9 @@ async function getChapter(slug, num, lang) {
     } catch {}
   }
 
-  // Fallback: legacy combined format
-  const jsonFile = legacyChapterPath(slug, num);
-  const mdFile = legacyMdPath(slug, num);
   const srcFile = sourceMdPath(slug, num);
-
-  let raw;
-  let isJson = false;
-  let isTranslated = true;
-
   try {
-    raw = await fs.readFile(jsonFile, 'utf8');
-    isJson = true;
-  } catch {
-    try {
-      raw = await fs.readFile(mdFile, 'utf8');
-    } catch {
-      try {
-        raw = await fs.readFile(srcFile, 'utf8');
-        isTranslated = false;
-        isJson = true;
-      } catch (sourceErr) {
-        if (sourceErr.code === 'ENOENT') return null;
-        throw sourceErr;
-      }
-    }
-  }
-
-  if (!isTranslated) {
+    const raw = await fs.readFile(srcFile, 'utf8');
     const parsed = parseMarkdownToBlocks(raw, num);
     const sourceLang = parsed.frontmatter?.source_lang || parsed.frontmatter?.sourceLang || 'cn';
     const _mdTitle = parsed.title || '';
@@ -346,61 +308,10 @@ async function getChapter(slug, num, lang) {
       notes: parsed.notes,
       isTranslated: false,
     };
+  } catch (err) {
+    if (err.code === 'ENOENT') return null;
+    throw err;
   }
-
-  if (isJson) {
-    let ch;
-    try { ch = JSON.parse(raw); }
-    catch (parseErr) {
-      throw Object.assign(new Error(`Invalid JSON in ${padded}: ${parseErr.message}`), { status: 500 });
-    }
-    return {
-      title: ch.title
-        ? (`${ch.title}`.replace(/^第\d+[章장]\s*/, '').trim() ? `ตอนที่ ${ch.num} ${`${ch.title}`.replace(/^第\d+[章장]\s*/, '').trim()}` : `ตอนที่ ${ch.num}`)
-        : `ตอนที่ ${ch.num}`,
-      isJson: true,
-      paragraphs: ch.paragraphs || [],
-      blocks: ch.blocks || [],
-      source: ch.source || '',
-      lang: ch.lang || 'cn',
-      notes: ch.notes || [],
-      isTranslated: true,
-    };
-  }
-
-  // Legacy .md
-  const frontmatter = parseFrontmatter(raw);
-  const rawBody = frontmatter.body || raw;
-  const parts = rawBody.split(/\n---\n/);
-  let body = (parts[0] || '').trim();
-  let meta = '';
-  if (parts.length >= 3) {
-    body = body + '\n\n---\n\n' + (parts[1] || '').trim();
-    meta = (parts[2] || '').trim();
-  } else if (parts.length === 2) {
-    const subparts = parts[1].split(/\n---\n/);
-    if (subparts.length >= 2) {
-      body = body + '\n\n---\n\n' + subparts[0].trim();
-      meta = subparts.slice(1).join('\n\n---\n').trim();
-    } else {
-      body = body + '\n\n---\n\n' + parts[1].trim();
-    }
-  }
-  let mdTitle = '';
-  const m = body.match(/^#\s+(.+?)\r?\n/);
-  if (m) { mdTitle = m[1].trim(); body = body.slice(m[0].length).trim(); }
-
-  const parsed = parseMarkdownToBlocks(raw, num);
-  return {
-    title: mdTitle || parsed.title,
-    body,
-    meta,
-    isJson: false,
-    blocks: parsed.blocks,
-    source: parsed.notes.length > 0 ? '' : `ch ${num}`,
-    lang: parsed.frontmatter?.source_lang || frontmatter.data?.source_lang || 'cn',
-    notes: parsed.notes,
-  };
 }
 exports.getChapter = getChapter;
 
@@ -532,21 +443,6 @@ async function listChapters(slug, options = {}) {
         cache.set(listCacheKey, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: withQuality });
         return withQuality;
       }
-      cache.set(listCacheKey, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: out });
-      return out;
-    }
-  } catch {}
-
-  // Legacy: index.json
-  try {
-    const idxRaw = await fs.readFile(legacyIndexPath(slug), 'utf8');
-    const idx = JSON.parse(idxRaw);
-    if (idx && idx.chapters && idx.chapters.length > 0) {
-      const out = options.includeQuality
-        ? await Promise.all(idx.chapters.map(async c => (
-          c.isTranslated ? { ...c, ...(await readTranslationMeta(slug, c.num)) } : c
-        )))
-        : idx.chapters;
       cache.set(listCacheKey, { ts: Date.now(), mtimeMs: cacheKeyMtime, list: out });
       return out;
     }

@@ -1,5 +1,5 @@
 /**
- * lib/blocks.js — Markdown-to-blocks parser for legacy .md chapters
+ * lib/blocks.js — Markdown-to-blocks parser for source chapters
  *
  * Extracted from server.js to avoid circular dependency with chapter-repo.
  */

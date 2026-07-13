@@ -1,11 +1,11 @@
 /**
  * lib/novel-repo.js — Novel metadata operations
  *
- * novel.json is the canonical source of truth. meta.md is legacy only.
+ * novel.json is the canonical source of truth.
  */
 
 const fs = require('node:fs/promises');
-const { novelDir, novelJsonPath, metaMdPath, NOVELS_DIR, assertValidSlug } = require('./paths');
+const { novelDir, novelJsonPath, NOVELS_DIR, assertValidSlug } = require('./paths');
 const { _cache, invalidateAll } = require('./chapter-repo');
 
 // ── List all novels ────────────────────────────────────────────────
@@ -31,7 +31,6 @@ async function getNovelMeta(slug) {
   const mk = 'meta:' + slug;
   if (_cache.has(mk)) return _cache.get(mk);
 
-  // Try novel.json first (canonical), fallback to meta.md
   let meta;
   try {
     const raw = await fs.readFile(novelJsonPath(slug), 'utf8');
@@ -45,37 +44,11 @@ async function getNovelMeta(slug) {
     meta.description = meta.description || '';
     _cache.set(mk, meta);
     return meta;
-  } catch {}
-
-  try {
-    const raw = await fs.readFile(metaMdPath(slug), 'utf8');
-    const m = raw.match(/^---\s*\n([\s\S]*?)\n---/);
-    meta = { slug, title: slug, source_lang: 'cn', target_lang: 'th', description: '' };
-    if (m) {
-      for (const line of m[1].split('\n')) {
-        const kv = line.match(/^(\w[\w_]*):\s*(.+?)\s*$/);
-        if (kv) {
-          let val = kv[2].replace(/^['"]|['"]$/g, '');
-          meta[kv[1]] = val;
-        }
-      }
-    }
-    // Extract description from body
-    const lines = raw.split('\n');
-    let inDesc = false;
-    for (const line of lines) {
-      if (inDesc) {
-        if (line.startsWith('## ')) break;
-        meta.description += line.trim() + '\n';
-      } else if (line.startsWith('## Description')) {
-        inDesc = true;
-      }
-    }
-    meta.description = meta.description.trim();
-  } catch {
-    meta = { slug, title: slug, source_lang: 'cn', target_lang: 'th', description: '' };
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err;
   }
 
+  meta = { slug, title: slug, source_lang: 'cn', target_lang: 'th', description: '' };
   _cache.set(mk, meta);
   return meta;
 }
@@ -91,7 +64,6 @@ async function saveNovelMeta(slug, data) {
     existing = JSON.parse(await fs.readFile(novelJsonPath(slug), 'utf8'));
   } catch {}
 
-  // Write canonical novel.json
   const novelData = {
     ...existing,
     ...data,
@@ -110,21 +82,6 @@ async function saveNovelMeta(slug, data) {
   };
   await fs.mkdir(novelDirPath, { recursive: true });
   await fs.writeFile(novelJsonPath(slug), JSON.stringify(novelData, null, 2), 'utf8');
-
-  // Write meta.md as legacy export
-  const metaYaml = [
-    '---',
-    `slug: ${slug}`,
-    `title: ${novelData.title || slug}`,
-    `author: ${novelData.author || ''}`,
-    `source_lang: ${novelData.sourceLang || 'cn'}`,
-    `target_lang: ${novelData.targetLang || 'th'}`,
-    `status: ${novelData.status || 'ongoing'}`,
-    `total_chapters: ${String(novelData.totalChapters || '0')}`,
-    '---',
-    `# ${novelData.translatedTitle || novelData.title || slug}`,
-  ].join('\n');
-  await fs.writeFile(metaMdPath(slug), metaYaml, 'utf8');
 
   invalidateAll(slug);
 }

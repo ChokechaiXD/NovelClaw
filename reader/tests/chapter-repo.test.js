@@ -49,6 +49,29 @@ test('listChapters uses source markdown title when language json title is generi
   assert.equal(chapters[0].title, 'ตอนที่ 7 Trading House');
   assert.equal(chapters[0].status, 'source_only');
   assert.equal(index.chapters[0].title, 'ตอนที่ 7 Trading House');
+  assert.equal(await pathExists(path.join(chaptersDir, 'index.json')), false);
+});
+
+test('chapter repository ignores retired root chapter formats', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'novelclaw-chapter-repo-canonical-only-'));
+  process.env.NOVELCLAW_ROOT = root;
+  resetNovelRootModules();
+
+  const slug = 'canonical-only';
+  const chaptersDir = path.join(root, slug, 'chapters');
+  await fs.mkdir(chaptersDir, { recursive: true });
+  await fs.writeFile(path.join(chaptersDir, '0001.json'), JSON.stringify({ num: 1, title: 'Retired JSON' }), 'utf8');
+  await fs.writeFile(path.join(chaptersDir, '0002.md'), '# Retired Markdown\n\nBody.', 'utf8');
+
+  const { getChapter, listChapters, rebuildChaptersIndex } = require('../lib/chapter-repo');
+  const chapters = await listChapters(slug, { forceScan: true });
+  const chapter = await getChapter(slug, 1, 'th');
+  const index = await rebuildChaptersIndex(slug);
+
+  assert.deepEqual(chapters, []);
+  assert.equal(chapter, null);
+  assert.equal(index.totalChapters, 0);
+  assert.equal(await pathExists(path.join(chaptersDir, 'index.json')), false);
 });
 
 test('listChapters bypasses stale generic index titles and scans source titles', async () => {

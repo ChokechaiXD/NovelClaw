@@ -119,7 +119,7 @@ NovelClaw/
 └── tests/                       # Python regression tests
 ```
 
-ข้อมูลนิยายเป็น source of truth ส่วน `chapters.json` และ `chapters/index.json` เป็น generated indexes ระบบจะตรวจเลขตอนจากชื่อไฟล์แบบเบาและ rebuild indexes เมื่อพบข้อมูลขาดหรือ title เก่า
+ข้อมูลนิยายเป็น source of truth ส่วน `chapters.json` เป็น generated index ระบบจะตรวจเลขตอนจากชื่อไฟล์แบบเบาและ rebuild index เมื่อพบข้อมูลขาดหรือ title เก่า
 
 ## Data flow
 

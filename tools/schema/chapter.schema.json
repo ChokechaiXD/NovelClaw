@@ -38,7 +38,7 @@
     },
     "status": {
       "type": "string",
-      "enum": ["translated", "source_only", "source", "legacy"],
+      "enum": ["translated", "source_only", "source"],
       "default": "translated"
     },
     "paragraphs": {
