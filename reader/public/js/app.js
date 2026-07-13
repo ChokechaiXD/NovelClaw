@@ -116,14 +116,20 @@ const Router = {
     if (target) target.classList.add('page--active');
 
     // Update sidebar active state
-    document.querySelectorAll('.c-nav-item').forEach(n => n.classList.remove('c-nav-item--active'));
+    document.querySelectorAll('.c-nav-item, .c-mobile-nav__item').forEach((navItem) => {
+      navItem.classList.remove('c-nav-item--active', 'c-mobile-nav__item--active');
+      navItem.removeAttribute('aria-current');
+    });
     const navMap = { home: 'home', library: 'library', search: 'search', ranking: 'ranking', profile: 'profile', history: 'history', bookmarks: 'bookmarks', settings: 'settings', admin: 'admin' };
     // Novel/reader routes: clear sidebar highlight (topbar breadcrumb handles context)
     if (page !== 'novel') {
       const navPage = navMap[page] || null;
       if (navPage) {
-        const navItem = document.querySelector('.c-nav-item[data-page="' + navPage + '"]');
-        if (navItem) navItem.classList.add('c-nav-item--active');
+        document.querySelectorAll('[data-page="' + navPage + '"]').forEach((navItem) => {
+          if (navItem.classList.contains('c-nav-item')) navItem.classList.add('c-nav-item--active');
+          if (navItem.classList.contains('c-mobile-nav__item')) navItem.classList.add('c-mobile-nav__item--active');
+          navItem.setAttribute('aria-current', 'page');
+        });
       }
     }
 
@@ -184,15 +190,56 @@ function initSidebar() {
 }
 
 // ── Mobile Drawer ─────────────────────────────────────────────────────
+let drawerReturnFocus = null;
+
 function openDrawer() {
+  const drawer = document.getElementById('drawer-sidebar');
+  const toggle = document.getElementById('sidebar-toggle');
+  drawerReturnFocus = document.activeElement;
   document.getElementById('drawer-overlay')?.classList.add('c-drawer-overlay--open');
-  document.getElementById('drawer-sidebar')?.classList.add('c-drawer--open');
+  drawer?.classList.add('c-drawer--open');
+  drawer?.setAttribute('aria-hidden', 'false');
+  toggle?.setAttribute('aria-expanded', 'true');
   document.body.style.overflow = 'hidden';
+  document.getElementById('drawer-close')?.focus();
 }
-function closeDrawer() {
+
+function closeDrawer(restoreFocus = true) {
+  const drawer = document.getElementById('drawer-sidebar');
+  const toggle = document.getElementById('sidebar-toggle');
+  const wasOpen = drawer?.classList.contains('c-drawer--open');
   document.getElementById('drawer-overlay')?.classList.remove('c-drawer-overlay--open');
-  document.getElementById('drawer-sidebar')?.classList.remove('c-drawer--open');
+  drawer?.classList.remove('c-drawer--open');
+  drawer?.setAttribute('aria-hidden', 'true');
+  toggle?.setAttribute('aria-expanded', 'false');
   document.body.style.overflow = '';
+  if (wasOpen && restoreFocus && drawerReturnFocus?.focus) drawerReturnFocus.focus();
+  drawerReturnFocus = null;
+}
+
+function handleDrawerKeydown(e) {
+  const drawer = document.getElementById('drawer-sidebar');
+  if (!drawer?.classList.contains('c-drawer--open')) return;
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    closeDrawer();
+    return;
+  }
+  if (e.key !== 'Tab') return;
+
+  const focusable = Array.from(drawer.querySelectorAll(
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  ));
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
 }
 
 function initDrawer() {
@@ -213,6 +260,10 @@ function initDrawer() {
 
   overlay?.addEventListener('click', closeDrawer);
   drawerClose?.addEventListener('click', closeDrawer);
+  document.getElementById('drawer-sidebar')?.addEventListener('keydown', handleDrawerKeydown);
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= 1024) closeDrawer(false);
+  });
 }
 
 // ── Mobile Bottom Nav ────────────────────────────────────────────────
@@ -222,9 +273,6 @@ function initMobileNav() {
       const page = item.dataset.page;
       if (page) {
         window.location.hash = '#' + page;
-        // Update active state
-        document.querySelectorAll('.c-mobile-nav__item').forEach(i => i.classList.remove('c-mobile-nav__item--active'));
-        item.classList.add('c-mobile-nav__item--active');
       }
     });
   });
@@ -255,18 +303,18 @@ function initTheme() {
   // Sidebar theme toggle
   const themeToggle = document.getElementById('theme-toggle-new');
   if (themeToggle) {
-    const isNight = (settings.theme || 'sepia') === 'night' || (settings.theme || 'sepia') === 'amoled';
-    themeToggle.classList.toggle('c-toggle--active', isNight);
+    const syncThemeToggle = (theme) => {
+      const isNight = theme === 'night' || theme === 'amoled';
+      themeToggle.classList.toggle('c-toggle--active', isNight);
+      themeToggle.setAttribute('aria-checked', String(isNight));
+    };
+    syncThemeToggle(settings.theme || 'sepia');
+    Store.on('setting:theme', syncThemeToggle);
     themeToggle.addEventListener('click', () => {
       const current = Store.getSettings().theme || 'sepia';
       // Toggle between night and sepia (main two modes)
       const target = (current === 'night' || current === 'amoled') ? 'sepia' : 'night';
       Store.setSetting('theme', target);
-      themeToggle.classList.toggle('c-toggle--active', target === 'night');
-
-      // Sync settings page select element
-      const settingsSel = document.getElementById('settings-theme');
-      if (settingsSel) settingsSel.value = target;
     });
   }
 
