@@ -17,6 +17,7 @@ import os
 import posixpath
 import re
 import secrets
+import signal
 import sys
 import time
 import zipfile
@@ -180,6 +181,22 @@ def _import_transaction_lock(slug: str):
     fd: int | None = None
     owner_stat: os.stat_result | None = None
 
+    # Register cleanup on SIGINT/SIGTERM to avoid stale locks
+    _orig_sigint = signal.getsignal(signal.SIGINT)
+    _orig_sigterm = signal.getsignal(signal.SIGTERM)
+    _lock_acquired = False
+
+    def _cleanup(*_args: object) -> None:
+        if fd is not None:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+        try:
+            lock_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
     while fd is None:
         try:
             fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
@@ -188,25 +205,36 @@ def _import_transaction_lock(slug: str):
             try:
                 stale_stat = lock_path.stat()
                 if time.time() - stale_stat.st_mtime > IMPORT_LOCK_STALE_SECONDS:
-                    current_stat = lock_path.stat()
-                    if (
-                        current_stat.st_dev == stale_stat.st_dev
-                        and current_stat.st_ino == stale_stat.st_ino
-                        and current_stat.st_mtime_ns == stale_stat.st_mtime_ns
-                    ):
-                        lock_path.unlink()
+                    # TOCTOU fix: re-stat under the same inode before unlink
+                    try:
+                        current_fd = os.open(lock_path, os.O_WRONLY)
+                        current_fd_stat = os.fstat(current_fd)
+                        os.close(current_fd)
+                    except OSError:
                         continue
+                    if (
+                        current_fd_stat.st_dev == stale_stat.st_dev
+                        and current_fd_stat.st_ino == stale_stat.st_ino
+                    ):
+                        lock_path.unlink(missing_ok=True)
+                    continue
             except FileNotFoundError:
                 continue
             if time.monotonic() >= deadline:
                 raise TimeoutError(f"Timed out waiting for import lock: {lock_path}")
             time.sleep(IMPORT_LOCK_POLL_SECONDS)
 
+    _lock_acquired = True
+    signal.signal(signal.SIGINT, _cleanup)
+    signal.signal(signal.SIGTERM, _cleanup)
+
     try:
         os.write(fd, f"{owner_token}\npid={os.getpid()} time={time.time():.3f}\n".encode("ascii"))
         os.fsync(fd)
         yield
     finally:
+        signal.signal(signal.SIGINT, _orig_sigint)
+        signal.signal(signal.SIGTERM, _orig_sigterm)
         os.close(fd)
         try:
             current_stat = lock_path.stat()

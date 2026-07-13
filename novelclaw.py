@@ -80,17 +80,24 @@ _CONFIG_SCHEMA = {
 
 
 def _save_runtime_config(**updates: str) -> None:
-    """Update novelclaw.config.yaml, the runtime config source."""
-    import yaml
+    """Update novelclaw.config.yaml preserving comments and formatting."""
+    from ruamel.yaml import YAML
 
     cfg_path = _PROJECT_ROOT / "novelclaw.config.yaml"
-    data = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) if cfg_path.exists() else {}
-    if not isinstance(data, dict):
+    yaml = YAML()
+    yaml.indent(mapping=2, sequence=4, offset=2)
+    yaml.preserve_quotes = True
+    if cfg_path.exists():
+        data = yaml.load(cfg_path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            data = {}
+    else:
         data = {}
     for key, value in updates.items():
         if value is not None:
             data[key] = value
-    atomic_write_text(cfg_path, yaml.safe_dump(data, allow_unicode=True, sort_keys=False))
+    with open(cfg_path, "w", encoding="utf-8") as f:
+        yaml.dump(data, f)
 
     # ponytail: clear both config caches after local writes; add a shared config module if more writers appear.
     try:
@@ -511,6 +518,15 @@ def cmd_config(args: list[str]) -> None:
 
     if parsed.set_key:
         provider_name, api_key = parsed.set_key
+        # Validate provider name exists in catalog
+        try:
+            from llm_router.config_providers import get_providers_list
+            valid_names = {p["name"] for p in get_providers_list() if "name" in p}
+            if provider_name not in valid_names:
+                print(f"❌ ไม่รู้จัก provider '{provider_name}' — มี: {', '.join(sorted(valid_names))}")
+                return
+        except Exception:
+            pass  # offline mode — skip validation
         # Write to llm.json
         llm_path = _PROJECT_ROOT / "llm.json"
         try:
@@ -531,11 +547,30 @@ def cmd_config(args: list[str]) -> None:
         return
 
     if parsed.provider or parsed.model or parsed.discovery_model:
-        _save_runtime_config(
-            provider=parsed.provider,
-            model=parsed.model,
-            discovery_model=parsed.discovery_model,
-        )
+        # Validate model exists in selected provider's catalog before saving
+        updates: dict[str, str] = {}
+        if parsed.provider:
+            updates["provider_name"] = parsed.provider
+        if parsed.model:
+            updates["model"] = parsed.model
+        if parsed.discovery_model:
+            updates["discovery_model"] = parsed.discovery_model
+        try:
+            from llm_router.config_providers import get_providers_list
+            from pipeline_llm import get_active_config
+            active_provider = updates.get("provider_name") or get_active_config().get("provider_name")
+            plist = get_providers_list()
+            provider_cfg = next((p for p in plist if p.get("name") == active_provider), None)
+            if provider_cfg:
+                valid_ids = {m.get("id") for m in provider_cfg.get("models", []) if m.get("id")}
+                for key in ("model", "discovery_model"):
+                    val = updates.get(key)
+                    if val and val not in valid_ids:
+                        print(f"❌ '{val}' ไม่ใช่ model ของ {active_provider} — มี: {', '.join(sorted(valid_ids))}")
+                        return
+        except Exception:
+            pass
+        _save_runtime_config(**updates)
         print("✅ บันทึกแล้ว")
 
     from llm_router.config_providers import get_providers_list

@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""
+"""prompt_builder.py — Universal translation prompt engine (v4).
 prompt_builder.py — Universal translation prompt engine (v4).
 
 Generates language-pair-specific prompts for novel translation.
@@ -24,26 +23,28 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from functools import lru_cache
 
 from source_profile import summarize_structure_contract
 
 # ── Prompt Profiles ───────────────────────────────────────────────────
 # Load profiles from tools/prompt_profiles/*.yaml
 _PROFILES_DIR = Path(__file__).resolve().parent / "prompt_profiles"
-_PROFILE_CACHE: dict[str, dict[str, Any]] = {}
 
 
+@lru_cache(maxsize=32)
 def _load_profile(name: str) -> dict[str, Any] | None:
-    """Load a prompt profile from YAML file in prompt_profiles/."""
-    if name in _PROFILE_CACHE:
-        return _PROFILE_CACHE[name]
+    """Load a prompt profile from YAML file in prompt_profiles/.
+
+    LRU-cached (maxsize=32) to prevent unbounded growth. Reset on runtime
+    profile changes by calling _load_profile.cache_clear() after writes.
+    """
     profile_path = _PROFILES_DIR / f"{name}.yaml"
     if not profile_path.exists():
         return None
     try:
         with open(profile_path, encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-        _PROFILE_CACHE[name] = data
         return data
     except Exception:
         return None
