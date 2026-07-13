@@ -560,20 +560,6 @@ def cmd_config(args: list[str]) -> None:
             print(f"     {mm} {m.get('id', '?')} ({m.get('tier', '?')})")
 
 
-# ── SCRAPE (deprecated) ───────────────────────────────────────────
-#
-# scraper.py was removed. This command is kept as a stub to give
-# a clear error message instead of an ImportError.
-
-
-def cmd_scrape(args: list[str]) -> None:
-    """novelclaw scrape — removed. Use third-party tools to download source files."""
-    print("⚠️  คำสั่ง scrape ถูกลบออกแล้ว")
-    print("   Scraper functionality was removed in the prompt-profile refactor.")
-    print("   Place source files manually in novels/<slug>/<ch>.cn.json instead.")
-    print("   For批量 download, use external tools (e.g., wget + custom script).")
-
-
 # ── IMPORT SOURCE ───────────────────────────────────────────────────────
 
 
@@ -644,8 +630,6 @@ def main() -> None:
         cmd_status(args)
     elif command == "config":
         cmd_config(args)
-    elif command == "scrape":
-        cmd_scrape(args)
     elif command == "import-url":
         cmd_import_url(args)
     elif command == "import-sites":
@@ -654,7 +638,7 @@ def main() -> None:
         print(__doc__)
     else:
         print(f"❌ ไม่รู้จักคำสั่ง '{command}'")
-        print("คำสั่งที่มี: translate, judge, status, config, scrape, import-url, import-sites")
+        print("คำสั่งที่มี: translate, judge, status, config, import-url, import-sites")
         sys.exit(1)
 
 
