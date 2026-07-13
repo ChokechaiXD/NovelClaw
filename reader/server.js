@@ -1949,6 +1949,10 @@ adminPost('/api/translate/runs/:runId/cancel', async (req, res) => {
 
 app.get('*', asyncHandler(async (req, res) => {
   if (req.path.startsWith('/api/')) return fail(res, 404, 'API_NOT_FOUND', 'API not found');
+  if (path.extname(req.path)) {
+    res.set('Cache-Control', 'no-store');
+    return res.status(404).type('text/plain').send('Static asset not found');
+  }
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
