@@ -1,163 +1,147 @@
 # NovelClaw — Translation Manual
 
-> Human reference for maintaining the NovelClaw translation system.
+คู่มือดูแลระบบนำเข้า แปล ตรวจคุณภาพ และจัดเก็บตอนแบบ local-first
 
-**Last updated:** 2026-06-22 (v3 paragraphs pipeline)
+**Last updated:** 2026-07-13
 
----
+## โครงสร้างข้อมูล
 
-## System Overview
-
-```
-Source (CN/Multi) → AI Translation (TH) → Python assemble paragraphs → Validate → Save → Commit
-                            ↑
-                    glossary/ (terms)
-                    style rules
-                    brackets.json (markers config)
-```
-
-## File Structure
-
-```
-NovelClaw/
-├── tools/                   — Translation & validation toolkit
-│   ├── translate.py         — Main pipeline: read → LLM → parse → validate → save
-│   ├── schema.py            — Pydantic Chapter schema (v3 with paragraphs)
-│   ├── validation.py        — Quality gate: CJK/EN/artifact leak checks
-│   ├── scorer.py            — 8-dimension objective quality scorer
-│   ├── glossary.py          — Glossary loading & term management
-│   ├── progress.py          — Batch progress tracking
-│   ├── translation_memory.py— Block-level translation cache
-│   └── providers/
-│       ├── __init__.py
-│       └── api.py           — LLM HTTP provider (direct HTTP)
-├── reader/                  — Express.js web reader
-│   └── lib/
-│       ├── render.js        — renderChapterJson() + renderParagraphs()
-│       └── brackets.js      — Language bracket config loader
-└── novels/
-    └── <slug>/
-        ├── glossary/
-        │   ├── locked.md    — P1: Never deviate
-        │   ├── reference.md — P2: Use consistently
-        │   ├── auto.md      — P3: Suggestion only
-        │   └── glossary.yml — Auto-generated (build_yaml.py)
-        └── chapters/
-            ├── NNNN.json    — Translated chapters (schema v3)
-            └── source/
-                └── NNNN.md  — Raw source chapters
+```text
+novels/<slug>/
+├── novel.json                 # metadata หลัก
+├── chapters.json              # generated chapter index
+├── chapters/
+│   ├── NNNN.cn.json           # source chapter แบบ canonical
+│   ├── NNNN.th.json           # translated chapter แบบ canonical
+│   └── source/NNNN.md         # raw source จาก importer ถ้ามี
+└── glossary/
+    ├── locked.md              # P1: ต้องใช้ตรงทุกครั้ง
+    ├── reference.md           # P2: คำที่ใช้ซ้ำ
+    ├── auto.md                # P3: คำที่ระบบค้นพบ
+    ├── glossary.yml
+    └── glossary.json
 ```
 
-## Translation Pipeline (v3)
+`novel.json`, chapter files และ glossary เป็น source of truth ส่วน `chapters.json` เป็น index ที่ rebuild ได้ ห้ามสร้าง `meta.md`, `chapters/index.json` หรือ root `NNNN.json` แบบเก่า
 
-### One chapter
+## นำเข้าต้นฉบับ
 
-```bash
-python tools/translate.py <N> --score --json
+ดู adapters ที่รองรับ:
+
+```powershell
+python novelclaw.py import-sites
 ```
 
-### Batch
+ตรวจ URL โดยไม่เขียนไฟล์:
 
-```bash
-python tools/translate.py <start>-<end> --score --json --concurrent 3
+```powershell
+python novelclaw.py import-url <toc-url> --site auto --preview
 ```
 
-### What happens
+นำเข้าเป็นเรื่องใหม่หรือเพิ่มตอน:
 
-| Step | What | Who |
-|:----|:-----|:----|
-| 1 | Read & clean source | Python |
-| 2 | Build prompt (glossary + style + continuity) | Python |
-| 3 | LLM translates → outputs plain Thai text with inline markers | LLM |
-| 4 | `parse_translation_output()` → split paragraphs | Python |
-| 5 | CN strip & append `(จบบท)` end marker | Python |
-| 6 | Pydantic schema validation | Python |
-| 7 | Quality gate (CJK/EN/artifact leak checks) | Python |
-| 8 | Save `NNNN.json` | Python |
+```powershell
+python novelclaw.py import-url <toc-url> --slug <slug> --site auto --range 1-20
+```
 
-### Post-processing steps: from 8 → **1** ✅
+ใช้ `--force` เฉพาะเมื่อต้องการเขียนทับ source ที่มีอยู่แล้ว หน้า Admin มี paste/URL import และ source inspection สำหรับงานเดียวกัน
 
-Post-process no longer handles: block type fixing, JSON repair, dialogue reclassification, speaker extraction, bracket wrapping, EN guard, empty block removal — all obsolete.
+## แปล
 
-## Chapter File Format (v3 — current)
+ทดสอบ flow โดยไม่เรียก LLM และไม่บันทึกคำแปล:
+
+```powershell
+python novelclaw.py translate 1 --slug <slug> --mock --dry-run --sequential
+```
+
+แปลจริงทีละตอนหรือเป็นช่วง:
+
+```powershell
+python novelclaw.py translate 1 --slug <slug> --sequential
+python novelclaw.py translate 1-20 --slug <slug> --parallel 3 --retry 1
+```
+
+pipeline จะอ่านและทำความสะอาด source, สร้าง prompt จาก glossary/profile, เรียก provider, แยก paragraph types, ตรวจ deterministic quality, repair/retry ตาม config และบันทึก `.th.json` แบบ atomic
+
+ดู options ล่าสุดด้วย:
+
+```powershell
+python novelclaw.py translate --help
+```
+
+## Canonical translated chapter
 
 ```json
 {
-  "schema_version": 3,
-  "num": 142,
-  "title": "ตอนที่ 142 การเติบโตของวอลลี่แบร์",
-  "lang": "cn",
-  "output_lang": "th",
+  "novelId": "example-novel",
+  "chapterNo": 142,
+  "sourceLang": "cn",
+  "targetLang": "th",
+  "title": {
+    "source": "第142章",
+    "translated": "ตอนที่ 142"
+  },
+  "status": "translated",
   "paragraphs": [
-    "ข้อความแจ้งเตือนระบบสองบรรทัด ทำให้ใบหน้าของเฉาซิงมีสีหน้าดีใจ",
-    "\"ท่านลอร์ดที่รัก เสด็จมาแล้วหรือเจ้าคะ\"",
-    "【วิญญาณระดับหัวกะทิของสัตว์ประหลาดเพาะพันธุ์วิญญาณ】",
-    "(จบบท)"
+    { "type": "narration", "text": "ข้อความบรรยาย" },
+    { "type": "dialogue", "text": "\"ข้อความสนทนา\"" },
+    { "type": "system", "text": "【ข้อความระบบ】" },
+    { "type": "narration", "text": "(จบบท)" }
   ],
-  "source": "ch 142"
+  "meta": {
+    "provider": "provider-id",
+    "model": "model-id",
+    "promptProfile": "omni"
+  },
+  "qualityRecord": {
+    "passed": true,
+    "score": 90,
+    "hardFailures": [],
+    "warnings": []
+  }
 }
 ```
 
-### Inline Markers (universal — all languages, all genres)
+paragraph types หลักคือ `narration`, `dialogue`, `system`, `thought` และ `action` ตัว reader escape text ก่อน render และใช้ type เป็น semantic class
 
-| Marker | Meaning | CSS class |
-|:-------|:--------|:----------|
-| `"..."` | Dialogue (straight quotes) | `.c-marker--dialogue` |
-| `「...」` | Dialogue (CJK brackets) | `.c-marker--dialogue` |
-| `"…"` (curly) | Dialogue | `.c-marker--dialogue` |
-| `【...】` | System notification | `.c-marker--system` |
-| `『...』` | Inner thought (JP/CN) | `.c-marker--thought` |
-| `(จบบท)` | End marker | `.c-marker--end` |
+## ตรวจคุณภาพ
 
-No block types needed — markers in text drive the styling via regex.
+ตรวจคำแปลที่บันทึกแล้วด้วย judge:
 
-## Quality
-
-### Quality gate (pre-save)
-
-```bash
-python tools/translate.py 130 --score --json
+```powershell
+python novelclaw.py judge 142 --slug <slug>
+python novelclaw.py judge 140-150 --slug <slug> --json
 ```
 
-Validates: CJK leak, EN leak, source artifact leak, length ratio.
+ตรวจ repository ก่อน commit:
 
-### Post-translation quality scorer
-
-```bash
-python tools/scorer.py chapters/ --source source/
+```powershell
+python -m ruff check novelclaw.py tools tests
+python -m pytest -q
+npm --prefix reader run check
 ```
 
-8 dimensions: completeness, CN leak, EN leak, end marker, dialogue ratio, block diversity, schema. Returns 0-100 weighted score.
+API integration test ต้องเปิด Reader ก่อน:
 
-## Glossary Maintenance
+```powershell
+npm --prefix reader run test:api
+```
 
-### Adding a new term
+## ดูแล glossary
 
-1. Check which tier it belongs to:
-   - **Locked (P1)**: Main cast, key locations, core game terms → `glossary/locked.md`
-   - **Reference (P2)**: Recurring NPCs, common skills/items → `glossary/reference.md`
-   - **Auto (P3)**: One-off terms → `glossary/auto.md`
+1. คำหลัก ตัวละคร สถานที่ และศัพท์ที่ห้ามเปลี่ยน ใส่ `locked.md`
+2. คำที่เกิดซ้ำและต้องการความสม่ำเสมอ ใส่ `reference.md`
+3. คำชั่วคราวหรือคำที่ระบบค้นพบ ใส่ `auto.md`
+4. ใช้รูปแบบตาราง `| source | target | notes |`
 
-2. Add row to the appropriate `.md` file (format: `| CN | TH | notes |`)
+ลำดับความสำคัญคือ `locked.md` > `reference.md` > `auto.md` ระบบจะอ่านไฟล์เหล่านี้ใน translation pipeline และสร้าง cache/index ที่จำเป็นเอง
 
-3. No need to rebuild — `translate.py` loads directly from `.md` files.
+## เพิ่มนิยายใหม่
 
-### Priority Resolution
+1. สร้าง `novels/<slug>/novel.json` หรือใช้หน้า Admin
+2. นำเข้า source ด้วย `import-url`, paste import หรือวาง `chapters/source/NNNN.md`
+3. สร้าง glossary tiers สำหรับเรื่องนั้น
+4. ตรวจ source health ก่อนเริ่มแปล
+5. รัน mock/dry-run หนึ่งตอน แล้วจึงเริ่ม batch จริง
 
-`locked.md` > `reference.md` > `auto.md`
-
-## Adding a New Novel
-
-1. Create `novels/<slug>/` directory
-2. Add source chapters to `chapters/source/` as `NNNN.md`
-3. Create `glossary/` with `locked.md`, `reference.md`, `auto.md`
-4. Add metadata to `novels/<slug>/novel.json` for reader discovery
-
-## Design Principles
-
-1. **Transmittor, not editor** — AI transmits author's voice, doesn't "improve"
-2. **Completeness is non-negotiable** — every word translated, no gaps
-3. **Zero CJK leakage** — body text is pure Thai
-4. **Glossary is law** — locked terms never deviate
-5. **Validate before commit** — tools catch errors AI misses
-6. **Python does structure, LLM does translation** — never ask LLM to output JSON
+ระบบ Reader จะค้นพบเรื่องจาก directory และ `novel.json`; ไม่ต้องลงทะเบียนซ้ำในไฟล์อื่น

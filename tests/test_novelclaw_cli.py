@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import sys
 import threading
 
 import novelclaw
+import pytest
 
 
 def test_translate_json_parallel_forwards_mock_and_dry_run(monkeypatch, capsys):
@@ -99,6 +101,19 @@ def test_import_sites_loads_active_importer(capsys):
     output = capsys.readouterr().out
     assert '"sites"' in output
     assert '69shu' in output
+
+
+def test_removed_scrape_command_is_not_advertised(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["novelclaw.py", "scrape"])
+
+    with pytest.raises(SystemExit) as exc:
+        novelclaw.main()
+
+    output = capsys.readouterr().out
+    assert exc.value.code == 1
+    assert "ไม่รู้จักคำสั่ง 'scrape'" in output
+    assert "config, import-url" in output
+    assert "config, scrape" not in output
 
 
 

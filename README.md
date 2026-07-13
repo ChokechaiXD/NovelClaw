@@ -103,8 +103,7 @@ NovelClaw/
 │   ├── chapters.json            # generated canonical index
 │   ├── chapters/
 │   │   ├── NNNN.cn.json         # ต้นฉบับ
-│   │   ├── NNNN.th.json         # คำแปล
-│   │   └── index.json           # compatibility index
+│   │   └── NNNN.th.json         # คำแปล
 │   └── glossary/                # glossary ของเรื่อง
 ├── tools/
 │   ├── import_sources.py        # import orchestrator
