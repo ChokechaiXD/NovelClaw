@@ -87,7 +87,7 @@
   <!-- ═══ LAYOUT ═══ -->
   <div class="c-app" id="app-layout">
     <!-- Sidebar -->
-    <nav class="c-app__sidebar" id="sidebar-nav">
+    <nav class="c-app__sidebar" id="sidebar-nav" aria-label="เมนูหลัก">
       <div class="c-sidebar__brand">
         <div class="c-sidebar__logo">
           <svg><use xlink:href="#logo-crab-claw"/></svg>
@@ -97,7 +97,7 @@
           <div class="c-sidebar__subtitle">โลกของนักอ่าน ไม่สิ้นสุด</div>
         </div>
         <button class="c-btn c-btn--icon c-sidebar__close" id="sidebar-close" aria-label="ปิดเมนู" type="button">
-          <svg class="c-icon c-icon--xs"><use xlink:href="#icon-close"/></svg>
+          <svg class="c-icon c-icon--xs" aria-hidden="true"><use xlink:href="#icon-close"/></svg>
         </button>
       </div>
 
@@ -125,9 +125,9 @@
       <div class="c-sidebar__toggles">
         <div class="c-toggle__row">
           <span class="c-toggle__label">
-            <svg class="c-icon c-icon--sm"><use xlink:href="#icon-moon"/></svg> โหมดกลางคืน
+            <svg class="c-icon c-icon--sm" aria-hidden="true"><use xlink:href="#icon-moon"/></svg> โหมดกลางคืน
           </span>
-          <div class="c-toggle c-toggle--active" id="theme-toggle-new"></div>
+          <button class="c-toggle" id="theme-toggle-new" type="button" role="switch" aria-checked="false" aria-label="เปิดหรือปิดโหมดกลางคืน"></button>
         </div>
       </div>
     </nav>
@@ -136,8 +136,8 @@
     <main class="c-app__main">
       <div class="c-header">
         <div class="c-header__left">
-          <button class="c-btn c-btn--icon" id="sidebar-toggle" aria-label="สลับแถบเมนู" type="button">
-            <svg class="c-icon c-icon--sm"><use xlink:href="#icon-hamburger"/></svg>
+          <button class="c-btn c-btn--icon" id="sidebar-toggle" aria-label="สลับแถบเมนู" aria-controls="drawer-sidebar" aria-expanded="false" type="button">
+            <svg class="c-icon c-icon--sm" aria-hidden="true"><use xlink:href="#icon-hamburger"/></svg>
           </button>
           <span class="c-header__title" id="page-title">หน้าหลัก</span>
         </div>
@@ -167,23 +167,23 @@
   </div>
 
   <!-- Mobile drawer overlay -->
-  <div class="c-drawer-overlay" id="drawer-overlay"></div>
+  <div class="c-drawer-overlay" id="drawer-overlay" aria-hidden="true"></div>
 
   <!-- Mobile drawer sidebar (cloned contents dynamically) -->
-  <div class="c-drawer" id="drawer-sidebar">
+  <div class="c-drawer" id="drawer-sidebar" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true">
     <div class="c-sidebar__brand">
       <div class="c-sidebar__logo">
         <svg><use xlink:href="#logo-crab-claw"/></svg>
       </div>
       <div class="c-sidebar__brand-text">
-        <div class="c-sidebar__title">NovelClaw</div>
+        <div class="c-sidebar__title" id="drawer-title">NovelClaw</div>
         <div class="c-sidebar__subtitle">โลกของนักอ่าน ไม่สิ้นสุด</div>
       </div>
       <button class="c-btn c-btn--icon" id="drawer-close" aria-label="ปิดเมนู" type="button">
-        <svg class="c-icon c-icon--xs"><use xlink:href="#icon-close"/></svg>
+        <svg class="c-icon c-icon--xs" aria-hidden="true"><use xlink:href="#icon-close"/></svg>
       </button>
     </div>
-    <div class="c-sidebar__nav" id="drawer-nav">
+    <nav class="c-sidebar__nav" id="drawer-nav" aria-label="เมนูมือถือ">
       <div class="c-nav-divider"></div>
       <button class="c-nav-item c-nav-item--active" data-page="home" type="button" aria-current="page" aria-label="หน้าหลัก">
         <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-home"/></svg> หน้าหลัก
@@ -202,11 +202,11 @@
       <button class="c-nav-item" data-page="admin" type="button" aria-label="จัดการระบบ">
         <svg class="c-nav-item__icon" aria-hidden="true"><use xlink:href="#icon-shield"/></svg> จัดการ
       </button>
-    </div>
+    </nav>
   </div>
 
   <!-- Mobile bottom nav -->
-  <nav class="c-mobile-nav" id="mobile-nav">
+  <nav class="c-mobile-nav" id="mobile-nav" aria-label="เมนูด้านล่าง">
     <button class="c-mobile-nav__item c-mobile-nav__item--active" data-page="home" type="button" aria-current="page" aria-label="หน้าหลัก">
       <svg aria-hidden="true"><use xlink:href="#icon-home"/></svg>หน้าแรก
     </button>
@@ -224,11 +224,10 @@
     </button>
   </nav>
 
-  <div id="toast-container" class="c-toast-container"></div>
+  <div id="toast-container" class="c-toast-container" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <!-- ═══ SCRIPTS (order matters) ═══ -->
-  <!-- Defer non-critical scripts so home renders fast. admin.js (87KB) is
-       loaded on demand by app.js on first navigation to '#admin*'. -->
+  <!-- Defer non-critical scripts; admin routes load only when opened. -->
   <script src="/js/state.js" defer></script>
   <script src="/js/api.js" defer></script>
   <script src="/js/components.js" defer></script>

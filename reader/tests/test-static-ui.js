@@ -164,6 +164,38 @@ if (fs.existsSync(ADMIN_PAGE_LOADER_JS)) {
   fail('single-use admin-page-loader.js must be folded into the admin route registry');
 }
 
+for (const accessibleShellMarkup of [
+  'id="theme-toggle-new"',
+  'role="switch"',
+  'aria-checked="false"',
+  'id="drawer-sidebar" role="dialog"',
+  'aria-modal="true"',
+  'aria-hidden="true"',
+  'id="toast-container" class="c-toast-container" role="status"',
+]) {
+  if (!htmlText.includes(accessibleShellMarkup)) {
+    fail(`index.html must expose accessible shell markup: ${accessibleShellMarkup}`);
+  }
+}
+for (const accessibleShellBehavior of [
+  "'aria-checked'",
+  "e.key === 'Escape'",
+  "e.key !== 'Tab'",
+  'drawerReturnFocus',
+  "removeAttribute('aria-current')",
+  "setAttribute('aria-current', 'page')",
+]) {
+  if (!appText.includes(accessibleShellBehavior)) {
+    fail(`app.js must preserve accessible drawer/theme behavior: ${accessibleShellBehavior}`);
+  }
+}
+if (!cssText.includes('@media (prefers-reduced-motion: reduce)')) {
+  fail('design-system.css must respect reduced-motion preferences');
+}
+if (cssText.includes('.c-toggle__knob')) {
+  fail('design-system.css must not keep the obsolete duplicate toggle implementation');
+}
+
 const adminTranslateText = fs.readFileSync(ADMIN_TRANSLATE_JS, 'utf8');
 if (adminTranslateText.includes('includeChapters: true')) {
   fail('admin translate table must use chapter workflowSourceIssues instead of refetching import health chapters');
