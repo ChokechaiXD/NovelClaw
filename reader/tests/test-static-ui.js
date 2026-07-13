@@ -22,6 +22,7 @@ const ADMIN_JS = path.join(PUBLIC_JS, 'pages', 'admin.js');
 const ADMIN_TRANSLATE_JS = path.join(PUBLIC_JS, 'pages', 'admin-translate.js');
 const ADMIN_TRANSLATE_JOB_JS = path.join(PUBLIC_JS, 'pages', 'admin-translate-job.js');
 const HOME_JS = path.join(PUBLIC_JS, 'pages', 'home.js');
+const READER_JS = path.join(PUBLIC_JS, 'pages', 'reader.js');
 const PAGES_JS = path.join(PUBLIC_JS, 'pages', 'pages.js');
 const STATE_JS = path.join(PUBLIC_JS, 'state.js');
 
@@ -90,6 +91,13 @@ for (const fakeHomeSection of ['c-hero', 'c-update', 'c-popular', 'ยอดน�
 }
 if (!homeText.includes('Ui.novelCard')) {
   fail('home.js must reuse the canonical novel card instead of maintaining another card implementation');
+}
+
+const readerText = fs.readFileSync(READER_JS, 'utf8');
+for (const eagerModelSurface of ['reader-model-select', 'reader-model-list', 'Api.getLlmConfig', 'Api.saveLlmConfig']) {
+  if (readerText.includes(eagerModelSurface)) {
+    fail(`reader.js must not load or edit provider config while reading: ${eagerModelSurface}`);
+  }
 }
 
 const pagesText = fs.readFileSync(PAGES_JS, 'utf8');

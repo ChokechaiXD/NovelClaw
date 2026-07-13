@@ -803,11 +803,6 @@ button.c-form__input,
   .c-reader-toolbar__editor {
     order: 4;
   }
-  .c-reader-toolbar__model-select {
-    order: 5;
-    flex: 1 1 180px;
-    max-width: none;
-  }
   .c-admin-nav {
     max-width: 100%;
     flex-wrap: wrap;
@@ -1535,27 +1530,10 @@ pre code {
 .c-reader-toolbar__editor {
   flex: 0 0 auto;
 }
-.c-reader-toolbar__model-select {
-  height: 36px;
-  width: min(180px, 48vw);
-  padding: 0 var(--space-xs);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius-full);
-  background: var(--c-bg-secondary);
-  color: var(--c-text-primary);
-  font-size: 11px;
-  cursor: pointer;
-  outline: none;
-}
 @media (max-width: 640px) {
   .c-toolbar__actions {
     flex: 1 1 100%;
     min-width: 0;
-  }
-  .c-reader-toolbar__model-select {
-    flex: 1 1 auto;
-    width: auto;
-    max-width: none;
   }
 }
 
