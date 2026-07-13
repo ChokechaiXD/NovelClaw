@@ -401,12 +401,15 @@ app.get('/api/novel/:slug/chapters', asyncHandler(async (req, res) => {
       workflowHealthError = err.message || 'Unable to read source diagnostics';
     }
   }
-  const runResultByNum = getActiveTranslateChapterResultMap(req.params.slug);
-  const chapters = rawChapters.map(chapter => chapterState.decorateChapter(chapter, {
-    sourceIssue: sourceIssueByNum.get(chapter.num),
-    runResult: runResultByNum.get(chapter.num),
-  }));
-  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  let chapters = rawChapters;
+  if (withQuality) {
+    const runResultByNum = getActiveTranslateChapterResultMap(req.params.slug);
+    chapters = rawChapters.map(chapter => chapterState.decorateChapter(chapter, {
+      sourceIssue: sourceIssueByNum.get(chapter.num),
+      runResult: runResultByNum.get(chapter.num),
+    }));
+  }
+  res.set('Cache-Control', withQuality ? 'no-store' : 'private, no-cache');
   logTiming(`GET /api/novel/${req.params.slug}/chapters`, startedAt);
   res.json({
     slug: req.params.slug,

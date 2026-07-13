@@ -156,7 +156,28 @@ async function main() {
     const chs = res.body?.chapters;
     if (!Array.isArray(chs) || chs.length === 0) return false;
     const first = chs[0];
-    return first.num === 1 && first.title && first.hasTh !== undefined;
+    return first.num === 1
+      && first.title
+      && first.hasTh !== undefined
+      && first.workflowStatus === undefined
+      && first.workflowReasons === undefined;
+  });
+
+  await test('/api/novel/:slug/chapters?withQuality=1 includes workflow detail', async () => {
+    const res = await get(`/api/novel/${TEST_SLUG}/chapters?withQuality=1`);
+    const first = res.body?.chapters?.[0];
+    return res.status === 200
+      && first?.workflowStatus
+      && Array.isArray(first.workflowReasons)
+      && res.body?.workflowSummary?.translated >= 1;
+  });
+
+  await test('basic chapter list supports HTTP revalidation', async () => {
+    const first = await get(`/api/novel/${TEST_SLUG}/chapters`);
+    const etag = first.headers?.etag;
+    if (first.status !== 200 || !etag || first.headers['cache-control'] !== 'private, no-cache') return false;
+    const second = await get(`/api/novel/${TEST_SLUG}/chapters`, { 'If-None-Match': etag });
+    return second.status === 304 && second.raw === '';
   });
 
   // ── Test 3: Thai chapter ──────────────────────────────────────────
