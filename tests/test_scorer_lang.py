@@ -1,11 +1,9 @@
 """Tests: scorer language-agnostic configuration."""
-import scorer
 from scorer import (
     _get_lang_config,
     _score_end_marker,
     _score_completeness,
     _score_dialogue_ratio,
-    DimensionScore,
 )
 
 

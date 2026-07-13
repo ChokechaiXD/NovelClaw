@@ -145,6 +145,9 @@ Reader and LAN clients
 # Python pipeline/import tests
 python -m pytest -q
 
+# Python bug-prone lint checks
+python -m ruff check novelclaw.py tools tests
+
 # Reader static checks, syntax และ unit tests
 npm --prefix reader run check
 

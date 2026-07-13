@@ -24,12 +24,12 @@ except ModuleNotFoundError:
 
 try:
     from import_adapters import get_adapter, list_adapters
-    from import_adapters.base import ChapterRef, ExtractedChapter
+    from import_adapters.base import ExtractedChapter
     from import_adapters.cleaning import clean_text_lines, validate_paragraphs
     from import_adapters.registry import list_site_catalog
 except ModuleNotFoundError:
     from tools.import_adapters import get_adapter, list_adapters
-    from tools.import_adapters.base import ChapterRef, ExtractedChapter
+    from tools.import_adapters.base import ExtractedChapter
     from tools.import_adapters.cleaning import clean_text_lines, validate_paragraphs
     from tools.import_adapters.registry import list_site_catalog
 

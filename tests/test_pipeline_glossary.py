@@ -1,6 +1,5 @@
 from types import SimpleNamespace
 
-import pipeline
 import pipeline_save
 
 

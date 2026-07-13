@@ -90,9 +90,9 @@ from classifier import classify_and_format, estimate_type_ratios  # noqa: E402
 from novel_paths import chapter_path, source_md_path  # noqa: E402
 from pipeline_llm import call_llm, get_active_config as _get_active_config  # noqa: E402
 from pipeline_llm import FatalError  # noqa: E402
-from scorer import ScorerHistory, MqmError  # noqa: E402
+from scorer import ScorerHistory  # noqa: E402
 from pipeline_parser import parse_output  # noqa: E402
-from pipeline_save import apply_glossary_post, save_chapter, get_title as _get_title  # noqa: E402
+from pipeline_save import apply_glossary_post, get_title as _get_title, save_chapter  # noqa: E402,F401
 from prompt_builder import build_prompt  # noqa: E402
 from scorer import PASS_THRESHOLD  # noqa: E402
 from source_cleaner import clean_source  # noqa: E402

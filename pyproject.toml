@@ -22,13 +22,11 @@ classifiers = [
 ]
 
 dependencies = [
-    "pydantic>=2.0",
     "pyyaml>=6.0",
-    "jsonschema>=4.22",
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+test = ["pytest>=8.0", "ruff>=0.5"]
 
 [project.urls]
 Homepage = "https://github.com/ChokechaiXD/NovelClaw"
@@ -41,7 +39,6 @@ include = ["tools*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-asyncio_mode = "auto"
 filterwarnings = ["ignore::DeprecationWarning"]
 
 [tool.ruff]
@@ -49,20 +46,14 @@ target-version = "py311"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "ARG", "PTH", "PD", "PL"]
-ignore = ["E501", "B904", "PLR2004", "PLR0913", "PLR0915", "PLR0912", "PLR0911"]
+select = ["E4", "E7", "E9", "F", "B"]
+ignore = ["E501", "B904"]
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
-
-[tool.mypy]
-python_version = "3.11"
-ignore_missing_imports = true
-explicit_package_bases = true
-warn_unused_configs = true
 
 [tool.coverage.run]
 source = ["tools"]

@@ -1,6 +1,5 @@
 """Tests: MQM Error Typology (Phase 2)."""
-import pytest
-from scorer import MqmError, _mqm_map, score_chapter, DimensionScore
+from scorer import MqmError, _mqm_map, score_chapter
 
 
 # ── MqmError dataclass ──────────────────────────────────────────────

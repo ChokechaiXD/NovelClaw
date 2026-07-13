@@ -1,5 +1,4 @@
 """Tests: ScorerHistory adaptive threshold (Phase 3)."""
-import pytest
 from scorer import ScorerHistory
 
 

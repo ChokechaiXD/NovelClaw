@@ -21,14 +21,15 @@ PY="$PWD/.venv312/bin/python"
 [ -x "$PY" ] || PY="$PWD/.venv312/Scripts/python.exe"
 
 if command -v uv >/dev/null 2>&1; then
-    uv pip install --python "$PY" pydantic pyyaml jsonschema pytest pytest-asyncio
+    uv pip install --python "$PY" -e ".[test]"
 else
-    "$PY" -m pip install pydantic pyyaml jsonschema pytest pytest-asyncio
+    "$PY" -m pip install -e ".[test]"
 fi
 
 cat <<EOF
 
 Venv ready. Run tests:
     $PY -m pytest tests/ -q
+    $PY -m ruff check novelclaw.py tools tests
 
 EOF

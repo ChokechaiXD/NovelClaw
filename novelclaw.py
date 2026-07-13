@@ -285,7 +285,7 @@ def cmd_translate(args: list[str]) -> None:
             else:
                 if attempt < parsed.retry:
                     print(f"  ⚠️  ตอน {ch} ล้มเหลว (ครั้งที่ {attempt+1}): {result['reason'][:80]}")
-                    print(f"     กำลังลองใหม่...")
+                    print("     กำลังลองใหม่...")
                     _json_progress("chapter_retry", {"ch": ch, "attempt": attempt+1, "reason": result.get("reason","")})
                     time.sleep(2)
                 else:
@@ -536,7 +536,7 @@ def cmd_config(args: list[str]) -> None:
             model=parsed.model,
             discovery_model=parsed.discovery_model,
         )
-        print(f"✅ บันทึกแล้ว")
+        print("✅ บันทึกแล้ว")
 
     from llm_router.config_providers import get_providers_list
     from pipeline_llm import get_active_config
@@ -544,7 +544,7 @@ def cmd_config(args: list[str]) -> None:
     active = cfg.get("provider_name", "?")
     model = cfg.get("model", "?")
     disc = cfg.get("discovery_model", "—")
-    print(f"⚙️  ปัจจุบัน")
+    print("⚙️  ปัจจุบัน")
     print(f"   Provider:   {active}")
     print(f"   Translate:  {model}")
     print(f"   Discovery:  {disc}")
