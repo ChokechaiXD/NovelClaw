@@ -1,4 +1,6 @@
 from pipeline import clean_source
+from import_adapters.base import ExtractedChapter
+from import_sources import render_source_markdown
 from source_cleaner import find_source_noise
 
 
@@ -33,6 +35,35 @@ def test_clean_source_preserves_first_story_line_without_header():
 
     assert cleaned.startswith("阿星睜開眼時")
     assert "100點經驗值" in cleaned
+
+
+def test_clean_source_reads_body_from_canonical_import_markdown():
+    raw = render_source_markdown(
+        ExtractedChapter(
+            title="第十二章 雨夜",
+            paragraphs=["林凡推開門。", "“คืนนี้อย่าออกไป” เขาพูดเบา ๆ"],
+            source_url="manual-paste",
+            source_lang="cn",
+        ),
+        "manual-paste",
+        [],
+    )
+
+    cleaned = clean_source(raw)
+
+    assert "source_url" not in cleaned
+    assert "imported_at" not in cleaned
+    assert cleaned.startswith("林凡推開門。")
+    assert "คืนนี้อย่าออกไป" in cleaned
+
+
+def test_clean_source_keeps_horizontal_rule_inside_story_body():
+    raw = "---\nsource_lang: cn\n---\n\n# Chapter\n\n第一段。\n\n---\n\n第二段。"
+
+    cleaned = clean_source(raw)
+
+    assert "第一段。" in cleaned
+    assert "第二段。" in cleaned
 
 
 def test_clean_source_preserves_short_multilingual_story_lines():

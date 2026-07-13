@@ -94,9 +94,24 @@ def _is_noise_line(line: str) -> bool:
     return bool(_SOURCE_ARTIFACT_RE.search(stripped) or _READER_NOISE_RE.search(stripped))
 
 
+def _strip_leading_frontmatter(raw: str) -> str:
+    """Remove one complete YAML frontmatter block without touching story rules."""
+    text = raw.lstrip("\ufeff")
+    lines = text.splitlines(keepends=True)
+    if not lines or lines[0].strip() != "---":
+        return text
+
+    for index, line in enumerate(lines[1:], start=1):
+        if line.strip() in {"---", "..."}:
+            return "".join(lines[index + 1 :])
+
+    # Keep malformed input intact so a missing boundary cannot erase a chapter.
+    return text
+
+
 def clean_source(raw: str) -> str:
     """Remove source-site artifacts while preserving actual story paragraphs."""
-    body = raw.split("\n---\n", 1)[0]
+    body = _strip_leading_frontmatter(raw)
     lines = body.splitlines()
     out: list[str] = []
     in_body = False
