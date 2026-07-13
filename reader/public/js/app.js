@@ -8,7 +8,7 @@
 const LAZY_ROUTE_SENTINEL = Symbol('lazy-route-sentinel');
 
 // ── Simple Hash Router ───────────────────────────────────────────────
-let adminModulePromise = null;  // resolves once admin.js and its admin helpers are fetched
+let adminModulePromise = null;  // resolves once the admin route registry is fetched
 function loadLazyScript(src, errorMessage) {
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');
@@ -23,27 +23,9 @@ function loadLazyScript(src, errorMessage) {
 function ensureAdminLoaded() {
   if (!adminModulePromise) {
     adminModulePromise = loadLazyScript(
-      '/js/pages/admin-page-loader.js',
-      'Failed to load admin-page-loader.js'
-    ).then(() => loadLazyScript(
-      '/js/pages/admin-ui.js',
-      'Failed to load admin-ui.js'
-    )).then(() => loadLazyScript(
-      '/js/pages/admin-format.js',
-      'Failed to load admin-format.js'
-    )).then(() => loadLazyScript(
-      '/js/pages/admin-translate-model.js',
-      'Failed to load admin-translate-model.js'
-    )).then(() => loadLazyScript(
-      '/js/pages/admin-glossary-model.js',
-      'Failed to load admin-glossary-model.js'
-    )).then(() => loadLazyScript(
-      '/js/pages/admin-import-model.js',
-      'Failed to load admin-import-model.js'
-    )).then(() => loadLazyScript(
       '/js/pages/admin.js',
       'Failed to load admin.js'
-    ));
+    );
   }
   return adminModulePromise;
 }
