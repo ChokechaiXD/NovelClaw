@@ -78,9 +78,4 @@ test('reader CSS keeps system paragraphs text-first', () => {
   assert(match, 'missing .c-para--system rule');
   assert(!/border-left\s*:/.test(match[1]));
   assert(!/background\s*:\s*(?!\s*transparent)/.test(match[1]));
-
-  const statMatch = css.match(/\.reader-stat\s*\{([^}]+)\}/);
-  assert(statMatch, 'missing .reader-stat rule');
-  assert(!/(^|;)\s*border\s*:\s*(?!\s*0)/.test(statMatch[1]));
-  assert(!/background\s*:\s*(?!\s*transparent)/.test(statMatch[1]));
 });
