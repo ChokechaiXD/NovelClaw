@@ -1952,13 +1952,11 @@ app.get('*', asyncHandler(async (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
-  // Read index.html fresh each time — no stale cache
-  // Use file mtime as cache-bust so browser re-fetches when file changes
+  // Read the shell fresh; static assets use Express ETag validation.
   let html;
   try {
     const indexHtml = await fs.readFile(path.join(PUBLIC_DIR, 'index.html'), 'utf8');
-    // Preserve _v (manual bumps) — don't override with _t which never changes
-    html = indexHtml;  // index.html already has ?_v= in href/src from manual bump
+    html = indexHtml;
   } catch {
     html = '<html><body><h1>Server Error</h1></body></html>';
   }

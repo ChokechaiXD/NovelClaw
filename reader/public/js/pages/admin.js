@@ -8,7 +8,7 @@ const AdminDashboardPage = {
   async render(params) {
     await AdminPageLoader.loadOnce(
       'dashboard',
-      '/js/pages/admin-dashboard.js?_v=20260704_admin_modular_5',
+      '/js/pages/admin-dashboard.js',
       'Failed to load admin-dashboard.js'
     );
     return window.AdminDashboardPage.render(params);
@@ -20,7 +20,7 @@ const AdminNovelsPage = {
   async render(params) {
     await AdminPageLoader.loadOnce(
       'novels',
-      '/js/pages/admin-novels.js?_v=20260704_admin_modular_5',
+      '/js/pages/admin-novels.js',
       'Failed to load admin-novels.js'
     );
     return window.AdminNovelsPage.render(params);
@@ -32,7 +32,7 @@ const AdminChaptersPage = {
   async render(params) {
     await AdminPageLoader.loadOnce(
       'chapters',
-      '/js/pages/admin-chapters.js?_v=20260704_admin_modular_5',
+      '/js/pages/admin-chapters.js',
       'Failed to load admin-chapters.js'
     );
     return window.AdminChaptersPage.render(params);
@@ -44,7 +44,7 @@ const AdminGlossaryPage = {
   async render(params) {
     await AdminPageLoader.loadOnce(
       'admin-glossary',
-      '/js/pages/admin-glossary.js?_v=20260704_admin_modular_7',
+      '/js/pages/admin-glossary.js',
       'Failed to load admin-glossary.js'
     );
     return window.AdminGlossaryPage.render(params);
@@ -55,7 +55,7 @@ const AdminNovelEditPage = {
   async render(params) {
     await AdminPageLoader.loadOnce(
       'novel-edit',
-      '/js/pages/admin-novel-edit.js?_v=20260704_admin_modular_5',
+      '/js/pages/admin-novel-edit.js',
       'Failed to load admin-novel-edit.js'
     );
     return window.AdminNovelEditPage.render(params);
@@ -67,7 +67,7 @@ const AdminLogsPage = {
   async render(params) {
     await AdminPageLoader.loadOnce(
       'logs',
-      '/js/pages/admin-logs.js?_v=20260704_admin_modular_5',
+      '/js/pages/admin-logs.js',
       'Failed to load admin-logs.js'
     );
     return window.AdminLogsPage.render(params);
@@ -79,7 +79,7 @@ const AdminImportPage = {
   async render(params) {
     await AdminPageLoader.loadOnce(
       'import',
-      '/js/pages/admin-import.js?_v=20260704_admin_modular_6',
+      '/js/pages/admin-import.js',
       'Failed to load admin-import.js'
     );
     return window.AdminImportPage.render(params);
@@ -90,32 +90,32 @@ const AdminTranslatePage = {
   async render(params) {
     await AdminPageLoader.loadOnce(
       'admin-translate-view',
-      '/js/pages/admin-translate-view.js?_v=20260704_chapter_state_1',
+      '/js/pages/admin-translate-view.js',
       'Failed to load admin-translate-view.js'
     );
     await AdminPageLoader.loadOnce(
       'admin-translate-job',
-      '/js/pages/admin-translate-job.js?_v=20260704_admin_modular_9',
+      '/js/pages/admin-translate-job.js',
       'Failed to load admin-translate-job.js'
     );
     await AdminPageLoader.loadOnce(
       'admin-translate-catalog',
-      '/js/pages/admin-translate-catalog.js?_v=20260704_admin_modular_10',
+      '/js/pages/admin-translate-catalog.js',
       'Failed to load admin-translate-catalog.js'
     );
     await AdminPageLoader.loadOnce(
       'admin-translate-selection',
-      '/js/pages/admin-translate-selection.js?_v=20260704_admin_modular_11',
+      '/js/pages/admin-translate-selection.js',
       'Failed to load admin-translate-selection.js'
     );
     await AdminPageLoader.loadOnce(
       'admin-translate-command',
-      '/js/pages/admin-translate-command.js?_v=20260704_admin_modular_12',
+      '/js/pages/admin-translate-command.js',
       'Failed to load admin-translate-command.js'
     );
     await AdminPageLoader.loadOnce(
       'admin-translate',
-      '/js/pages/admin-translate.js?_v=20260704_chapter_state_3',
+      '/js/pages/admin-translate.js',
       'Failed to load admin-translate.js'
     );
     return window.AdminTranslatePage.render(params);
@@ -126,7 +126,7 @@ const AdminProviderPage = {
   async render(params) {
     await AdminPageLoader.loadOnce(
       'provider',
-      '/js/pages/admin-provider.js?_v=20260704_admin_modular_5',
+      '/js/pages/admin-provider.js',
       'Failed to load admin-provider.js'
     );
     return window.AdminProviderPage.render(params);
