@@ -3,14 +3,45 @@
    NovelClaw Reader
    ═══════════════════════════════════════════════════════════════════════ */
 
+const AdminPageLoader = (() => {
+  const promises = {};
+
+  function loadOnce(key, src) {
+    if (!promises[key]) {
+      promises[key] = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = false;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(script);
+      });
+    }
+    return promises[key];
+  }
+
+  return { loadOnce };
+})();
+
+const ADMIN_UI = ['admin-ui', '/js/pages/admin-ui.js'];
+const ADMIN_FORMAT = ['admin-format', '/js/pages/admin-format.js'];
+const ADMIN_TRANSLATE_MODEL = ['admin-translate-model', '/js/pages/admin-translate-model.js'];
+const ADMIN_GLOSSARY_MODEL = ['admin-glossary-model', '/js/pages/admin-glossary-model.js'];
+const ADMIN_IMPORT_MODEL = ['admin-import-model', '/js/pages/admin-import-model.js'];
+
+function loadAdminDependencies(assets = []) {
+  return Promise.all(assets.map(([key, src]) => AdminPageLoader.loadOnce(key, src)));
+}
+
+async function loadAdminPage(key, src, dependencies = []) {
+  await loadAdminDependencies(dependencies);
+  await AdminPageLoader.loadOnce(key, src);
+}
+
 // ── ADMIN DASHBOARD
 const AdminDashboardPage = {
   async render(params) {
-    await AdminPageLoader.loadOnce(
-      'dashboard',
-      '/js/pages/admin-dashboard.js',
-      'Failed to load admin-dashboard.js'
-    );
+    await loadAdminPage('dashboard', '/js/pages/admin-dashboard.js');
     return window.AdminDashboardPage.render(params);
   },
 };
@@ -18,11 +49,7 @@ const AdminDashboardPage = {
 // ── ADMIN NOVELS ─────────────────────────────────────────────────────────
 const AdminNovelsPage = {
   async render(params) {
-    await AdminPageLoader.loadOnce(
-      'novels',
-      '/js/pages/admin-novels.js',
-      'Failed to load admin-novels.js'
-    );
+    await loadAdminPage('novels', '/js/pages/admin-novels.js', [ADMIN_UI, ADMIN_FORMAT]);
     return window.AdminNovelsPage.render(params);
   },
 };
@@ -30,11 +57,7 @@ const AdminNovelsPage = {
 // ── ADMIN CHAPTERS ───────────────────────────────────────────────────────
 const AdminChaptersPage = {
   async render(params) {
-    await AdminPageLoader.loadOnce(
-      'chapters',
-      '/js/pages/admin-chapters.js',
-      'Failed to load admin-chapters.js'
-    );
+    await loadAdminPage('chapters', '/js/pages/admin-chapters.js', [ADMIN_UI]);
     return window.AdminChaptersPage.render(params);
   },
 };
@@ -42,22 +65,14 @@ const AdminChaptersPage = {
 // ── ADMIN GLOSSARY ───────────────────────────────────────────────────────
 const AdminGlossaryPage = {
   async render(params) {
-    await AdminPageLoader.loadOnce(
-      'admin-glossary',
-      '/js/pages/admin-glossary.js',
-      'Failed to load admin-glossary.js'
-    );
+    await loadAdminPage('admin-glossary', '/js/pages/admin-glossary.js', [ADMIN_UI, ADMIN_GLOSSARY_MODEL]);
     return window.AdminGlossaryPage.render(params);
   },
 };
 
 const AdminNovelEditPage = {
   async render(params) {
-    await AdminPageLoader.loadOnce(
-      'novel-edit',
-      '/js/pages/admin-novel-edit.js',
-      'Failed to load admin-novel-edit.js'
-    );
+    await loadAdminPage('novel-edit', '/js/pages/admin-novel-edit.js', [ADMIN_UI]);
     return window.AdminNovelEditPage.render(params);
   },
 };
@@ -65,11 +80,7 @@ const AdminNovelEditPage = {
 // ── ADMIN LOGS VIEWER ────────────────────────────────────────────────────
 const AdminLogsPage = {
   async render(params) {
-    await AdminPageLoader.loadOnce(
-      'logs',
-      '/js/pages/admin-logs.js',
-      'Failed to load admin-logs.js'
-    );
+    await loadAdminPage('logs', '/js/pages/admin-logs.js');
     return window.AdminLogsPage.render(params);
   },
 };
@@ -77,58 +88,29 @@ const AdminLogsPage = {
 // ── ADMIN IMPORT SOURCE ──────────────────────────────────────────────────
 const AdminImportPage = {
   async render(params) {
-    await AdminPageLoader.loadOnce(
-      'import',
-      '/js/pages/admin-import.js',
-      'Failed to load admin-import.js'
-    );
+    await loadAdminPage('import', '/js/pages/admin-import.js', [ADMIN_UI, ADMIN_FORMAT, ADMIN_IMPORT_MODEL]);
     return window.AdminImportPage.render(params);
   },
 };
 
 const AdminTranslatePage = {
   async render(params) {
-    await AdminPageLoader.loadOnce(
-      'admin-translate-view',
-      '/js/pages/admin-translate-view.js',
-      'Failed to load admin-translate-view.js'
-    );
-    await AdminPageLoader.loadOnce(
-      'admin-translate-job',
-      '/js/pages/admin-translate-job.js',
-      'Failed to load admin-translate-job.js'
-    );
-    await AdminPageLoader.loadOnce(
-      'admin-translate-catalog',
-      '/js/pages/admin-translate-catalog.js',
-      'Failed to load admin-translate-catalog.js'
-    );
-    await AdminPageLoader.loadOnce(
-      'admin-translate-selection',
-      '/js/pages/admin-translate-selection.js',
-      'Failed to load admin-translate-selection.js'
-    );
-    await AdminPageLoader.loadOnce(
-      'admin-translate-command',
-      '/js/pages/admin-translate-command.js',
-      'Failed to load admin-translate-command.js'
-    );
-    await AdminPageLoader.loadOnce(
-      'admin-translate',
-      '/js/pages/admin-translate.js',
-      'Failed to load admin-translate.js'
-    );
+    await loadAdminDependencies([ADMIN_UI, ADMIN_FORMAT, ADMIN_TRANSLATE_MODEL]);
+    await loadAdminDependencies([
+      ['admin-translate-view', '/js/pages/admin-translate-view.js'],
+      ['admin-translate-job', '/js/pages/admin-translate-job.js'],
+      ['admin-translate-catalog', '/js/pages/admin-translate-catalog.js'],
+      ['admin-translate-selection', '/js/pages/admin-translate-selection.js'],
+      ['admin-translate-command', '/js/pages/admin-translate-command.js'],
+    ]);
+    await loadAdminPage('admin-translate', '/js/pages/admin-translate.js');
     return window.AdminTranslatePage.render(params);
   },
 };
 
 const AdminProviderPage = {
   async render(params) {
-    await AdminPageLoader.loadOnce(
-      'provider',
-      '/js/pages/admin-provider.js',
-      'Failed to load admin-provider.js'
-    );
+    await loadAdminPage('provider', '/js/pages/admin-provider.js');
     return window.AdminProviderPage.render(params);
   },
 };
@@ -151,5 +133,5 @@ Router.register('admin', (p) => {
     'provider': AdminProviderPage,
   };
   const handler = adminRoutes[sub] || AdminDashboardPage;
-  handler.render(p);
+  return handler.render(p);
 });

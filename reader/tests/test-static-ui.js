@@ -18,7 +18,9 @@ const DESIGN_CSS = path.join(ROOT, 'public', 'design-system.css');
 const PACKAGE_JSON = path.join(ROOT, 'package.json');
 const SERVER_JS = path.join(ROOT, 'server.js');
 const API_JS = path.join(PUBLIC_JS, 'api.js');
+const APP_JS = path.join(PUBLIC_JS, 'app.js');
 const ADMIN_JS = path.join(PUBLIC_JS, 'pages', 'admin.js');
+const ADMIN_PAGE_LOADER_JS = path.join(PUBLIC_JS, 'pages', 'admin-page-loader.js');
 const ADMIN_TRANSLATE_JS = path.join(PUBLIC_JS, 'pages', 'admin-translate.js');
 const ADMIN_TRANSLATE_JOB_JS = path.join(PUBLIC_JS, 'pages', 'admin-translate-job.js');
 const HOME_JS = path.join(PUBLIC_JS, 'pages', 'home.js');
@@ -140,6 +142,26 @@ if (!checkScript.includes('tests/test-js-syntax.js')) {
 const adminText = fs.readFileSync(ADMIN_JS, 'utf8');
 if (adminText.includes('#admin/novels/')) {
   fail('admin novels edit action must link to #admin/novel-edit/<slug>');
+}
+
+const appText = fs.readFileSync(APP_JS, 'utf8');
+for (const routeOnlyAsset of [
+  'admin-page-loader.js',
+  'admin-ui.js',
+  'admin-format.js',
+  'admin-translate-model.js',
+  'admin-glossary-model.js',
+  'admin-import-model.js',
+]) {
+  if (appText.includes(routeOnlyAsset)) {
+    fail(`app.js must not eagerly load admin route dependency ${routeOnlyAsset}`);
+  }
+}
+if (!appText.includes("'/js/pages/admin.js'")) {
+  fail('app.js must lazy-load the admin route registry');
+}
+if (fs.existsSync(ADMIN_PAGE_LOADER_JS)) {
+  fail('single-use admin-page-loader.js must be folded into the admin route registry');
 }
 
 const adminTranslateText = fs.readFileSync(ADMIN_TRANSLATE_JS, 'utf8');
