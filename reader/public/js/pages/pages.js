@@ -67,9 +67,9 @@ const LibraryPage = {
             ${Ui.stat('แปลครบ', counts.complete, { tone: 'success' })}
           </div>
           <div class="c-control-center__actions">
-            <a class="c-btn c-btn--secondary" href="#admin/import" data-nav>${Ui.icon('library', 'xs')}<span>Import Novel</span></a>
-            <a class="c-btn c-btn--secondary" href="#admin/translate" data-nav>${Ui.icon('settings', 'xs')}<span>Translate Queue</span></a>
-            <a class="c-btn c-btn--ghost" href="#admin/novels" data-nav>${Ui.icon('info', 'xs')}<span>Edit Library</span></a>
+            <a class="c-btn c-btn--secondary" href="#admin/import" data-nav>${Ui.icon('library', 'xs')}<span>นำเข้านิยาย</span></a>
+            <a class="c-btn c-btn--secondary" href="#admin/translate" data-nav>${Ui.icon('settings', 'xs')}<span>คิวแปล</span></a>
+            <a class="c-btn c-btn--ghost" href="#admin/novels" data-nav>${Ui.icon('info', 'xs')}<span>แก้ไขคลัง</span></a>
           </div>
         </section>
         <section class="c-section">
@@ -240,16 +240,16 @@ const SettingsPage = {
       <section class="c-control-center c-settings-cockpit">
         <div class="c-control-center__head">
           <div>
-            <h2 class="c-control-center__title">${Ui.icon('settings', 'sm')}Settings</h2>
+            <h2 class="c-control-center__title">${Ui.icon('settings', 'sm')}ตั้งค่า</h2>
             <p class="c-control-center__subtitle">ตั้งค่าเฉพาะเครื่องนี้สำหรับการอ่าน การแก้ไข และ workflow local-first</p>
           </div>
-          <a class="c-btn c-btn--primary" href="#admin/provider" data-nav>${Ui.icon('settings', 'xs')}<span>AI Settings</span></a>
+          <a class="c-btn c-btn--primary" href="#admin/provider" data-nav>${Ui.icon('settings', 'xs')}<span>ตั้งค่า AI</span></a>
         </div>
         <div class="c-settings-summary">
-          ${Ui.stat('Theme', settings.theme || 'sepia')}
-          ${Ui.stat('Reader', (settings.readerLang || 'th').toUpperCase())}
-          ${Ui.stat('Font', fontSize + 'px')}
-          ${Ui.stat('Line', lineHeight.toFixed(2))}
+          ${Ui.stat('ธีม', settings.theme || 'sepia')}
+          ${Ui.stat('ภาษาอ่าน', (settings.readerLang || 'th').toUpperCase())}
+          ${Ui.stat('ตัวอักษร', fontSize + 'px')}
+          ${Ui.stat('ระยะบรรทัด', lineHeight.toFixed(2))}
         </div>
       </section>
       <section class="c-settings-grid">
@@ -266,9 +266,9 @@ const SettingsPage = {
           </div>
         </div>
         <div class="c-settings-card">
-          <div class="c-settings-card__title">${Ui.icon('book', 'sm')}Reader</div>
+          <div class="c-settings-card__title">${Ui.icon('book', 'sm')}การอ่าน</div>
           <div class="c-form__group">
-            <label class="c-form__label" for="settings-reader-lang">ภาษาใน Reader</label>
+            <label class="c-form__label" for="settings-reader-lang">ภาษาที่ใช้ในหน้าอ่าน</label>
             <select class="c-form__select" id="settings-reader-lang">
               <option value="th"${settings.readerLang === 'th' ? ' selected' : ''}>ไทย - แปลแล้ว</option>
               <option value="cn"${settings.readerLang === 'cn' ? ' selected' : ''}>ต้นฉบับ</option>
@@ -292,7 +292,7 @@ const SettingsPage = {
           </div>
         </div>
         <div class="c-settings-card">
-          <div class="c-settings-card__title">${Ui.icon('settings', 'sm')}Local tools</div>
+          <div class="c-settings-card__title">${Ui.icon('settings', 'sm')}เครื่องมือในเครื่อง</div>
           <div class="c-form__group">
             <label class="c-form__label" for="settings-editor-type">โปรแกรมแก้ไขไฟล์บทแปล</label>
             <select class="c-form__select" id="settings-editor-type">
@@ -304,10 +304,10 @@ const SettingsPage = {
           <p class="c-form__help-text">การตั้งค่านี้เก็บ local เท่านั้น ใช้กับปุ่มแก้ไขจากหน้าอ่านและหน้าแอดมิน</p>
         </div>
         <div class="c-settings-card">
-          <div class="c-settings-card__title">${Ui.icon('info', 'sm')}About</div>
+          <div class="c-settings-card__title">${Ui.icon('info', 'sm')}เกี่ยวกับระบบ</div>
           <div class="c-settings-about">
             <strong>NovelClaw</strong>
-            <span>Local-first novel import, translate, and reading cockpit.</span>
+            <span>ระบบนำเข้า แปล และอ่านนิยายแบบ local-first</span>
             <span>Foundation Release: stable-novelctl-foundation-v1</span>
           </div>
         </div>

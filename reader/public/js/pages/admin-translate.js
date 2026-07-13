@@ -101,12 +101,12 @@ const AdminTranslatePage = {
           <section class="c-control-center c-admin-translate__hero">
             <div class="c-control-center__head">
               <div>
-                <h2 class="c-control-center__title">${Ui.icon('book', 'sm')}Translation Cockpit</h2>
+                <h2 class="c-control-center__title">${Ui.icon('book', 'sm')}ศูนย์งานแปล</h2>
                 <p class="c-control-center__subtitle">เลือกนิยาย ตรวจ source เลือก model สั่งแปล และติดตามงานจากจุดเดียว</p>
               </div>
               <div class="c-admin-translate__hero-actions">
-                <a class="c-btn c-btn--secondary" href="#admin/provider" data-nav>${Ui.icon('settings', 'xs')}<span>AI Settings</span></a>
-                <button class="c-btn c-btn--ghost" id="translate-health-refresh" type="button">${Ui.icon('search', 'xs')}<span>Refresh health</span></button>
+                <a class="c-btn c-btn--secondary" href="#admin/provider" data-nav>${Ui.icon('settings', 'xs')}<span>ตั้งค่า AI</span></a>
+                <button class="c-btn c-btn--ghost" id="translate-health-refresh" type="button">${Ui.icon('search', 'xs')}<span>รีเฟรชสถานะ</span></button>
               </div>
             </div>
             <div class="c-control-center__stats">
