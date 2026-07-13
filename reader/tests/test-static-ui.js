@@ -31,6 +31,18 @@ const FORBIDDEN = [
   { label: 'inline style attribute', pattern: 'style="' },
   { label: 'inline onclick attribute', pattern: 'onclick="' },
   { label: 'blocking alert()', pattern: 'alert(' },
+  { label: 'untranslated Admin Control Center heading', pattern: 'Admin Control Center</' },
+  { label: 'untranslated Translation Cockpit heading', pattern: 'Translation Cockpit</' },
+  { label: 'untranslated AI Settings action', pattern: 'AI Settings</span>' },
+  { label: 'untranslated Translate Queue action', pattern: 'Translate Queue</span>' },
+  { label: 'untranslated Import Novel action', pattern: 'Import Novel</span>' },
+  { label: 'untranslated Import Studio heading', pattern: 'Import Studio</' },
+  { label: 'untranslated Library Manager action', pattern: 'Library Manager</span>' },
+  { label: 'untranslated Local Settings label', pattern: 'Local Settings</' },
+  { label: 'untranslated Audit Logs label', pattern: 'Audit Logs</' },
+  { label: 'untranslated Settings heading', pattern: '>Settings</' },
+  { label: 'untranslated Local tools heading', pattern: '>Local tools</' },
+  { label: 'untranslated About heading', pattern: '>About</' },
 ];
 
 function walkJs(dir) {

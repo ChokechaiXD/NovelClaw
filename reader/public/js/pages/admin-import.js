@@ -232,10 +232,10 @@
         <section class="c-control-center c-admin-cockpit c-admin-import__cockpit">
           <div class="c-control-center__head">
             <div>
-              <h2 class="c-control-center__title">${Ui.icon('library', 'sm')}Import Studio</h2>
-              <p class="c-control-center__subtitle">URL / Paste / Source Inspector ใช้ pipeline เดียวกันเพื่อให้ source สะอาดพร้อมแปล</p>
+              <h2 class="c-control-center__title">${Ui.icon('library', 'sm')}ศูนย์นำเข้า</h2>
+              <p class="c-control-center__subtitle">URL, วางข้อความ และตรวจ source ผ่าน pipeline เดียวกันเพื่อให้ต้นฉบับสะอาดพร้อมแปล</p>
             </div>
-            <a class="c-btn c-btn--primary" href="#admin/translate${params?.slug ? '/' + Ui.esc(params.slug) : ''}" data-nav>${Ui.icon('book', 'xs')}<span>Translate Queue</span></a>
+            <a class="c-btn c-btn--primary" href="#admin/translate${params?.slug ? '/' + Ui.esc(params.slug) : ''}" data-nav>${Ui.icon('book', 'xs')}<span>คิวแปล</span></a>
           </div>
           <div class="c-control-center__stats">
             ${Ui.stat('adapters', this._sites.length)}
@@ -244,7 +244,7 @@
             ${Ui.stat('warnings', importSummary.warnings || 0, { tone: importSummary.warnings ? 'warn' : 'success' })}
           </div>
           <div class="c-control-center__actions">
-            <a class="c-btn c-btn--secondary" href="#admin/novels" data-nav>${Ui.icon('info', 'xs')}<span>Library Manager</span></a>
+            <a class="c-btn c-btn--secondary" href="#admin/novels" data-nav>${Ui.icon('info', 'xs')}<span>จัดการคลัง</span></a>
             <button class="c-btn c-btn--ghost import-health-refresh-btn" type="button">${Ui.icon('search', 'xs')}<span>Refresh Health</span></button>
           </div>
         </section>

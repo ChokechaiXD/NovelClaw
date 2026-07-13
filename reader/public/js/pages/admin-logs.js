@@ -19,9 +19,9 @@
           const selectHtml = '<div class="c-container">' + Ui.adminNav('logs') +
             '<section class="c-control-center c-admin-cockpit c-admin-logs__cockpit">' +
             '<div class="c-control-center__head"><div>' +
-            '<h2 class="c-control-center__title">' + Ui.icon('search', 'sm') + 'Audit Log</h2>' +
+            '<h2 class="c-control-center__title">' + Ui.icon('search', 'sm') + 'บันทึกตรวจสอบ</h2>' +
             '<p class="c-control-center__subtitle">ใช้ตรวจรายละเอียดรายตอนเมื่อผลแปลแปลก, failed, หรือ needs review</p>' +
-            '</div><a class="c-btn c-btn--secondary" href="#admin/translate" data-nav>' + Ui.icon('book', 'xs') + '<span>Translation Cockpit</span></a></div>' +
+            '</div><a class="c-btn c-btn--secondary" href="#admin/translate" data-nav>' + Ui.icon('book', 'xs') + '<span>ศูนย์งานแปล</span></a></div>' +
             '<div class="c-control-center__stats">' +
             Ui.stat('novels', novels.length) +
             Ui.stat('mode', 'read-only') +
