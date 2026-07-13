@@ -22,6 +22,7 @@ const ADMIN_JS = path.join(PUBLIC_JS, 'pages', 'admin.js');
 const ADMIN_TRANSLATE_JS = path.join(PUBLIC_JS, 'pages', 'admin-translate.js');
 const ADMIN_TRANSLATE_JOB_JS = path.join(PUBLIC_JS, 'pages', 'admin-translate-job.js');
 const HOME_JS = path.join(PUBLIC_JS, 'pages', 'home.js');
+const NOVEL_JS = path.join(PUBLIC_JS, 'pages', 'novel.js');
 const READER_JS = path.join(PUBLIC_JS, 'pages', 'reader.js');
 const PAGES_JS = path.join(PUBLIC_JS, 'pages', 'pages.js');
 const STATE_JS = path.join(PUBLIC_JS, 'state.js');
@@ -98,6 +99,11 @@ for (const eagerModelSurface of ['reader-model-select', 'reader-model-list', 'Ap
   if (readerText.includes(eagerModelSurface)) {
     fail(`reader.js must not load or edit provider config while reading: ${eagerModelSurface}`);
   }
+}
+
+const novelText = fs.readFileSync(NOVEL_JS, 'utf8');
+if (!novelText.includes('continueNum') || !novelText.includes('อ่านต่อตอนที่')) {
+  fail('novel.js primary action must resume the last-read chapter');
 }
 
 const pagesText = fs.readFileSync(PAGES_JS, 'utf8');
