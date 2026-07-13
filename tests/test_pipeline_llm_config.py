@@ -86,3 +86,70 @@ def test_call_llm_uses_overridden_provider_runtime_config(monkeypatch):
     assert captured["headers"]["Authorization"] == "Bearer beta-key"
     assert limited == ["beta"]
     assert calls["config"] == 1
+
+
+def test_call_llm_accepts_provider_native_local_model_id(monkeypatch):
+    captured = {}
+    local_config = {
+        "base_url": "http://127.0.0.1:11434/v1",
+        "api_key": "",
+        "model": "qwen2.5:14b",
+        "discovery_model": "qwen2.5:14b",
+        "timeout": 30,
+        "max_tokens": 512,
+        "temperature": 0.2,
+        "provider_name": "ollama",
+    }
+
+    def fake_urlopen(req, timeout):
+        captured["url"] = req.full_url
+        captured["body"] = json.loads(req.data.decode("utf-8"))
+        captured["timeout"] = timeout
+        return _FakeResponse()
+
+    class FakeLimit:
+        def __enter__(self):
+            return None
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setattr(pipeline_llm, "get_active_config", lambda _provider=None: dict(local_config))
+    monkeypatch.setattr(pipeline_llm.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(pipeline_llm, "limit_llm_call", lambda _provider: FakeLimit())
+
+    response, provider_name, model_name = pipeline_llm.call_llm("Translate", provider="ollama")
+
+    assert response == "translated"
+    assert provider_name == "ollama"
+    assert model_name == "qwen2.5:14b"
+    assert captured == {
+        "url": "http://127.0.0.1:11434/v1/chat/completions",
+        "body": {
+            "model": "qwen2.5:14b",
+            "messages": [{"role": "user", "content": "Translate"}],
+            "max_tokens": 512,
+            "temperature": 0.2,
+        },
+        "timeout": 30,
+    }
+
+
+def test_call_llm_rejects_missing_model_with_config_error(monkeypatch):
+    monkeypatch.setattr(
+        pipeline_llm,
+        "get_active_config",
+        lambda _provider=None: {
+            "base_url": "http://127.0.0.1:11434/v1",
+            "api_key": "",
+            "model": "",
+            "provider_name": "ollama",
+        },
+    )
+
+    try:
+        pipeline_llm.call_llm("Translate", provider="ollama")
+    except ValueError as exc:
+        assert str(exc) == "No model configured for provider 'ollama'."
+    else:
+        raise AssertionError("missing model must fail before making an HTTP request")

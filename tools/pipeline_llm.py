@@ -113,20 +113,15 @@ def call_llm(
 
     base_url = cfg["base_url"].rstrip("/")
     api_key = cfg["api_key"]
-    model_name = cfg["model"]
+    model_name = str(cfg.get("model") or "").strip()
     timeout_sec = cfg.get("timeout", 240)
     max_tok = cfg.get("max_tokens", 4096)
     temp = cfg.get("temperature", 0.28)
 
-    # ── Model validation: only allowed model prefixes ──
-    ALLOWED_PREFIXES = {"openrouter/", "poli/", "9router/", "custom/"}
-    provider_is_openrouter = cfg["provider_name"] == "openrouter"
-    if not provider_is_openrouter and not any(model_name.startswith(p) for p in ALLOWED_PREFIXES):
-        raise ValueError(
-            f"Model '{model_name}' blocked. Translation pipeline may only use "
-            f"models starting with: {', '.join(sorted(ALLOWED_PREFIXES))}. "
-            f"Set NOVELCLAW_ALLOWED_MODEL_PREFIXES env var to override."
-        )
+    # Model identifiers are provider-specific opaque values. Provider config is
+    # the source of truth, including local IDs such as ``qwen2.5:14b``.
+    if not model_name:
+        raise ValueError(f"No model configured for provider '{cfg['provider_name']}'.")
 
     messages = []
     if system:
