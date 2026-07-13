@@ -113,7 +113,11 @@ const Router = {
 
     // Show target
     const target = document.getElementById(pageId);
-    if (target) target.classList.add('page--active');
+    if (target) {
+      target.classList.add('page--active');
+      target.setAttribute('tabindex', '-1');
+      requestAnimationFrame(() => target.focus({ preventScroll: true }));
+    }
 
     // Update sidebar active state
     document.querySelectorAll('.c-nav-item, .c-mobile-nav__item').forEach((navItem) => {
@@ -144,6 +148,7 @@ const Router = {
       } else {
         titleEl.textContent = titles[page] || 'หน้าหลัก';
       }
+      document.title = `${titleEl.textContent} · NovelClaw`;
     }
   }
 };
@@ -298,31 +303,30 @@ function disableReaderMode() {
 // ── Theme Initialization ────────────────────────────────────────────
 function initTheme() {
   const settings = Store.getSettings();
-  document.body.dataset.theme = settings.theme || 'sepia';
+  document.body.dataset.theme = settings.theme || 'paper';
 
-  // Sidebar theme toggle
-  const themeToggle = document.getElementById('theme-toggle-new');
-  if (themeToggle) {
-    const syncThemeToggle = (theme) => {
-      const isNight = theme === 'night' || theme === 'amoled';
-      themeToggle.classList.toggle('c-toggle--active', isNight);
-      themeToggle.setAttribute('aria-checked', String(isNight));
-    };
-    syncThemeToggle(settings.theme || 'sepia');
-    Store.on('setting:theme', syncThemeToggle);
-    themeToggle.addEventListener('click', () => {
-      const current = Store.getSettings().theme || 'sepia';
-      // Toggle between night and sepia (main two modes)
-      const target = (current === 'night' || current === 'amoled') ? 'sepia' : 'night';
-      Store.setSetting('theme', target);
+  const themeToggles = Array.from(document.querySelectorAll('[data-theme-toggle]'));
+  const syncTheme = (theme) => {
+    const isNight = theme === 'night' || theme === 'amoled';
+    document.body.dataset.theme = theme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute(
+      'content', isNight ? '#0b0f17' : '#eef1f4'
+    );
+    themeToggles.forEach((toggle) => {
+      toggle.classList.toggle('c-toggle--active', isNight);
+      toggle.setAttribute('aria-checked', String(isNight));
     });
-  }
+  };
+  syncTheme(settings.theme || 'paper');
+  themeToggles.forEach((toggle) => {
+    toggle.addEventListener('click', () => {
+      const current = Store.getSettings().theme || 'paper';
+      Store.setSetting('theme', (current === 'night' || current === 'amoled') ? 'paper' : 'night');
+    });
+  });
 
   // Subscribe to theme changes
-  Store.on('setting:theme', (t) => {
-    document.body.dataset.theme = t;
-    if (themeToggle) themeToggle.classList.toggle('c-toggle--active', t === 'night' || t === 'amoled');
-  });
+  Store.on('setting:theme', syncTheme);
 }
 
 // ── Init ────────────────────────────────────────────────────────────────

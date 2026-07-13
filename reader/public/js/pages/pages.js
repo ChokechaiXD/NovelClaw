@@ -22,20 +22,20 @@ const LibraryPage = {
       }
       const settings = Store.getSettings();
       const sortBy = params.sort || settings.librarySort || 'title';
-      const filterBy = params.filter || settings.libraryFilter || 'all';
+      const requestedFilter = params.filter || settings.libraryFilter || 'all';
+      const filterBy = ['all', 'readable', 'complete', 'untranslated'].includes(requestedFilter)
+        ? requestedFilter : 'all';
       const query = (params.q || '').trim().toLowerCase();
       const counts = {
         total: visibleNovels.length,
-        ready: visibleNovels.filter(n => n.totalCount > n.translatedCount).length,
-        active: visibleNovels.filter(n => n.translatedCount > 0 && n.translatedCount < n.totalCount).length,
+        readable: visibleNovels.filter(n => n.translatedCount > 0).length,
         complete: visibleNovels.filter(n => n.totalCount > 0 && n.translatedCount >= n.totalCount).length,
-        noCover: visibleNovels.filter(n => !n.coverImage).length,
+        untranslated: visibleNovels.filter(n => n.translatedCount === 0).length,
       };
       const filtered = visibleNovels.filter(n => {
-        if (filterBy === 'ready') return n.totalCount > n.translatedCount;
-        if (filterBy === 'active') return n.translatedCount > 0 && n.translatedCount < n.totalCount;
+        if (filterBy === 'readable') return n.translatedCount > 0;
         if (filterBy === 'complete') return n.totalCount > 0 && n.translatedCount >= n.totalCount;
-        if (filterBy === 'no-cover') return !n.coverImage;
+        if (filterBy === 'untranslated') return n.translatedCount === 0;
         return true;
       }).filter(n => {
         if (!query) return true;
@@ -47,31 +47,15 @@ const LibraryPage = {
         if (sortBy === 'last') return (b.lastRead || 0) - (a.lastRead || 0);
         return (Ui.displayTitle(a) || '').localeCompare(Ui.displayTitle(b) || '');
       });
-      const lastReadNovel = visibleNovels.find(n => n.lastRead) || visibleNovels[0];
       const resultHtml = sorted.length
         ? sorted.map(n => Ui.novelCard(n)).join('')
         : '<div class="c-empty c-empty--compact"><div class="c-empty__title">ไม่พบนิยายตามเงื่อนไข</div><div class="c-empty__desc">ลองเปลี่ยน filter หรือคำค้นหา</div></div>';
       let html = `<div class="c-container c-library-page">
-        <section class="c-control-center c-library-cockpit">
-          <div class="c-control-center__head">
-            <div>
-              <h2 class="c-control-center__title">${Ui.icon('library', 'sm')}Library</h2>
-              <p class="c-control-center__subtitle">เลือกอ่านต่อ แปลต่อ หรือจัดการเรื่องที่ต้องดูแลจากหน้าเดียว</p>
-            </div>
-            <a href="${lastReadNovel ? '#novel/' + Ui.esc(lastReadNovel.slug) + (lastReadNovel.lastRead ? '/' + Ui.esc(lastReadNovel.lastRead) : '') : '#library'}" class="c-btn c-btn--primary" data-nav>${Ui.icon('book', 'xs')}<span>อ่านต่อ</span></a>
-          </div>
-          <div class="c-control-center__stats">
-            ${Ui.stat('นิยาย', counts.total)}
-            ${Ui.stat('พร้อมแปล', counts.ready, { tone: 'warn' })}
-            ${Ui.stat('กำลังทำ', counts.active)}
-            ${Ui.stat('แปลครบ', counts.complete, { tone: 'success' })}
-          </div>
-          <div class="c-control-center__actions">
-            <a class="c-btn c-btn--secondary" href="#admin/import" data-nav>${Ui.icon('library', 'xs')}<span>นำเข้านิยาย</span></a>
-            <a class="c-btn c-btn--secondary" href="#admin/translate" data-nav>${Ui.icon('settings', 'xs')}<span>คิวแปล</span></a>
-            <a class="c-btn c-btn--ghost" href="#admin/novels" data-nav>${Ui.icon('info', 'xs')}<span>แก้ไขคลัง</span></a>
-          </div>
-        </section>
+        <header class="c-page-heading">
+          <p class="c-page-heading__eyebrow">ห้องอ่าน</p>
+          <h1 class="c-page-heading__title">คลังนิยาย</h1>
+          <p class="c-page-heading__subtitle">เลือกเรื่องที่อยากอ่าน แล้วกลับมาต่อจากตำแหน่งเดิมได้ทุกอุปกรณ์ในวง LAN</p>
+        </header>
         <section class="c-section">
           <div class="c-library-toolbar">
             <div class="c-search c-library-toolbar__search">
@@ -80,10 +64,9 @@ const LibraryPage = {
             </div>
             <select id="library-filter" class="c-library-sort" aria-label="กรองนิยาย">
               <option value="all"${filterBy === 'all' ? ' selected' : ''}>ทั้งหมด</option>
-              <option value="ready"${filterBy === 'ready' ? ' selected' : ''}>พร้อมแปล</option>
-              <option value="active"${filterBy === 'active' ? ' selected' : ''}>กำลังทำ</option>
-              <option value="complete"${filterBy === 'complete' ? ' selected' : ''}>แปลครบ</option>
-              <option value="no-cover"${filterBy === 'no-cover' ? ' selected' : ''}>ยังไม่มีปก (${counts.noCover})</option>
+              <option value="readable"${filterBy === 'readable' ? ' selected' : ''}>มีฉบับแปล (${counts.readable})</option>
+              <option value="complete"${filterBy === 'complete' ? ' selected' : ''}>แปลครบ (${counts.complete})</option>
+              <option value="untranslated"${filterBy === 'untranslated' ? ' selected' : ''}>ยังไม่มีฉบับแปล (${counts.untranslated})</option>
             </select>
             <select id="library-sort" class="c-library-sort" aria-label="เรียงนิยาย">
               <option value="title"${sortBy === 'title' ? ' selected' : ''}>ชื่อ</option>
@@ -129,19 +112,15 @@ const SearchPage = {
     if (!page) return;
     
     page.innerHTML = `<div class="c-container c-search-page">
-      <section class="c-control-center c-search-cockpit">
-        <div class="c-control-center__head">
-          <div>
-            <h2 class="c-control-center__title">${Ui.icon('search', 'sm')}Search</h2>
-            <p class="c-control-center__subtitle">ค้นหาเรื่องจากชื่อ ผู้แต่ง หรือ slug แล้วไปอ่าน/แปล/แก้ไขได้ทันที</p>
-          </div>
-          <a class="c-btn c-btn--secondary" href="#library" data-nav>${Ui.icon('library', 'xs')}<span>เปิดคลัง</span></a>
-        </div>
-      </section>
+      <header class="c-page-heading">
+        <p class="c-page-heading__eyebrow">ห้องอ่าน</p>
+        <h1 class="c-page-heading__title">ค้นหานิยาย</h1>
+        <p class="c-page-heading__subtitle">ค้นจากชื่อเรื่อง ชื่อแปล ผู้แต่ง หรือรหัสเรื่อง</p>
+      </header>
       <section class="c-section">
         <div class="c-search c-search-page__input-wrap">
           ${Ui.icon('search', 'sm')}
-          <input type="search" id="search-input-field" placeholder="พิมพ์ชื่อ ภาษาไทย จีน อังกฤษ ผู้แต่ง หรือ slug..." class="c-search__input" autofocus />
+          <input type="search" id="search-input-field" placeholder="พิมพ์ชื่อเรื่อง ผู้แต่ง หรือรหัสเรื่อง..." class="c-search__input" />
         </div>
         <div id="search-summary" class="c-search-page__summary"></div>
         <div id="search-results"></div>
@@ -155,11 +134,11 @@ const SearchPage = {
     // Helper function to render a list of novels
     const renderNovelsList = (filteredList) => {
       if (filteredList.length === 0) {
-        Ui.$('search-summary').textContent = '0 results';
+        Ui.$('search-summary').textContent = 'ไม่พบผลลัพธ์';
         results.innerHTML = '<div class="c-empty c-empty--compact"><div class="c-empty__title">ไม่พบนิยาย</div><div class="c-empty__desc">ลองค้นด้วยชื่อเรื่อง ภาษาไทย จีน ผู้แต่ง หรือ slug เช่น global-descent</div></div>';
         return;
       }
-      Ui.$('search-summary').textContent = filteredList.length + ' results';
+      Ui.$('search-summary').textContent = filteredList.length + ' เรื่อง';
       results.innerHTML = '<div class="c-card-grid c-search-results-grid">' + filteredList.map(n => Ui.novelCard(n, { compact: true })).join('') + '</div>';
     };
 
@@ -198,18 +177,14 @@ const HistoryPage = {
     const recent = Store.getHistory();
     const novels = await Api.getNovels();
     let html = `<div class="c-container c-history-page">
-      <section class="c-control-center c-history-cockpit">
-        <div class="c-control-center__head">
-          <div>
-            <h2 class="c-control-center__title">${Ui.icon('book', 'sm')}Reading History</h2>
-            <p class="c-control-center__subtitle">กลับไปยังตอนที่เคยอ่านล่าสุดแบบไม่ต้องไล่หาในคลัง</p>
-          </div>
-          <a class="c-btn c-btn--secondary" href="#library" data-nav>${Ui.icon('library', 'xs')}<span>เปิดคลัง</span></a>
-        </div>
-      </section>
+      <header class="c-page-heading">
+        <p class="c-page-heading__eyebrow">ห้องอ่าน</p>
+        <h1 class="c-page-heading__title">อ่านล่าสุด</h1>
+        <p class="c-page-heading__subtitle">กลับไปยังตอนที่เคยอ่าน โดยเรียงจากรายการล่าสุด</p>
+      </header>
       <section class="c-section"><div class="c-list c-history-list">`;
     if (recent.length === 0) {
-      html += '<div class="c-empty c-empty--roomy"><svg class="c-empty__mascot"><use xlink:href="#mascot-crab-reading"/></svg><div class="c-empty__title">ยังไม่มีประวัติ</div><div class="c-empty__desc">เมื่ออ่านนิยายจะปรากฏที่นี่</div></div>';
+      html += '<div class="c-empty c-empty--roomy"><svg class="c-empty__mascot" aria-hidden="true"><use href="#brand-mark"/></svg><div class="c-empty__title">ยังไม่มีประวัติ</div><div class="c-empty__desc">เมื่ออ่านนิยายจะปรากฏที่นี่</div></div>';
     } else {
       for (const e of recent) {
         const n = novels.find(x => x.slug === e.slug);
@@ -237,21 +212,11 @@ const SettingsPage = {
     const fontSize = parseInt(settings.fontSize, 10) || 18;
     const lineHeight = parseFloat(settings.lineHeight) || 1.8;
     page.innerHTML = `<div class="c-container c-settings-page">
-      <section class="c-control-center c-settings-cockpit">
-        <div class="c-control-center__head">
-          <div>
-            <h2 class="c-control-center__title">${Ui.icon('settings', 'sm')}ตั้งค่า</h2>
-            <p class="c-control-center__subtitle">ตั้งค่าเฉพาะเครื่องนี้สำหรับการอ่าน การแก้ไข และ workflow local-first</p>
-          </div>
-          <a class="c-btn c-btn--primary" href="#admin/provider" data-nav>${Ui.icon('settings', 'xs')}<span>ตั้งค่า AI</span></a>
-        </div>
-        <div class="c-settings-summary">
-          ${Ui.stat('ธีม', settings.theme || 'sepia')}
-          ${Ui.stat('ภาษาอ่าน', (settings.readerLang || 'th').toUpperCase())}
-          ${Ui.stat('ตัวอักษร', fontSize + 'px')}
-          ${Ui.stat('ระยะบรรทัด', lineHeight.toFixed(2))}
-        </div>
-      </section>
+      <header class="c-page-heading">
+        <p class="c-page-heading__eyebrow">เฉพาะอุปกรณ์นี้</p>
+        <h1 class="c-page-heading__title">ตั้งค่าการอ่าน</h1>
+        <p class="c-page-heading__subtitle">ปรับธีม ตัวอักษร และเครื่องมือที่ใช้บนเครื่องนี้</p>
+      </header>
       <section class="c-settings-grid">
         <div class="c-settings-card">
           <div class="c-settings-card__title">${Ui.icon('moon', 'sm')}รูปลักษณ์</div>
