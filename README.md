@@ -1,170 +1,64 @@
-# NovelClaw
+# 🐾 NovelClaw — Single Binary Novel Importer, Translator & Reader
 
-NovelClaw คือระบบ local-first สำหรับนำเข้านิยาย แปลด้วย LLM ตรวจคุณภาพ และอ่านผ่านเว็บในเครื่องหรือวง LAN เดียวกัน ระบบใช้ Python สำหรับ pipeline และ Node.js/Express สำหรับ Reader โดยไม่ต้องมีฐานข้อมูล, frontend framework หรือ build step
+NovelClaw คือระบบ **Local-first** สำหรับนำเข้านิยาย แปลด้วย AI คุณภาพสูง และอ่านผ่านเว็บเบราว์เซอร์ในเครื่องหรือมือถือผ่านวง LAN เดียวกัน
+เขียนด้วยภาษา **Go (Golang)** รวมทุกอย่างไว้ในไฟล์เดียว (`novelclaw.exe`) โดยไม่ต้องพึ่งพา Node.js, Python venv, หรือ Database ภายนอก
 
-## ความสามารถหลัก
+---
 
-- นำเข้าจากข้อความ, URL และ source adapters ที่รองรับ
-- เก็บต้นฉบับและคำแปลเป็นไฟล์ JSON/Markdown ที่ตรวจสอบและสำรองได้ง่าย
-- แปลทีละตอนหรือเป็นช่วง พร้อม retry, mock และ dry-run
-- จัดการ provider, model, glossary, translation health และ source health จากหน้า Admin
-- Reader แบบ responsive พร้อมประวัติการอ่าน, bookmark, theme และอ่านต่อจากตอนล่าสุด
-- เปิดให้โทรศัพท์หรือเครื่องอื่นใน LAN ใช้งานผ่าน Node process เดียว
-- chapter index ตรวจความครบถ้วนและซ่อมตัวเองแบบ atomic เมื่อไฟล์จริงเปลี่ยน
+## ⚡ จุดเด่น
+- **Single Binary (7.8 MB):** ไฟล์ `.exe` เดียวมีทั้ง Web Server, Web Scraper, AI Translation Engine, และ Reader UI ฝังตัวในไฟล์
+- **Ultra-Fast & Feather-light:** ใช้ RAM น้อยกว่า 20MB สตาร์ทติดทันทีใน 5ms
+- **Universal Import:** ดึงนิยายจากเว็บ (เช่น 69shu และเว็บทั่วไป) พร้อมระบบตัดโฆษณา/ตัวอักษรขยะ หรือวางข้อความดิบ
+- **High-Quality AI Translation:** เชื่อมต่อกับ 9Router / OpenRouter พร้อมระบบ **Glossary** (ชื่อตัวละคร/วิชา/สถานที่) และ **Context Memory** จากตอนก่อนหน้าเพื่อสำนวนไทยที่สละสลวย
+- **Distraction-Free Web Reader:** รองรับธีม Dark (OLED), Sepia, Light, ปรับฟอนต์/ขนาด, บันทึกตอนที่อ่านค้างไว้อัตโนมัติ
 
-## Quick start บน Windows
+---
 
-ต้องมี Python 3.11+ และ Node.js 20+
+## 🚀 การเริ่มใช้งาน (Quick Start)
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[test]"
-npm --prefix reader install --no-audit --no-fund
-```
-
-เริ่ม Reader ด้วย:
-
+### วิธีที่ 1: ดับเบิ้ลคลิก `run.bat` หรือรัน `novelclaw.exe`
 ```powershell
 .\run.bat
 ```
-
-`run.bat` จะ:
-
-- เปิด Reader ที่ `http://localhost:4173`
-- bind ที่ `0.0.0.0` เพื่อใช้ใน LAN
-- แสดง URL ของเครื่องสำหรับเปิดจากโทรศัพท์
-- reuse เฉพาะ NovelClaw process ที่มี health check ผ่าน
-- ปิดเฉพาะ process ที่ script เป็นผู้เริ่ม ไม่ปิด Node process อื่นในเครื่อง
-
-## ใช้ในวง LAN
-
-เครื่องลูกต้องอยู่ในเครือข่ายส่วนตัวเดียวกัน แล้วเปิด URL ที่ `run.bat` แสดง เช่น:
-
-```text
-http://192.168.1.20:4173
-```
-
-หากเข้าไม่ได้ ให้ตรวจ Windows Firewall ว่าอนุญาต inbound TCP port 4173 บน Private network แล้ว
-
-ค่าเริ่มต้นของ `run.bat` คือ `TRUSTED_LAN=true` ซึ่งอนุญาตคำสั่งเขียนจากอุปกรณ์ในวงเดียวกัน ใช้เฉพาะ LAN ที่ไว้ใจได้และห้าม forward port นี้ออกอินเทอร์เน็ต
-
-ปรับ port หรือปิดการเปิด browser อัตโนมัติได้ก่อนรัน:
-
+หรือรัน binary ตรงๆ:
 ```powershell
-$env:PORT = "4180"
-$env:NOVELCLAW_RUN_OPEN = "0"
-.\run.bat
+.\novelclaw.exe -port 4173
 ```
 
-สำหรับ localhost-only:
+เปิดเบราว์เซอร์ที่:
+- **บนคอมพิวเตอร์:** `http://localhost:4173`
+- **บนมือถือ (ในวง LAN เดียวกัน):** `http://[IP-เครื่อง-PC]:4173`
 
+---
+
+## 🛠️ คำสั่งปรับแต่ง (CLI Flags)
 ```powershell
-$env:HOST = "127.0.0.1"
-$env:TRUSTED_LAN = "false"
-npm --prefix reader start
+.\novelclaw.exe -port 4173 -router "http://localhost:20128/v1" -model "google/gemini-2.5-flash"
 ```
 
-## คำสั่งหลัก
+| Flag | คำอธิบาย | ค่าเริ่มต้น |
+| :--- | :--- | :--- |
+| `-port` | Port สำหรับเปิด Web Server | `4173` |
+| `-data` | โฟลเดอร์เก็บข้อมูลนิยาย | `./novels` |
+| `-router` | Base URL ของ 9Router หรือ OpenAI endpoint | `http://localhost:20128/v1` |
+| `-model` | ชื่อ AI Model ที่ต้องการใช้แปล | `google/gemini-2.5-flash` |
+| `-key` | API Key (ถ้ามี) | `""` |
 
-ตรวจสถานะและ config:
+---
 
-```powershell
-python novelclaw.py status
-python novelclaw.py config --validate
-python novelclaw.py import-sites
+## 📁 โครงสร้างโปรเจกต์
 ```
-
-ทดสอบ translation path โดยไม่เรียก LLM และไม่เขียนคำแปล:
-
-```powershell
-python novelclaw.py translate 1 --slug global-descent --mock --dry-run --sequential
-```
-
-แปลจริงทีละตอนหรือเป็นช่วง:
-
-```powershell
-python novelclaw.py translate 1 --slug global-descent --sequential
-python novelclaw.py translate 1-10 --slug global-descent --parallel 3
-```
-
-คำสั่งรองรับ `--provider`, `--model`, `--from`, `--to`, `--retry` และ `--json` ใช้ `python novelclaw.py translate --help` เพื่อดูค่าปัจจุบัน
-
-งานนำเข้าและงานแปลสามารถสั่งจากหน้า Admin ได้เช่นกัน การตั้งค่า runtime หลักอยู่ที่ `novelclaw.config.yaml`
-
-## โครงสร้างข้อมูล
-
-```text
 NovelClaw/
-├── novelclaw.py                 # CLI หลัก
-├── novelclaw.config.yaml        # runtime defaults
-├── run.bat                      # Windows local/LAN launcher
-├── novels/{slug}/
-│   ├── novel.json               # metadata
-│   ├── chapters.json            # generated canonical index
-│   ├── chapters/
-│   │   ├── NNNN.cn.json         # ต้นฉบับ
-│   │   └── NNNN.th.json         # คำแปล
-│   └── glossary/                # glossary ของเรื่อง
-├── tools/
-│   ├── import_sources.py        # import orchestrator
-│   ├── import_adapters/         # source-specific adapters
-│   ├── pipeline.py              # translation pipeline
-│   └── llm_router/              # provider/model routing
-├── reader/
-│   ├── server.js                # HTTP API และ static server
-│   ├── lib/                     # file repositories/services
-│   ├── public/                  # HTML/CSS/vanilla JS SPA
-│   └── tests/                   # Node/API regression tests
-└── tests/                       # Python regression tests
+├── novelclaw.exe               # Single Binary สำเร็จรูป
+├── run.bat                     # สคริปต์เปิดรัน 1-click
+├── novels/                     # โฟลเดอร์เก็บข้อมูลนิยาย (JSON/Markdown)
+├── cmd/novelclaw/main.go       # Entry point
+├── internal/
+│   ├── config/                 # การตั้งค่าระบบ
+│   ├── model/                  # Data structures
+│   ├── storage/                # JSON & Filesystem Store
+│   ├── scraper/                # ตัวดึงเนื้อหานิยายจากเว็บ
+│   ├── translator/             # 9Router LLM Client, Prompt & Glossary
+│   ├── api/                    # REST API & Server-Sent Events (SSE)
+│   └── web/                    # Embedded HTML / CSS / JS Reader
 ```
-
-ข้อมูลนิยายเป็น source of truth ส่วน `chapters.json` เป็น generated index ระบบจะตรวจเลขตอนจากชื่อไฟล์แบบเบาและ rebuild index เมื่อพบข้อมูลขาดหรือ title เก่า
-
-## Data flow
-
-```text
-Import/Paste/URL
-      ↓
-Source inspection and cleaning
-      ↓
-Translation with provider + glossary
-      ↓
-Quality gate and translation metadata
-      ↓
-Atomic chapter/index writes
-      ↓
-Reader and LAN clients
-```
-
-หน้าอ่านใช้ chapter metadata แบบบางและไม่ค้นหา provider/model ระหว่างเปิดบท ข้อมูล workflow และ quality แบบเต็มจะโหลดเฉพาะหน้า Admin ที่ร้องขอ `withQuality=1`
-
-## Quality gates
-
-```powershell
-# Python pipeline/import tests
-python -m pytest -q
-
-# Python bug-prone lint checks
-python -m ruff check novelclaw.py tools tests
-
-# Reader static checks, syntax และ unit tests
-npm --prefix reader run check
-
-# API integration tests — ต้องเปิด Reader อยู่
-npm --prefix reader run test:api
-```
-
-tests ใช้ mock และ local fixtures ไม่ต้องเรียก LLM จริง การทดสอบ API จะ snapshot/restore generated chapter indexes และลบข้อมูลทดสอบเมื่อจบ
-
-## หลักการของโครงการ
-
-- local-first: ไฟล์ในเครื่องเป็น source of truth
-- lightweight: ใช้ standard library และ dependency ที่มีอยู่ก่อนเพิ่มของใหม่
-- trusted-LAN: ออกแบบสำหรับเครื่องเดียวหรือเครือข่ายส่วนตัวขนาดเล็ก
-- atomic writes: งานที่แก้ไฟล์สำคัญต้องไม่ทิ้งไฟล์ครึ่งสมบูรณ์
-- explicit quality: source error, translation state และ quality result แยกจากกัน
-- framework-free Reader: HTML, CSS และ vanilla JavaScript ไม่มี build pipeline
-
-## License
-
-MIT — ดู [LICENSE](LICENSE)

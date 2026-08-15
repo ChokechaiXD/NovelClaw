@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NovelClaw — ตัวอ่านและแปลนิยาย</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body data-theme="dark">
+
+  <!-- Top Slim Glowing Progress Bar -->
+  <div class="top-progress-bar hidden" id="top-progress-bar"></div>
+
+  <!-- Main Header -->
+  <header class="app-header">
+    <div class="brand" id="btn-brand">
+      <span class="brand-icon">🐾</span>
+      <span class="brand-text">NovelClaw</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline btn-sm" id="btn-open-import">📥 นำเข้านิยาย</button>
+      <button class="btn btn-outline btn-icon" id="btn-theme-toggle" title="เปลี่ยนธีม">🌙</button>
+      <button class="btn btn-outline btn-icon" id="btn-open-settings" title="ตั้งค่า">⚙️</button>
+    </div>
+  </header>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- View 1: Library (All Novels) -->
+  <main class="container" id="view-library">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h2 style="font-size: 1.35rem; font-weight: 700;">📚 คลังนิยาย</h2>
+      <span id="novel-count" style="font-size: 0.85rem; color: var(--text-muted);">0 เรื่อง</span>
+    </div>
+    <div class="novel-grid" id="novel-grid">
+      <!-- Injected by JavaScript -->
+    </div>
+  </main>
+
+  <!-- View 2: Novel Detail & Chapter Index -->
+  <main class="container hidden" id="view-detail">
+    <div style="margin-bottom: 1rem;">
+      <button class="btn btn-outline btn-sm" id="btn-back-library">← กลับคลังนิยาย</button>
+    </div>
+
+    <div class="novel-detail-header" id="detail-header">
+      <!-- Injected by JavaScript -->
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+      <h3 style="font-size: 1.15rem; font-weight: 600;">รายชื่อตอน</h3>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button class="btn btn-primary btn-sm" id="btn-quick-translate">⚡ สั่งแปลเป็นช่วง</button>
+        <button class="btn btn-outline btn-sm" id="btn-open-export">📦 ส่งออก (Export)</button>
+        <button class="btn btn-outline btn-sm" id="btn-open-glossary">📖 จัดการศัพท์ (Glossary)</button>
+      </div>
+    </div>
+
+    <div class="chapter-list" id="chapter-list">
+      <!-- Injected by JavaScript -->
+    </div>
+  </main>
+
+  <!-- View 3: Reader View -->
+  <main class="reader-wrapper hidden" id="view-reader">
+    <div class="reader-header">
+      <div class="reader-top-nav">
+        <button class="btn btn-outline btn-sm" id="btn-prev-chapter-top">← ตอนก่อนหน้า</button>
+        <button class="btn btn-outline btn-sm" id="btn-reader-chapters-top">📑 สารบัญ</button>
+        <button class="btn btn-primary btn-sm" id="btn-next-chapter-top">ตอนถัดไป →</button>
+      </div>
+      <div class="reader-novel-title" id="reader-novel-title"></div>
+      <h1 class="reader-chapter-title" id="reader-chapter-title"></h1>
+    </div>
+
+    <div class="reader-content" id="reader-content">
+      <!-- Paragraphs injected by JavaScript -->
+    </div>
+
+    <div class="reader-footer-nav">
+      <button class="btn btn-outline" id="btn-prev-chapter">← ตอนก่อนหน้า</button>
+      <button class="btn btn-outline" id="btn-reader-chapters">📑 สารบัญ</button>
+      <button class="btn btn-primary" id="btn-next-chapter">ตอนถัดไป →</button>
+    </div>
+  </main>
+
+  <!-- Floating Reader Toolbar -->
+  <div class="reader-toolbar hidden" id="reader-toolbar">
+    <button class="btn btn-outline btn-sm" id="btn-reader-back">📚 กลับ</button>
+    <button class="btn btn-outline btn-sm" id="btn-reader-tts" title="ฟังเสียงอ่านภาษาไทย">🔊 ฟังเสียง</button>
+    <button class="btn btn-outline btn-sm" id="btn-font-decrease">A-</button>
+    <button class="btn btn-outline btn-sm" id="btn-font-increase">A+</button>
+    <button class="btn btn-outline btn-sm" id="btn-reader-mode" title="สลับโหมดภาษา (ไทย / สองภาษา / ต้นฉบับ)">🌐 ไทย</button>
+    <button class="btn btn-outline btn-sm" id="btn-reader-translate">⚡ แปลตอนนี้</button>
+    <button class="btn btn-outline btn-sm" id="btn-reader-theme">🎨 ธีม</button>
+  </div>
+
+
+  <!-- Modal: Import -->
+  <div class="modal-overlay hidden" id="modal-import">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="font-size: 1.1rem;">📥 นำเข้านิยาย</h3>
+        <button class="btn btn-outline btn-sm" id="btn-close-import">✕</button>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+        <button class="btn btn-primary btn-sm" id="tab-import-url" style="flex: 1;">ดึงจาก URL / เว็บนิยาย</button>
+        <button class="btn btn-outline btn-sm" id="tab-import-paste" style="flex: 1;">วางข้อความเอง</button>
+      </div>
+
+      <!-- URL Form -->
+      <form id="form-import-url">
+        <div class="form-group">
+          <label class="form-label">URL หน้าสารบัญ หรือ URL ตอนนิยาย (เช่น 69shu)</label>
+          <input type="url" class="form-input" id="import-url" placeholder="https://www.69shu.com/txt/..." required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">แนวนิยาย (Genre Preset)</label>
+          <select class="form-select" id="import-genre">
+            <option value="apocalypse">❄️ วันสิ้นโลก / เอาชีวิตรอด (Apocalypse)</option>
+            <option value="xianxia">🥋 เทพเซียน / กำลังภายใน / บ่มเพาะพลัง (Xianxia/Wuxia)</option>
+            <option value="system">🎮 ดันเจี้ยน / ระบบเกม / ลอร์ดสร้างเมือง (System/Lord)</option>
+            <option value="fantasy">🧙 แฟนตาซีตะวันตก / เวทมนตร์ (Western Fantasy)</option>
+            <option value="urban">🏙️ ชีวิตในเมือง / มหาเศรษฐี / แพทย์เทวะ (Urban)</option>
+            <option value="scifi">🌌 ไซไฟ / ท่องอวกาศ / หุ่นยนต์รบ (Sci-Fi)</option>
+            <option value="historical">🏰 ย้อนยุค / ราชวงศ์ / ชิงบัลลังก์ (Historical)</option>
+            <option value="horror">👻 ระทึกขวัญ / สยองขวัญ / ปริศนา (Horror)</option>
+            <option value="romance">💖 โรแมนติก / ดราม่า / รักหวานซึ้ง (Romance)</option>
+          </select>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="form-group">
+            <label class="form-label">เริ่มตอนที่ (เว้นว่างได้)</label>
+            <input type="number" class="form-input" id="import-start" placeholder="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ถึงตอนที่ (เว้นว่างได้)</label>
+            <input type="number" class="form-input" id="import-end" placeholder="20">
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+          <button type="submit" class="btn btn-primary">เริ่มนำเข้า</button>
+        </div>
+      </form>
+
+      <!-- Paste Form -->
+      <form id="form-import-paste" class="hidden">
+        <div class="form-group">
+          <label class="form-label">เลือกนิยายเป้าหมาย</label>
+          <select class="form-select" id="paste-novel-select">
+            <option value="__new__">+ สร้างนิยายเรื่องใหม่...</option>
+          </select>
+        </div>
+
+        <div id="paste-new-novel-fields">
+          <div class="form-group">
+            <label class="form-label">ชื่อเรื่อง</label>
+            <input type="text" class="form-input" id="paste-novel-title" placeholder="ชื่อนิยาย...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Slug รหัสนิยาย (ภาษาอังกฤษ เช่น my-novel)</label>
+            <input type="text" class="form-input" id="paste-slug" placeholder="my-novel">
+          </div>
+          <div class="form-group">
+            <label class="form-label">แนวนิยาย (Genre Preset)</label>
+            <select class="form-select" id="paste-genre">
+              <option value="apocalypse">❄️ วันสิ้นโลก / เอาชีวิตรอด (Apocalypse)</option>
+              <option value="xianxia">🥋 เทพเซียน / กำลังภายใน / บ่มเพาะพลัง (Xianxia/Wuxia)</option>
+              <option value="system">🎮 ดันเจี้ยน / ระบบเกม / ลอร์ดสร้างเมือง (System/Lord)</option>
+              <option value="fantasy">🧙 แฟนตาซีตะวันตก / เวทมนตร์ (Western Fantasy)</option>
+              <option value="urban">🏙️ ชีวิตในเมือง / มหาเศรษฐี / แพทย์เทวะ (Urban)</option>
+              <option value="scifi">🌌 ไซไฟ / ท่องอวกาศ / หุ่นยนต์รบ (Sci-Fi)</option>
+              <option value="historical">🏰 ย้อนยุค / ราชวงศ์ / ชิงบัลลังก์ (Historical)</option>
+              <option value="horror">👻 ระทึกขวัญ / สยองขวัญ / ปริศนา (Horror)</option>
+              <option value="romance">💖 โรแมนติก / ดราม่า / รักหวานซึ้ง (Romance)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ชื่อตอน (เว้นว่างได้ ระบบจะตั้งอัตโนมัติ)</label>
+          <input type="text" class="form-input" id="paste-title" placeholder="第...章 หรือ ตอนที่...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">เลขตอน</label>
+          <input type="number" class="form-input" id="paste-ch-num" value="1" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">เนื้อหาต้นฉบับ</label>
+          <textarea class="form-textarea" id="paste-content" rows="8" placeholder="วางเนื้อหานิยายภาษาจีน/อังกฤษที่นี่..." required></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+          <button type="submit" class="btn btn-primary">บันทึกตอน</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Translate -->
+  <div class="modal-overlay hidden" id="modal-translate">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="font-size: 1.1rem;">⚡ สั่งแปลนิยายด้วย AI</h3>
+        <button class="btn btn-outline btn-sm" id="btn-close-translate">✕</button>
+      </div>
+      <form id="form-translate">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="form-group">
+            <label class="form-label">เริ่มตอนที่</label>
+            <input type="number" class="form-input" id="trans-start" value="1" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ถึงตอนที่</label>
+            <input type="number" class="form-input" id="trans-end" value="5" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <label class="form-label" style="margin-bottom: 0;">AI Model ที่ใช้งาน (บันทึกถาวร)</label>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-refresh-models" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">🔄 ดึงโมเดลจาก 9Router</button>
+          </div>
+          <select class="form-select" id="trans-model-select">
+            <option value="">กำลังโหลดรายชื่อโมเดล...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">สไตล์สำนวน (Tone & Genre Preset)</label>
+          <select class="form-select" id="trans-genre">
+            <option value="apocalypse">❄️ วันสิ้นโลก / เอาชีวิตรอด (Apocalypse)</option>
+            <option value="xianxia">🥋 เทพเซียน / กำลังภายใน / บ่มเพาะพลัง (Xianxia/Wuxia)</option>
+            <option value="system">🎮 ดันเจี้ยน / ระบบเกม / ลอร์ดสร้างเมือง (System/Lord)</option>
+            <option value="fantasy">🧙 แฟนตาซีตะวันตก / เวทมนตร์ (Western Fantasy)</option>
+            <option value="urban">🏙️ ชีวิตในเมือง / มหาเศรษฐี / แพทย์เทวะ (Urban)</option>
+            <option value="scifi">🌌 ไซไฟ / ท่องอวกาศ / หุ่นยนต์รบ (Sci-Fi)</option>
+            <option value="historical">🏰 ย้อนยุค / ราชวงศ์ / ชิงบัลลังก์ (Historical)</option>
+            <option value="horror">👻 ระทึกขวัญ / สยองขวัญ / ปริศนา (Horror)</option>
+            <option value="romance">💖 โรแมนติก / ดราม่า / รักหวานซึ้ง (Romance)</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+          <input type="checkbox" id="trans-force">
+          <label for="trans-force" style="font-size: 0.85rem; color: var(--text-secondary);">บังคับแปลใหม่ (แม้ว่าจะมีคำแปลเดิมอยู่แล้ว)</label>
+        </div>
+
+        <!-- Progress and error box -->
+        <div id="trans-progress-box" class="hidden" style="margin: 1rem 0; padding: 0.85rem; background: var(--bg-primary); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem;">
+            <span id="trans-progress-msg" style="font-weight: 500;">กำลังเตรียมการ...</span>
+            <span id="trans-progress-pct" style="font-weight: 600;">0%</span>
+          </div>
+          <div style="height: 6px; background: var(--bg-elevated); border-radius: 999px; overflow: hidden; margin-bottom: 0.4rem;">
+            <div id="trans-progress-bar" style="height: 100%; width: 0%; background: var(--accent); transition: width 0.3s ease;"></div>
+          </div>
+          <div id="trans-error-msg" class="hidden" style="font-size: 0.8rem; color: var(--danger); margin-top: 0.4rem;"></div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+          <button type="submit" class="btn btn-primary" id="btn-start-translate">เริ่มแปลทันที</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Glossary -->
+  <div class="modal-overlay hidden" id="modal-glossary">
+    <div class="modal-content" style="max-width: 720px;">
+      <div class="modal-header">
+        <h3 style="font-size: 1.1rem;">📖 ตารางคำศัพท์และชื่อเฉพาะ (Glossary)</h3>
+        <button class="btn btn-outline btn-sm" id="btn-close-glossary">✕</button>
+      </div>
+
+      <!-- Auto Discovery Toolbar -->
+      <div style="background: var(--bg-elevated); padding: 0.85rem; border-radius: var(--radius-sm); margin-bottom: 1rem; border: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span style="font-size: 0.88rem; font-weight: 600;">🔍 Auto-Glossary Discovery (สแกนหาชื่อตัวละครอัตโนมัติ)</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">ดึงชื่อเฉพาะจากบทภาษาจีน</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <label style="font-size: 0.8rem;">สแกนตอนที่:</label>
+          <input type="number" class="form-input" id="disc-start" value="1" style="width: 70px; padding: 0.3rem 0.5rem;">
+          <label style="font-size: 0.8rem;">ถึง:</label>
+          <input type="number" class="form-input" id="disc-end" value="3" style="width: 70px; padding: 0.3rem 0.5rem;">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-run-discovery">✨ เริ่มสแกนศัพท์</button>
+          <span id="disc-status" style="font-size: 0.8rem; color: var(--accent);"></span>
+        </div>
+      </div>
+
+      <!-- Add term form -->
+      <form id="form-add-term" style="display: grid; grid-template-columns: 1.2fr 1.2fr 1fr auto; gap: 0.5rem; margin-bottom: 1rem;">
+        <input type="text" class="form-input" id="term-orig" placeholder="คำเดิม (เช่น 曹星)" required>
+        <input type="text" class="form-input" id="term-target" placeholder="คำแปลไทย (เช่น เฉาซิง)" required>
+        <select class="form-select" id="term-cat">
+          <option value="character">ตัวละคร</option>
+          <option value="location">สถานที่</option>
+          <option value="skill">วิชา/ทักษะ</option>
+          <option value="item">ไอเทม/สิ่งของ</option>
+          <option value="custom">ทั่วไป</option>
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm">+ เพิ่ม</button>
+      </form>
+
+      <!-- Glossary terms table -->
+      <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+          <thead>
+            <tr style="background: var(--bg-elevated); border-bottom: 1px solid var(--border); text-align: left;">
+              <th style="padding: 0.5rem 0.75rem;">คำเดิม (จีน/อังกฤษ)</th>
+              <th style="padding: 0.5rem 0.75rem;">คำแปลไทย</th>
+              <th style="padding: 0.5rem 0.75rem;">ประเภท</th>
+              <th style="padding: 0.5rem; width: 50px;"></th>
+            </tr>
+          </thead>
+          <tbody id="glossary-tbody">
+            <!-- Injected by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+        <button class="btn btn-primary btn-sm" id="btn-save-glossary">บันทึกคำศัพท์</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Settings -->
+  <div class="modal-overlay hidden" id="modal-settings">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="font-size: 1.1rem;">⚙️ ตั้งค่าระบบ</h3>
+        <button class="btn btn-outline btn-sm" id="btn-close-settings">✕</button>
+      </div>
+      <form id="form-settings">
+        <div class="form-group">
+          <label class="form-label">9Router / OpenAI Base URL</label>
+          <input type="text" class="form-input" id="cfg-router-url" placeholder="http://localhost:20128/v1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">API Key (เว้นว่างได้ถ้า 9Router ไม่ได้เปิด auth)</label>
+          <input type="password" class="form-input" id="cfg-api-key" placeholder="sk-...">
+        </div>
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <label class="form-label" style="margin-bottom: 0;">Default Model</label>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-cfg-refresh-models" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">🔄 ดึงโมเดล</button>
+          </div>
+          <select class="form-select" id="cfg-model-select"></select>
+          <input type="text" class="form-input" id="cfg-model-custom" placeholder="หรือพิมพ์ชื่อโมเดลเอง..." style="margin-top: 0.4rem;">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Temperature</label>
+          <input type="number" step="0.05" class="form-input" id="cfg-temp" value="0.3">
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Floating TTS Audio Player Bar -->
+  <div class="tts-player-bar hidden" id="tts-player-bar">
+    <div class="tts-info">
+      <span class="tts-icon">🔊</span>
+      <span class="tts-status" id="tts-status">กำลังอ่าน...</span>
+    </div>
+    <div class="tts-controls">
+      <select class="form-select form-select-sm" id="tts-voice" title="เลือกเสียงพากย์" style="max-width: 105px; padding: 0.2rem 0.4rem; font-size: 0.8rem; background: var(--bg-primary); border-color: var(--accent);">
+        <option value="edge-tts/th-TH-NiwatNeural" selected>นิวัต</option>
+        <option value="edge-tts/th-TH-PremwadeeNeural">เปรมวดี</option>
+        <option value="edge-tts/th-TH-AcharaNeural">อัจฉรา</option>
+      </select>
+      <button class="btn btn-outline btn-sm" id="btn-tts-prev" title="ย่อหน้าก่อนหน้า">⏮️</button>
+      <button class="btn btn-primary btn-sm" id="btn-tts-playpause" title="เล่น/หยุด">⏸️ หยุด</button>
+      <button class="btn btn-outline btn-sm" id="btn-tts-next" title="ย่อหน้าถัดไป">⏭️</button>
+      <select class="form-select form-select-sm" id="tts-speed" title="ความเร็วการอ่าน" style="width: 76px; padding: 0.2rem 0.4rem; font-size: 0.8rem;">
+        <option value="0.85">0.85x</option>
+        <option value="1.0" selected>1.0x</option>
+        <option value="1.25">1.25x</option>
+        <option value="1.5">1.5x</option>
+        <option value="1.75">1.75x</option>
+        <option value="2.0">2.0x</option>
+      </select>
+      <button class="btn btn-outline btn-sm" id="btn-tts-close" title="ปิดระบบอ่านเสียง">✕</button>
+    </div>
+  </div>
+
+  <!-- Modal: Export Novel -->
+  <div class="modal-overlay hidden" id="modal-export">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="font-size: 1.1rem;">📦 ส่งออกนิยาย (Export E-Book)</h3>
+        <button class="btn btn-outline btn-sm" id="btn-close-export">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">รูปแบบไฟล์ (Format)</label>
+        <select class="form-select" id="export-format">
+          <option value="epub" selected>📱 EPUB (สำหรับ iPad Books, Kindle, Boox, MEB)</option>
+          <option value="txt">📄 TXT (ข้อความธรรมดา UTF-8 พร้อมสารบัญ)</option>
+          <option value="md">📝 Markdown (หัวข้อแยกตอนชัดเจน)</option>
+        </select>
+      </div>
+      <div class="grid grid-2" style="gap: 0.75rem;">
+        <div class="form-group">
+          <label class="form-label">จากตอนที่</label>
+          <input type="number" class="form-input" id="export-start" value="1" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">ถึงตอนที่</label>
+          <input type="number" class="form-input" id="export-end" value="1" min="1">
+        </div>
+      </div>
+      <div style="background: var(--bg-hover); padding: 0.75rem; border-radius: var(--radius-sm); font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+        💡 ระบบจะรวบรวมเฉพาะตอนที่แปลเป็นภาษาไทยเรียบร้อยแล้วมารวมเป็นเล่มให้อัตโนมัติ
+      </div>
+      <button class="btn btn-primary" id="btn-do-export" style="width: 100%;">📥 ดาวน์โหลดไฟล์</button>
+    </div>
+  </div>
+
+  <!-- Modal: Translation Queue Drawer -->
+  <div class="modal-overlay hidden" id="modal-queue">
+    <div class="modal-content" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3 style="font-size: 1.1rem;">📊 คิวงานแปลแบบละเอียด (Translation Queue)</h3>
+        <button class="btn btn-outline btn-sm" id="btn-close-queue">✕</button>
+      </div>
+      <div class="queue-summary" id="queue-summary" style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-muted);">
+        <!-- Injected by JavaScript -->
+      </div>
+      <div class="queue-list" id="queue-items-container" style="max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+        <!-- Injected by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Background Job Status Bar -->
+  <div class="floating-job-bar hidden" id="floating-job-bar">
+    <div class="job-spinner"></div>
+    <div style="flex: 1; min-width: 0; cursor: pointer;" id="float-job-clickable" title="คลิกเพื่อดูรายละเอียดคิว">
+      <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 0.2rem;">
+        <span id="float-job-title" style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">กำลังแปล...</span>
+        <span id="float-job-pct" style="font-weight: 700; color: var(--accent);">0%</span>
+      </div>
+      <div style="height: 4px; background: var(--bg-elevated); border-radius: 999px; overflow: hidden;">
+        <div id="float-job-bar" style="height: 100%; width: 0%; background: var(--accent); transition: width 0.3s ease;"></div>
+      </div>
+    </div>
+    <button class="btn btn-outline btn-sm" id="btn-cancel-float-job" style="color: var(--danger); font-size: 0.75rem; padding: 0.25rem 0.5rem;" title="ยกเลิกคิว">✕ ยกเลิก</button>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
+

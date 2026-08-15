@@ -1,1 +1,0 @@
-"""NovelClaw — QA tools package."""

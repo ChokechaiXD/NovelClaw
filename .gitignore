@@ -127,3 +127,14 @@ novelclaw.log
 
 # One-shot audit reports (not code)
 reader/security-audit-report.md
+
+# Go build output
+novelclaw.exe
+novelclaw
+
+# Runtime config (contains API key)
+config.json
+
+# Runtime state / cache
+novels/.cache/
+novels/*/bookmark.json
