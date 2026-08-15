@@ -550,6 +550,8 @@ func (h *APIHandler) runTranslationJob(ctx context.Context, jobID string, req mo
 	}
 
 	glossary, _ := h.store.GetGlossary(req.NovelSlug)
+	styleRules, _ := h.store.GetStyleRules(req.NovelSlug)
+	chapterList, _ := h.store.ListChapters(req.NovelSlug)
 	total := req.EndChapter - req.StartChapter + 1
 	successCount := 0
 	var lastError string
@@ -587,17 +589,22 @@ func (h *APIHandler) runTranslationJob(ctx context.Context, jobID string, req mo
 			continue
 		}
 
-		// Previous context
+		// Previous context: last 3 paragraphs of the nearest preceding chapter
+		// (gap-aware: chapter numbers can skip, e.g. 72 -> 86)
 		var prevContext string
-		if chNo > 1 {
-			if prevCh, err := h.store.GetChapter(req.NovelSlug, chNo-1); err == nil && len(prevCh.TranslatedText) > 0 {
-				lastIdx := len(prevCh.TranslatedText) - 1
-				prevContext = fmt.Sprintf("ตอนก่อนหน้า (%s) จบด้วย: %s", prevCh.TranslatedTitle, prevCh.TranslatedText[lastIdx])
+		if prevNo := previousChapterNo(chapterList, chNo); prevNo > 0 {
+			if prevCh, err := h.store.GetChapter(req.NovelSlug, prevNo); err == nil && len(prevCh.TranslatedText) > 0 {
+				n := len(prevCh.TranslatedText)
+				if n > 3 {
+					n = 3
+				}
+				tail := prevCh.TranslatedText[len(prevCh.TranslatedText)-n:]
+				prevContext = fmt.Sprintf("ตอนก่อนหน้า (%s) จบด้วย:\n%s", prevCh.TranslatedTitle, strings.Join(tail, "\n"))
 			}
 		}
 
 		relevantGlossary := translator.FilterRelevantGlossary(glossary, content.SourceText)
-		systemPrompt := translator.BuildSystemPrompt(relevantGlossary, prevContext, genre)
+		systemPrompt := translator.BuildSystemPrompt(relevantGlossary, prevContext, genre, styleRules)
 
 		// Smart Chunking for long chapters (max 25 paragraphs or 750 chars per chunk)
 		chunks := translator.SplitParagraphsIntoChunks(content.SourceText, 750)
@@ -774,4 +781,16 @@ func sanitizeSlug(s string) string {
 		return fmt.Sprintf("novel-%d", time.Now().Unix())
 	}
 	return result.String()
+}
+
+// previousChapterNo returns the largest chapter number strictly below chNo,
+// or 0 when none exists. Handles gaps in chapter numbering.
+func previousChapterNo(chapters []model.ChapterMeta, chNo int) int {
+	prev := 0
+	for _, ch := range chapters {
+		if ch.ChapterNo < chNo && ch.ChapterNo > prev {
+			prev = ch.ChapterNo
+		}
+	}
+	return prev
 }

@@ -308,7 +308,7 @@ func (s *Store) GetGlossary(slug string) (*model.NovelGlossary, error) {
 	// Supports both array of items and map/struct
 	var items []model.GlossaryItem
 	if err := json.Unmarshal(data, &items); err == nil {
-		g.Terms = items
+		g.Terms = mergeGlossaryYAML(s.DataDir, slug, items)
 		return g, nil
 	}
 
@@ -320,6 +320,7 @@ func (s *Store) GetGlossary(slug string) (*model.NovelGlossary, error) {
 		}
 	}
 
+	g.Terms = mergeGlossaryYAML(s.DataDir, slug, g.Terms)
 	return g, nil
 }
 

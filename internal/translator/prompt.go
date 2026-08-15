@@ -7,8 +7,8 @@ import (
 	"novelclaw/internal/model"
 )
 
-// BuildSystemPrompt constructs the high-quality novel translation prompt with genre preset, glossary, and context rules
-func BuildSystemPrompt(glossary *model.NovelGlossary, prevContext, genre string) string {
+// BuildSystemPrompt constructs the high-quality novel translation prompt with genre preset, glossary, style rules, and context rules
+func BuildSystemPrompt(glossary *model.NovelGlossary, prevContext, genre, styleRules string) string {
 	var sb strings.Builder
 
 	sb.WriteString(`คุณคือนักแปลวรรณกรรมและนิยายมืออาชีพชั้นยอด เชี่ยวชาญการแปลนิยายเว็บจีน (Web Novel) เป็นภาษาไทยคุณภาพระดับสำนักพิมพ์
@@ -95,6 +95,13 @@ func BuildSystemPrompt(glossary *model.NovelGlossary, prevContext, genre string)
 				sb.WriteString(fmt.Sprintf("- %s -> %s\n", item.Term, item.Target))
 			}
 		}
+	}
+
+	// Inject Style Rules (from style_rules.yml)
+	if strings.TrimSpace(styleRules) != "" {
+		sb.WriteString("\n\n[กฎสำนวนเฉพาะเรื่้องนี้ (Style Rules) — บังคับใช้อย่างเคร่งครัด]\n")
+		sb.WriteString(strings.TrimSpace(styleRules))
+		sb.WriteString("\n")
 	}
 
 	// Inject Previous Context

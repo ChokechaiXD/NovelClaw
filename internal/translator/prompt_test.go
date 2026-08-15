@@ -40,7 +40,7 @@ func TestBuildSystemPrompt_All9Genres(t *testing.T) {
 	}
 
 	for _, tc := range genres {
-		prompt := BuildSystemPrompt(nil, "", tc.genre)
+		prompt := BuildSystemPrompt(nil, "", tc.genre, "")
 		if !strings.Contains(prompt, tc.expected) {
 			t.Errorf("Genre '%s' expected to contain '%s', but got:\n%s", tc.genre, tc.expected, prompt)
 		}
@@ -54,7 +54,7 @@ func TestBuildSystemPrompt_WithGlossary(t *testing.T) {
 			{Term: "冰封纪元", Target: "ยุคน้ำแข็ง", Category: "custom"},
 		},
 	}
-	prompt := BuildSystemPrompt(g, "", "system")
+	prompt := BuildSystemPrompt(g, "", "system", "")
 
 	if !strings.Contains(prompt, "曹星 -> เฉาซิง") {
 		t.Error("Glossary term with notes not found in prompt")
@@ -68,7 +68,7 @@ func TestBuildSystemPrompt_WithGlossary(t *testing.T) {
 }
 
 func TestBuildSystemPrompt_WithContext(t *testing.T) {
-	prompt := BuildSystemPrompt(nil, "ตอนก่อนหน้า: เฉาซิงพบสมบัติ", "apocalypse")
+	prompt := BuildSystemPrompt(nil, "ตอนก่อนหน้า: เฉาซิงพบสมบัติ", "apocalypse", "")
 
 	if !strings.Contains(prompt, "เฉาซิงพบสมบัติ") {
 		t.Error("Previous context not injected into prompt")
@@ -199,5 +199,23 @@ func TestParseTranslationOutput_SanitizesHanzi(t *testing.T) {
 		if HasHanzi(p) {
 			t.Errorf("Hanzi still present after parse: %q", p)
 		}
+	}
+}
+
+func TestBuildSystemPrompt_WithStyleRules(t *testing.T) {
+	rules := "[punctuation]\n- Use em-dash for missing numbers"
+	prompt := BuildSystemPrompt(nil, "", "system", rules)
+	if !strings.Contains(prompt, "Style Rules") {
+		t.Error("Style rules section header not found in prompt")
+	}
+	if !strings.Contains(prompt, "Use em-dash for missing numbers") {
+		t.Error("Style rule content not injected into prompt")
+	}
+}
+
+func TestBuildSystemPrompt_EmptyStyleRules(t *testing.T) {
+	prompt := BuildSystemPrompt(nil, "", "system", "   ")
+	if strings.Contains(prompt, "Style Rules") {
+		t.Error("Empty style rules should not inject a section")
 	}
 }
