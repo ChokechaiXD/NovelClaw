@@ -126,6 +126,9 @@
     transStart: document.getElementById('trans-start'),
     transEnd: document.getElementById('trans-end'),
     transModelSelect: document.getElementById('trans-model-select'),
+    cfgProvider: document.getElementById('cfg-provider'),
+    btnDetectProviders: document.getElementById('btn-detect-providers'),
+    detectProviders: document.getElementById('detect-providers'),
     btnRefreshModels: document.getElementById('btn-refresh-models'),
     transGenre: document.getElementById('trans-genre'),
     transForce: document.getElementById('trans-force'),
@@ -252,7 +255,10 @@
 
   function handleSSEEvent(data) {
     if (data.type === 'chapter_translated') {
-      showToast(`แปล ${data.title} เสร็จเรียบร้อยแล้ว ✨`, 'success');
+            showToast(`แปล ${data.title} เสร็จเรียบร้อยแล้ว ✨`, 'success');
+                  if (Array.isArray(data.warnings) && data.warnings.length > 0) {
+                    showToast(`⚠️ ${data.warnings[0]}${data.warnings.length > 1 ? ` (+${data.warnings.length - 1} จุด)` : ''}`, 'warning');
+                  }
       
       const existing = state.activeJobQueue.find(i => i.chapterNo === data.chapterNo);
       if (existing) {
@@ -350,12 +356,32 @@
   }
 
   // Load Config and Discover Available Models
+  // Provider presets: one click fills in the standard Base URL of each
+  // provider; "custom" leaves the field untouched.
+  const PROVIDER_PRESETS = {
+    '9router': { url: 'http://localhost:20128/v1', apiKeyHint: 'ไม่ต้องใส่ key ถ้า 9Router ไม่ได้เปิด auth' },
+    openai: { url: 'https://api.openai.com/v1', apiKeyHint: 'sk-...' },
+    openrouter: { url: 'https://openrouter.ai/api/v1', apiKeyHint: 'sk-or-...' },
+    deepseek: { url: 'https://api.deepseek.com/v1', apiKeyHint: 'sk-...' },
+    ollama: { url: 'http://localhost:11434/v1', apiKeyHint: 'ไม่ต้องใช้ key' },
+    lmstudio: { url: 'http://localhost:1234/v1', apiKeyHint: 'ไม่ต้องใช้ key' },
+    custom: null,
+  };
+
+  function applyProviderPreset(provider) {
+    const preset = PROVIDER_PRESETS[provider];
+    if (!preset) return;
+    el.cfgRouterUrl.value = preset.url;
+    el.cfgApiKey.placeholder = preset.apiKeyHint;
+  }
+
   async function loadConfigAndModels() {
     try {
       const cfg = await api('/api/config');
       const savedModel = localStorage.getItem('nc_model');
       state.defaultModel = savedModel || cfg.defaultModel || 'cf/@cf/meta/llama-3.3-70b-instruct-fp8-fast';
       el.cfgRouterUrl.value = cfg.routerUrl || '';
+      el.cfgProvider.value = cfg.provider || 'custom';
       // API key is never returned in full — show masked value as placeholder,
       // leave the field empty so submitting without changes keeps the real key.
       el.cfgApiKey.value = '';
@@ -521,16 +547,22 @@
       }
 
       el.chapterList.innerHTML = state.chapters.map(ch => {
-        const isActive = ch.chapterNo === state.currentChapterNo;
-        return `
-          <div class="chapter-item ${ch.hasTranslated ? 'translated' : ''} ${isActive ? 'active' : ''}" data-ch="${ch.chapterNo}">
-            <span style="font-weight: 500;">ตอนที่ ${ch.chapterNo}</span>
-            <span class="badge ${ch.hasTranslated ? 'badge-success' : 'badge-info'}" style="font-size: 0.7rem;">
-              ${ch.hasTranslated ? 'แปลแล้ว' : 'ต้นฉบับ'}
-            </span>
-          </div>
-        `;
-      }).join('');
+              const isActive = ch.chapterNo === state.currentChapterNo;
+              const titleText = (() => {
+          const t = (ch.titleTranslated || '').trim();
+          return t && !/^ตอนที่\s*\d+$/.test(t) ? ch.titleTranslated : (ch.titleSource || '');
+        })();
+              return `
+                <div class="chapter-item ${ch.hasTranslated ? 'translated' : ''} ${isActive ? 'active' : ''}" data-ch="${ch.chapterNo}">
+                  <div style="display:flex;align-items:center;gap:0.5rem;min-width:0;">
+                    <span style="font-weight:500;flex-shrink:0;">ตอนที่ ${ch.chapterNo}</span>
+                    ${titleText ? `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted);font-size:0.85rem;">${escapeHTML(titleText)}</span>` : ''}
+                    <span class="badge ${ch.hasTranslated ? 'badge-success' : 'badge-info'}" style="font-size:0.7rem;flex-shrink:0;margin-left:auto;">
+                      ${ch.hasTranslated ? 'แปลแล้ว' : 'ต้นฉบับ'}
+                    </span>
+                  </div>
+                </div>`;
+            }).join('');
 
       el.chapterList.querySelectorAll('.chapter-item').forEach(item => {
         item.addEventListener('click', () => {
@@ -594,8 +626,15 @@
       renderReaderParagraphs();
 
       // Update Nav Buttons (Both Top and Bottom Nav)
-      const hasPrev = chapterNo > 1;
-      const hasNext = state.chapters.length === 0 || chapterNo < maxChapterNo();
+      const chIdx = state.chapters.findIndex(c => c.chapterNo === chapterNo);
+            let hasPrev, hasNext;
+            if (chIdx === -1) {
+              hasPrev = chapterNo > 1;
+              hasNext = chapterNo < maxChapterNo();
+            } else {
+              hasPrev = chIdx > 0;
+              hasNext = chIdx < state.chapters.length - 1;
+            }
 
       el.btnPrevChapter.disabled = !hasPrev;
       el.btnNextChapter.disabled = !hasNext;
@@ -1036,6 +1075,11 @@
       const model = el.transModelSelect.value.trim();
       const genre = el.transGenre.value;
       const force = el.transForce.checked;
+      // Fallback chain: other available models from the same gateway get
+                  // tried automatically if the chosen model keeps failing.
+      const fallbackModels = (state.availableModels || [])
+        .filter(m => m && m !== model)
+        .slice(0, 3);
 
       // Save selected model permanently
       if (model) {
@@ -1060,6 +1104,7 @@
           startChapter: start,
           endChapter: end,
           model,
+          fallbackModels,
           genre,
           force,
         }),
@@ -1150,6 +1195,35 @@
 
     el.btnCloseSettings.addEventListener('click', () => closeModal(el.modalSettings));
 
+    // Provider preset selection + local gateway detection
+    el.cfgProvider.addEventListener('change', () => {
+      applyProviderPreset(el.cfgProvider.value);
+    });
+    el.btnDetectProviders.addEventListener('click', async () => {
+      el.detectProviders.innerHTML = '<span class="badge badge-info">กำลังตรวจจับ...</span>';
+      try {
+        const res = await api('/api/detect-providers');
+        const found = res.providers || [];
+        if (found.length === 0) {
+          el.detectProviders.innerHTML = '<span style="font-size:0.8rem;color:var(--text-muted);">ไม่พบ LLM gateway ในเครื่อง — กำหนดเองได้เลย</span>';
+          return;
+        }
+        el.detectProviders.innerHTML = found.map(p => `
+          <button type="button" class="btn btn-outline btn-sm" data-provider="${p.provider}" data-url="${p.url}" style="font-size:0.75rem;padding:0.2rem 0.5rem;">
+            🟢 ${p.provider} (${p.url})${p.modelCount ? ` — ${p.modelCount} โมเดล` : ''}
+          </button>`).join('');
+        el.detectProviders.querySelectorAll('[data-provider]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            el.cfgProvider.value = btn.dataset.provider;
+            el.cfgRouterUrl.value = btn.dataset.url;
+            showToast(`ใช้ ${btn.dataset.provider} แล้ว — กดบันทึกเพื่อยืนยัน`, 'info');
+          });
+        });
+      } catch (err) {
+        el.detectProviders.innerHTML = '<span style="font-size:0.8rem;color:var(--danger);">ตรวจจับไม่สำเร็จ</span>';
+      }
+    });
+
     el.formSettings.addEventListener('submit', async (e) => {
       e.preventDefault();
       const chosenModel = el.cfgModelCustom.value.trim() || el.cfgModelSelect.value;
@@ -1160,11 +1234,12 @@
       await api('/api/config', {
         method: 'POST',
         body: JSON.stringify({
-          routerUrl,
-          apiKey,
-          defaultModel: chosenModel,
-          temperature,
-        }),
+                  routerUrl,
+                  apiKey,
+                  defaultModel: chosenModel,
+                  temperature,
+                  provider: el.cfgProvider.value,
+                }),
       });
 
       state.defaultModel = chosenModel;
@@ -1293,11 +1368,18 @@
   }
 
   async function speakCurrentParagraph() {
-    if (!state.tts.speaking || state.tts.currentIdx >= state.tts.paragraphs.length) {
-      stopTTS();
-      showToast('อ่านเสียงจบตอนแล้ว ✨', 'success');
-      return;
-    }
+    if (state.tts.currentIdx >= state.tts.paragraphs.length) {
+          const next = adjacentChapterNo(state.currentChapterNo, 1);
+          if (next) {
+            stopTTS();
+            showToast(`จบตอน ${state.currentChapterNo} — อ่านเสียงต่อตอน ${next}... 📖`, 'info');
+            openChapter(state.currentSlug, next).then(() => setTimeout(() => startTTS(), 800));
+            return;
+          }
+          stopTTS();
+          showToast('อ่านเสียงจบทั้งเรื่องแล้ว 🎉', 'success');
+          return;
+        }
 
     // Stop previous audio
     if (state.tts.audioElement) {
@@ -1407,7 +1489,7 @@
     if (state.tts.voice === 'browser' || !state.tts.speaking) return;
     if (nextIdx >= state.tts.paragraphs.length) return;
 
-    const cacheKey = `${state.tts.voice}_${nextIdx}`;
+    const cacheKey = `${state.tts.voice}_${state.tts.speed}_${nextIdx}`;
     if (state.tts.audioBlobs[cacheKey]) return;
 
     const text = state.tts.paragraphs[nextIdx];
@@ -1416,9 +1498,10 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: text,
-          voice: state.tts.voice,
-        }),
+                  text: text,
+                  voice: state.tts.voice,
+                  speed: state.tts.speed,
+                }),
       });
       if (resp.ok) {
         const blob = await resp.blob();

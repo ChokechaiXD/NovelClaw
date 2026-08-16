@@ -1,36 +1,19 @@
-name: NovelClaw CI
+name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
 
 jobs:
-  test:
+  build-test:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-go@v5
         with:
-          node-version: '22'
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install reader dependencies
-        run: cd reader && npm install
-
-      - name: Run quality check
-        run: python tools/check_all.py
-
-      - name: Schema validation
-        run: python tools/validate_data.py --all
-
-      - name: Summary
-        run: echo "✅ NovelClaw CI completed"
+          go-version: '1.26.x'
+      - run: go build ./...
+      - run: go vet ./...
+      - name: Run tests
+        run: go test ./...

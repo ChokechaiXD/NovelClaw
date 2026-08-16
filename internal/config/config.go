@@ -15,9 +15,10 @@ type AppConfig struct {
 	Port         int     `json:"port"`
 	Host         string  `json:"host"`
 	DataDir      string  `json:"dataDir"`
-	RouterURL    string  `json:"routerUrl"`    // e.g. http://localhost:20128/v1
-	APIKey       string  `json:"apiKey"`       // 9Router or OpenAI API key
-	DefaultModel string  `json:"defaultModel"` // e.g. google/gemini-2.5-flash or deepseek/deepseek-chat
+	RouterURL    string  `json:"routerUrl"`          // e.g. http://localhost:20128/v1
+	APIKey       string  `json:"apiKey"`             // 9Router or OpenAI API key
+	DefaultModel string  `json:"defaultModel"`       // e.g. google/gemini-2.5-flash or deepseek/deepseek-chat
+	Provider     string  `json:"provider,omitempty"` // provider nickname for UI presets (9router, openai, ollama...)
 	Temperature  float64 `json:"temperature"`
 	Parallel     int     `json:"parallel"`
 

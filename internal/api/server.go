@@ -45,6 +45,7 @@ func SetupRouter(cfg *config.AppConfig, store *storage.Store) http.Handler {
 	// System Config & Models
 	mux.HandleFunc("GET /api/models", h.ListModels)
 	mux.HandleFunc("GET /api/config", h.GetConfig)
+	mux.HandleFunc("GET /api/detect-providers", h.DetectProviders)
 	mux.HandleFunc("POST /api/config", h.UpdateConfig)
 
 	// Embedded Static Assets

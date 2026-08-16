@@ -80,13 +80,14 @@ type ImportRequest struct {
 
 // TranslateRequest represents a request to translate chapters
 type TranslateRequest struct {
-	NovelSlug    string  `json:"novelSlug"`
-	StartChapter int     `json:"startChapter"`
-	EndChapter   int     `json:"endChapter"`
-	Model        string  `json:"model,omitempty"`
-	Genre        string  `json:"genre,omitempty"`
-	Temperature  float64 `json:"temperature,omitempty"`
-	Force        bool    `json:"force,omitempty"` // Re-translate even if already translated
+	NovelSlug      string   `json:"novelSlug"`
+	StartChapter   int      `json:"startChapter"`
+	EndChapter     int      `json:"endChapter"`
+	Model          string   `json:"model,omitempty"`
+	FallbackModels []string `json:"fallbackModels,omitempty"` // tried in order if Model fails
+	Genre          string   `json:"genre,omitempty"`
+	Temperature    float64  `json:"temperature,omitempty"`
+	Force          bool     `json:"force,omitempty"` // Re-translate even if already translated
 }
 
 // DiscoverGlossaryRequest represents a request to discover glossary terms

@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -463,11 +465,17 @@ func (h *APIHandler) Import(w http.ResponseWriter, r *http.Request) {
 func (h *APIHandler) CancelJob(w http.ResponseWriter, r *http.Request) {
 	jobID := r.PathValue("id")
 	h.jobsMu.Lock()
-	cancel, exists := h.cancels[jobID]
-	if exists {
-		cancel()
-		delete(h.cancels, jobID)
-		delete(h.activeJobs, jobID)
+	var slug string
+	if p, ok := h.activeJobs[jobID]; ok {
+		slug = p.NovelSlug
+	}
+	// Cancelling one job stops every queued/running job of the same novel,
+	// so a single "stop" button really stops the whole queue.
+	for id, p := range h.activeJobs {
+		if cancel, ok := h.cancels[id]; ok && (slug == "" && id == jobID || slug != "" && p.NovelSlug == slug) {
+			cancel()
+			delete(h.cancels, id)
+		}
 	}
 	h.jobsMu.Unlock()
 
@@ -553,6 +561,16 @@ func (h *APIHandler) runTranslationJob(ctx context.Context, jobID string, req mo
 	styleRules, _ := h.store.GetStyleRules(req.NovelSlug)
 	chapterList, _ := h.store.ListChapters(req.NovelSlug)
 	total := req.EndChapter - req.StartChapter + 1
+
+	// Model fallback chain: primary model first, then any fallbacks the UI
+	// sent (e.g. other models from the same gateway). A dead model in the
+	// chain can no longer kill the whole queue.
+	modelChain := []string{req.Model}
+	for _, m := range req.FallbackModels {
+		if m != "" && m != req.Model && !slices.Contains(modelChain, m) {
+			modelChain = append(modelChain, m)
+		}
+	}
 	successCount := 0
 	var lastError string
 
@@ -626,7 +644,7 @@ func (h *APIHandler) runTranslationJob(ctx context.Context, jobID string, req mo
 			}
 
 			chunkCtx, chunkCancel := context.WithTimeout(ctx, 120*time.Second)
-			rawOutput, err := h.translator.Complete(chunkCtx, systemPrompt, chunkUserPrompt, req.Model, req.Temperature)
+			rawOutput, _, err := h.translator.CompleteWithFallback(chunkCtx, systemPrompt, chunkUserPrompt, modelChain, req.Temperature)
 			chunkCancel()
 
 			if err != nil {
@@ -669,6 +687,28 @@ func (h *APIHandler) runTranslationJob(ctx context.Context, jobID string, req mo
 		finalTransTitle = translator.SanitizeText(finalTransTitle, gMap)
 		fullTranslatedParagraphs = translator.SanitizeParagraphs(fullTranslatedParagraphs, gMap)
 
+		// Consistency check: glossary terms present in the source should have
+		// their expected target somewhere in the translation. Mismatches are
+		// reported (not blocking) so the user can confirm glossary entries.
+		var warnings []string
+		if glossary != nil && len(glossary.Terms) > 0 {
+			srcJoined := strings.Join(content.SourceText, "\n")
+			thJoined := strings.Join(fullTranslatedParagraphs, "\n")
+			seenTerm := map[string]bool{}
+			for _, t := range glossary.Terms {
+				if t.Term == "" || t.Target == "" || seenTerm[t.Term] {
+					continue
+				}
+				seenTerm[t.Term] = true
+				if strings.Contains(srcJoined, t.Term) && !strings.Contains(thJoined, t.Target) {
+					warnings = append(warnings, fmt.Sprintf("พบ %q แต่ไม่พบ %q ในฉบับแปล", t.Term, t.Target))
+					if len(warnings) >= 5 {
+						break
+					}
+				}
+			}
+		}
+
 		_ = h.store.SaveChapter(req.NovelSlug, chNo, content.SourceTitle, finalTransTitle, nil, fullTranslatedParagraphs)
 		successCount++
 
@@ -677,6 +717,7 @@ func (h *APIHandler) runTranslationJob(ctx context.Context, jobID string, req mo
 			"novelSlug": req.NovelSlug,
 			"chapterNo": chNo,
 			"title":     finalTransTitle,
+			"warnings":  warnings,
 		})
 	}
 
@@ -725,6 +766,7 @@ func (h *APIHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 		DefaultModel string  `json:"defaultModel"`
 		Temperature  float64 `json:"temperature"`
 		Parallel     int     `json:"parallel"`
+		Provider     string  `json:"provider,omitempty"`
 	}
 	WriteJSON(w, http.StatusOK, safeConfig{
 		Port:         h.cfg.Port,
@@ -735,6 +777,7 @@ func (h *APIHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 		DefaultModel: h.cfg.GetDefaultModel(),
 		Temperature:  h.cfg.GetTemperature(),
 		Parallel:     h.cfg.Parallel,
+		Provider:     h.cfg.Provider,
 	})
 }
 
@@ -761,11 +804,53 @@ func (h *APIHandler) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 		if val, ok := payload["temperature"].(float64); ok && val >= 0 && val <= 2 {
 			c.Temperature = val
 		}
+		if val, ok := payload["provider"].(string); ok {
+			c.Provider = val
+		}
 	}); err != nil {
 		WriteError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to save config: %v", err))
 		return
 	}
 	h.GetConfig(w, r)
+}
+
+// DetectProviders probes well-known local LLM gateways and returns the ones
+// that answer on /v1/models, so the settings UI can offer one-click setup
+// instead of asking the user to type URLs and keys manually.
+func (h *APIHandler) DetectProviders(w http.ResponseWriter, r *http.Request) {
+	type probe struct {
+		Provider   string `json:"provider"`
+		URL        string `json:"url"`
+		ModelCount int    `json:"modelCount"`
+	}
+	var found []probe
+	candidates := []struct{ name, url string }{
+		{"9router", "http://localhost:20128/v1/models"},
+		{"ollama", "http://localhost:11434/v1/models"},
+		{"lmstudio", "http://localhost:1234/v1/models"},
+		{"vllm", "http://localhost:8000/v1/models"},
+	}
+	client := &http.Client{Timeout: 700 * time.Millisecond}
+	for _, c := range candidates {
+		resp, err := client.Get(c.url) //nolint:gosec // localhost probe only
+		if err != nil {
+			continue
+		}
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			continue
+		}
+		count := 0
+		var ml struct {
+			Data []json.RawMessage `json:"data"`
+		}
+		if json.Unmarshal(body, &ml) == nil {
+			count = len(ml.Data)
+		}
+		found = append(found, probe{Provider: c.name, URL: c.url, ModelCount: count})
+	}
+	WriteJSON(w, http.StatusOK, map[string]interface{}{"providers": found})
 }
 
 func sanitizeSlug(s string) string {

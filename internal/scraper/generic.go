@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -101,6 +102,44 @@ func (s *GenericScraper) FetchTOC(tocURL string) (*ScrapedNovelInfo, error) {
 
 	info.Description = strings.TrimSpace(doc.Find(".description, .intro, .summary, .synopsis").First().Text())
 	info.CoverURL, _ = doc.Find(".cover img, .book-cover img, .poster img").First().Attr("src")
+
+	// Best-effort chapter list for generic sites. Many Chinese web-novel
+	// clones reuse one of these container class names; try them all and
+	// require at least 3 links so navigation noise does not fake a TOC.
+	seen := map[string]bool{}
+	var chapters []ScrapedChapter
+	doc.Find(".listmain a, #list a, .chapter-list a, .section-list a, .book-list a, .list a").Each(func(_ int, link *goquery.Selection) {
+		href, _ := link.Attr("href")
+		if href == "" || strings.HasPrefix(href, "#") || strings.HasPrefix(href, "javascript") || seen[href] {
+			return
+		}
+		title := strings.TrimSpace(link.Text())
+		if title == "" || len([]rune(title)) > 80 {
+			return
+		}
+		seen[href] = true
+		base, err := url.Parse(tocURL)
+		if err != nil {
+			return
+		}
+		ref, err := url.Parse(href)
+		if err != nil {
+			return
+		}
+		chapters = append(chapters, ScrapedChapter{
+			ChapterNo: extractChapterNumber(title),
+			Title:     title,
+			URL:       base.ResolveReference(ref).String(),
+		})
+	})
+	if len(chapters) > 2 {
+		for i := range chapters {
+			if chapters[i].ChapterNo == 0 {
+				chapters[i].ChapterNo = i + 1
+			}
+		}
+		info.Chapters = chapters
+	}
 
 	return info, nil
 }

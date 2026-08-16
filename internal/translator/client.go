@@ -61,6 +61,28 @@ func NewClient(cfg *config.AppConfig) *Client {
 }
 
 // FetchModels queries 9Router/OpenRouter for active available models
+// CompleteWithFallback tries each model in order ("" = config default) and
+// returns the first successful result plus the model that produced it.
+// Any non-context error moves to the next candidate, so a dead model in the
+// chain can no longer kill an entire queue.
+func (c *Client) CompleteWithFallback(ctx context.Context, systemPrompt, userPrompt string, models []string, temperature float64) (string, string, error) {
+	if len(models) == 0 {
+		models = []string{""}
+	}
+	var lastErr error
+	for _, m := range models {
+		out, err := c.Complete(ctx, systemPrompt, userPrompt, m, temperature)
+		if err == nil {
+			return out, m, nil
+		}
+		lastErr = err
+		if ctx.Err() != nil {
+			return "", "", lastErr
+		}
+	}
+	return "", "", lastErr
+}
+
 func (c *Client) FetchModels(ctx context.Context) ([]string, error) {
 	url := strings.TrimRight(c.cfg.GetRouterURL(), "/")
 	if strings.HasSuffix(url, "/chat/completions") {

@@ -160,6 +160,30 @@ func (s *Store) ListChapters(slug string) ([]model.ChapterMeta, error) {
 			chapterMap[chNum] = meta
 		}
 
+		// Lightweight title read: translated file wins (carries both titles),
+		// otherwise source title fills the gap. Read each file at most once.
+		isTh := strings.Contains(name, ".th.") || strings.Contains(name, ".translated.")
+		needTitle := (!isTh && meta.TitleSource == "" && meta.TitleTranslated == "") || (isTh && meta.TitleTranslated == "")
+		if needTitle {
+			if data, err := os.ReadFile(filepath.Join(chaptersDir, name)); err == nil {
+				var tc struct {
+					Title struct {
+						Source     string `json:"source"`
+						Translated string `json:"translated"`
+					} `json:"title"`
+				}
+				_ = json.Unmarshal(data, &tc)
+				if tc.Title.Translated != "" {
+					meta.TitleTranslated = cleanChapterTitle(tc.Title.Translated)
+					if tc.Title.Source != "" {
+						meta.TitleSource = cleanChapterTitle(tc.Title.Source)
+					}
+				} else if tc.Title.Source != "" {
+					meta.TitleSource = cleanChapterTitle(tc.Title.Source)
+				}
+			}
+		}
+
 		info, _ := entry.Info()
 		if info != nil && info.ModTime().After(meta.UpdatedAt) {
 			meta.UpdatedAt = info.ModTime()
@@ -256,7 +280,7 @@ func (s *Store) SaveChapter(slug string, chapterNo int, sourceTitle, transTitle 
 			"updatedAt":  time.Now().Format(time.RFC3339),
 		}
 		data, _ := json.MarshalIndent(srcData, "", "  ")
-		_ = os.WriteFile(filepath.Join(chaptersDir, numStr+".cn.json"), data, 0644)
+		_ = writeFileAtomic(filepath.Join(chaptersDir, numStr+".cn.json"), data)
 	}
 
 	// Save translated if provided
@@ -275,13 +299,36 @@ func (s *Store) SaveChapter(slug string, chapterNo int, sourceTitle, transTitle 
 			"updatedAt":  time.Now().Format(time.RFC3339),
 		}
 		data, _ := json.MarshalIndent(thData, "", "  ")
-		_ = os.WriteFile(filepath.Join(chaptersDir, numStr+".th.json"), data, 0644)
+		_ = writeFileAtomic(filepath.Join(chaptersDir, numStr+".th.json"), data)
 	}
 
 	// Update novel chapter count
 	go s.updateNovelStats(slug)
 
 	return nil
+}
+
+// writeFileAtomic writes data via a temp file + rename so a crash mid-write
+// can never leave a half-written chapter file behind.
+func writeFileAtomic(path string, data []byte) error {
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, data, 0644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
+}
+
+// cleanChapterTitle strips leading breadcrumb parts some scrapers baked
+// into titles ("A >> B >> 第2章 X" → "第2章 X"). Loops because some pages
+// chain several navigation levels.
+func cleanChapterTitle(t string) string {
+	for {
+		idx := strings.Index(t, ">>")
+		if idx == -1 {
+			return strings.TrimSpace(t)
+		}
+		t = t[idx+2:]
+	}
 }
 
 // GetGlossary returns glossary terms for a novel
