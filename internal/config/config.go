@@ -158,6 +158,12 @@ func (c *AppConfig) GetTemperature() float64 {
 	return c.Temperature
 }
 
+func (c *AppConfig) GetProvider() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.Provider
+}
+
 // MaskedAPIKey returns the API key with only the last 4 characters visible,
 // safe for display in API responses and logs.
 func (c *AppConfig) MaskedAPIKey() string {

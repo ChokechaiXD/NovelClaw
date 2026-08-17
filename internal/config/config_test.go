@@ -94,6 +94,14 @@ func TestLoadConfigEnvOverrides(t *testing.T) {
 	}
 }
 
+func TestProviderGetter(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Provider = "9router"
+	if got := cfg.GetProvider(); got != "9router" {
+		t.Errorf("GetProvider() = %q, want 9router", got)
+	}
+}
+
 func TestSaveConfig(t *testing.T) {
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "sub", "config.json")

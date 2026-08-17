@@ -119,7 +119,7 @@ func (s *Store) SaveNovel(n *model.Novel) error {
 		return err
 	}
 
-	return os.WriteFile(filepath.Join(novelDir, "novel.json"), data, 0644)
+	return writeFileAtomic(filepath.Join(novelDir, "novel.json"), data)
 }
 
 // ListChapters returns summary metadata for all chapters in a novel
@@ -385,7 +385,7 @@ func (s *Store) SaveGlossary(g *model.NovelGlossary) error {
 		return err
 	}
 
-	return os.WriteFile(filepath.Join(glossaryDir, "glossary.json"), data, 0644)
+	return writeFileAtomic(filepath.Join(glossaryDir, "glossary.json"), data)
 }
 
 // GetBookmark returns the user bookmark for a novel
@@ -422,7 +422,7 @@ func (s *Store) SaveBookmark(b *model.Bookmark) error {
 		return err
 	}
 
-	return os.WriteFile(filepath.Join(bookmarkDir, "bookmark.json"), data, 0644)
+	return writeFileAtomic(filepath.Join(bookmarkDir, "bookmark.json"), data)
 }
 
 func (s *Store) updateNovelStats(slug string) {

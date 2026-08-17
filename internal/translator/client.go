@@ -111,11 +111,12 @@ func (c *Client) FetchModels(ctx context.Context) ([]string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<10))
 		return nil, fmt.Errorf("models API returned %d: %s", resp.StatusCode, string(body))
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	// routerUrl is user-configurable, so cap the response size (trust boundary).
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
 	if err != nil {
 		return nil, err
 	}

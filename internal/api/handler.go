@@ -777,7 +777,7 @@ func (h *APIHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 		DefaultModel: h.cfg.GetDefaultModel(),
 		Temperature:  h.cfg.GetTemperature(),
 		Parallel:     h.cfg.Parallel,
-		Provider:     h.cfg.Provider,
+		Provider:     h.cfg.GetProvider(),
 	})
 }
 
