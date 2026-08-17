@@ -345,7 +345,7 @@
       el.topProgressBar.classList.add('hidden');
       el.floatingJobBar.classList.add('hidden');
     } else if (data.type === 'import_done') {
-      showToast('นำเข้านิยายเสร็จสิ้่นเรียบร้อยแล้ว', 'success');
+      showToast('นำเข้านิยายเสร็จสิ้นเรียบร้อยแล้ว', 'success');
       loadNovels();
       if (state.currentSlug === data.novelSlug) {
         loadChapters(state.currentSlug);

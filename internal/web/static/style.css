@@ -21,6 +21,8 @@
   
   --border: #2e3340;
   --border-subtle: #232733;
+  --bg-hover: #2a2e3a;
+  --radius-full: 999px;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
@@ -44,6 +46,7 @@ body[data-theme="sepia"] {
   --text-muted: #9c8a78;
   --border: #e0cca7;
   --border-subtle: #ebd7b5;
+  --bg-hover: #f0e3c4;
   --accent: #b45309;
   --accent-hover: #92400e;
   --accent-subtle: rgba(180, 83, 9, 0.12);
@@ -59,6 +62,7 @@ body[data-theme="light"] {
   --text-muted: #94a3b8;
   --border: #e2e8f0;
   --border-subtle: #f1f5f9;
+  --bg-hover: #e9edf2;
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
   --accent-subtle: rgba(37, 99, 235, 0.1);
@@ -74,6 +78,7 @@ body[data-theme="black"] {
   --text-muted: #52525b;
   --border: #27272a;
   --border-subtle: #18181b;
+  --bg-hover: #1f1f1f;
   --accent: #3b82f6;
 }
 
