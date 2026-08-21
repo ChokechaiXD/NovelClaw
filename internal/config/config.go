@@ -21,6 +21,7 @@ type AppConfig struct {
 	Provider     string  `json:"provider,omitempty"` // provider nickname for UI presets (9router, openai, ollama...)
 	Temperature  float64 `json:"temperature"`
 	Parallel     int     `json:"parallel"`
+	MaxTokens    int     `json:"maxTokens,omitempty"` // LLM completion cap (default 8192)
 
 	// ConfigPath remembers the file this config was loaded from / should be
 	// saved back to. Not serialized.
@@ -129,7 +130,13 @@ func (c *AppConfig) saveLocked(configPath string) error {
 	if dir != "." && dir != "" {
 		_ = os.MkdirAll(dir, 0755)
 	}
-	return os.WriteFile(configPath, data, 0600)
+	// Atomic write: a crash mid-save must not leave a truncated config.json
+	// behind (the app would then boot with defaults and lose the API key).
+	tmp := configPath + ".tmp"
+	if err := os.WriteFile(tmp, data, 0600); err != nil {
+		return err
+	}
+	return os.Rename(tmp, configPath)
 }
 
 // Thread-safe getters for the mutable fields (router URL, key, model, temp).
@@ -162,6 +169,16 @@ func (c *AppConfig) GetProvider() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.Provider
+}
+
+// GetMaxTokens returns the LLM completion token cap (default 8192 when unset).
+func (c *AppConfig) GetMaxTokens() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.MaxTokens <= 0 {
+		return 8192
+	}
+	return c.MaxTokens
 }
 
 // MaskedAPIKey returns the API key with only the last 4 characters visible,

@@ -253,6 +253,14 @@
     };
   }
 
+  // Parallel jobs emit one event per chapter; coalesce TOC refetches so a
+  // 100-chapter batch triggers one reload instead of 100.
+  let tocRefreshTimer = null;
+  function scheduleLoadChapters(slug) {
+    clearTimeout(tocRefreshTimer);
+    tocRefreshTimer = setTimeout(() => loadChapters(slug), 2000);
+  }
+
   function handleSSEEvent(data) {
     if (data.type === 'chapter_translated') {
             showToast(`แปล ${data.title} เสร็จเรียบร้อยแล้ว ✨`, 'success');
@@ -273,7 +281,7 @@
 
       // Auto Hot-Swap if reader is viewing this chapter
       if (state.currentSlug === data.novelSlug) {
-        loadChapters(state.currentSlug);
+        scheduleLoadChapters(state.currentSlug);
         if (state.currentView === 'reader' && state.currentChapterNo === data.chapterNo) {
           loadChapterContent(state.currentSlug, data.chapterNo);
         }
@@ -338,7 +346,7 @@
       }, 3000);
 
       if (state.currentSlug === data.novelSlug) {
-        loadChapters(state.currentSlug);
+        scheduleLoadChapters(state.currentSlug);
       }
     } else if (data.status === 'cancelled') {
       showToast('ยกเลิกคิวการแปลแล้ว', 'info');
@@ -451,7 +459,7 @@
       el.novelGrid.innerHTML = novels.map(n => {
         const genreBadge = n.genre ? `<span class="badge badge-info" style="font-size: 0.72rem;">${formatGenre(n.genre)}</span>` : '';
         return `
-          <div class="novel-card" data-slug="${n.slug}">
+          <div class="novel-card" data-slug="${escapeHTML(n.slug)}">
             <div>
               <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.35rem;">
                 <div class="novel-card-title">${escapeHTML(n.translatedTitle || n.title)}</div>
@@ -466,7 +474,7 @@
               </div>
               <div class="novel-card-meta">
                 <span>${escapeHTML(n.author || 'ไม่ระบุผู้แต่ง')}</span>
-                <button class="btn btn-primary btn-sm btn-read-novel" data-slug="${n.slug}">อ่าน</button>
+                <button class="btn btn-primary btn-sm btn-read-novel" data-slug="${escapeHTML(n.slug)}">อ่าน</button>
               </div>
             </div>
           </div>
@@ -577,6 +585,9 @@
 
   // Open Chapter in Reader
   async function openChapter(slug, chapterNo) {
+    // Leaving the current chapter must silence any ongoing read-back,
+    // otherwise the old chapter's audio keeps playing over the new one.
+    if (state.tts.speaking) stopTTS();
     state.currentSlug = slug;
     state.currentChapterNo = chapterNo;
     showView('reader');
@@ -1149,8 +1160,8 @@
         const count = res.discovered ? res.discovered.length : 0;
         state.glossaryTerms = res.glossary.terms || [];
         renderGlossaryTable();
-        el.discStatus.innerText = `✅ พบศัพท์ใหม่ ${count} คำ`;
-        showToast(`สแกนพบศัพท์เฉพาะใหม่ ${count} คำ`, 'success');
+        el.discStatus.innerText = `✅ พบศัพท์ใหม่ ${count} คำ — ตรวจรายการแล้วกด "บันทึก Glossary" เพื่อเก็บถาวร`;
+        showToast(`สแกนพบศัพท์ใหม่ ${count} คำ (ยังไม่บันทึก — กดบันทึก Glossary เมื่อตรวจแล้ว)`, 'info');
       } catch (err) {
         el.discStatus.innerText = '❌ สแกนล้มเหลว';
         showToast(`การสแกนศัพท์ล้มเหลว: ${err.message}`, 'error');
@@ -1268,6 +1279,8 @@
     el.btnTTSPrev?.addEventListener('click', prevTTSParagraph);
     el.btnTTSClose?.addEventListener('click', stopTTS);
     el.ttsSpeed?.addEventListener('change', () => {
+      state.tts.speed = parseFloat(el.ttsSpeed.value) || 1.0;
+      state.tts.audioBlobs = {};
       if (state.tts.speaking) speakCurrentParagraph();
     });
 
@@ -1373,7 +1386,7 @@
           if (next) {
             stopTTS();
             showToast(`จบตอน ${state.currentChapterNo} — อ่านเสียงต่อตอน ${next}... 📖`, 'info');
-            openChapter(state.currentSlug, next).then(() => setTimeout(() => startTTS(), 800));
+            openChapter(state.currentSlug, next).then(() => startTTS());
             return;
           }
           stopTTS();
@@ -1427,7 +1440,7 @@
 
     // Studio Neural Voice via /api/audio/speech
     try {
-      let audioBlobUrl = state.tts.audioBlobs[`${state.tts.voice}_${idx}`];
+      let audioBlobUrl = state.tts.audioBlobs[`${state.tts.voice}_${speed}_${idx}`];
       if (!audioBlobUrl) {
         const resp = await fetch('/api/audio/speech', {
           method: 'POST',
@@ -1445,7 +1458,7 @@
 
         const blob = await resp.blob();
         audioBlobUrl = URL.createObjectURL(blob);
-        state.tts.audioBlobs[`${state.tts.voice}_${idx}`] = audioBlobUrl;
+        state.tts.audioBlobs[`${state.tts.voice}_${speed}_${idx}`] = audioBlobUrl;
       }
 
       if (!state.tts.speaking || state.tts.currentIdx !== idx) return;

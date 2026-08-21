@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"novelclaw/internal/model"
+	"novelclaw/internal/translator"
 )
 
 // Store handles all file operations for novels, chapters, bookmarks, and glossaries
@@ -255,7 +256,9 @@ func (s *Store) GetChapter(slug string, chapterNo int) (*model.ChapterContent, e
 	return content, nil
 }
 
-// SaveChapter saves source or translated chapter content
+// SaveChapter saves source or translated chapter content. Translated content
+// is sanitized here (single choke point) so anything persisted is guaranteed
+// zero-Hanzi — readers no longer sanitize on GET.
 func (s *Store) SaveChapter(slug string, chapterNo int, sourceTitle, transTitle string, sourceParagraphs, transParagraphs []string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -280,11 +283,16 @@ func (s *Store) SaveChapter(slug string, chapterNo int, sourceTitle, transTitle 
 			"updatedAt":  time.Now().Format(time.RFC3339),
 		}
 		data, _ := json.MarshalIndent(srcData, "", "  ")
-		_ = writeFileAtomic(filepath.Join(chaptersDir, numStr+".cn.json"), data)
+		if err := writeFileAtomic(filepath.Join(chaptersDir, numStr+".cn.json"), data); err != nil {
+			return fmt.Errorf("save chapter %d source: %w", chapterNo, err)
+		}
 	}
 
-	// Save translated if provided
+	// Save translated if provided (sanitize before it ever touches disk)
 	if len(transParagraphs) > 0 {
+		gMap := s.glossaryMapLocked(slug)
+		transTitle = translator.SanitizeText(transTitle, gMap)
+		cleaned := translator.SanitizeParagraphs(transParagraphs, gMap)
 		thData := map[string]interface{}{
 			"novelId":    slug,
 			"chapterNo":  chapterNo,
@@ -295,17 +303,70 @@ func (s *Store) SaveChapter(slug string, chapterNo int, sourceTitle, transTitle 
 				"translated": transTitle,
 			},
 			"status":     "translated",
-			"paragraphs": transParagraphs,
+			"paragraphs": cleaned,
 			"updatedAt":  time.Now().Format(time.RFC3339),
 		}
 		data, _ := json.MarshalIndent(thData, "", "  ")
-		_ = writeFileAtomic(filepath.Join(chaptersDir, numStr+".th.json"), data)
+		if err := writeFileAtomic(filepath.Join(chaptersDir, numStr+".th.json"), data); err != nil {
+			return fmt.Errorf("save chapter %d translation: %w", chapterNo, err)
+		}
 	}
 
-	// Update novel chapter count
-	go s.updateNovelStats(slug)
+	// Debounced stats update: coalesce bursts of saves (e.g. a 100-chapter
+	// import) instead of spawning one goroutine per chapter. 2s delay also
+	// lets a rapid sequence collapse into a single novel.json rewrite.
+	go func() {
+		time.Sleep(2 * time.Second)
+		s.updateNovelStats(slug)
+	}()
 
 	return nil
+}
+
+// glossaryMapLocked builds the term→target map used by the sanitizer. Caller
+// must hold s.mu (read or write).
+func (s *Store) glossaryMapLocked(slug string) map[string]string {
+	glossaryPath := filepath.Join(s.DataDir, pathSafeSlug(slug), "glossary", "glossary.json")
+	if _, err := os.Stat(glossaryPath); os.IsNotExist(err) {
+		glossaryPath = filepath.Join(s.DataDir, pathSafeSlug(slug), "glossary.json")
+	}
+	data, err := os.ReadFile(glossaryPath)
+	if err != nil {
+		return nil
+	}
+	var items []model.GlossaryItem
+	if err := json.Unmarshal(data, &items); err != nil {
+		var wrapper struct {
+			Terms []model.GlossaryItem `json:"terms"`
+		}
+		if err := json.Unmarshal(data, &wrapper); err != nil {
+			return nil
+		}
+		items = wrapper.Terms
+	}
+	gMap := make(map[string]string, len(items))
+	for _, t := range items {
+		if t.Term != "" && t.Target != "" {
+			gMap[t.Term] = t.Target
+		}
+	}
+	return gMap
+}
+
+// RepairChapter re-sanitizes an already-stored translated chapter against the
+// current glossary + builtin rules and persists the result. Idempotent.
+func (s *Store) RepairChapter(slug string, chapterNo int) (*model.ChapterContent, error) {
+	chapter, err := s.GetChapter(slug, chapterNo)
+	if err != nil {
+		return nil, err
+	}
+	if len(chapter.TranslatedText) == 0 && !translator.HasHanzi(chapter.TranslatedTitle) {
+		return chapter, nil // nothing to repair
+	}
+	if err := s.SaveChapter(slug, chapterNo, chapter.SourceTitle, chapter.TranslatedTitle, nil, chapter.TranslatedText); err != nil {
+		return nil, err
+	}
+	return s.GetChapter(slug, chapterNo)
 }
 
 // writeFileAtomic writes data via a temp file + rename so a crash mid-write
@@ -467,7 +528,7 @@ func (s *Store) updateNovelStats(slug string) {
 	n.UpdatedAt = time.Now()
 
 	updatedData, _ := json.MarshalIndent(n, "", "  ")
-	_ = os.WriteFile(novelPath, updatedData, 0644)
+	_ = writeFileAtomic(novelPath, updatedData)
 }
 
 // Helper: parse flexible chapter JSON (handles raw strings or {"text": "..."} objects, and string/struct titles)

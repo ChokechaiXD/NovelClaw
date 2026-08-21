@@ -29,6 +29,7 @@ func SetupRouter(cfg *config.AppConfig, store *storage.Store) http.Handler {
 	mux.HandleFunc("GET /api/novels/{slug}", h.GetNovel)
 	mux.HandleFunc("GET /api/novels/{slug}/chapters", h.ListChapters)
 	mux.HandleFunc("GET /api/novels/{slug}/chapters/{num}", h.GetChapter)
+	mux.HandleFunc("POST /api/novels/{slug}/chapters/{num}/repair", h.RepairChapter)
 	mux.HandleFunc("GET /api/novels/{slug}/glossary", h.GetGlossary)
 	mux.HandleFunc("POST /api/novels/{slug}/glossary", h.SaveGlossary)
 	mux.HandleFunc("GET /api/novels/{slug}/bookmark", h.GetBookmark)

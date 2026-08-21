@@ -94,12 +94,12 @@ func (h *APIHandler) GenerateSpeech(w http.ResponseWriter, r *http.Request) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<10))
 		WriteError(w, resp.StatusCode, fmt.Sprintf("TTS upstream error (HTTP %d): %s", resp.StatusCode, string(body)))
 		return
 	}
 
-	audioData, err := io.ReadAll(resp.Body)
+	audioData, err := io.ReadAll(io.LimitReader(resp.Body, 50<<20))
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, err.Error())
 		return

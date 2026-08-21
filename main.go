@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"novelclaw/internal/api"
 	"novelclaw/internal/config"
@@ -67,6 +69,10 @@ func main() {
 
 	<-stopChan
 	fmt.Println("\nShutting down NovelClaw cleanly...")
-	_ = server.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		log.Printf("Shutdown error: %v", err)
+	}
 	fmt.Println("Goodbye!")
 }

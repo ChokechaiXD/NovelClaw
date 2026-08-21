@@ -157,7 +157,7 @@ func (c *Client) Complete(ctx context.Context, systemPrompt, userPrompt, modelNa
 			{Role: "user", Content: userPrompt},
 		},
 		Temperature: temperature,
-		MaxTokens:   4096,
+		MaxTokens:   c.cfg.GetMaxTokens(),
 		Stream:      false,
 	}
 
@@ -206,10 +206,11 @@ func (c *Client) Complete(ctx context.Context, systemPrompt, userPrompt, modelNa
 			return "", lastErr
 		}
 
-		body, err := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
 		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<10))
 			errMsg := fmt.Sprintf("LLM error (HTTP %d): %s", resp.StatusCode, string(body))
 			lastErr = fmt.Errorf("%s", errMsg)
 			// Retry on 429 (Rate Limit) or 5xx (Server error)

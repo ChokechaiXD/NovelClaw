@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"novelclaw/internal/config"
@@ -140,32 +141,31 @@ func (h *APIHandler) GetChapter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Automatic Zero-Hanzi Interceptor on reading
-	if len(chapter.TranslatedText) > 0 {
-		hasAnyHanzi := translator.HasHanzi(chapter.TranslatedTitle)
-		if !hasAnyHanzi {
-			for _, p := range chapter.TranslatedText {
-				if translator.HasHanzi(p) {
-					hasAnyHanzi = true
-					break
-				}
-			}
-		}
-		if hasAnyHanzi {
-			glossary, _ := h.store.GetGlossary(slug)
-			var gMap map[string]string
-			if glossary != nil && len(glossary.Terms) > 0 {
-				gMap = make(map[string]string)
-				for _, t := range glossary.Terms {
-					gMap[t.Term] = t.Target
-				}
-			}
-			chapter.TranslatedTitle = translator.SanitizeText(chapter.TranslatedTitle, gMap)
-			chapter.TranslatedText = translator.SanitizeParagraphs(chapter.TranslatedText, gMap)
-			_ = h.store.SaveChapter(slug, chNum, chapter.SourceTitle, chapter.TranslatedTitle, nil, chapter.TranslatedText)
-		}
+	// NOTE: deliberately no writes here — GET must stay idempotent. Chapters
+	// are sanitized at write time (storage.SaveChapter) and legacy dirty
+	// chapters can be fixed explicitly via
+	// POST /api/novels/{slug}/chapters/{num}/repair (RepairChapter).
+
+	WriteJSON(w, http.StatusOK, chapter)
+}
+
+// RepairChapter re-sanitizes a stored chapter against the novel glossary and
+// persists the result. Use for legacy chapters saved before write-time
+// sanitization existed (or after a builtin-glossary correction like the QA R2
+// term fixes). Idempotent: repairing a clean chapter is a no-op rewrite.
+func (h *APIHandler) RepairChapter(w http.ResponseWriter, r *http.Request) {
+	slug := safeSlug(r.PathValue("slug"))
+	chNum, err := strconv.Atoi(r.PathValue("num"))
+	if err != nil || chNum <= 0 {
+		WriteError(w, http.StatusBadRequest, "Invalid chapter number")
+		return
 	}
 
+	chapter, err := h.store.RepairChapter(slug, chNum)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	WriteJSON(w, http.StatusOK, chapter)
 }
 
@@ -242,7 +242,8 @@ func (h *APIHandler) DiscoverGlossary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Auto-merge into existing glossary
+	// Merge into existing glossary but DO NOT auto-save: the user reviews the
+	// discovered terms in the UI and saves explicitly via SaveGlossary.
 	existing, _ := h.store.GetGlossary(slug)
 	termMap := make(map[string]bool)
 	for _, t := range existing.Terms {
@@ -255,7 +256,6 @@ func (h *APIHandler) DiscoverGlossary(w http.ResponseWriter, r *http.Request) {
 			termMap[d.Term] = true
 		}
 	}
-	_ = h.store.SaveGlossary(existing)
 
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"discovered": discovered,
@@ -283,6 +283,13 @@ func (h *APIHandler) SaveBookmark(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	bm.NovelSlug = slug
+	// Opening a chapter posts scrollPercentage 0; don't let it wipe the saved
+	// position when the same chapter is re-opened (refresh / TTS hand-off).
+	if bm.ScrollPercentage <= 0 {
+		if existing, err := h.store.GetBookmark(slug); err == nil && existing.ChapterNo == bm.ChapterNo {
+			bm.ScrollPercentage = existing.ScrollPercentage
+		}
+	}
 	if err := h.store.SaveBookmark(&bm); err != nil {
 		WriteError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -365,99 +372,153 @@ func (h *APIHandler) Import(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	jobID := fmt.Sprintf("import_%d", time.Now().UnixNano())
+	jobCtx, cancel := context.WithCancel(context.Background())
+
+	h.jobsMu.Lock()
+	h.cancels[jobID] = cancel
+	h.activeJobs[jobID] = &model.TranslationProgress{
+		JobID:     jobID,
+		NovelSlug: req.NovelSlug,
+		Status:    "running",
+		Message:   "กำลังนำเข้านิยายจาก URL...",
+	}
+	h.jobsMu.Unlock()
+
 	go func() {
-		chapter, err := h.scraper.FetchChapter(req.URL)
-		if err == nil && len(chapter.Paragraphs) > 0 {
-			slug := req.NovelSlug
-			if slug == "" {
-				slug = "imported-novel"
-			}
-			if _, err := h.store.GetNovel(slug); err != nil {
-				_ = h.store.SaveNovel(&model.Novel{
-					Slug:       slug,
-					Title:      chapter.Title,
-					Genre:      req.Genre,
-					SourceLang: "cn",
-					TargetLang: "th",
-					UpdatedAt:  time.Now(),
-				})
-			}
-
-			chNum := chapter.ChapterNo
-			if chNum <= 0 {
-				existingChapters, _ := h.store.ListChapters(slug)
-				chNum = len(existingChapters) + 1
-			}
-
-			_ = h.store.SaveChapter(slug, chNum, chapter.Title, "", chapter.Paragraphs, nil)
-			h.sse.Broadcast(map[string]interface{}{
-				"type":      "import_done",
-				"novelSlug": slug,
-				"chapterNo": chNum,
-			})
-			return
-		}
-
-		toc, err := h.scraper.FetchTOC(req.URL)
-		if err == nil && len(toc.Chapters) > 0 {
-			slug := req.NovelSlug
-			if slug == "" {
-				slug = sanitizeSlug(toc.Title)
-			}
-
-			_ = h.store.SaveNovel(&model.Novel{
-				Slug:        slug,
-				Title:       toc.Title,
-				Author:      toc.Author,
-				Genre:       req.Genre,
-				Description: toc.Description,
-				CoverURL:    toc.CoverURL,
-				SourceLang:  "cn",
-				TargetLang:  "th",
-			})
-
-			start := 1
-			if req.StartChapter > 0 {
-				start = req.StartChapter
-			}
-			end := len(toc.Chapters)
-			if req.EndChapter > 0 && req.EndChapter < end {
-				end = req.EndChapter
-			}
-
-			for i := start - 1; i < end && i < len(toc.Chapters); i++ {
-				chItem := toc.Chapters[i]
-				ch, err := h.scraper.FetchChapter(chItem.URL)
-				if err == nil && len(ch.Paragraphs) > 0 {
-					_ = h.store.SaveChapter(slug, chItem.ChapterNo, ch.Title, "", ch.Paragraphs, nil)
-				}
-				h.sse.Broadcast(map[string]interface{}{
-					"type":      "import_progress",
-					"novelSlug": slug,
-					"current":   i + 1,
-					"total":     end,
-					"title":     chItem.Title,
-				})
-				time.Sleep(400 * time.Millisecond)
-			}
-
-			h.sse.Broadcast(map[string]interface{}{
-				"type":      "import_done",
-				"novelSlug": slug,
-				"total":     end,
-			})
-			return
-		}
-
-		h.sse.Broadcast(map[string]interface{}{
-			"type":    "import_error",
-			"message": "นำเข้าล้มเหลว: URL นี้อ่านไมได้ ทังรายตอนและสารบัญ",
-		})
+		defer func() {
+			h.jobsMu.Lock()
+			delete(h.cancels, jobID)
+			delete(h.activeJobs, jobID)
+			h.jobsMu.Unlock()
+		}()
+		h.runImportJob(jobCtx, req)
 	}()
 
 	WriteJSON(w, http.StatusAccepted, map[string]interface{}{
 		"status":  "import_started",
+		"jobId":   jobID,
 		"message": "Import job started in background",
+	})
+}
+
+// runImportJob performs the URL import in the background. Unlike translation
+// jobs this used to be uncancellable; now it registers in the standard jobs
+// map and stops on POST /api/jobs/{id}/cancel between chapter downloads.
+func (h *APIHandler) runImportJob(ctx context.Context, req model.ImportRequest) {
+	chapter, err := h.scraper.FetchChapter(req.URL)
+	if err == nil && len(chapter.Paragraphs) > 0 {
+		slug := req.NovelSlug
+		if slug == "" {
+			slug = "imported-novel"
+		}
+		if _, err := h.store.GetNovel(slug); err != nil {
+			_ = h.store.SaveNovel(&model.Novel{
+				Slug:       slug,
+				Title:      chapter.Title,
+				Genre:      req.Genre,
+				SourceLang: "cn",
+				TargetLang: "th",
+				UpdatedAt:  time.Now(),
+			})
+		}
+
+		chNum := chapter.ChapterNo
+		if chNum <= 0 {
+			existingChapters, _ := h.store.ListChapters(slug)
+			chNum = len(existingChapters) + 1
+		}
+
+		_ = h.store.SaveChapter(slug, chNum, chapter.Title, "", chapter.Paragraphs, nil)
+		h.sse.Broadcast(map[string]interface{}{
+			"type":      "import_done",
+			"novelSlug": slug,
+			"chapterNo": chNum,
+		})
+		return
+	}
+
+	toc, err := h.scraper.FetchTOC(req.URL)
+	if err == nil && len(toc.Chapters) > 0 {
+		slug := req.NovelSlug
+		if slug == "" {
+			slug = sanitizeSlug(toc.Title)
+		}
+
+		_ = h.store.SaveNovel(&model.Novel{
+			Slug:        slug,
+			Title:       toc.Title,
+			Author:      toc.Author,
+			Genre:       req.Genre,
+			Description: toc.Description,
+			CoverURL:    toc.CoverURL,
+			SourceLang:  "cn",
+			TargetLang:  "th",
+		})
+
+		start := 1
+		if req.StartChapter > 0 {
+			start = req.StartChapter
+		}
+		end := len(toc.Chapters)
+		if req.EndChapter > 0 && req.EndChapter < end {
+			end = req.EndChapter
+		}
+
+		for i := start - 1; i < end && i < len(toc.Chapters); i++ {
+			// Cancellation points: between every chapter download.
+			select {
+			case <-ctx.Done():
+				log.Printf("Import job cancelled by user (%d/%d done)\n", i-start, end-start+1)
+				h.sse.Broadcast(map[string]interface{}{
+					"type":      "import_cancelled",
+					"novelSlug": slug,
+					"current":   i - start,
+					"total":     end - start + 1,
+				})
+				return
+			default:
+			}
+
+			chItem := toc.Chapters[i]
+			ch, err := h.scraper.FetchChapter(chItem.URL)
+			if err == nil && len(ch.Paragraphs) > 0 {
+				_ = h.store.SaveChapter(slug, chItem.ChapterNo, ch.Title, "", ch.Paragraphs, nil)
+			}
+			h.sse.Broadcast(map[string]interface{}{
+				"type":      "import_progress",
+				"novelSlug": slug,
+				"current":   i + 1,
+				"total":     end,
+				"title":     chItem.Title,
+			})
+
+			// Politeness delay that still reacts instantly to cancellation.
+			select {
+			case <-ctx.Done():
+				log.Printf("Import job cancelled by user (%d/%d done)\n", i-start+1, end-start+1)
+				h.sse.Broadcast(map[string]interface{}{
+					"type":      "import_cancelled",
+					"novelSlug": slug,
+					"current":   i - start + 1,
+					"total":     end - start + 1,
+				})
+				return
+			case <-time.After(400 * time.Millisecond):
+			}
+		}
+
+		h.sse.Broadcast(map[string]interface{}{
+			"type":      "import_done",
+			"novelSlug": slug,
+			"total":     end,
+		})
+		return
+	}
+
+	h.sse.Broadcast(map[string]interface{}{
+		"type":    "import_error",
+		"message": "นำเข้าล้มเหลว: URL นี้อ่านไม่ได้ ทั้งรายตอนและสารบัญ",
 	})
 }
 
@@ -482,7 +543,7 @@ func (h *APIHandler) CancelJob(w http.ResponseWriter, r *http.Request) {
 	h.sse.Broadcast(model.TranslationProgress{
 		JobID:   jobID,
 		Status:  "cancelled",
-		Message: "ยกเลิกการแปลเรียบร้อยแล้ว",
+		Message: "ยกเลิกงานเรียบร้อยแล้ว",
 	})
 
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
@@ -574,7 +635,24 @@ func (h *APIHandler) runTranslationJob(ctx context.Context, jobID string, req mo
 	successCount := 0
 	var lastError string
 
-	for chNo := req.StartChapter; chNo <= req.EndChapter; chNo++ {
+	// Parallel workers: chapters are translated in waves of cfg.Parallel.
+	// A barrier between waves lets the first chapter of each wave use real
+	// prev-context (all earlier waves are already saved). Other chapters in
+	// a wave fall back to source-tail context because their predecessor may
+	// still be translating.
+	workers := h.cfg.Parallel
+	if workers < 1 {
+		workers = 1
+	}
+	if workers > 8 { // ponytail: soft cap against config typos; raise if gateway handles more
+		workers = 8
+	}
+	if workers > total {
+		workers = total
+	}
+	jc := &jobCounters{}
+
+	for waveStart := req.StartChapter; waveStart <= req.EndChapter; waveStart += workers {
 		select {
 		case <-ctx.Done():
 			log.Printf("Translation job %s cancelled by user\n", jobID)
@@ -582,143 +660,29 @@ func (h *APIHandler) runTranslationJob(ctx context.Context, jobID string, req mo
 		default:
 		}
 
-		currentIdx := chNo - req.StartChapter + 1
-		pct := int((float64(currentIdx) / float64(total)) * 100)
+		waveEnd := waveStart + workers - 1
+		if waveEnd > req.EndChapter {
+			waveEnd = req.EndChapter
+		}
+		waveSize := waveEnd - waveStart + 1
+		done := make(chan struct{}, waveSize)
 
-		h.sse.Broadcast(model.TranslationProgress{
-			JobID:          jobID,
-			NovelSlug:      req.NovelSlug,
-			CurrentChapter: chNo,
-			TotalChapters:  req.EndChapter,
-			Status:         "running",
-			Message:        fmt.Sprintf("กำลังแปลตอนที่ %d... (%d/%d)", chNo, currentIdx, total),
-			Percentage:     pct,
-		})
-
-		content, err := h.store.GetChapter(req.NovelSlug, chNo)
-		if err != nil || len(content.SourceText) == 0 {
-			log.Printf("Chapter %d has no source text, skipping\n", chNo)
-			continue
+		for chNo := waveStart; chNo <= waveEnd; chNo++ {
+			go func(chNo int) {
+				defer func() { done <- struct{}{} }()
+				h.translateOneChapter(ctx, jobID, req, chNo, total, glossary, styleRules,
+					genre, modelChain, chapterList, jc)
+			}(chNo)
+		}
+		for i := 0; i < waveSize; i++ {
+			<-done
 		}
 
-		if len(content.TranslatedText) > 0 && !req.Force {
-			log.Printf("Chapter %d already translated, skipping\n", chNo)
-			successCount++
-			continue
+		successCount += int(jc.success.Swap(0))
+		if v := jc.lastErr.Load(); v != nil {
+			lastError = v.(string)
+			jc.lastErr.Store(nil)
 		}
-
-		// Previous context: last 3 paragraphs of the nearest preceding chapter
-		// (gap-aware: chapter numbers can skip, e.g. 72 -> 86)
-		var prevContext string
-		if prevNo := previousChapterNo(chapterList, chNo); prevNo > 0 {
-			if prevCh, err := h.store.GetChapter(req.NovelSlug, prevNo); err == nil && len(prevCh.TranslatedText) > 0 {
-				n := len(prevCh.TranslatedText)
-				if n > 3 {
-					n = 3
-				}
-				tail := prevCh.TranslatedText[len(prevCh.TranslatedText)-n:]
-				prevContext = fmt.Sprintf("ตอนก่อนหน้า (%s) จบด้วย:\n%s", prevCh.TranslatedTitle, strings.Join(tail, "\n"))
-			}
-		}
-
-		relevantGlossary := translator.FilterRelevantGlossary(glossary, content.SourceText)
-		systemPrompt := translator.BuildSystemPrompt(relevantGlossary, prevContext, genre, styleRules)
-
-		// Smart Chunking for long chapters (max 25 paragraphs or 750 chars per chunk)
-		chunks := translator.SplitParagraphsIntoChunks(content.SourceText, 750)
-		var fullTranslatedParagraphs []string
-		var finalTransTitle string
-		chapterFailed := false
-
-		for chunkIdx, chunk := range chunks {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-
-			chunkUserPrompt := translator.BuildUserPrompt(content.SourceTitle, chunk.Paragraphs)
-			if chunkIdx > 0 && len(fullTranslatedParagraphs) > 0 {
-				lastChunkEnd := fullTranslatedParagraphs[len(fullTranslatedParagraphs)-1]
-				chunkUserPrompt = fmt.Sprintf("[เนื้อหาก่อนหน้านี้ในบทเดียวกัน: ...%s]\n\n%s", lastChunkEnd, chunkUserPrompt)
-			}
-
-			chunkCtx, chunkCancel := context.WithTimeout(ctx, 120*time.Second)
-			rawOutput, _, err := h.translator.CompleteWithFallback(chunkCtx, systemPrompt, chunkUserPrompt, modelChain, req.Temperature)
-			chunkCancel()
-
-			if err != nil {
-				lastError = err.Error()
-				log.Printf("Translation error on chapter %d (chunk %d): %v\n", chNo, chunkIdx, err)
-				h.sse.Broadcast(model.TranslationProgress{
-					JobID:          jobID,
-					NovelSlug:      req.NovelSlug,
-					CurrentChapter: chNo,
-					Status:         "error",
-					Message:        fmt.Sprintf("ข้อผิดพลาดตอนที่ %d: %v", chNo, err),
-					ErrorDetails:   err.Error(),
-				})
-				chapterFailed = true
-				break
-			}
-
-			tTitle, tParagraphs := translator.ParseTranslationOutput(rawOutput)
-			if finalTransTitle == "" && tTitle != "" {
-				finalTransTitle = tTitle
-			}
-			fullTranslatedParagraphs = append(fullTranslatedParagraphs, tParagraphs...)
-		}
-
-		if chapterFailed || len(fullTranslatedParagraphs) == 0 {
-			continue
-		}
-
-		if finalTransTitle == "" {
-			finalTransTitle = fmt.Sprintf("ตอนที่ %d", chNo)
-		}
-
-		var gMap map[string]string
-		if glossary != nil && len(glossary.Terms) > 0 {
-			gMap = make(map[string]string)
-			for _, t := range glossary.Terms {
-				gMap[t.Term] = t.Target
-			}
-		}
-		finalTransTitle = translator.SanitizeText(finalTransTitle, gMap)
-		fullTranslatedParagraphs = translator.SanitizeParagraphs(fullTranslatedParagraphs, gMap)
-
-		// Consistency check: glossary terms present in the source should have
-		// their expected target somewhere in the translation. Mismatches are
-		// reported (not blocking) so the user can confirm glossary entries.
-		var warnings []string
-		if glossary != nil && len(glossary.Terms) > 0 {
-			srcJoined := strings.Join(content.SourceText, "\n")
-			thJoined := strings.Join(fullTranslatedParagraphs, "\n")
-			seenTerm := map[string]bool{}
-			for _, t := range glossary.Terms {
-				if t.Term == "" || t.Target == "" || seenTerm[t.Term] {
-					continue
-				}
-				seenTerm[t.Term] = true
-				if strings.Contains(srcJoined, t.Term) && !strings.Contains(thJoined, t.Target) {
-					warnings = append(warnings, fmt.Sprintf("พบ %q แต่ไม่พบ %q ในฉบับแปล", t.Term, t.Target))
-					if len(warnings) >= 5 {
-						break
-					}
-				}
-			}
-		}
-
-		_ = h.store.SaveChapter(req.NovelSlug, chNo, content.SourceTitle, finalTransTitle, nil, fullTranslatedParagraphs)
-		successCount++
-
-		h.sse.Broadcast(map[string]interface{}{
-			"type":      "chapter_translated",
-			"novelSlug": req.NovelSlug,
-			"chapterNo": chNo,
-			"title":     finalTransTitle,
-			"warnings":  warnings,
-		})
 	}
 
 	finalStatus := "completed"
@@ -735,6 +699,171 @@ func (h *APIHandler) runTranslationJob(ctx context.Context, jobID string, req mo
 		Message:      finalMsg,
 		Percentage:   100,
 		ErrorDetails: lastError,
+	})
+}
+
+// jobCounters accumulates per-chapter results from parallel workers.
+type jobCounters struct {
+	success atomic.Int64
+	lastErr atomic.Value // string or nil
+}
+
+// translateOneChapter translates a single chapter; safe to run concurrently
+// for different chapter numbers within one job.
+func (h *APIHandler) translateOneChapter(ctx context.Context, jobID string, req model.TranslateRequest,
+	chNo, total int, glossary *model.NovelGlossary, styleRules, genre string,
+	modelChain []string, chapterList []model.ChapterMeta, jc *jobCounters) {
+
+	currentIdx := chNo - req.StartChapter + 1
+	pct := int((float64(currentIdx) / float64(total)) * 100)
+
+	h.sse.Broadcast(model.TranslationProgress{
+		JobID:          jobID,
+		NovelSlug:      req.NovelSlug,
+		CurrentChapter: chNo,
+		TotalChapters:  req.EndChapter,
+		Status:         "running",
+		Message:        fmt.Sprintf("กำลังแปลตอนที่ %d... (%d/%d)", chNo, currentIdx, total),
+		Percentage:     pct,
+	})
+
+	content, err := h.store.GetChapter(req.NovelSlug, chNo)
+	if err != nil || len(content.SourceText) == 0 {
+		log.Printf("Chapter %d has no source text, skipping\n", chNo)
+		return
+	}
+
+	if len(content.TranslatedText) > 0 && !req.Force {
+		log.Printf("Chapter %d already translated, skipping\n", chNo)
+		jc.success.Add(1)
+		return
+	}
+
+	// Previous context: last 3 paragraphs of the nearest preceding chapter
+	// (gap-aware: chapter numbers can skip, e.g. 72 -> 86). Inside a parallel
+	// wave the predecessor may still be translating, so fall back to the
+	// source tail rather than blocking on it.
+	var prevContext string
+	if prevNo := previousChapterNo(chapterList, chNo); prevNo > 0 {
+		if prevCh, err := h.store.GetChapter(req.NovelSlug, prevNo); err == nil && len(prevCh.TranslatedText) > 0 {
+			n := len(prevCh.TranslatedText)
+			if n > 3 {
+				n = 3
+			}
+			tail := prevCh.TranslatedText[len(prevCh.TranslatedText)-n:]
+			prevContext = fmt.Sprintf("ตอนก่อนหน้า (%s) จบด้วย:\n%s", prevCh.TranslatedTitle, strings.Join(tail, "\n"))
+		}
+	}
+	if prevContext == "" && len(content.SourceText) > 0 {
+		tail := content.SourceText
+		if len(tail) > 3 {
+			tail = tail[len(tail)-3:]
+		}
+		prevContext = fmt.Sprintf("[โหมดขนาน] ท้ายบทต้นฉบับตอนก่อนหน้า:\n%s", strings.Join(tail, "\n"))
+	}
+
+	relevantGlossary := translator.FilterRelevantGlossary(glossary, content.SourceText)
+	systemPrompt := translator.BuildSystemPrompt(relevantGlossary, prevContext, genre, styleRules)
+
+	// Smart Chunking for long chapters (max 25 paragraphs or 750 chars per chunk)
+	chunks := translator.SplitParagraphsIntoChunks(content.SourceText, 750)
+	var fullTranslatedParagraphs []string
+	var finalTransTitle string
+	chapterFailed := false
+
+	for chunkIdx, chunk := range chunks {
+		select {
+		case <-ctx.Done():
+			log.Printf("Translation job %s cancelled during chapter %d\n", jobID, chNo)
+			return
+		default:
+		}
+
+		chunkUserPrompt := translator.BuildUserPrompt(content.SourceTitle, chunk.Paragraphs)
+		if chunkIdx > 0 && len(fullTranslatedParagraphs) > 0 {
+			lastChunkEnd := fullTranslatedParagraphs[len(fullTranslatedParagraphs)-1]
+			chunkUserPrompt = fmt.Sprintf("[เนื้อหาก่อนหน้านี้ในบทเดียวกัน: ...%s]\n\n%s", lastChunkEnd, chunkUserPrompt)
+		}
+
+		chunkCtx, chunkCancel := context.WithTimeout(ctx, 120*time.Second)
+		rawOutput, _, err := h.translator.CompleteWithFallback(chunkCtx, systemPrompt, chunkUserPrompt, modelChain, req.Temperature)
+		chunkCancel()
+
+		if err != nil {
+			log.Printf("Translation error on chapter %d (chunk %d): %v\n", chNo, chunkIdx, err)
+			jc.lastErr.Store(err.Error())
+			h.sse.Broadcast(model.TranslationProgress{
+				JobID:          jobID,
+				NovelSlug:      req.NovelSlug,
+				CurrentChapter: chNo,
+				Status:         "error",
+				Message:        fmt.Sprintf("ข้อผิดพลาดตอนที่ %d: %v", chNo, err),
+				ErrorDetails:   err.Error(),
+			})
+			chapterFailed = true
+			break
+		}
+
+		tTitle, tParagraphs := translator.ParseTranslationOutput(rawOutput)
+		if finalTransTitle == "" && tTitle != "" {
+			finalTransTitle = tTitle
+		}
+		fullTranslatedParagraphs = append(fullTranslatedParagraphs, tParagraphs...)
+	}
+
+	if chapterFailed || len(fullTranslatedParagraphs) == 0 {
+		return
+	}
+
+	if finalTransTitle == "" {
+		finalTransTitle = fmt.Sprintf("ตอนที่ %d", chNo)
+	}
+
+	var gMap map[string]string
+	if glossary != nil && len(glossary.Terms) > 0 {
+		gMap = make(map[string]string)
+		for _, t := range glossary.Terms {
+			gMap[t.Term] = t.Target
+		}
+	}
+	finalTransTitle = translator.SanitizeText(finalTransTitle, gMap)
+	fullTranslatedParagraphs = translator.SanitizeParagraphs(fullTranslatedParagraphs, gMap)
+
+	// Consistency check: glossary terms present in the source should have
+	// their expected target somewhere in the translation. Mismatches are
+	// reported (not blocking) so the user can confirm glossary entries.
+	var warnings []string
+	if glossary != nil && len(glossary.Terms) > 0 {
+		srcJoined := strings.Join(content.SourceText, "\n")
+		thJoined := strings.Join(fullTranslatedParagraphs, "\n")
+		seenTerm := map[string]bool{}
+		for _, t := range glossary.Terms {
+			if t.Term == "" || t.Target == "" || seenTerm[t.Term] {
+				continue
+			}
+			seenTerm[t.Term] = true
+			if strings.Contains(srcJoined, t.Term) && !strings.Contains(thJoined, t.Target) {
+				warnings = append(warnings, fmt.Sprintf("พบ %q แต่ไม่พบ %q ในฉบับแปล", t.Term, t.Target))
+				if len(warnings) >= 5 {
+					break
+				}
+			}
+		}
+	}
+
+	if err := h.store.SaveChapter(req.NovelSlug, chNo, content.SourceTitle, finalTransTitle, nil, fullTranslatedParagraphs); err != nil {
+		log.Printf("SaveChapter %d failed: %v\n", chNo, err)
+		jc.lastErr.Store(err.Error())
+		return
+	}
+	jc.success.Add(1)
+
+	h.sse.Broadcast(map[string]interface{}{
+		"type":      "chapter_translated",
+		"novelSlug": req.NovelSlug,
+		"chapterNo": chNo,
+		"title":     finalTransTitle,
+		"warnings":  warnings,
 	})
 }
 
