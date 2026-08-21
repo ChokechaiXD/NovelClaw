@@ -15,6 +15,9 @@ novels/*/bookmark.json
 **/chapters/source/
 **/chapters/source_dirty/
 
+# ALL novel data (copyrighted — never tracked, never pushed)
+novels/
+
 # Legacy translations (pre-v2 format)
 **/chapters/legacy/
 
@@ -46,3 +49,11 @@ desktop.ini
 # Hermes agent artifacts
 .hermes/
 .agents/
+
+# QA data dumps derived from the novel text (copyrighted)
+scripts/qa/filter_classified.json
+scripts/qa/filter_clean_plan.json
+scripts/qa/filter_occ.json
+scripts/qa/qa_full_scan.json
+scripts/qa/r2_filter_occ.json
+scripts/qa/r2_filter_uniq.txt
