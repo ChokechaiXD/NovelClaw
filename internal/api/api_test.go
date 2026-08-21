@@ -49,7 +49,7 @@ func setupTestEnv(t *testing.T) (*config.AppConfig, *storage.Store, http.Handler
 		t.Fatalf("Failed to save seed chapter: %v", err)
 	}
 
-	router := SetupRouter(cfg, store)
+	router, _ := SetupRouter(cfg, store)
 
 	cleanup := func() {
 		os.RemoveAll(tmpDir)

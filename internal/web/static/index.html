@@ -292,6 +292,19 @@
         </div>
       </div>
 
+      <!-- Glossary QA check -->
+      <div style="background: var(--bg-elevated); padding: 0.85rem; border-radius: var(--radius-sm); margin-bottom: 1rem; border: 1px solid var(--border);">
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <span style="font-size: 0.88rem; font-weight: 600;">🩺 ตรวจความสอดคล้องศัพท์</span>
+          <label style="font-size: 0.8rem;">ช่วง:</label>
+          <input type="number" class="form-input" id="qa-start" value="1" style="width: 70px; padding: 0.3rem 0.5rem;">
+          <label style="font-size: 0.8rem;">ถึง:</label>
+          <input type="number" class="form-input" id="qa-end" value="50" style="width: 70px; padding: 0.3rem 0.5rem;">
+          <button type="button" class="btn btn-outline btn-sm" id="btn-glossary-check">🔍 ตรวจสอบ</button>
+        </div>
+        <div id="glossary-qa-results" style="margin-top: 0.6rem; display: none;"></div>
+      </div>
+
       <!-- Add term form -->
       <form id="form-add-term" style="display: grid; grid-template-columns: 1.2fr 1.2fr 1fr auto; gap: 0.5rem; margin-bottom: 1rem;">
         <input type="text" class="form-input" id="term-orig" placeholder="คำเดิม (เช่น 曹星)" required>

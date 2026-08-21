@@ -48,7 +48,14 @@ func main() {
 	}
 
 	store := storage.NewStore(cfg.DataDir)
-	router := api.SetupRouter(cfg, store)
+	router, apiHandler := api.SetupRouter(cfg, store)
+
+	// Safety net: snapshot the data dir at startup when the newest archive
+	// is older than 24h (novels/ is no longer in git — this is the backup).
+	go api.MaybeAutoBackup(cfg)
+
+	// Restart-safe queues: pick up translation jobs that died mid-run.
+	go apiHandler.ResumeInterruptedJobs()
 
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	server := &http.Server{

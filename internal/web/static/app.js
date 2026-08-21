@@ -147,6 +147,8 @@
     formAddTerm: document.getElementById('form-add-term'),
     glossaryTbody: document.getElementById('glossary-tbody'),
     btnSaveGlossary: document.getElementById('btn-save-glossary'),
+    btnGlossaryCheck: document.getElementById('btn-glossary-check'),
+    glossaryQaResults: document.getElementById('glossary-qa-results'),
 
     modalSettings: document.getElementById('modal-settings'),
     btnCloseSettings: document.getElementById('btn-close-settings'),
@@ -472,6 +474,12 @@
                 <span class="badge badge-info">${n.totalChapters || 0} ตอน</span>
                 <span class="badge badge-success">แปลแล้ว ${n.translatedChapters || 0}</span>
               </div>
+              ${n.totalChapters ? (() => {
+                const pct = Math.round((n.translatedChapters || 0) / n.totalChapters * 100);
+                return `<div style="height:4px; background:var(--bg-elevated); border-radius:2px; overflow:hidden; margin-bottom:0.5rem;" title="แปลแล้ว ${pct}%">
+                  <div style="height:100%; width:${pct}%; background:var(--accent);"></div>
+                </div>`;
+              })() : ''}
               <div class="novel-card-meta">
                 <span>${escapeHTML(n.author || 'ไม่ระบุผู้แต่ง')}</span>
                 <button class="btn btn-primary btn-sm btn-read-novel" data-slug="${escapeHTML(n.slug)}">อ่าน</button>
@@ -632,6 +640,11 @@
       const novel = state.currentNovel || { title: slug };
 
       el.readerNovelTitle.innerText = novel.translatedTitle || novel.title || slug;
+      // Clicking the novel title returns to that novel's detail page (easy
+      // switching between novels while reading).
+      el.readerNovelTitle.style.cursor = 'pointer';
+      el.readerNovelTitle.title = 'กลับไปหน้ารายละเอียดเรื่อง';
+      el.readerNovelTitle.onclick = () => openNovelDetail(state.currentSlug);
       el.readerChapterTitle.innerText = ch.translatedTitle || ch.sourceTitle || `ตอนที่ ${chapterNo}`;
 
       renderReaderParagraphs();
@@ -1189,6 +1202,54 @@
       });
       showToast('บันทึก Glossary เรียบร้อยแล้ว', 'success');
       closeModal(el.modalGlossary);
+    });
+
+    // Glossary QA: scan a range for term/translation mismatches, offer repair
+    el.btnGlossaryCheck?.addEventListener('click', async () => {
+      const start = parseInt(document.getElementById('qa-start').value, 10) || 1;
+      const end = parseInt(document.getElementById('qa-end').value, 10) || start;
+      el.btnGlossaryCheck.disabled = true;
+      el.btnGlossaryCheck.innerText = '⏳ กำลังตรวจ...';
+      try {
+        const res = await api(`/api/novels/${state.currentSlug}/glossary/check?start=${start}&end=${end}`);
+        const issues = res.issues || [];
+        if (issues.length === 0) {
+          el.glossaryQaResults.innerHTML = `<div style="color: var(--success); font-size: 0.85rem;">✅ ตรวจ ${res.scanned} ตอน — ศัพท์สอดคล้องทั้งหมด</div>`;
+        } else {
+          const byChapter = {};
+          issues.forEach(i => { (byChapter[i.chapterNo] = byChapter[i.chapterNo] || []).push(i); });
+          el.glossaryQaResults.innerHTML =
+            `<div style="font-size: 0.85rem; color: var(--warning); margin-bottom: 0.4rem;">⚠️ พบ ${issues.length} จุดใน ${Object.keys(byChapter).length} ตอน (สแกน ${res.scanned} ตอน)</div>` +
+            Object.entries(byChapter).map(([chNo, list]) => `
+              <div style="display:flex; align-items:center; gap:0.5rem; padding:0.25rem 0; font-size:0.82rem;">
+                <span style="min-width:70px;">ตอนที่ ${chNo}</span>
+                <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-muted);">
+                  ${list.map(i => `${escapeHTML(i.term)} → ${escapeHTML(i.expected)}`).join(', ')}
+                </span>
+                <button type="button" class="btn btn-outline btn-sm btn-qa-repair" data-ch="${chNo}">🔧 ซ่อม</button>
+              </div>`).join('');
+          el.glossaryQaResults.querySelectorAll('.btn-qa-repair').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              btn.disabled = true;
+              btn.innerText = '⏳';
+              try {
+                await api(`/api/novels/${state.currentSlug}/chapters/${btn.dataset.ch}/repair`, { method: 'POST' });
+                showToast(`ซ่อมตอนที่ ${btn.dataset.ch} เรียบร้อย`, 'success');
+                btn.innerText = '✅';
+              } catch (err) {
+                showToast(`ซ่อมตอนที่ ${btn.dataset.ch} ล้มเหลว: ${err.message}`, 'error');
+                btn.innerText = '❌';
+              }
+            });
+          });
+        }
+        el.glossaryQaResults.style.display = 'block';
+      } catch (err) {
+        showToast(`การตรวจสอบล้มเหลว: ${err.message}`, 'error');
+      } finally {
+        el.btnGlossaryCheck.disabled = false;
+        el.btnGlossaryCheck.innerText = '🔍 ตรวจสอบ';
+      }
     });
 
     // Settings Modal

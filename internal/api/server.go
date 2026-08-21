@@ -13,8 +13,10 @@ import (
 	"novelclaw/internal/web"
 )
 
-// SetupRouter creates the HTTP handler with all API endpoints and embedded static files
-func SetupRouter(cfg *config.AppConfig, store *storage.Store) http.Handler {
+// SetupRouter creates the HTTP handler with all API endpoints and embedded static files.
+// It also returns the APIHandler so main can resume persisted jobs with the
+// same SSE broker the routes use.
+func SetupRouter(cfg *config.AppConfig, store *storage.Store) (http.Handler, *APIHandler) {
 	sse := NewSSEBroker()
 	h := NewAPIHandler(cfg, store, sse)
 
@@ -32,9 +34,14 @@ func SetupRouter(cfg *config.AppConfig, store *storage.Store) http.Handler {
 	mux.HandleFunc("POST /api/novels/{slug}/chapters/{num}/repair", h.RepairChapter)
 	mux.HandleFunc("GET /api/novels/{slug}/glossary", h.GetGlossary)
 	mux.HandleFunc("POST /api/novels/{slug}/glossary", h.SaveGlossary)
+	mux.HandleFunc("GET /api/novels/{slug}/glossary/check", h.GlossaryCheck)
 	mux.HandleFunc("GET /api/novels/{slug}/bookmark", h.GetBookmark)
 	mux.HandleFunc("POST /api/novels/{slug}/bookmark", h.SaveBookmark)
 	mux.HandleFunc("GET /api/novels/{slug}/export", h.ExportNovel)
+
+	// Backup
+	mux.HandleFunc("POST /api/backup", h.BackupNow)
+	mux.HandleFunc("GET /api/backup", h.ListBackupsHandler)
 
 	// Actions
 	mux.HandleFunc("POST /api/import", h.Import)
@@ -66,7 +73,7 @@ func SetupRouter(cfg *config.AppConfig, store *storage.Store) http.Handler {
 	}))
 
 	// Wrap with basic CORS / logging middleware
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -76,6 +83,7 @@ func SetupRouter(cfg *config.AppConfig, store *storage.Store) http.Handler {
 		}
 		mux.ServeHTTP(w, r)
 	})
+	return handler, h
 }
 
 // GetLocalIPs returns active non-loopback IPv4 addresses

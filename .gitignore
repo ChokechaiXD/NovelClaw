@@ -57,3 +57,5 @@ scripts/qa/filter_occ.json
 scripts/qa/qa_full_scan.json
 scripts/qa/r2_filter_occ.json
 scripts/qa/r2_filter_uniq.txt
+# Local backup archives
+backups/

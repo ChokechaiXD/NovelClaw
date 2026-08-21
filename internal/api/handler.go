@@ -169,6 +169,75 @@ func (h *APIHandler) RepairChapter(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, chapter)
 }
 
+// GlossaryCheck scans a chapter range and reports chapters where a glossary
+// term appears in the source but its expected translation is missing from
+// the translated text. Read-only; pairs with the repair endpoint.
+func (h *APIHandler) GlossaryCheck(w http.ResponseWriter, r *http.Request) {
+	slug := safeSlug(r.PathValue("slug"))
+	start, _ := strconv.Atoi(r.URL.Query().Get("start"))
+	end, _ := strconv.Atoi(r.URL.Query().Get("end"))
+	if start <= 0 {
+		start = 1
+	}
+	if end < start {
+		end = start
+	}
+	if end-start > 200 { // ponytail: cap scan size; paginate if ever needed
+		end = start + 200
+	}
+
+	glossary, err := h.store.GetGlossary(slug)
+	if err != nil || len(glossary.Terms) == 0 {
+		WriteJSON(w, http.StatusOK, map[string]interface{}{"issues": []interface{}{}, "scanned": 0})
+		return
+	}
+
+	type issue struct {
+		ChapterNo int      `json:"chapterNo"`
+		Term      string   `json:"term"`
+		Expected  string   `json:"expected"`
+		Missing   []string `json:"missing"` // paragraphs whose translation lacks the term
+	}
+	var issues []issue
+	scanned := 0
+
+	for chNo := start; chNo <= end; chNo++ {
+		ch, err := h.store.GetChapter(slug, chNo)
+		if err != nil || len(ch.SourceText) == 0 || len(ch.TranslatedText) == 0 {
+			continue
+		}
+		scanned++
+		srcJoined := strings.Join(ch.SourceText, "\n")
+		thJoined := strings.Join(ch.TranslatedText, "\n")
+		seen := map[string]bool{}
+		for _, t := range glossary.Terms {
+			if t.Term == "" || t.Target == "" || seen[t.Term] {
+				continue
+			}
+			seen[t.Term] = true
+			if !strings.Contains(srcJoined, t.Term) || strings.Contains(thJoined, t.Target) {
+				continue
+			}
+			var missing []string
+			for i, srcPara := range ch.SourceText {
+				if !strings.Contains(srcPara, t.Term) {
+					continue
+				}
+				if i < len(ch.TranslatedText) && strings.Contains(ch.TranslatedText[i], t.Target) {
+					continue
+				}
+				missing = append(missing, fmt.Sprintf("ย่อหน้า %d", i+1))
+				if len(missing) >= 5 {
+					break
+				}
+			}
+			issues = append(issues, issue{ChapterNo: chNo, Term: t.Term, Expected: t.Target, Missing: missing})
+		}
+	}
+
+	WriteJSON(w, http.StatusOK, map[string]interface{}{"scanned": scanned, "issues": issues})
+}
+
 // GetGlossary returns glossary for a novel
 func (h *APIHandler) GetGlossary(w http.ResponseWriter, r *http.Request) {
 	slug := safeSlug(r.PathValue("slug"))
@@ -581,6 +650,7 @@ func (h *APIHandler) Translate(w http.ResponseWriter, r *http.Request) {
 
 	jobID := fmt.Sprintf("job_%d", time.Now().UnixNano())
 	jobCtx, cancel := context.WithCancel(context.Background())
+	h.persistJob(jobID, req)
 
 	h.jobsMu.Lock()
 	h.cancels[jobID] = cancel
@@ -606,6 +676,7 @@ func (h *APIHandler) Translate(w http.ResponseWriter, r *http.Request) {
 
 func (h *APIHandler) runTranslationJob(ctx context.Context, jobID string, req model.TranslateRequest) {
 	defer func() {
+		h.removeJobFile(jobID)
 		h.jobsMu.Lock()
 		delete(h.cancels, jobID)
 		delete(h.activeJobs, jobID)
