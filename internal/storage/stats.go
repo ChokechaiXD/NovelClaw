@@ -39,11 +39,8 @@ func (s *Store) updateNovelStats(slug string) {
 		return
 	}
 
-	srcCount, transCount := 0, 0
+	transCount := 0
 	for _, chapter := range chapters {
-		if chapter.HasSource {
-			srcCount++
-		}
 		if chapter.HasTranslated {
 			transCount++
 		}
@@ -62,11 +59,11 @@ func (s *Store) updateNovelStats(slug string) {
 		log.Printf("update stats %s: parse novel: %v", slug, err)
 		return
 	}
-	if n.TotalChapters == srcCount && n.TranslatedChapters == transCount {
+	if n.TotalChapters == len(chapters) && n.TranslatedChapters == transCount {
 		return
 	}
 
-	n.TotalChapters = srcCount
+	n.TotalChapters = len(chapters)
 	n.TranslatedChapters = transCount
 	n.UpdatedAt = time.Now()
 	updatedData, err := json.MarshalIndent(n, "", "  ")

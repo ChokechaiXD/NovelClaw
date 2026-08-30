@@ -26,6 +26,8 @@ type ChapterMeta struct {
 	TitleTranslated string    `json:"titleTranslated,omitempty"`
 	HasSource       bool      `json:"hasSource"`
 	HasTranslated   bool      `json:"hasTranslated"`
+	Locked          bool      `json:"locked,omitempty"`
+	SourceURL       string    `json:"sourceUrl,omitempty"`
 	UpdatedAt       time.Time `json:"updatedAt"`
 }
 

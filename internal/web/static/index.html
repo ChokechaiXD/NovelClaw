@@ -254,9 +254,17 @@
         </div>
 
         <div class="form-group">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-            <label class="form-label" style="margin-bottom: 0;">AI Model ที่ใช้งาน (บันทึกถาวร)</label>
-            <button type="button" class="btn btn-outline btn-sm" id="btn-refresh-models" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">🔄 ดึงโมเดลจาก 9Router</button>
+          <label class="form-label" for="trans-provider-select">AI Provider สำหรับงานแปลนี้</label>
+          <select class="form-select" id="trans-provider-select">
+            <option value="">กำลังโหลด Provider...</option>
+          </select>
+          <div id="trans-provider-hint" class="translation-provider-hint">เลือก Provider ได้โดยไม่เปลี่ยนค่าหลักใน Settings</div>
+        </div>
+
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; gap: 0.5rem;">
+            <label class="form-label" style="margin-bottom: 0;" for="trans-model-select">AI Model สำหรับงานแปลนี้</label>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-refresh-models" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">↻ ดึงโมเดล</button>
           </div>
           <select class="form-select" id="trans-model-select">
             <option value="">กำลังโหลดรายชื่อโมเดล...</option>

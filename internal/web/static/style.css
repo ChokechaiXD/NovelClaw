@@ -452,6 +452,17 @@ body {
   margin-bottom: 0.35rem;
 }
 
+.translation-provider-hint {
+  margin-top: 0.4rem;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.translation-provider-hint.is-warning {
+  color: var(--warning, #f5b942);
+}
+
 .form-input, .form-textarea, .form-select {
   width: 100%;
   padding: 0.6rem 0.8rem;
@@ -1867,3 +1878,12 @@ body { background: var(--bg-primary); }
   .free-model-head { align-items: flex-start; flex-direction: column; gap: 3px; }
   .free-model-grid .model-hint { max-width: 100%; overflow-wrap: anywhere; text-align: left; }
 }
+
+/* Locked source catalog entries */
+.chapter-item.locked {
+  opacity: 0.58;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+.chapter-item.locked:hover { transform: none; background: var(--bg-elevated); }
+.badge-muted { color: var(--text-muted); background: var(--bg-hover); border: 1px solid var(--border); }

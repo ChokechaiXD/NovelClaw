@@ -21,6 +21,7 @@ type ScrapedChapter struct {
 	Title      string   `json:"title"`
 	Paragraphs []string `json:"paragraphs"`
 	URL        string   `json:"url"`
+	Locked     bool     `json:"locked,omitempty"`
 }
 
 // ScrapedNovelInfo represents metadata and chapter links from TOC
@@ -65,6 +66,7 @@ type UniversalScraper struct {
 func NewUniversalScraper() *UniversalScraper {
 	return &UniversalScraper{
 		scrapers: []Scraper{
+			NewQidianScraper(),
 			NewShu69Scraper(),
 			NewGenericScraper(),
 		},

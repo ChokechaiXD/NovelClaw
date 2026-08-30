@@ -79,6 +79,7 @@ func WriteJSON(w http.ResponseWriter, status int, data interface{}) {
 	}
 	payload = append(payload, '\n')
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(status)
 	if _, err := w.Write(payload); err != nil {
 		log.Printf("write JSON response: %v", err)

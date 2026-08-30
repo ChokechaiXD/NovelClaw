@@ -174,13 +174,16 @@ export function createLibraryController({
       ? chapter.titleTranslated
       : (chapter.titleSource || '');
     const qaClass = qa ? (qa.score >= 90 ? 'qa-good' : qa.score >= 75 ? 'qa-review' : 'qa-bad') : '';
+    const locked = Boolean(chapter.locked && !chapter.hasSource && !chapter.hasTranslated);
+    const status = locked ? '🔒 VIP' : (chapter.hasTranslated ? 'แปลแล้ว' : 'ต้นฉบับ');
+    const badgeClass = locked ? 'badge-muted' : (chapter.hasTranslated ? 'badge-success' : 'badge-info');
     return `
-      <button type="button" class="chapter-item ${chapter.hasTranslated ? 'translated' : ''}" data-ch="${chapter.chapterNo}">
+      <button type="button" class="chapter-item ${chapter.hasTranslated ? 'translated' : ''} ${locked ? 'locked' : ''}" data-ch="${chapter.chapterNo}" ${locked ? 'disabled aria-disabled="true"' : ''}>
         <span class="chapter-number">ตอนที่ ${chapter.chapterNo}</span>
         <span class="chapter-title-text">${escapeHTML(titleText)}</span>
         <span class="chapter-item-spacer"></span>
         ${qa ? `<span class="badge qa-badge ${qaClass}">QA ${qa.score}</span>` : ''}
-        <span class="badge ${chapter.hasTranslated ? 'badge-success' : 'badge-info'}">${chapter.hasTranslated ? 'แปลแล้ว' : 'ต้นฉบับ'}</span>
+        <span class="badge ${badgeClass}">${status}</span>
       </button>`;
   }
   function adjacentChapterNo(chapterNo, direction) {
@@ -188,12 +191,13 @@ export function createLibraryController({
       const candidate = chapterNo + direction;
       return candidate >= 1 ? candidate : null;
     }
-    const index = state.chapters.findIndex(chapter => chapter.chapterNo === chapterNo);
+    const readable = state.chapters.filter(chapter => chapter.hasSource || chapter.hasTranslated);
+    const index = readable.findIndex(chapter => chapter.chapterNo === chapterNo);
     if (index === -1) {
-      const candidate = chapterNo + direction;
-      return candidate >= 1 ? candidate : null;
+      const candidates = readable.filter(chapter => direction > 0 ? chapter.chapterNo > chapterNo : chapter.chapterNo < chapterNo);
+      return direction > 0 ? candidates[0]?.chapterNo ?? null : candidates[candidates.length - 1]?.chapterNo ?? null;
     }
-    return state.chapters[index + direction]?.chapterNo ?? null;
+    return readable[index + direction]?.chapterNo ?? null;
   }
 
   function maxChapterNo() {

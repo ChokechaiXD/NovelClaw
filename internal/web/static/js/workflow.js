@@ -10,7 +10,11 @@ export function createWorkflowController({
     el.transEnd.value = end;
     el.transProgressBox.classList.add('hidden');
     el.transErrorMsg.classList.add('hidden');
-    if (state.defaultModel) el.transModelSelect.value = state.defaultModel;
+    const providerID = el.transProviderSelect?.value || state.translationProvider || state.activeProvider;
+    const savedModel = localStorage.getItem(`nc_model_${providerID}`) || '';
+    if (savedModel && [...el.transModelSelect.options].some(option => option.value === savedModel)) {
+      el.transModelSelect.value = savedModel;
+    }
     openModal(el.modalTranslate);
   }
 
@@ -145,6 +149,7 @@ export function createWorkflowController({
     if (!state.currentSlug) return;
     const startChapter = Number.parseInt(el.transStart.value, 10) || 1;
     const endChapter = Number.parseInt(el.transEnd.value, 10) || startChapter;
+    const provider = el.transProviderSelect?.value || state.translationProvider || state.activeProvider;
     const model = el.transModelSelect.value.trim();
     const genre = el.transGenre.value;
     const force = Boolean(el.transForce.checked);
@@ -156,8 +161,9 @@ export function createWorkflowController({
       showToast('กรุณาเลือกโมเดลก่อนเริ่มแปล', 'warning');
       return;
     }
-    state.defaultModel = model;
-    localStorage.setItem('nc_model', model);
+    state.translationProvider = provider;
+    localStorage.setItem('nc_translate_provider', provider);
+    localStorage.setItem(`nc_model_${provider}`, model);
     closeModal(el.modalTranslate);
     showToast(`เริ่มคิวแปลตอนที่ ${startChapter} - ${endChapter} ในพื้นหลังแล้ว`, 'info');
     showTranslationStarting(startChapter, endChapter);
@@ -166,7 +172,7 @@ export function createWorkflowController({
         method: 'POST',
         body: JSON.stringify({
           novelSlug: state.currentSlug,
-          provider: state.activeProvider,
+          provider,
           startChapter,
           endChapter,
           model,

@@ -183,6 +183,18 @@ func (h *APIHandler) importTOC(ctx context.Context, jobID string, req model.Impo
 	if slug == "" {
 		slug = sanitizeSlug(toc.Title)
 	}
+	catalog := make([]model.ChapterMeta, 0, len(toc.Chapters))
+	for i, item := range toc.Chapters {
+		chapterNo := item.ChapterNo
+		if chapterNo <= 0 {
+			chapterNo = i + 1
+		}
+		catalog = append(catalog, model.ChapterMeta{ChapterNo: chapterNo, TitleSource: item.Title, Locked: item.Locked, SourceURL: item.URL})
+	}
+	if err := h.store.SaveChapterCatalog(slug, catalog); err != nil {
+		h.broadcastImport(jobID, "import_error", slug, map[string]interface{}{"message": fmt.Sprintf("บันทึกสารบัญไม่สำเร็จ: %v", err)})
+		return
+	}
 	start, end, total, err := normalizeImportRange(req.StartChapter, req.EndChapter, len(toc.Chapters))
 	if err != nil {
 		h.broadcastImport(jobID, "import_error", slug, map[string]interface{}{"message": err.Error()})
@@ -194,14 +206,14 @@ func (h *APIHandler) importTOC(ctx context.Context, jobID string, req model.Impo
 		})
 		return
 	}
-	if err := h.saveImportedNovel(slug, toc.Title, toc.Author, req.Genre, toc.Description, toc.CoverURL); err != nil {
+	if err := h.saveImportedNovel(slug, toc.Title, req.NovelTitle, toc.Author, req.Genre, toc.Description, toc.CoverURL, req.URL); err != nil {
 		h.broadcastImport(jobID, "import_error", slug, map[string]interface{}{
 			"message": fmt.Sprintf("บันทึกข้อมูลเรื่องไม่สำเร็จ: %v", err),
 		})
 		return
 	}
 
-	processed, imported, failed := 0, 0, 0
+	processed, imported, failed, locked := 0, 0, 0, 0
 	lastError := ""
 	for i := start - 1; i < end; i++ {
 		select {
@@ -218,6 +230,15 @@ func (h *APIHandler) importTOC(ctx context.Context, jobID string, req model.Impo
 		chapterNo := item.ChapterNo
 		if chapterNo <= 0 {
 			chapterNo = i + 1
+		}
+		if item.Locked {
+			locked++
+			processed++
+			h.broadcastImport(jobID, "import_progress", slug, map[string]interface{}{
+				"current": processed, "total": total, "imported": imported, "failed": failed, "locked": locked,
+				"percentage": importPercentage(processed, total), "title": item.Title,
+			})
+			continue
 		}
 		ch, fetchErr := h.scraper.FetchChapterContext(ctx, item.URL)
 		if fetchErr == nil && ch == nil {
@@ -274,7 +295,7 @@ func (h *APIHandler) importTOC(ctx context.Context, jobID string, req model.Impo
 
 	fields := map[string]interface{}{
 		"current": total, "total": total,
-		"imported": imported, "failed": failed,
+		"imported": imported, "failed": failed, "locked": locked,
 		"percentage": 100,
 	}
 	switch {
@@ -282,10 +303,10 @@ func (h *APIHandler) importTOC(ctx context.Context, jobID string, req model.Impo
 		fields["message"] = fmt.Sprintf("นำเข้าไม่สำเร็จ (%d/%d ตอน): %s", failed, total, lastError)
 		h.broadcastImport(jobID, "import_error", slug, fields)
 	case failed > 0:
-		fields["message"] = fmt.Sprintf("นำเข้าเสร็จบางส่วน: สำเร็จ %d จาก %d ตอน", imported, total)
+		fields["message"] = fmt.Sprintf("นำเข้าเสร็จบางส่วน: ดึงต้นฉบับสำเร็จ %d ตอน, ล็อก %d ตอน, ล้มเหลว %d ตอน", imported, locked, failed)
 		h.broadcastImport(jobID, "import_partial", slug, fields)
 	default:
-		fields["message"] = fmt.Sprintf("นำเข้าสำเร็จ %d ตอน", imported)
+		fields["message"] = fmt.Sprintf("สารบัญครบ %d ตอน • ดึงต้นฉบับสาธารณะสำเร็จ %d ตอน • ล็อก VIP %d ตอน", total, imported, locked)
 		h.broadcastImport(jobID, "import_done", slug, fields)
 	}
 }
@@ -353,7 +374,7 @@ func (h *APIHandler) ensureImportedNovel(slug, title, genre string) error {
 	})
 }
 
-func (h *APIHandler) saveImportedNovel(slug, title, author, genre, description, coverURL string) error {
+func (h *APIHandler) saveImportedNovel(slug, title, translatedTitle, author, genre, description, coverURL, sourceURL string) error {
 	novel, err := h.store.GetNovel(slug)
 	if err != nil && !errors.Is(err, storage.ErrNovelNotFound) {
 		return err
@@ -363,6 +384,9 @@ func (h *APIHandler) saveImportedNovel(slug, title, author, genre, description, 
 	}
 	if title != "" {
 		novel.Title = title
+	}
+	if translatedTitle != "" && translatedTitle != title {
+		novel.TranslatedTitle = translatedTitle
 	}
 	if author != "" {
 		novel.Author = author
@@ -375,6 +399,20 @@ func (h *APIHandler) saveImportedNovel(slug, title, author, genre, description, 
 	}
 	if coverURL != "" {
 		novel.CoverURL = coverURL
+	}
+	if sourceURL != "" {
+		if novel.SourceURLs == nil {
+			novel.SourceURLs = make(map[string]string)
+		}
+		key := "web"
+		lowerURL := strings.ToLower(sourceURL)
+		if strings.Contains(lowerURL, "qidian.com") {
+			key = "qidian"
+		}
+		if strings.Contains(lowerURL, "69shu") {
+			key = "69shu"
+		}
+		novel.SourceURLs[key] = sourceURL
 	}
 	return h.store.SaveNovel(novel)
 }

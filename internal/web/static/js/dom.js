@@ -101,6 +101,8 @@ export function bindDOM() {
     formTranslate: document.getElementById('form-translate'),
     transStart: document.getElementById('trans-start'),
     transEnd: document.getElementById('trans-end'),
+    transProviderSelect: document.getElementById('trans-provider-select'),
+    transProviderHint: document.getElementById('trans-provider-hint'),
     transModelSelect: document.getElementById('trans-model-select'),
     cfgProvider: document.getElementById('cfg-provider'),
     btnDetectProviders: document.getElementById('btn-detect-providers'),

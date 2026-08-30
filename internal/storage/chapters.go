@@ -31,6 +31,15 @@ func (s *Store) ListChapters(slug string) ([]model.ChapterMeta, error) {
 	}
 
 	chapterMap := make(map[int]*model.ChapterMeta)
+	if data, readErr := os.ReadFile(filepath.Join(chaptersDir, "catalog.json")); readErr == nil {
+		var catalog []model.ChapterMeta
+		if json.Unmarshal(data, &catalog) == nil {
+			for i := range catalog {
+				item := catalog[i]
+				chapterMap[item.ChapterNo] = &item
+			}
+		}
+	}
 
 	for _, entry := range entries {
 		name := entry.Name()
@@ -110,6 +119,29 @@ func (s *Store) ListChapters(slug string) ([]model.ChapterMeta, error) {
 
 	s.setChapterCache(slug, result)
 	return cloneChapterMeta(result), nil
+}
+
+// SaveChapterCatalog stores metadata for the complete source catalog, including locked chapters.
+func (s *Store) SaveChapterCatalog(slug string, chapters []model.ChapterMeta) error {
+	slug = pathSafeSlug(slug)
+	dir := filepath.Join(s.DataDir, slug, "chapters")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(chapters, "", "  ")
+	if err != nil {
+		return err
+	}
+	tmp := filepath.Join(dir, "catalog.json.tmp")
+	if err := os.WriteFile(tmp, data, 0644); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, filepath.Join(dir, "catalog.json")); err != nil {
+		return err
+	}
+	s.invalidateChapterCache(slug)
+	s.scheduleNovelStatsUpdate(slug)
+	return nil
 }
 
 // GetChapter returns the content of a specific chapter. Chapter files are

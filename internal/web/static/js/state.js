@@ -19,6 +19,7 @@ export function createInitialState() {
     qaReports: [],
     providers: [],
     activeProvider: '',
+    translationProvider: localStorage.getItem('nc_translate_provider') || '',
     settingsProvider: '',
     clearProviderKey: false,
     availableModels: [],

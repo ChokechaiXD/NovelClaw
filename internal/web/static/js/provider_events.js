@@ -3,37 +3,33 @@ import { escapeHTML } from './utils.js';
 export function createProviderEvents({
   state, el, api, showToast, openModal, closeModal,
   getProvider, renderProviderStatus, applyProviderToSettings,
+  renderTranslationProviderOptions, updateTranslationProviderHint,
   discoverModels, testCurrentProvider, refreshProviderControlPlane,
   currentSettingsPayload,
 }) {
-  async function refreshActiveModels() {
-    const provider = getProvider(state.activeProvider);
+  async function refreshTranslationModels() {
+    const providerID = el.transProviderSelect?.value || state.translationProvider || state.activeProvider;
+    const provider = getProvider(providerID);
     showToast(`กำลังดึงโมเดลจาก ${provider?.name || 'Provider'}...`, 'info');
-    const models = await discoverModels(state.activeProvider, { updateTranslation: true });
+    const models = await discoverModels(providerID, { updateTranslation: true });
     showToast(`พบโมเดล ${models.length} รายการ`, models.length ? 'success' : 'warning');
   }
 
-  async function persistTranslationModel() {
+  function rememberTranslationModel() {
+    const providerID = el.transProviderSelect?.value || state.translationProvider || state.activeProvider;
     const chosen = el.transModelSelect.value;
-    if (!chosen || chosen === state.defaultModel) return;
-    const previousModel = state.defaultModel;
-    el.transModelSelect.disabled = true;
-    try {
-      const cfg = await api('/api/config', {
-        method: 'POST',
-        body: JSON.stringify({ provider: state.activeProvider, defaultModel: chosen }),
-      });
-      state.defaultModel = cfg.defaultModel || chosen;
-      localStorage.setItem('nc_model', state.defaultModel);
-      const provider = getProvider(state.activeProvider);
-      if (provider) provider.model = state.defaultModel;
-      renderProviderStatus();
-    } catch (err) {
-      el.transModelSelect.value = previousModel;
-      showToast(`เปลี่ยนโมเดลไม่สำเร็จ: ${err.message}`, 'error');
-    } finally {
-      el.transModelSelect.disabled = false;
-    }
+    if (!providerID || !chosen) return;
+    localStorage.setItem(`nc_model_${providerID}`, chosen);
+  }
+
+  async function changeTranslationProvider() {
+    const providerID = el.transProviderSelect?.value || state.activeProvider;
+    state.translationProvider = providerID;
+    localStorage.setItem('nc_translate_provider', providerID);
+    renderTranslationProviderOptions(providerID);
+    updateTranslationProviderHint();
+    el.transModelSelect.innerHTML = '<option value="">กำลังโหลดรายชื่อโมเดล...</option>';
+    await discoverModels(providerID, { updateTranslation: true, quiet: true });
   }
 
   async function openSettings() {
@@ -89,7 +85,9 @@ export function createProviderEvents({
       state.defaultModel = cfg.defaultModel || payload.defaultModel;
       localStorage.setItem('nc_model', state.defaultModel);
       await refreshProviderControlPlane(cfg.provider);
-      await discoverModels(cfg.provider, { updateTranslation: true, quiet: true });
+      await discoverModels(cfg.provider, { updateTranslation: state.translationProvider === cfg.provider, quiet: true });
+      renderTranslationProviderOptions(state.translationProvider || cfg.provider);
+      updateTranslationProviderHint();
       showToast(`ใช้งาน ${getProvider(cfg.provider)?.name || cfg.provider} แล้ว`, 'success');
       closeModal(el.modalSettings);
     } finally {
@@ -98,9 +96,10 @@ export function createProviderEvents({
     }
   }
   function bindProviderEvents() {
-    el.btnRefreshModels?.addEventListener('click', refreshActiveModels);
+    el.btnRefreshModels?.addEventListener('click', refreshTranslationModels);
     el.btnCfgRefreshModels?.addEventListener('click', testCurrentProvider);
-    el.transModelSelect?.addEventListener('change', persistTranslationModel);
+    el.transProviderSelect?.addEventListener('change', changeTranslationProvider);
+    el.transModelSelect?.addEventListener('change', rememberTranslationModel);
     el.btnProviderStatus?.addEventListener('click', () => el.btnOpenSettings.click());
     el.btnOpenSettings?.addEventListener('click', openSettings);
     el.btnCloseSettings?.addEventListener('click', () => closeModal(el.modalSettings));

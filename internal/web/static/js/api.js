@@ -3,6 +3,7 @@ export function createAPIClient({ onError } = {}) {
     const { silent = false, headers = {}, ...fetchOptions } = options;
     try {
       const res = await fetch(path, {
+        cache: 'no-store',
         ...fetchOptions,
         headers: {
           'Content-Type': 'application/json',

@@ -166,6 +166,8 @@ import { createWorkflowController } from './js/workflow.js';
   const {
     getProvider,
     renderProviderStatus,
+    renderTranslationProviderOptions,
+    updateTranslationProviderHint,
     populateTranslationModels,
     applyProviderToSettings,
     loadConfigAndModels,
@@ -179,6 +181,7 @@ import { createWorkflowController } from './js/workflow.js';
   const { bindProviderEvents } = createProviderEvents({
     state, el, api, showToast, openModal, closeModal,
     getProvider, renderProviderStatus, applyProviderToSettings,
+    renderTranslationProviderOptions, updateTranslationProviderHint,
     discoverModels, testCurrentProvider, refreshProviderControlPlane,
     currentSettingsPayload,
   });

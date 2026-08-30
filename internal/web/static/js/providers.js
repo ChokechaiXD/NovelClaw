@@ -81,6 +81,32 @@ export function createProviderController({ state, el, api }) {
     }).join('');
   }
 
+  function renderTranslationProviderOptions(preferred = '') {
+    if (!el.transProviderSelect) return;
+    const selected = preferred || state.translationProvider || state.activeProvider;
+    el.transProviderSelect.innerHTML = state.providers.map(provider => {
+      const scope = provider.local ? 'Local' : 'Cloud';
+      const ready = provider.configured ? 'พร้อมใช้' : 'ยังไม่ตั้งค่า';
+      return `<option value="${escapeHTML(provider.id)}">${escapeHTML(provider.name)} — ${scope} • ${ready}</option>`;
+    }).join('');
+    if (getProvider(selected)) el.transProviderSelect.value = selected;
+    state.translationProvider = el.transProviderSelect.value || state.activeProvider;
+    updateTranslationProviderHint();
+  }
+
+  function updateTranslationProviderHint() {
+    if (!el.transProviderHint) return;
+    const provider = getProvider(state.translationProvider || el.transProviderSelect?.value);
+    if (!provider) {
+      el.transProviderHint.textContent = 'ยังไม่ได้เลือก Provider';
+      return;
+    }
+    const scope = provider.local ? 'Local' : 'Cloud';
+    const status = provider.configured ? 'พร้อมใช้งาน' : 'ยังตั้งค่าไม่ครบ — เปิด Settings เพื่อเพิ่ม URL / API Key';
+    el.transProviderHint.textContent = `${provider.name} • ${scope} • ${status}`;
+    el.transProviderHint.classList.toggle('is-warning', !provider.configured);
+  }
+
   function renderSettingsModelOptions(provider, remoteModels = []) {
     const selected = (el.cfgModelCustom.value || provider?.model || '').trim();
     const models = providerCandidateModels(provider, remoteModels);
@@ -89,13 +115,17 @@ export function createProviderController({ state, el, api }) {
       : '<option value="">ยังไม่มีรายชื่อโมเดล — ทดสอบการเชื่อมต่อหรือพิมพ์ Model ID</option>';
   }
 
-  function populateTranslationModels() {
-    const provider = getProvider(state.activeProvider);
-    const models = providerCandidateModels(provider, state.availableModels);
-    if (state.defaultModel && !models.includes(state.defaultModel)) models.unshift(state.defaultModel);
+  function populateTranslationModels(providerID = state.translationProvider || state.activeProvider, remoteModels = state.availableModels) {
+    const provider = getProvider(providerID);
+    const savedModel = localStorage.getItem(`nc_model_${providerID}`) || '';
+    const providerDefault = providerID === state.activeProvider ? state.defaultModel : (provider?.model || '');
+    const selected = savedModel || providerDefault;
+    const models = providerCandidateModels(provider, remoteModels);
+    if (selected && !models.includes(selected)) models.unshift(selected);
     el.transModelSelect.innerHTML = models.length
-      ? renderModelOptions(models, state.defaultModel, provider)
+      ? renderModelOptions(models, selected, provider)
       : '<option value="">ยังไม่มีโมเดลที่พร้อมใช้งาน</option>';
+    if (selected && models.includes(selected)) el.transModelSelect.value = selected;
   }
 
   function applyProviderToSettings(providerID) {
@@ -127,7 +157,7 @@ export function createProviderController({ state, el, api }) {
   }
 
   async function discoverModels(providerID = state.activeProvider, options = {}) {
-    const updateTranslation = options.updateTranslation ?? providerID === state.activeProvider;
+    const updateTranslation = options.updateTranslation ?? providerID === (state.translationProvider || state.activeProvider);
     const quiet = options.quiet ?? false;
     const provider = getProvider(providerID);
     try {
@@ -136,7 +166,9 @@ export function createProviderController({ state, el, api }) {
       if (provider) provider.liveFreeModels = res.freeModels || [];
       if (updateTranslation) {
         state.availableModels = models;
-        populateTranslationModels();
+        state.translationProvider = providerID;
+        renderTranslationProviderOptions(providerID);
+        populateTranslationModels(providerID, models);
       }
       if (providerID === state.settingsProvider) {
         renderSettingsModelOptions(provider, models);
@@ -148,7 +180,9 @@ export function createProviderController({ state, el, api }) {
       if (provider) provider.liveFreeModels = [];
       if (updateTranslation) {
         state.availableModels = [];
-        populateTranslationModels();
+        state.translationProvider = providerID;
+        renderTranslationProviderOptions(providerID);
+        populateTranslationModels(providerID, []);
       }
       if (providerID === state.settingsProvider) {
         renderSettingsModelOptions(provider);
@@ -167,14 +201,17 @@ export function createProviderController({ state, el, api }) {
       state.providers = providerRes.providers || [];
       state.activeProvider = cfg.provider || providerRes.active || 'custom';
       state.defaultModel = cfg.defaultModel || '';
+      if (!getProvider(state.translationProvider)) state.translationProvider = state.activeProvider;
       localStorage.setItem('nc_model', state.defaultModel);
+      localStorage.setItem('nc_translate_provider', state.translationProvider);
       renderProviderOptions();
+      renderTranslationProviderOptions(state.translationProvider);
       renderProviderStatus();
       applyProviderToSettings(state.activeProvider);
       el.cfgTemp.value = cfg.temperature ?? 0.3;
       el.cfgParallel.value = cfg.parallel ?? 2;
       el.cfgMaxTokens.value = cfg.maxTokens ?? 8192;
-      void discoverModels(state.activeProvider, { updateTranslation: true, quiet: true });
+      void discoverModels(state.translationProvider, { updateTranslation: true, quiet: true });
     } catch (err) {
       console.warn('Config load warning:', err);
       populateTranslationModels();
@@ -253,6 +290,8 @@ export function createProviderController({ state, el, api }) {
   return {
     getProvider,
     renderProviderStatus,
+    renderTranslationProviderOptions,
+    updateTranslationProviderHint,
     populateTranslationModels,
     applyProviderToSettings,
     loadConfigAndModels,
