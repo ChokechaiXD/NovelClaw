@@ -1814,3 +1814,56 @@ body { background: var(--bg-primary); }
 @media (max-width: 640px) {
   .settings-actions { position: static; bottom: auto; }
 }
+
+/* Settings v4.3 — stronger hierarchy, nothing clipped */
+.settings-modal {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  border-color: color-mix(in srgb, var(--border) 74%, var(--text-secondary) 26%);
+}
+.settings-modal::-webkit-scrollbar { width: 10px; }
+.settings-modal::-webkit-scrollbar-track { background: color-mix(in srgb, var(--bg-primary) 85%, transparent); }
+.settings-modal::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text-muted) 52%, transparent); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+.settings-header { top: 0; margin: 0; z-index: 12; border-bottom-color: color-mix(in srgb, var(--border) 82%, var(--text-muted) 18%); }
+#form-settings { padding-bottom: 24px; }
+.settings-section {
+  border-color: color-mix(in srgb, var(--border) 72%, var(--text-secondary) 28%);
+  background: color-mix(in srgb, var(--bg-primary) 86%, var(--bg-elevated) 14%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 3%, transparent);
+}
+.settings-section-head { padding-bottom: 13px; border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, var(--text-muted) 20%); }
+.settings-step { border-color: color-mix(in srgb, var(--accent) 54%, var(--border)); background: color-mix(in srgb, var(--accent-subtle) 78%, var(--bg-elevated)); }
+.settings-field-row { border-top-color: color-mix(in srgb, var(--border-subtle) 58%, var(--text-muted) 42%); }
+.settings-field-label > label, .settings-field-label .field-label-row > label { color: var(--text-primary); }
+.settings-field-caption, .settings-field-label > span, .settings-section-copy p { color: color-mix(in srgb, var(--text-secondary) 72%, var(--text-muted)); }
+.settings-modal .form-input, .settings-modal .form-select { background: color-mix(in srgb, var(--bg-primary) 92%, #000 8%); border-color: color-mix(in srgb, var(--border) 76%, var(--text-secondary) 24%); }
+.settings-modal .form-input:focus, .settings-modal .form-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 13%, transparent); }
+.settings-model-row .free-model-hints {
+  display: block;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 72%, var(--text-secondary) 28%);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-elevated) 48%, var(--bg-primary));
+}
+.free-model-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.free-model-head strong { color: var(--text-secondary); font-size: 0.74rem; }
+.free-model-head span { color: var(--text-muted); font-size: 0.68rem; }
+.free-model-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.free-model-grid .model-hint {
+  min-height: 30px;
+  padding: 5px 9px;
+  border-color: color-mix(in srgb, var(--border) 66%, var(--text-muted) 34%);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+}
+.free-model-grid .model-hint:hover { border-color: var(--accent); background: var(--accent-subtle); color: var(--text-primary); }
+.free-model-grid .model-hint.is-active { border-color: color-mix(in srgb, var(--accent) 72%, #fff 8%); background: color-mix(in srgb, var(--accent-subtle) 88%, var(--bg-elevated)); color: var(--text-primary); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent); }
+@media (max-width: 640px) {
+  .settings-modal { max-height: 96dvh; }
+  .settings-model-row .free-model-hints { padding: 10px; }
+  .free-model-head { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .free-model-grid .model-hint { max-width: 100%; overflow-wrap: anywhere; text-align: left; }
+}

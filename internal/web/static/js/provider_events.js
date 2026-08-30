@@ -111,12 +111,29 @@ export function createProviderEvents({
     });
     el.cfgModelSelect?.addEventListener('change', () => {
       if (el.cfgModelSelect.value) el.cfgModelCustom.value = '';
+      el.providerFreeModels?.querySelectorAll('[data-model]').forEach(button => {
+        const active = button.dataset.model === el.cfgModelSelect.value;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
     });
     el.providerFreeModels?.addEventListener('click', event => {
       const button = event.target.closest('[data-model]');
       if (!button) return;
-      el.cfgModelCustom.value = button.dataset.model || '';
-      showToast(`เลือก ${button.dataset.model}`, 'info');
+      const model = button.dataset.model || '';
+      const inSelect = [...el.cfgModelSelect.options].some(option => option.value === model);
+      if (inSelect) {
+        el.cfgModelSelect.value = model;
+        el.cfgModelCustom.value = '';
+      } else {
+        el.cfgModelCustom.value = model;
+      }
+      el.providerFreeModels.querySelectorAll('[data-model]').forEach(item => {
+        const active = item.dataset.model === model;
+        item.classList.toggle('is-active', active);
+        item.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      showToast(`????? ${model}`, 'info');
     });
     el.btnClearApiKey?.addEventListener('click', () => {
       state.clearProviderKey = true;

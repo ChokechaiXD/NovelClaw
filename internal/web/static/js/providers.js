@@ -64,14 +64,13 @@ export function createProviderController({ state, el, api }) {
       el.providerFreeModels.innerHTML = '';
       return;
     }
-    const keyNote = provider?.keyRequired ? ' · ต้องใช้ API Key' : '';
-    const button = model => `<button type="button" class="model-hint" data-model="${escapeHTML(model)}">${escapeHTML(model)}</button>`;
-    const preview = free.slice(0, 6).map(button).join(' ');
-    const remaining = free.slice(6);
-    const more = remaining.length
-      ? `<details class="free-model-more"><summary>ดูอีก ${remaining.length} รุ่น</summary><div class="free-model-more-list">${remaining.map(button).join(' ')}</div></details>`
-      : '';
-    el.providerFreeModels.innerHTML = `<span>🆓 พบโมเดลฟรี ${free.length} รุ่น${keyNote}</span><div class="free-model-preview">${preview}</div>${more}`;
+    const keyNote = provider?.keyRequired ? ' \u00b7 \u0e15\u0e49\u0e2d\u0e07\u0e43\u0e0a\u0e49 API Key' : '';
+    const currentModel = (el.cfgModelCustom.value || el.cfgModelSelect.value || provider?.model || '').trim();
+    const button = model => {
+      const active = model === currentModel;
+      return `<button type="button" class="model-hint${active ? ' is-active' : ''}" data-model="${escapeHTML(model)}" aria-pressed="${active ? 'true' : 'false'}">${escapeHTML(model)}</button>`;
+    };
+    el.providerFreeModels.innerHTML = `<div class="free-model-head"><strong>\u{1F193} \u0e42\u0e21\u0e40\u0e14\u0e25\u0e1f\u0e23\u0e35\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14 ${free.length} \u0e23\u0e38\u0e48\u0e19</strong><span>${keyNote.replace(' \u00b7 ', '')}</span></div><div class="free-model-grid">${free.map(button).join('')}</div>`;
   }
 
   function renderProviderOptions() {
