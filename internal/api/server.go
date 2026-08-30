@@ -22,6 +22,12 @@ func SetupRouter(cfg *config.AppConfig, store *storage.Store) (http.Handler, *AP
 	h := NewAPIHandler(cfg, store, sse)
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
+		WriteJSON(w, http.StatusOK, map[string]any{
+			"app":    "NovelClaw",
+			"status": "ok",
+		})
+	})
 
 	// SSE Events
 	mux.Handle("GET /events", sse)
