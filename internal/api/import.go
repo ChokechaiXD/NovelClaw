@@ -309,6 +309,8 @@ func (h *APIHandler) importTOC(ctx context.Context, jobID string, req model.Impo
 		fields["message"] = fmt.Sprintf("สารบัญครบ %d ตอน • ดึงต้นฉบับสาธารณะสำเร็จ %d ตอน • ล็อก VIP %d ตอน", total, imported, locked)
 		h.broadcastImport(jobID, "import_done", slug, fields)
 	}
+	// Fresh source text landed — let the AI refresh the glossary on its own.
+	h.AutoDiscoverGlossary(slug)
 }
 
 func (h *APIHandler) importSingleChapter(jobID string, req model.ImportRequest, chapter *scraper.ScrapedChapter) {
@@ -356,6 +358,7 @@ func (h *APIHandler) importSingleChapter(jobID string, req model.ImportRequest, 
 		"imported": 1, "failed": 0,
 		"percentage": 100,
 	})
+	h.AutoDiscoverGlossary(slug)
 }
 func (h *APIHandler) ensureImportedNovel(slug, title, genre string) error {
 	_, err := h.store.GetNovel(slug)

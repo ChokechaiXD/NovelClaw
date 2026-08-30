@@ -213,6 +213,11 @@ func (h *APIHandler) runTranslationJobWithProvider(ctx context.Context, jobID st
 		}
 	}
 
+	if successCount > 0 {
+		// New translations landed — let the AI refresh story memory on its own.
+		h.AutoGenerateMemory(req.NovelSlug)
+	}
+
 	finalStatus := "completed"
 	finalMsg := fmt.Sprintf("การแปลเสร็จสิ้น (%d/%d ตอน)", successCount, total)
 	switch {

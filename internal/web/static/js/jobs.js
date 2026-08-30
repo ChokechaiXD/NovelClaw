@@ -171,6 +171,10 @@ export function createJobController({
   }
 
   function handleSSEEvent(data) {
+    if (data.type === 'auto_intelligence') {
+      showToast(data.message || 'AI อัปเดตข้อมูลอัตโนมัติแล้ว', 'success');
+      return;
+    }
     if (data.type === 'chapter_translated') {
       handleChapterTranslated(data);
       return;
