@@ -124,3 +124,16 @@ func TestFilterRelevantGlossary_AllMatch(t *testing.T) {
 		t.Errorf("Expected 2 terms, got %d", len(filtered.Terms))
 	}
 }
+
+func TestParseGlossaryJSONStrictRejectsMalformed(t *testing.T) {
+	if _, err := parseGlossaryJSONStrict("not json at all"); err == nil {
+		t.Fatal("expected malformed glossary output to return an error")
+	}
+	items, err := parseGlossaryJSONStrict("[]")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 0 {
+		t.Fatalf("expected empty valid array, got %v", items)
+	}
+}

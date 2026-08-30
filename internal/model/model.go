@@ -57,6 +57,40 @@ type NovelGlossary struct {
 	Terms     []GlossaryItem `json:"terms"`
 }
 
+// CharacterMemory stores stable identity/pronoun facts across long novels.
+type CharacterMemory struct {
+	SourceName string `json:"sourceName,omitempty"`
+	ThaiName   string `json:"thaiName"`
+	Role       string `json:"role,omitempty"`
+	Gender     string `json:"gender,omitempty"`
+	Pronouns   string `json:"pronouns,omitempty"`
+	Notes      string `json:"notes,omitempty"`
+}
+
+type NovelMemory struct {
+	NovelSlug    string            `json:"novelSlug"`
+	StorySummary string            `json:"storySummary,omitempty"`
+	Characters   []CharacterMemory `json:"characters,omitempty"`
+	Facts        []string          `json:"facts,omitempty"`
+	UpdatedAt    time.Time         `json:"updatedAt"`
+}
+
+type TranslationQualityIssue struct {
+	Code     string `json:"code"`
+	Severity string `json:"severity"`
+	Message  string `json:"message"`
+}
+
+type TranslationQualityReport struct {
+	NovelSlug            string                    `json:"novelSlug"`
+	ChapterNo            int                       `json:"chapterNo"`
+	Score                int                       `json:"score"`
+	SourceParagraphs     int                       `json:"sourceParagraphs"`
+	TranslatedParagraphs int                       `json:"translatedParagraphs"`
+	Issues               []TranslationQualityIssue `json:"issues"`
+	CheckedAt            time.Time                 `json:"checkedAt"`
+}
+
 // Bookmark stores the user's reading position
 type Bookmark struct {
 	NovelSlug        string    `json:"novelSlug"`
@@ -69,6 +103,7 @@ type Bookmark struct {
 type ImportRequest struct {
 	URL          string `json:"url,omitempty"`
 	NovelSlug    string `json:"novelSlug,omitempty"`
+	NovelTitle   string `json:"novelTitle,omitempty"`
 	Title        string `json:"title,omitempty"`
 	Author       string `json:"author,omitempty"`
 	Genre        string `json:"genre,omitempty"`
@@ -81,6 +116,7 @@ type ImportRequest struct {
 // TranslateRequest represents a request to translate chapters
 type TranslateRequest struct {
 	NovelSlug      string   `json:"novelSlug"`
+	Provider       string   `json:"provider,omitempty"`
 	StartChapter   int      `json:"startChapter"`
 	EndChapter     int      `json:"endChapter"`
 	Model          string   `json:"model,omitempty"`

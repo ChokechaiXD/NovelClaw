@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"novelclaw/internal/config"
@@ -23,6 +24,8 @@ const backupKeep = 7
 
 // backupStaleAfter is how long an auto backup may lag behind startup.
 const backupStaleAfter = 24 * time.Hour
+
+var backupMu sync.Mutex
 
 type backupInfo struct {
 	Name    string    `json:"name"`
@@ -37,6 +40,9 @@ func backupDir(cfg *config.AppConfig) string {
 // CreateBackup zips the whole data directory into backups/<timestamp>.zip
 // and prunes old archives beyond backupKeep.
 func CreateBackup(cfg *config.AppConfig) (backupInfo, error) {
+	backupMu.Lock()
+	defer backupMu.Unlock()
+
 	dir := backupDir(cfg)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return backupInfo{}, err
@@ -46,20 +52,32 @@ func CreateBackup(cfg *config.AppConfig) (backupInfo, error) {
 	// can hand out identical timestamps to back-to-back backups.
 	name := fmt.Sprintf("novelclaw-backup-%s-%04x.zip", time.Now().Format("20060102-150405"), rand.IntN(0xffff))
 	dest := filepath.Join(dir, name)
+	tmpDest := dest + ".tmp"
 
-	out, err := os.Create(dest)
+	out, err := os.Create(tmpDest)
 	if err != nil {
 		return backupInfo{}, err
 	}
 
 	zw := zip.NewWriter(out)
 	err = filepath.WalkDir(cfg.DataDir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() {
+		if err != nil {
 			return err
+		}
+		if d.IsDir() {
+			// Cache and restart-queue files are reproducible/transient. Excluding
+			// them keeps backups small even when TTS audio grows into gigabytes.
+			if d.Name() == ".cache" || d.Name() == ".jobs" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if strings.HasSuffix(d.Name(), ".tmp") {
+			return nil
 		}
 		rel, err := filepath.Rel(filepath.Dir(cfg.DataDir), path)
 		if err != nil {
-			return nil // skip entries outside the root
+			return err
 		}
 		w, err := zw.Create(filepath.ToSlash(rel))
 		if err != nil {
@@ -69,23 +87,31 @@ func CreateBackup(cfg *config.AppConfig) (backupInfo, error) {
 		if err != nil {
 			return err
 		}
-		defer src.Close()
-		_, err = io.Copy(w, src)
-		return err
+		_, copyErr := io.Copy(w, src)
+		closeErr := src.Close()
+		if copyErr != nil {
+			return copyErr
+		}
+		return closeErr
 	})
 	if err != nil {
-		out.Close()
-		os.Remove(dest)
+		_ = zw.Close()
+		_ = out.Close()
+		_ = os.Remove(tmpDest)
 		return backupInfo{}, err
 	}
 	if err := zw.Close(); err != nil {
-		out.Close()
-		os.Remove(dest)
+		_ = out.Close()
+		_ = os.Remove(tmpDest)
 		return backupInfo{}, err
 	}
-	// Close before pruning: an open handle blocks deletion on Windows.
+	// Close before rename/pruning: an open handle blocks these operations on Windows.
 	if err := out.Close(); err != nil {
-		os.Remove(dest)
+		_ = os.Remove(tmpDest)
+		return backupInfo{}, err
+	}
+	if err := os.Rename(tmpDest, dest); err != nil {
+		_ = os.Remove(tmpDest)
 		return backupInfo{}, err
 	}
 

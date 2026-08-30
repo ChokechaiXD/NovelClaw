@@ -12,16 +12,17 @@ import (
 
 // AppConfig contains runtime settings for NovelClaw
 type AppConfig struct {
-	Port         int     `json:"port"`
-	Host         string  `json:"host"`
-	DataDir      string  `json:"dataDir"`
-	RouterURL    string  `json:"routerUrl"`          // e.g. http://localhost:20128/v1
-	APIKey       string  `json:"apiKey"`             // 9Router or OpenAI API key
-	DefaultModel string  `json:"defaultModel"`       // e.g. google/gemini-2.5-flash or deepseek/deepseek-chat
-	Provider     string  `json:"provider,omitempty"` // provider nickname for UI presets (9router, openai, ollama...)
-	Temperature  float64 `json:"temperature"`
-	Parallel     int     `json:"parallel"`
-	MaxTokens    int     `json:"maxTokens,omitempty"` // LLM completion cap (default 8192)
+	Port         int                        `json:"port"`
+	Host         string                     `json:"host"`
+	DataDir      string                     `json:"dataDir"`
+	RouterURL    string                     `json:"routerUrl"`          // e.g. http://localhost:20128/v1
+	APIKey       string                     `json:"apiKey"`             // 9Router or OpenAI API key
+	DefaultModel string                     `json:"defaultModel"`       // e.g. google/gemini-2.5-flash or deepseek/deepseek-chat
+	Provider     string                     `json:"provider,omitempty"` // active provider profile ID
+	Providers    map[string]ProviderProfile `json:"providers,omitempty"`
+	Temperature  float64                    `json:"temperature"`
+	Parallel     int                        `json:"parallel"`
+	MaxTokens    int                        `json:"maxTokens,omitempty"` // LLM completion cap (default 8192)
 
 	// ConfigPath remembers the file this config was loaded from / should be
 	// saved back to. Not serialized.
@@ -35,14 +36,18 @@ type AppConfig struct {
 // DefaultConfig returns safe out-of-the-box defaults
 func DefaultConfig() *AppConfig {
 	return &AppConfig{
-		Port:         4173,
+		Port:         4890,
 		Host:         "0.0.0.0",
 		DataDir:      "./novels",
 		RouterURL:    "http://localhost:20128/v1",
 		APIKey:       "",
 		DefaultModel: "google/gemini-2.5-flash",
-		Temperature:  0.3,
-		Parallel:     2,
+		Provider:     "9router",
+		Providers: map[string]ProviderProfile{
+			"9router": {BaseURL: "http://localhost:20128/v1", Model: "google/gemini-2.5-flash", Protocol: ProtocolOpenAIChat},
+		},
+		Temperature: 0.3,
+		Parallel:    2,
 	}
 }
 
@@ -57,10 +62,30 @@ func LoadConfig(configPath string) *AppConfig {
 	cfg.ConfigPath = configPath
 
 	if data, err := os.ReadFile(configPath); err == nil {
+		// Do not merge persisted data into the default provider-profile map.
+		// Legacy configs have only routerUrl/apiKey/defaultModel; leaving the
+		// default map populated would make those user values lose to presets.
+		cfg.Providers = nil
 		if err := json.Unmarshal(data, cfg); err != nil {
-			log.Printf("WARNING: failed to parse %s: %v (using defaults)", configPath, err)
+			log.Printf("WARNING: failed to parse %s: %v", configPath, err)
+			if recovered, recoverErr := loadConfigBackup(configPath); recoverErr == nil {
+				cfg = recovered
+				cfg.ConfigPath = configPath
+				log.Printf("Recovered configuration from %s.bak", configPath)
+			} else {
+				cfg = DefaultConfig()
+				cfg.ConfigPath = configPath
+				log.Printf("WARNING: no valid config backup available: %v (using defaults)", recoverErr)
+			}
 		}
+	} else if !os.IsNotExist(err) {
+		log.Printf("WARNING: failed to read %s: %v (using defaults)", configPath, err)
 	}
+
+	// Modern provider profiles are the source of truth. The config object was
+	// initialized with legacy defaults before JSON unmarshal, so without this
+	// step an omitted routerUrl/defaultModel could overwrite a persisted profile.
+	cfg.preferActiveProviderProfile()
 
 	// Override with environment variables
 	if portStr := os.Getenv("PORT"); portStr != "" {
@@ -88,14 +113,38 @@ func LoadConfig(configPath string) *AppConfig {
 			cfg.APIKey = apiKey
 		}
 	}
+	if provider := os.Getenv("NOVEL_PROVIDER"); provider != "" {
+		cfg.Provider = NormalizeProviderID(provider)
+	}
 	if model := os.Getenv("NOVEL_MODEL"); model != "" {
 		cfg.DefaultModel = model
 	}
 
-	// Ensure DataDir exists
-	_ = os.MkdirAll(cfg.DataDir, 0755)
+	// Migrate legacy single-provider settings and keep the active profile in
+	// sync. Existing config.json files continue to work without manual edits.
+	cfg.normalizeProviders()
+
+	// Ensure DataDir exists. Loading still returns a config for compatibility,
+	// but surface startup filesystem problems immediately in the log.
+	if err := os.MkdirAll(cfg.DataDir, 0755); err != nil {
+		log.Printf("ERROR: cannot create data directory %s: %v", cfg.DataDir, err)
+	}
 
 	return cfg
+}
+
+func (c *AppConfig) preferActiveProviderProfile() {
+	if len(c.Providers) == 0 {
+		return
+	}
+	id := NormalizeProviderID(c.Provider)
+	profile, ok := c.Providers[id]
+	if !ok {
+		return
+	}
+	c.RouterURL = profile.BaseURL
+	c.APIKey = profile.APIKey
+	c.DefaultModel = profile.Model
 }
 
 // Save writes current configuration back to disk. If configPath is empty,
@@ -115,6 +164,19 @@ func (c *AppConfig) Update(mutate func(*AppConfig)) error {
 	return c.saveLocked("")
 }
 
+func loadConfigBackup(configPath string) (*AppConfig, error) {
+	data, err := os.ReadFile(configPath + ".bak")
+	if err != nil {
+		return nil, err
+	}
+	cfg := DefaultConfig()
+	cfg.Providers = nil
+	if err := json.Unmarshal(data, cfg); err != nil {
+		return nil, fmt.Errorf("parse backup: %w", err)
+	}
+	return cfg, nil
+}
+
 func (c *AppConfig) saveLocked(configPath string) error {
 	if configPath == "" {
 		configPath = c.ConfigPath
@@ -128,7 +190,9 @@ func (c *AppConfig) saveLocked(configPath string) error {
 	}
 	dir := filepath.Dir(configPath)
 	if dir != "." && dir != "" {
-		_ = os.MkdirAll(dir, 0755)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("create config directory: %w", err)
+		}
 	}
 	// Atomic write: a crash mid-save must not leave a truncated config.json
 	// behind (the app would then boot with defaults and lose the API key).
@@ -136,23 +200,27 @@ func (c *AppConfig) saveLocked(configPath string) error {
 	if err := os.WriteFile(tmp, data, 0600); err != nil {
 		return err
 	}
-	return os.Rename(tmp, configPath)
+	if err := os.Rename(tmp, configPath); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+
+	// Keep a last-known-good recovery copy. Failure to refresh the backup does
+	// not roll back a successful settings save, but it is surfaced in logs.
+	backupTmp := configPath + ".bak.tmp"
+	if err := os.WriteFile(backupTmp, data, 0600); err != nil {
+		log.Printf("WARNING: failed to refresh config backup: %v", err)
+		return nil
+	}
+	if err := os.Rename(backupTmp, configPath+".bak"); err != nil {
+		_ = os.Remove(backupTmp)
+		log.Printf("WARNING: failed to activate config backup: %v", err)
+	}
+	return nil
 }
 
-// Thread-safe getters for the mutable fields (router URL, key, model, temp).
-
-func (c *AppConfig) GetRouterURL() string {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.RouterURL
-}
-
-func (c *AppConfig) GetAPIKey() string {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.APIKey
-}
-
+// Thread-safe getters for mutable runtime settings. Provider URL/key access
+// goes through ActiveProvider/ProviderRuntime in providers.go.
 func (c *AppConfig) GetDefaultModel() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -171,6 +239,15 @@ func (c *AppConfig) GetProvider() string {
 	return c.Provider
 }
 
+func (c *AppConfig) GetParallel() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.Parallel <= 0 {
+		return 1
+	}
+	return c.Parallel
+}
+
 // GetMaxTokens returns the LLM completion token cap (default 8192 when unset).
 func (c *AppConfig) GetMaxTokens() int {
 	c.mu.Lock()
@@ -179,19 +256,4 @@ func (c *AppConfig) GetMaxTokens() int {
 		return 8192
 	}
 	return c.MaxTokens
-}
-
-// MaskedAPIKey returns the API key with only the last 4 characters visible,
-// safe for display in API responses and logs.
-func (c *AppConfig) MaskedAPIKey() string {
-	c.mu.Lock()
-	k := c.APIKey
-	c.mu.Unlock()
-	if k == "" {
-		return ""
-	}
-	if len(k) <= 8 {
-		return "****"
-	}
-	return k[:4] + "…" + k[len(k)-4:]
 }

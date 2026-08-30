@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NovelClaw — ตัวอ่านและแปลนิยาย</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body data-theme="dark">
@@ -20,6 +19,13 @@
       <span class="brand-text">NovelClaw</span>
     </div>
     <div class="header-actions">
+      <button class="provider-status" id="btn-provider-status" type="button" title="เปิดการตั้งค่า AI Provider">
+        <span class="provider-status-dot" aria-hidden="true"></span>
+        <span class="provider-status-copy">
+          <strong id="active-provider-label">กำลังโหลด AI...</strong>
+          <small id="active-model-label">ยังไม่ได้เลือกโมเดล</small>
+        </span>
+      </button>
       <button class="btn btn-outline btn-sm" id="btn-open-import">📥 นำเข้านิยาย</button>
       <button class="btn btn-outline btn-icon" id="btn-theme-toggle" title="เปลี่ยนธีม">🌙</button>
       <button class="btn btn-outline btn-icon" id="btn-open-settings" title="ตั้งค่า">⚙️</button>
@@ -54,12 +60,31 @@
       <h3 style="font-size: 1.15rem; font-weight: 600;">รายชื่อตอน</h3>
       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
         <button class="btn btn-primary btn-sm" id="btn-quick-translate">⚡ สั่งแปลเป็นช่วง</button>
+        <button class="btn btn-outline btn-sm" id="btn-open-intelligence">🧠 Memory & QA</button>
         <button class="btn btn-outline btn-sm" id="btn-open-export">📦 ส่งออก (Export)</button>
         <button class="btn btn-outline btn-sm" id="btn-open-glossary">📖 จัดการศัพท์ (Glossary)</button>
       </div>
     </div>
 
-    <div class="chapter-list" id="chapter-list">
+    <div class="chapter-toolbar" id="chapter-toolbar">
+      <div class="chapter-toolbar-main">
+        <input type="search" class="form-input chapter-search" id="chapter-search" placeholder="ค้นหาเลขตอนหรือชื่อตอน..." autocomplete="off">
+        <select class="form-select chapter-filter" id="chapter-filter" aria-label="กรองรายชื่อตอน">
+          <option value="all">ทุกตอน</option>
+          <option value="translated">แปลแล้ว</option>
+          <option value="source">ยังไม่แปล</option>
+          <option value="qa-review">QA ต่ำกว่า 90</option>
+          <option value="qa-bad">QA ต่ำกว่า 75</option>
+        </select>
+      </div>
+      <div class="chapter-pagination">
+        <button type="button" class="btn btn-outline btn-sm" id="btn-chapter-page-prev">← ก่อนหน้า</button>
+        <span id="chapter-page-info" class="chapter-page-info">0 ตอน</span>
+        <button type="button" class="btn btn-outline btn-sm" id="btn-chapter-page-next">ถัดไป →</button>
+      </div>
+    </div>
+
+    <div class="chapter-list" id="chapter-list" aria-live="polite">
       <!-- Injected by JavaScript -->
     </div>
   </main>
@@ -342,49 +367,132 @@
     </div>
   </div>
 
-  <!-- Modal: Settings -->
-  <div class="modal-overlay hidden" id="modal-settings">
-    <div class="modal-content">
+  <!-- Modal: Translation Intelligence -->
+  <div class="modal-overlay hidden" id="modal-intelligence">
+    <div class="modal-content" style="max-width: 860px;">
       <div class="modal-header">
-        <h3 style="font-size: 1.1rem;">⚙️ ตั้งค่าระบบ</h3>
-        <button class="btn btn-outline btn-sm" id="btn-close-settings">✕</button>
+        <div>
+          <h3 style="font-size: 1.1rem;">🧠 Story Memory & Translation QA</h3>
+          <div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.2rem;">ความจำระยะยาวของเรื่อง + ตรวจคุณภาพแบบไม่ใช้ LLM เพิ่ม</div>
+        </div>
+        <button class="btn btn-outline btn-sm" id="btn-close-intelligence">✕</button>
       </div>
+
+      <div style="background:var(--bg-elevated);padding:0.85rem;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+          <div>
+            <div style="font-weight:600;margin-bottom:0.2rem;">🩺 Translation QA</div>
+            <div id="qa-summary" style="font-size:0.82rem;color:var(--text-muted);">ยังไม่มีผลตรวจ</div>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-rebuild-qa">🔄 สแกน QA ย้อนหลัง</button>
+        </div>
+        <div id="qa-score-strip" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.65rem;"></div>
+        <div id="qa-repair-list" class="qa-repair-list"></div>
+      </div>
+
+      <section class="memory-ai-panel">
+        <div class="memory-ai-copy">
+          <strong>✨ Auto Memory Draft</strong>
+          <span>ให้ AI สกัดบริบทจากตอนล่าสุดก่อน แล้วตรวจแก้ได้ก่อนกดบันทึก</span>
+        </div>
+        <div class="memory-ai-controls">
+          <label>จากตอน <input type="number" class="form-input" id="memory-ai-start" min="1"></label>
+          <label>ถึงตอน <input type="number" class="form-input" id="memory-ai-end" min="1"></label>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-generate-memory">✨ สร้าง Draft ด้วย AI</button>
+        </div>
+        <div id="memory-ai-status" class="memory-ai-status">Draft จะยังไม่บันทึกจนกว่าจะกด “บันทึก Memory”</div>
+      </section>
+
+      <form id="form-memory">
+        <div class="form-group">
+          <label class="form-label">สรุปเรื่องระยะยาว</label>
+          <textarea class="form-textarea" id="memory-summary" rows="4" placeholder="สถานะโลก เหตุการณ์หลัก เป้าหมายปัจจุบัน และบริบทที่นักแปลควรจำ..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ข้อเท็จจริงสำคัญ — 1 ข้อต่อ 1 บรรทัด</label>
+          <textarea class="form-textarea" id="memory-facts" rows="4" placeholder="เฉาซิงเป็นเจ้าของดินแดน&#10;หลิวมู่เสวี่ยเป็น..."></textarea>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:0.9rem 0 0.5rem;">
+          <label class="form-label" style="margin:0;">ตัวละครที่ต้องจำ</label>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-add-memory-character">+ เพิ่มตัวละคร</button>
+        </div>
+        <div id="memory-characters" style="display:flex;flex-direction:column;gap:0.5rem;max-height:300px;overflow:auto;"></div>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:1rem;">
+          <button type="submit" class="btn btn-primary">💾 บันทึก Memory</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Settings / Provider Control Plane -->
+  <div class="modal-overlay hidden" id="modal-settings">
+    <div class="modal-content settings-modal">
+      <div class="modal-header settings-header">
+        <div>
+          <h3>⚙️ AI Provider & Runtime</h3>
+          <p>ตั้งค่าโมเดลและ API จากหน้าเว็บ — ไม่ต้องแก้ config.json</p>
+        </div>
+        <button class="btn btn-outline btn-sm" id="btn-close-settings" aria-label="ปิดการตั้งค่า">✕</button>
+      </div>
+
       <form id="form-settings">
-        <div class="form-group">
-          <label class="form-label">Provider</label>
-          <div style="display:flex;gap:0.5rem;">
-            <select class="form-select" id="cfg-provider" style="flex:1;">
-              <option value="custom">กำหนดเอง (Custom)</option>
-              <option value="9router">9Router (local)</option>
-              <option value="openai">OpenAI</option>
-              <option value="openrouter">OpenRouter</option>
-              <option value="deepseek">DeepSeek</option>
-              <option value="ollama">Ollama (local)</option>
-              <option value="lmstudio">LM Studio (local)</option>
-            </select>
-            <button type="button" class="btn btn-outline btn-sm" id="btn-detect-providers" style="white-space:nowrap;">🔍 ตรวจจับ</button>
+        <section class="settings-section">
+          <div class="section-title-row">
+            <div>
+              <h4>Provider</h4>
+              <p>แต่ละ Provider จำ Base URL, API Key และ Model แยกจากกัน</p>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-detect-providers">🔍 ตรวจ Local</button>
           </div>
-          <div id="detect-providers" style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-top:0.5rem;"></div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Base URL</label>
-          <input type="text" class="form-input" id="cfg-router-url" placeholder="http://localhost:20128/v1">
-        </div>
-        <div class="form-group">
-          <label class="form-label">API Key (เว้นว่างได้ถ้า 9Router ไม่ได้เปิด auth)</label>
-          <input type="password" class="form-input" id="cfg-api-key" placeholder="sk-...">
-        </div>
-        <div class="form-group">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-            <label class="form-label" style="margin-bottom: 0;">Default Model</label>
-            <button type="button" class="btn btn-outline btn-sm" id="btn-cfg-refresh-models" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">🔄 ดึงโมเดล</button>
+          <select class="form-select" id="cfg-provider" aria-label="เลือก AI Provider"></select>
+          <div id="provider-summary" class="provider-summary"></div>
+          <div id="detect-providers" class="provider-detected"></div>
+        </section>
+
+        <section class="settings-section settings-grid-2">
+          <div class="form-group span-2">
+            <label class="form-label" for="cfg-router-url">Base URL</label>
+            <input type="url" class="form-input" id="cfg-router-url" autocomplete="url">
           </div>
-          <select class="form-select" id="cfg-model-select"></select>
-          <input type="text" class="form-input" id="cfg-model-custom" placeholder="หรือพิมพ์ชื่อโมเดลเอง..." style="margin-top: 0.4rem;">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Temperature</label>
-          <input type="number" step="0.05" class="form-input" id="cfg-temp" value="0.3">
+          <div class="form-group span-2">
+            <div class="field-label-row">
+              <label class="form-label" for="cfg-api-key">API Key</label>
+              <span id="cfg-key-status" class="key-status">ยังไม่ได้ตั้งค่า</span>
+            </div>
+            <div class="secret-field-row">
+              <input type="password" class="form-input" id="cfg-api-key" autocomplete="new-password" placeholder="ใส่ Key ใหม่ หรือเว้นว่างเพื่อใช้ Key ที่จำไว้">
+              <button type="button" class="btn btn-outline btn-sm" id="btn-clear-api-key">ล้าง Key</button>
+            </div>
+          </div>
+          <div class="form-group span-2">
+            <div class="field-label-row">
+              <label class="form-label" for="cfg-model-select">Model</label>
+              <button type="button" class="btn btn-outline btn-sm" id="btn-cfg-refresh-models">↻ ดึงโมเดล</button>
+            </div>
+            <select class="form-select" id="cfg-model-select"></select>
+            <input type="text" class="form-input model-custom-input" id="cfg-model-custom" placeholder="หรือพิมพ์ Model ID เอง">
+            <div id="provider-free-models" class="free-model-hints"></div>
+          </div>
+        </section>
+
+        <section class="settings-section">
+          <details class="advanced-settings">
+            <summary>Advanced runtime tuning</summary>
+            <div class="settings-grid-3 advanced-grid">
+              <div class="form-group"><label class="form-label" for="cfg-temp">Temperature</label><input type="number" min="0" max="2" step="0.05" class="form-input" id="cfg-temp" value="0.3"></div>
+              <div class="form-group"><label class="form-label" for="cfg-parallel">Parallel jobs</label><input type="number" min="1" max="8" step="1" class="form-input" id="cfg-parallel" value="2"></div>
+              <div class="form-group"><label class="form-label" for="cfg-max-tokens">Max output tokens</label><input type="number" min="512" max="131072" step="256" class="form-input" id="cfg-max-tokens" value="8192"></div>
+              <div class="form-group span-3" id="cfg-protocol-wrap"><label class="form-label" for="cfg-protocol">Protocol</label><select class="form-select" id="cfg-protocol"><option value="openai-chat">OpenAI Chat Completions</option><option value="openai-responses">OpenAI Responses</option><option value="anthropic-messages">Anthropic Messages</option></select></div>
+            </div>
+          </details>
+        </section>
+
+        <div id="provider-test-result" class="provider-test-result" aria-live="polite"></div>
+        <div class="settings-actions">
+          <button type="button" class="btn btn-outline" id="btn-test-provider">🧪 ทดสอบและดึงโมเดล</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-settings">✓ บันทึกและใช้งาน</button>
         </div>
       </form>
     </div>
@@ -480,7 +588,7 @@
     <button class="btn btn-outline btn-sm" id="btn-cancel-float-job" style="color: var(--danger); font-size: 0.75rem; padding: 0.25rem 0.5rem;" title="ยกเลิกคิว">✕ ยกเลิก</button>
   </div>
 
-  <script src="/app.js"></script>
+  <script type="module" src="/app.js"></script>
 </body>
 </html>
 

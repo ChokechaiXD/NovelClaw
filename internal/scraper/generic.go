@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -20,7 +21,11 @@ func (s *GenericScraper) CanHandle(rawURL string) bool {
 }
 
 func (s *GenericScraper) FetchChapter(chapterURL string) (*ScrapedChapter, error) {
-	doc, err := fetchHTMLDoc(chapterURL)
+	return s.FetchChapterContext(context.Background(), chapterURL)
+}
+
+func (s *GenericScraper) FetchChapterContext(ctx context.Context, chapterURL string) (*ScrapedChapter, error) {
+	doc, err := fetchHTMLDocContext(ctx, chapterURL)
 	if err != nil {
 		return nil, fmt.Errorf("generic fetch failed: %w", err)
 	}
@@ -59,13 +64,19 @@ func (s *GenericScraper) FetchChapter(chapterURL string) (*ScrapedChapter, error
 	// Clean garbage tags
 	bestSel.Find("script, style, nav, header, footer, iframe, .ad, .ads, .comment, .share").Remove()
 
-	htmlText, _ := bestSel.Html()
+	htmlText, err := bestSel.Html()
+	if err != nil {
+		return nil, fmt.Errorf("read chapter HTML: %w", err)
+	}
 	htmlText = strings.ReplaceAll(htmlText, "<br/>", "\n")
 	htmlText = strings.ReplaceAll(htmlText, "<br>", "\n")
 	htmlText = strings.ReplaceAll(htmlText, "</p>", "\n")
 	htmlText = strings.ReplaceAll(htmlText, "</div>", "\n")
 
-	cleanDoc, _ := goquery.NewDocumentFromReader(strings.NewReader(htmlText))
+	cleanDoc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlText))
+	if err != nil {
+		return nil, fmt.Errorf("parse chapter HTML: %w", err)
+	}
 	rawText := cleanDoc.Text()
 
 	var paragraphs []string
@@ -89,7 +100,11 @@ func (s *GenericScraper) FetchChapter(chapterURL string) (*ScrapedChapter, error
 }
 
 func (s *GenericScraper) FetchTOC(tocURL string) (*ScrapedNovelInfo, error) {
-	doc, err := fetchHTMLDoc(tocURL)
+	return s.FetchTOCContext(context.Background(), tocURL)
+}
+
+func (s *GenericScraper) FetchTOCContext(ctx context.Context, tocURL string) (*ScrapedNovelInfo, error) {
+	doc, err := fetchHTMLDocContext(ctx, tocURL)
 	if err != nil {
 		return nil, fmt.Errorf("generic TOC fetch failed: %w", err)
 	}
@@ -106,6 +121,10 @@ func (s *GenericScraper) FetchTOC(tocURL string) (*ScrapedNovelInfo, error) {
 	// Best-effort chapter list for generic sites. Many Chinese web-novel
 	// clones reuse one of these container class names; try them all and
 	// require at least 3 links so navigation noise does not fake a TOC.
+	base, err := url.Parse(tocURL)
+	if err != nil {
+		return nil, fmt.Errorf("parse TOC URL: %w", err)
+	}
 	seen := map[string]bool{}
 	var chapters []ScrapedChapter
 	doc.Find(".listmain a, #list a, .chapter-list a, .section-list a, .book-list a, .list a").Each(func(_ int, link *goquery.Selection) {
@@ -118,10 +137,6 @@ func (s *GenericScraper) FetchTOC(tocURL string) (*ScrapedNovelInfo, error) {
 			return
 		}
 		seen[href] = true
-		base, err := url.Parse(tocURL)
-		if err != nil {
-			return
-		}
 		ref, err := url.Parse(href)
 		if err != nil {
 			return

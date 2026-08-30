@@ -22,7 +22,7 @@ func setupTestEnv(t *testing.T) (*config.AppConfig, *storage.Store, http.Handler
 	}
 
 	cfg := &config.AppConfig{
-		Port:         4173,
+		Port:         4890,
 		Host:         "127.0.0.1",
 		DataDir:      tmpDir,
 		RouterURL:    "http://localhost:20128/v1",

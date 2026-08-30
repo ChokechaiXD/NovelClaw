@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -27,7 +28,11 @@ func (s *Shu69Scraper) CanHandle(rawURL string) bool {
 }
 
 func (s *Shu69Scraper) FetchChapter(chapterURL string) (*ScrapedChapter, error) {
-	doc, err := fetchHTMLDoc(chapterURL)
+	return s.FetchChapterContext(context.Background(), chapterURL)
+}
+
+func (s *Shu69Scraper) FetchChapterContext(ctx context.Context, chapterURL string) (*ScrapedChapter, error) {
+	doc, err := fetchHTMLDocContext(ctx, chapterURL)
 	if err != nil {
 		return nil, fmt.Errorf("69shu fetch failed: %w", err)
 	}
@@ -50,12 +55,18 @@ func (s *Shu69Scraper) FetchChapter(chapterURL string) (*ScrapedChapter, error) 
 	contentSel.Find("script, style, h1, .hide720, .txtinfo, .bottom-ad, a").Remove()
 
 	// Extract lines by replacing <br> with newline or iterating p/div
-	htmlText, _ := contentSel.Html()
+	htmlText, err := contentSel.Html()
+	if err != nil {
+		return nil, fmt.Errorf("read 69shu chapter HTML: %w", err)
+	}
 	htmlText = strings.ReplaceAll(htmlText, "<br/>", "\n")
 	htmlText = strings.ReplaceAll(htmlText, "<br>", "\n")
 	htmlText = strings.ReplaceAll(htmlText, "</p>", "\n")
 
-	cleanDoc, _ := goquery.NewDocumentFromReader(strings.NewReader(htmlText))
+	cleanDoc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlText))
+	if err != nil {
+		return nil, fmt.Errorf("parse 69shu chapter HTML: %w", err)
+	}
 	rawText := cleanDoc.Text()
 
 	lines := strings.Split(rawText, "\n")
@@ -80,7 +91,11 @@ func (s *Shu69Scraper) FetchChapter(chapterURL string) (*ScrapedChapter, error) 
 }
 
 func (s *Shu69Scraper) FetchTOC(tocURL string) (*ScrapedNovelInfo, error) {
-	doc, err := fetchHTMLDoc(tocURL)
+	return s.FetchTOCContext(context.Background(), tocURL)
+}
+
+func (s *Shu69Scraper) FetchTOCContext(ctx context.Context, tocURL string) (*ScrapedNovelInfo, error) {
+	doc, err := fetchHTMLDocContext(ctx, tocURL)
 	if err != nil {
 		return nil, fmt.Errorf("69shu TOC fetch failed: %w", err)
 	}
@@ -98,7 +113,10 @@ func (s *Shu69Scraper) FetchTOC(tocURL string) (*ScrapedNovelInfo, error) {
 	info.CoverURL, _ = doc.Find(".bookimg2 img, .bookcover img").First().Attr("src")
 
 	// Parse chapter list
-	baseURL, _ := url.Parse(tocURL)
+	baseURL, err := url.Parse(tocURL)
+	if err != nil {
+		return nil, fmt.Errorf("parse 69shu TOC URL: %w", err)
+	}
 	doc.Find("#catalog ul li a, .catalog ul li a, .mulu ul li a").Each(func(i int, sel *goquery.Selection) {
 		chTitle := strings.TrimSpace(sel.Text())
 		href, exists := sel.Attr("href")

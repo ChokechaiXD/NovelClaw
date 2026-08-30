@@ -134,7 +134,9 @@ func BuildUserPrompt(title string, paragraphs []string) string {
 	return sb.String()
 }
 
-// ParseTranslationOutput converts LLM output text into clean paragraph slices, stripping reasoning tags and markdown
+// ParseTranslationOutput parses LLM output into paragraph slices and strips only
+// transport/chat formatting. Language repair happens later so QA can inspect
+// the model's raw translation before sanitization.
 func ParseTranslationOutput(rawOutput string) (translatedTitle string, paragraphs []string) {
 	text := strings.TrimSpace(rawOutput)
 
@@ -188,12 +190,7 @@ func ParseTranslationOutput(rawOutput string) (translatedTitle string, paragraph
 			continue
 		}
 
-		sanitized := SanitizeText(trimmed, nil)
-		cleaned = append(cleaned, sanitized)
-	}
-
-	if translatedTitle != "" {
-		translatedTitle = SanitizeText(translatedTitle, nil)
+		cleaned = append(cleaned, cleanedLine)
 	}
 
 	return translatedTitle, cleaned

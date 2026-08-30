@@ -44,3 +44,18 @@ func TestIs69ShuJunk(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateHTMLContentType(t *testing.T) {
+	allowed := []string{"", "text/html; charset=utf-8", "text/plain", "application/xhtml+xml", "application/xml"}
+	for _, contentType := range allowed {
+		if err := validateHTMLContentType(contentType); err != nil {
+			t.Fatalf("expected %q to be allowed: %v", contentType, err)
+		}
+	}
+	blocked := []string{"application/json", "application/pdf", "application/octet-stream", "image/png", "video/mp4"}
+	for _, contentType := range blocked {
+		if err := validateHTMLContentType(contentType); err == nil {
+			t.Fatalf("expected %q to be rejected", contentType)
+		}
+	}
+}

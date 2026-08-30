@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"novelclaw/internal/config"
@@ -35,6 +36,13 @@ func SetupRouter(cfg *config.AppConfig, store *storage.Store) (http.Handler, *AP
 	mux.HandleFunc("GET /api/novels/{slug}/glossary", h.GetGlossary)
 	mux.HandleFunc("POST /api/novels/{slug}/glossary", h.SaveGlossary)
 	mux.HandleFunc("GET /api/novels/{slug}/glossary/check", h.GlossaryCheck)
+	mux.HandleFunc("GET /api/novels/{slug}/memory", h.GetMemory)
+	mux.HandleFunc("POST /api/novels/{slug}/memory", h.SaveMemory)
+	mux.HandleFunc("POST /api/novels/{slug}/memory/generate", h.GenerateMemoryCandidate)
+	mux.HandleFunc("GET /api/novels/{slug}/qa", h.ListQualityReports)
+	mux.HandleFunc("GET /api/novels/{slug}/qa/{num}", h.GetQualityReport)
+	mux.HandleFunc("POST /api/novels/{slug}/qa/{num}/repair", h.RepairQualityWithAI)
+	mux.HandleFunc("POST /api/novels/{slug}/qa/rebuild", h.RebuildQualityReports)
 	mux.HandleFunc("GET /api/novels/{slug}/bookmark", h.GetBookmark)
 	mux.HandleFunc("POST /api/novels/{slug}/bookmark", h.SaveBookmark)
 	mux.HandleFunc("GET /api/novels/{slug}/export", h.ExportNovel)
@@ -50,8 +58,10 @@ func SetupRouter(cfg *config.AppConfig, store *storage.Store) (http.Handler, *AP
 	mux.HandleFunc("POST /api/novels/{slug}/glossary/discover", h.DiscoverGlossary)
 	mux.HandleFunc("POST /api/audio/speech", h.GenerateSpeech)
 
-	// System Config & Models
+	// System Config, Providers & Models
 	mux.HandleFunc("GET /api/models", h.ListModels)
+	mux.HandleFunc("GET /api/providers", h.ListProviders)
+	mux.HandleFunc("POST /api/providers/test", h.TestProvider)
 	mux.HandleFunc("GET /api/config", h.GetConfig)
 	mux.HandleFunc("GET /api/detect-providers", h.DetectProviders)
 	mux.HandleFunc("POST /api/config", h.UpdateConfig)
@@ -72,13 +82,28 @@ func SetupRouter(cfg *config.AppConfig, store *storage.Store) (http.Handler, *AP
 		fileServer.ServeHTTP(w, r)
 	}))
 
-	// Wrap with basic CORS / logging middleware
+	// Same-origin security middleware. NovelClaw serves its own UI, so wildcard
+	// CORS is unnecessary and would let an unrelated website drive mutating LAN
+	// APIs from the user's browser. Direct LAN navigation still works normally.
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
+
+		if origin := strings.TrimSpace(r.Header.Get("Origin")); origin != "" {
+			u, err := url.Parse(origin)
+			if err != nil || u.Host == "" || !strings.EqualFold(u.Host, r.Host) {
+				WriteError(w, http.StatusForbidden, "cross-origin requests are not allowed")
+				return
+			}
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		}
 		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 		mux.ServeHTTP(w, r)

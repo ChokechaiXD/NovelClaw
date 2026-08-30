@@ -48,10 +48,19 @@ func (c *Client) DiscoverGlossaryTerms(ctx context.Context, novelTitle string, s
 		return nil, fmt.Errorf("entity discovery error: %w", err)
 	}
 
-	return parseGlossaryJSON(rawOutput), nil
+	items, err := parseGlossaryJSONStrict(rawOutput)
+	if err != nil {
+		return nil, fmt.Errorf("parse glossary response: %w", err)
+	}
+	return items, nil
 }
 
 func parseGlossaryJSON(raw string) []model.GlossaryItem {
+	items, _ := parseGlossaryJSONStrict(raw)
+	return items
+}
+
+func parseGlossaryJSONStrict(raw string) ([]model.GlossaryItem, error) {
 	raw = strings.TrimSpace(raw)
 	// Strip markdown code block
 	if strings.HasPrefix(raw, "```") {
@@ -67,16 +76,17 @@ func parseGlossaryJSON(raw string) []model.GlossaryItem {
 
 	var items []model.GlossaryItem
 	if err := json.Unmarshal([]byte(raw), &items); err == nil {
-		return items
+		return items, nil
 	}
 
-	// Try extracting from substring starting with '[' and ending with ']'
+	// Try extracting from substring starting with '[' and ending with ']'.
 	start := strings.Index(raw, "[")
 	end := strings.LastIndex(raw, "]")
 	if start != -1 && end != -1 && end > start {
 		sub := raw[start : end+1]
-		_ = json.Unmarshal([]byte(sub), &items)
+		if err := json.Unmarshal([]byte(sub), &items); err == nil {
+			return items, nil
+		}
 	}
-
-	return items
+	return nil, fmt.Errorf("model returned invalid glossary JSON")
 }

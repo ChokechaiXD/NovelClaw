@@ -2,8 +2,10 @@ package scraper
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"strings"
 	"time"
@@ -35,6 +37,11 @@ type Scraper interface {
 	CanHandle(url string) bool
 	FetchChapter(url string) (*ScrapedChapter, error)
 	FetchTOC(url string) (*ScrapedNovelInfo, error)
+}
+
+type ContextScraper interface {
+	FetchChapterContext(context.Context, string) (*ScrapedChapter, error)
+	FetchTOCContext(context.Context, string) (*ScrapedNovelInfo, error)
 }
 
 var client = &http.Client{
@@ -84,13 +91,45 @@ func (u *UniversalScraper) FetchTOC(url string) (*ScrapedNovelInfo, error) {
 	return nil, fmt.Errorf("no scraper found for url: %s", url)
 }
 
+func (u *UniversalScraper) FetchChapterContext(ctx context.Context, url string) (*ScrapedChapter, error) {
+	for _, s := range u.scrapers {
+		if !s.CanHandle(url) {
+			continue
+		}
+		if contextual, ok := s.(ContextScraper); ok {
+			return contextual.FetchChapterContext(ctx, url)
+		}
+		return s.FetchChapter(url)
+	}
+	return nil, fmt.Errorf("no scraper found for url: %s", url)
+}
+
+func (u *UniversalScraper) FetchTOCContext(ctx context.Context, url string) (*ScrapedNovelInfo, error) {
+	for _, s := range u.scrapers {
+		if !s.CanHandle(url) {
+			continue
+		}
+		if contextual, ok := s.(ContextScraper); ok {
+			return contextual.FetchTOCContext(ctx, url)
+		}
+		return s.FetchTOC(url)
+	}
+	return nil, fmt.Errorf("no scraper found for url: %s", url)
+}
+
+const maxHTMLBytes = 10 << 20
+
 // Helper: fetch HTML with proper User-Agent and automatic encoding detection (GBK / UTF-8)
 func fetchHTMLDoc(targetURL string) (*goquery.Document, error) {
+	return fetchHTMLDocContext(context.Background(), targetURL)
+}
+
+func fetchHTMLDocContext(ctx context.Context, targetURL string) (*goquery.Document, error) {
 	if err := validatePublicURL(targetURL); err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("GET", targetURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -108,10 +147,19 @@ func fetchHTMLDoc(targetURL string) (*goquery.Document, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
 	}
+	if resp.ContentLength > maxHTMLBytes {
+		return nil, fmt.Errorf("HTML response exceeds %d MiB limit", maxHTMLBytes>>20)
+	}
+	if err := validateHTMLContentType(resp.Header.Get("Content-Type")); err != nil {
+		return nil, err
+	}
 
-	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
+	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, maxHTMLBytes+1))
 	if err != nil {
 		return nil, err
+	}
+	if len(bodyBytes) > maxHTMLBytes {
+		return nil, fmt.Errorf("HTML response exceeds %d MiB limit", maxHTMLBytes>>20)
 	}
 
 	// Detect if page uses GBK / GB2312 / GB18030 or contains non-UTF-8 bytes
@@ -127,6 +175,21 @@ func fetchHTMLDoc(targetURL string) (*goquery.Document, error) {
 	}
 
 	return goquery.NewDocumentFromReader(reader)
+}
+
+func validateHTMLContentType(raw string) error {
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	mediaType, _, err := mime.ParseMediaType(raw)
+	if err != nil {
+		return nil // tolerate malformed legacy headers; body parsing remains bounded
+	}
+	mediaType = strings.ToLower(mediaType)
+	if strings.HasPrefix(mediaType, "text/") || mediaType == "application/xhtml+xml" || mediaType == "application/xml" {
+		return nil
+	}
+	return fmt.Errorf("unsupported content type: %s", mediaType)
 }
 
 func min(a, b int) int {

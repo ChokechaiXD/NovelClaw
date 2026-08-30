@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,7 +19,10 @@ func (s *Store) GetStyleRules(slug string) (string, error) {
 	path := filepath.Join(s.DataDir, slug, "style_rules.yml")
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return "", nil
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", err
 	}
 	return renderStyleRules(string(data)), nil
 }
@@ -88,14 +92,20 @@ func stripSingleQuotes(v string) string {
 // mergeGlossaryYAML appends terms from glossary/glossary.yml (the bulk term
 // base generated from locked/reference/auto.md) to the curated glossary.json
 // terms. glossary.json wins on conflicts.
-func mergeGlossaryYAML(dataDir, slug string, terms []model.GlossaryItem) []model.GlossaryItem {
+func mergeGlossaryYAML(dataDir, slug string, terms []model.GlossaryItem) ([]model.GlossaryItem, error) {
 	ymlPath := filepath.Join(dataDir, slug, "glossary", "glossary.yml")
-	if _, err := os.Stat(ymlPath); os.IsNotExist(err) {
+	if _, err := os.Stat(ymlPath); err != nil {
+		if !os.IsNotExist(err) {
+			return nil, fmt.Errorf("stat glossary YAML: %w", err)
+		}
 		ymlPath = filepath.Join(dataDir, slug, "glossary.yml")
 	}
 	data, err := os.ReadFile(ymlPath)
 	if err != nil {
-		return terms
+		if os.IsNotExist(err) {
+			return terms, nil
+		}
+		return nil, fmt.Errorf("read glossary YAML: %w", err)
 	}
 	seen := make(map[string]bool, len(terms))
 	for _, t := range terms {
@@ -107,7 +117,7 @@ func mergeGlossaryYAML(dataDir, slug string, terms []model.GlossaryItem) []model
 			seen[t.Term] = true
 		}
 	}
-	return terms
+	return terms, nil
 }
 
 // parseGlossaryYAML parses the flat "terms:" list layout produced by

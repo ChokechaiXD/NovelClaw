@@ -93,3 +93,55 @@ func TestGetStyleRules(t *testing.T) {
 		t.Errorf("missing style_rules.yml should return empty: %q, %v", out, err)
 	}
 }
+
+func TestGetGlossary_YAMLOnlyAndCorruptJSON(t *testing.T) {
+	dir := t.TempDir()
+	slug := "yaml-only"
+	gdir := filepath.Join(dir, slug, "glossary")
+	if err := os.MkdirAll(gdir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(gdir, "glossary.yml"),
+		[]byte("terms:\n- source: \u66f9\u661f\n  thai: \u0e40\u0e09\u0e32\u0e0b\u0e34\u0e07\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	s := NewStore(dir)
+	g, err := s.GetGlossary(slug)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(g.Terms) != 1 || g.Terms[0].Target == "" {
+		t.Fatalf("YAML-only glossary was not loaded: %+v", g.Terms)
+	}
+
+	if err := os.WriteFile(filepath.Join(gdir, "glossary.json"), []byte(`{"terms":`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.GetGlossary(slug); err == nil {
+		t.Fatal("corrupt glossary JSON should return an error")
+	}
+}
+
+func TestGetStyleRulesReadErrorIsNotHidden(t *testing.T) {
+	dir := t.TempDir()
+	slug := "bad-style"
+	path := filepath.Join(dir, slug, "style_rules.yml")
+	if err := os.MkdirAll(path, 0755); err != nil {
+		t.Fatal(err)
+	}
+	s := NewStore(dir)
+	if _, err := s.GetStyleRules(slug); err == nil {
+		t.Fatal("style_rules read error should be returned")
+	}
+}
+
+func TestGetGlossaryReturnsErrorWhenYAMLIsUnreadable(t *testing.T) {
+	dir := t.TempDir()
+	gdir := filepath.Join(dir, "yaml-error", "glossary")
+	if err := os.MkdirAll(filepath.Join(gdir, "glossary.yml"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := NewStore(dir).GetGlossary("yaml-error"); err == nil {
+		t.Fatal("expected unreadable glossary.yml to return an error")
+	}
+}

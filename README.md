@@ -16,29 +16,30 @@ NovelClaw คือระบบ **Local-first** สำหรับนำเข�
 
 ## 🚀 การเริ่มใช้งาน (Quick Start)
 
-### วิธีที่ 1: ดับเบิ้ลคลิก `run.bat` หรือรัน `novelclaw.exe`
+รัน Single Binary โดยตรง:
 ```powershell
-.\run.bat
+.\novelclaw.exe
 ```
-หรือรัน binary ตรงๆ:
+
+หากต้องการกำหนดพอร์ตเอง:
 ```powershell
-.\novelclaw.exe -port 4173
+.\novelclaw.exe -port 4890
 ```
 
 เปิดเบราว์เซอร์ที่:
-- **บนคอมพิวเตอร์:** `http://localhost:4173`
-- **บนมือถือ (ในวง LAN เดียวกัน):** `http://[IP-เครื่อง-PC]:4173`
+- **บนคอมพิวเตอร์:** `http://localhost:4890`
+- **บนมือถือ (ในวง LAN เดียวกัน):** `http://[IP-เครื่อง-PC]:4890`
 
 ---
 
 ## 🛠️ คำสั่งปรับแต่ง (CLI Flags)
 ```powershell
-.\novelclaw.exe -port 4173 -router "http://localhost:20128/v1" -model "google/gemini-2.5-flash"
+.\novelclaw.exe -port 4890 -router "http://localhost:20128/v1" -model "google/gemini-2.5-flash"
 ```
 
 | Flag | คำอธิบาย | ค่าเริ่มต้น |
 | :--- | :--- | :--- |
-| `-port` | Port สำหรับเปิด Web Server | `4173` |
+| `-port` | Port สำหรับเปิด Web Server | `4890` |
 | `-data` | โฟลเดอร์เก็บข้อมูลนิยาย | `./novels` |
 | `-router` | Base URL ของ 9Router หรือ OpenAI endpoint | `http://localhost:20128/v1` |
 | `-model` | ชื่อ AI Model ที่ต้องการใช้แปล | `google/gemini-2.5-flash` |

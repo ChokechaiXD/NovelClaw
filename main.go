@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	portFlag := flag.Int("port", 0, "Web server port (default: 4173 or PORT env)")
+	portFlag := flag.Int("port", 0, "Web server port (default: 4890 or PORT env)")
 	hostFlag := flag.String("host", "", "Web server host bind (default: 0.0.0.0)")
 	dataDirFlag := flag.String("data", "", "Data directory path (default: ./novels)")
 	routerFlag := flag.String("router", "", "9Router or OpenAI Base URL")
@@ -37,14 +37,11 @@ func main() {
 	if *dataDirFlag != "" {
 		cfg.DataDir = *dataDirFlag
 	}
-	if *routerFlag != "" {
-		cfg.RouterURL = *routerFlag
-	}
-	if *modelFlag != "" {
-		cfg.DefaultModel = *modelFlag
-	}
-	if *keyFlag != "" {
-		cfg.APIKey = *keyFlag
+	// Provider CLI flags are runtime-only overrides. Route them through the
+	// same provider registry used by the web UI instead of mutating legacy
+	// compatibility fields directly.
+	if *routerFlag != "" || *modelFlag != "" || *keyFlag != "" {
+		cfg.ApplyRuntimeProviderOverride(*routerFlag, *keyFlag, *modelFlag)
 	}
 
 	store := storage.NewStore(cfg.DataDir)
@@ -59,8 +56,12 @@ func main() {
 
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	server := &http.Server{
-		Addr:    addr,
-		Handler: router,
+		Addr:              addr,
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 20,
+		// No WriteTimeout: /events is a long-lived SSE connection.
 	}
 
 	// Graceful shutdown listener

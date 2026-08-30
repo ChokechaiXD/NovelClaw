@@ -2,29 +2,60 @@ package storage
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"novelclaw/internal/model"
-	"novelclaw/internal/translator"
+)
+
+var (
+	ErrNovelNotFound   = errors.New("novel not found")
+	ErrChapterNotFound = errors.New("chapter not found")
 )
 
 // Store handles all file operations for novels, chapters, bookmarks, and glossaries
 type Store struct {
 	DataDir string
 	mu      sync.RWMutex
+
+	statsMu    sync.Mutex
+	statsTimer map[string]*time.Timer
+
+	chapterCacheMu sync.RWMutex
+	chapterCache   map[string][]model.ChapterMeta
+
+	glossaryCacheMu sync.RWMutex
+	glossaryCache   map[string]map[string]string
+
+	qaCacheMu     sync.RWMutex
+	qaCache       map[string]map[int]model.TranslationQualityReport
+	qaCacheLoaded map[string]bool
+
+	// Fixed striped locks serialize writes to the same chapter/file family
+	// without making unrelated chapters wait on one global filesystem lock.
+	chapterWriteLocks [64]sync.Mutex
 }
 
 // NewStore creates a new storage manager
 func NewStore(dataDir string) *Store {
-	_ = os.MkdirAll(dataDir, 0755)
-	return &Store{DataDir: dataDir}
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		log.Printf("ERROR: cannot create storage directory %s: %v", dataDir, err)
+	}
+	return &Store{
+		DataDir:       dataDir,
+		statsTimer:    make(map[string]*time.Timer),
+		chapterCache:  make(map[string][]model.ChapterMeta),
+		glossaryCache: make(map[string]map[string]string),
+		qaCache:       make(map[string]map[int]model.TranslationQualityReport),
+		qaCacheLoaded: make(map[string]bool),
+	}
 }
 
 // ListNovels returns all novels available in DataDir
@@ -46,24 +77,29 @@ func (s *Store) ListNovels() ([]model.Novel, error) {
 		novelPath := filepath.Join(s.DataDir, slug, "novel.json")
 		data, err := os.ReadFile(novelPath)
 		if err != nil {
-			// If novel.json missing, try inferring from directory name
+			if !os.IsNotExist(err) {
+				return nil, fmt.Errorf("read novel metadata %s: %w", slug, err)
+			}
+			// Legacy/import folders without novel.json may still be shown, but use
+			// the directory timestamp so repeated Library loads remain stable.
+			info, infoErr := entry.Info()
+			if infoErr != nil {
+				return nil, fmt.Errorf("stat novel directory %s: %w", slug, infoErr)
+			}
 			novels = append(novels, model.Novel{
-				Slug:       slug,
-				Title:      slug,
-				SourceLang: "cn",
-				TargetLang: "th",
-				UpdatedAt:  time.Now(),
+				Slug: slug, Title: slug, SourceLang: "cn", TargetLang: "th", UpdatedAt: info.ModTime(),
 			})
 			continue
 		}
 
 		var n model.Novel
-		if err := json.Unmarshal(data, &n); err == nil {
-			if n.Slug == "" {
-				n.Slug = slug
-			}
-			novels = append(novels, n)
+		if err := json.Unmarshal(data, &n); err != nil {
+			return nil, fmt.Errorf("parse novel metadata %s: %w", slug, err)
 		}
+		if n.Slug == "" {
+			n.Slug = slug
+		}
+		novels = append(novels, n)
 	}
 
 	// Sort by updatedAt descending
@@ -83,7 +119,10 @@ func (s *Store) GetNovel(slug string) (*model.Novel, error) {
 	novelPath := filepath.Join(s.DataDir, slug, "novel.json")
 	data, err := os.ReadFile(novelPath)
 	if err != nil {
-		return nil, fmt.Errorf("novel not found: %s", slug)
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("%w: %s", ErrNovelNotFound, slug)
+		}
+		return nil, fmt.Errorf("read novel %s: %w", slug, err)
 	}
 
 	var n model.Novel
@@ -112,8 +151,12 @@ func (s *Store) SaveNovel(n *model.Novel) error {
 		return err
 	}
 
-	_ = os.MkdirAll(filepath.Join(novelDir, "chapters"), 0755)
-	_ = os.MkdirAll(filepath.Join(novelDir, "glossary"), 0755)
+	if err := os.MkdirAll(filepath.Join(novelDir, "chapters"), 0755); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Join(novelDir, "glossary"), 0755); err != nil {
+		return err
+	}
 
 	data, err := json.MarshalIndent(n, "", "  ")
 	if err != nil {
@@ -121,252 +164,6 @@ func (s *Store) SaveNovel(n *model.Novel) error {
 	}
 
 	return writeFileAtomic(filepath.Join(novelDir, "novel.json"), data)
-}
-
-// ListChapters returns summary metadata for all chapters in a novel
-func (s *Store) ListChapters(slug string) ([]model.ChapterMeta, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	slug = pathSafeSlug(slug)
-	chaptersDir := filepath.Join(s.DataDir, slug, "chapters")
-	entries, err := os.ReadDir(chaptersDir)
-	if err != nil {
-		return []model.ChapterMeta{}, nil
-	}
-
-	chapterMap := make(map[int]*model.ChapterMeta)
-
-	for _, entry := range entries {
-		name := entry.Name()
-		if !strings.HasSuffix(name, ".json") {
-			continue
-		}
-
-		parts := strings.Split(strings.TrimSuffix(name, ".json"), ".")
-		if len(parts) == 0 {
-			continue
-		}
-
-		chNum, err := strconv.Atoi(parts[0])
-		if err != nil {
-			continue
-		}
-
-		meta, exists := chapterMap[chNum]
-		if !exists {
-			meta = &model.ChapterMeta{
-				ChapterNo: chNum,
-			}
-			chapterMap[chNum] = meta
-		}
-
-		// Lightweight title read: translated file wins (carries both titles),
-		// otherwise source title fills the gap. Read each file at most once.
-		isTh := strings.Contains(name, ".th.") || strings.Contains(name, ".translated.")
-		needTitle := (!isTh && meta.TitleSource == "" && meta.TitleTranslated == "") || (isTh && meta.TitleTranslated == "")
-		if needTitle {
-			if data, err := os.ReadFile(filepath.Join(chaptersDir, name)); err == nil {
-				var tc struct {
-					Title struct {
-						Source     string `json:"source"`
-						Translated string `json:"translated"`
-					} `json:"title"`
-				}
-				_ = json.Unmarshal(data, &tc)
-				if tc.Title.Translated != "" {
-					meta.TitleTranslated = cleanChapterTitle(tc.Title.Translated)
-					if tc.Title.Source != "" {
-						meta.TitleSource = cleanChapterTitle(tc.Title.Source)
-					}
-				} else if tc.Title.Source != "" {
-					meta.TitleSource = cleanChapterTitle(tc.Title.Source)
-				}
-			}
-		}
-
-		info, _ := entry.Info()
-		if info != nil && info.ModTime().After(meta.UpdatedAt) {
-			meta.UpdatedAt = info.ModTime()
-		}
-
-		isSource := strings.Contains(name, ".cn.") || strings.Contains(name, ".source.")
-		isTranslated := strings.Contains(name, ".th.") || strings.Contains(name, ".translated.")
-
-		if isSource {
-			meta.HasSource = true
-		}
-		if isTranslated {
-			meta.HasTranslated = true
-		}
-	}
-
-	var result []model.ChapterMeta
-	for _, meta := range chapterMap {
-		result = append(result, *meta)
-	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].ChapterNo < result[j].ChapterNo
-	})
-
-	return result, nil
-}
-
-// GetChapter returns the content of a specific chapter
-func (s *Store) GetChapter(slug string, chapterNo int) (*model.ChapterContent, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	slug = pathSafeSlug(slug)
-	numStr := fmt.Sprintf("%04d", chapterNo)
-	chaptersDir := filepath.Join(s.DataDir, slug, "chapters")
-
-	content := &model.ChapterContent{
-		NovelSlug: slug,
-		ChapterNo: chapterNo,
-		Status:    "source",
-	}
-
-	// 1. Try reading source chapter
-	sourceFile := filepath.Join(chaptersDir, numStr+".cn.json")
-	if _, err := os.Stat(sourceFile); os.IsNotExist(err) {
-		sourceFile = filepath.Join(chaptersDir, numStr+".source.json")
-	}
-
-	if data, err := os.ReadFile(sourceFile); err == nil {
-		parseChapterJSON(data, content, true)
-	}
-
-	// 2. Try reading translated chapter
-	thFile := filepath.Join(chaptersDir, numStr+".th.json")
-	if _, err := os.Stat(thFile); os.IsNotExist(err) {
-		thFile = filepath.Join(chaptersDir, numStr+".translated.json")
-	}
-
-	if data, err := os.ReadFile(thFile); err == nil {
-		parseChapterJSON(data, content, false)
-		content.Status = "translated"
-	}
-
-	if len(content.SourceText) == 0 && len(content.TranslatedText) == 0 {
-		return nil, fmt.Errorf("chapter %d not found in novel %s", chapterNo, slug)
-	}
-
-	return content, nil
-}
-
-// SaveChapter saves source or translated chapter content. Translated content
-// is sanitized here (single choke point) so anything persisted is guaranteed
-// zero-Hanzi — readers no longer sanitize on GET.
-func (s *Store) SaveChapter(slug string, chapterNo int, sourceTitle, transTitle string, sourceParagraphs, transParagraphs []string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	slug = pathSafeSlug(slug)
-	numStr := fmt.Sprintf("%04d", chapterNo)
-	chaptersDir := filepath.Join(s.DataDir, slug, "chapters")
-	_ = os.MkdirAll(chaptersDir, 0755)
-
-	// Save source if provided
-	if len(sourceParagraphs) > 0 {
-		srcData := map[string]interface{}{
-			"novelId":    slug,
-			"chapterNo":  chapterNo,
-			"sourceLang": "cn",
-			"targetLang": "th",
-			"title": map[string]string{
-				"source": sourceTitle,
-			},
-			"status":     "source",
-			"paragraphs": sourceParagraphs,
-			"updatedAt":  time.Now().Format(time.RFC3339),
-		}
-		data, _ := json.MarshalIndent(srcData, "", "  ")
-		if err := writeFileAtomic(filepath.Join(chaptersDir, numStr+".cn.json"), data); err != nil {
-			return fmt.Errorf("save chapter %d source: %w", chapterNo, err)
-		}
-	}
-
-	// Save translated if provided (sanitize before it ever touches disk)
-	if len(transParagraphs) > 0 {
-		gMap := s.glossaryMapLocked(slug)
-		transTitle = translator.SanitizeText(transTitle, gMap)
-		cleaned := translator.SanitizeParagraphs(transParagraphs, gMap)
-		thData := map[string]interface{}{
-			"novelId":    slug,
-			"chapterNo":  chapterNo,
-			"sourceLang": "cn",
-			"targetLang": "th",
-			"title": map[string]string{
-				"source":     sourceTitle,
-				"translated": transTitle,
-			},
-			"status":     "translated",
-			"paragraphs": cleaned,
-			"updatedAt":  time.Now().Format(time.RFC3339),
-		}
-		data, _ := json.MarshalIndent(thData, "", "  ")
-		if err := writeFileAtomic(filepath.Join(chaptersDir, numStr+".th.json"), data); err != nil {
-			return fmt.Errorf("save chapter %d translation: %w", chapterNo, err)
-		}
-	}
-
-	// Debounced stats update: coalesce bursts of saves (e.g. a 100-chapter
-	// import) instead of spawning one goroutine per chapter. 2s delay also
-	// lets a rapid sequence collapse into a single novel.json rewrite.
-	go func() {
-		time.Sleep(2 * time.Second)
-		s.updateNovelStats(slug)
-	}()
-
-	return nil
-}
-
-// glossaryMapLocked builds the term→target map used by the sanitizer. Caller
-// must hold s.mu (read or write).
-func (s *Store) glossaryMapLocked(slug string) map[string]string {
-	glossaryPath := filepath.Join(s.DataDir, pathSafeSlug(slug), "glossary", "glossary.json")
-	if _, err := os.Stat(glossaryPath); os.IsNotExist(err) {
-		glossaryPath = filepath.Join(s.DataDir, pathSafeSlug(slug), "glossary.json")
-	}
-	data, err := os.ReadFile(glossaryPath)
-	if err != nil {
-		return nil
-	}
-	var items []model.GlossaryItem
-	if err := json.Unmarshal(data, &items); err != nil {
-		var wrapper struct {
-			Terms []model.GlossaryItem `json:"terms"`
-		}
-		if err := json.Unmarshal(data, &wrapper); err != nil {
-			return nil
-		}
-		items = wrapper.Terms
-	}
-	gMap := make(map[string]string, len(items))
-	for _, t := range items {
-		if t.Term != "" && t.Target != "" {
-			gMap[t.Term] = t.Target
-		}
-	}
-	return gMap
-}
-
-// RepairChapter re-sanitizes an already-stored translated chapter against the
-// current glossary + builtin rules and persists the result. Idempotent.
-func (s *Store) RepairChapter(slug string, chapterNo int) (*model.ChapterContent, error) {
-	chapter, err := s.GetChapter(slug, chapterNo)
-	if err != nil {
-		return nil, err
-	}
-	if len(chapter.TranslatedText) == 0 && !translator.HasHanzi(chapter.TranslatedTitle) {
-		return chapter, nil // nothing to repair
-	}
-	if err := s.SaveChapter(slug, chapterNo, chapter.SourceTitle, chapter.TranslatedTitle, nil, chapter.TranslatedText); err != nil {
-		return nil, err
-	}
-	return s.GetChapter(slug, chapterNo)
 }
 
 // writeFileAtomic writes data via a temp file + rename so a crash mid-write
@@ -377,228 +174,6 @@ func writeFileAtomic(path string, data []byte) error {
 		return err
 	}
 	return os.Rename(tmp, path)
-}
-
-// cleanChapterTitle strips leading breadcrumb parts some scrapers baked
-// into titles ("A >> B >> 第2章 X" → "第2章 X"). Loops because some pages
-// chain several navigation levels.
-func cleanChapterTitle(t string) string {
-	for {
-		idx := strings.Index(t, ">>")
-		if idx == -1 {
-			return strings.TrimSpace(t)
-		}
-		t = t[idx+2:]
-	}
-}
-
-// GetGlossary returns glossary terms for a novel
-func (s *Store) GetGlossary(slug string) (*model.NovelGlossary, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	slug = pathSafeSlug(slug)
-	glossaryPath := filepath.Join(s.DataDir, slug, "glossary", "glossary.json")
-	if _, err := os.Stat(glossaryPath); os.IsNotExist(err) {
-		glossaryPath = filepath.Join(s.DataDir, slug, "glossary.json")
-	}
-
-	g := &model.NovelGlossary{
-		NovelSlug: slug,
-		Terms:     []model.GlossaryItem{},
-	}
-
-	data, err := os.ReadFile(glossaryPath)
-	if err != nil {
-		return g, nil
-	}
-
-	// Supports both array of items and map/struct
-	var items []model.GlossaryItem
-	if err := json.Unmarshal(data, &items); err == nil {
-		g.Terms = mergeGlossaryYAML(s.DataDir, slug, items)
-		return g, nil
-	}
-
-	var rawMap map[string]interface{}
-	if err := json.Unmarshal(data, &rawMap); err == nil {
-		if termsRaw, ok := rawMap["terms"]; ok {
-			termsData, _ := json.Marshal(termsRaw)
-			_ = json.Unmarshal(termsData, &g.Terms)
-		}
-	}
-
-	g.Terms = mergeGlossaryYAML(s.DataDir, slug, g.Terms)
-	return g, nil
-}
-
-// SaveGlossary saves glossary terms for a novel
-func (s *Store) SaveGlossary(g *model.NovelGlossary) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	g.NovelSlug = pathSafeSlug(g.NovelSlug)
-	glossaryDir := filepath.Join(s.DataDir, g.NovelSlug, "glossary")
-	_ = os.MkdirAll(glossaryDir, 0755)
-
-	data, err := json.MarshalIndent(g.Terms, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return writeFileAtomic(filepath.Join(glossaryDir, "glossary.json"), data)
-}
-
-// GetBookmark returns the user bookmark for a novel
-func (s *Store) GetBookmark(slug string) (*model.Bookmark, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	slug = pathSafeSlug(slug)
-	bookmarkPath := filepath.Join(s.DataDir, slug, "bookmark.json")
-	data, err := os.ReadFile(bookmarkPath)
-	if err != nil {
-		return &model.Bookmark{NovelSlug: slug, ChapterNo: 1, ScrollPercentage: 0}, nil
-	}
-
-	var b model.Bookmark
-	if err := json.Unmarshal(data, &b); err != nil {
-		return &model.Bookmark{NovelSlug: slug, ChapterNo: 1, ScrollPercentage: 0}, nil
-	}
-	return &b, nil
-}
-
-// SaveBookmark saves the user bookmark for a novel
-func (s *Store) SaveBookmark(b *model.Bookmark) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	b.UpdatedAt = time.Now()
-	b.NovelSlug = pathSafeSlug(b.NovelSlug)
-	bookmarkDir := filepath.Join(s.DataDir, b.NovelSlug)
-	_ = os.MkdirAll(bookmarkDir, 0755)
-
-	data, err := json.MarshalIndent(b, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return writeFileAtomic(filepath.Join(bookmarkDir, "bookmark.json"), data)
-}
-
-func (s *Store) updateNovelStats(slug string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	slug = pathSafeSlug(slug)
-	novelPath := filepath.Join(s.DataDir, slug, "novel.json")
-	data, err := os.ReadFile(novelPath)
-	if err != nil {
-		return
-	}
-
-	var n model.Novel
-	if err := json.Unmarshal(data, &n); err != nil {
-		return
-	}
-
-	chaptersDir := filepath.Join(s.DataDir, slug, "chapters")
-	entries, _ := os.ReadDir(chaptersDir)
-
-	srcCount := 0
-	transCount := 0
-	for _, entry := range entries {
-		if !strings.HasSuffix(entry.Name(), ".json") {
-			continue
-		}
-		if strings.Contains(entry.Name(), ".cn.") || strings.Contains(entry.Name(), ".source.") {
-			srcCount++
-		}
-		if strings.Contains(entry.Name(), ".th.") || strings.Contains(entry.Name(), ".translated.") {
-			transCount++
-		}
-	}
-
-	if n.TotalChapters == srcCount && n.TranslatedChapters == transCount {
-		return // No change, avoid unnecessary disk write
-	}
-
-	n.TotalChapters = srcCount
-	n.TranslatedChapters = transCount
-	n.UpdatedAt = time.Now()
-
-	updatedData, _ := json.MarshalIndent(n, "", "  ")
-	_ = writeFileAtomic(novelPath, updatedData)
-}
-
-// Helper: parse flexible chapter JSON (handles raw strings or {"text": "..."} objects, and string/struct titles)
-func parseChapterJSON(data []byte, content *model.ChapterContent, isSource bool) {
-	var raw struct {
-		Title      json.RawMessage   `json:"title"`
-		Paragraphs []json.RawMessage `json:"paragraphs"`
-	}
-
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return
-	}
-
-	// Try title as struct
-	var titleObj struct {
-		Source     string `json:"source"`
-		Translated string `json:"translated"`
-	}
-	if err := json.Unmarshal(raw.Title, &titleObj); err == nil && (titleObj.Source != "" || titleObj.Translated != "") {
-		if isSource {
-			if titleObj.Source != "" {
-				content.SourceTitle = titleObj.Source
-			}
-		} else {
-			if titleObj.Translated != "" {
-				content.TranslatedTitle = titleObj.Translated
-			}
-			if content.SourceTitle == "" && titleObj.Source != "" {
-				content.SourceTitle = titleObj.Source
-			}
-		}
-	} else {
-		// Fallback: title as simple string
-		var titleStr string
-		if err := json.Unmarshal(raw.Title, &titleStr); err == nil && titleStr != "" {
-			if isSource {
-				content.SourceTitle = titleStr
-			} else {
-				content.TranslatedTitle = titleStr
-			}
-		}
-	}
-
-	var lines []string
-	for _, pRaw := range raw.Paragraphs {
-		var s string
-		if err := json.Unmarshal(pRaw, &s); err == nil {
-			s = strings.TrimSpace(s)
-			if s != "" {
-				lines = append(lines, s)
-			}
-			continue
-		}
-
-		var obj struct {
-			Text string `json:"text"`
-		}
-		if err := json.Unmarshal(pRaw, &obj); err == nil {
-			txt := strings.TrimSpace(obj.Text)
-			if txt != "" {
-				lines = append(lines, txt)
-			}
-		}
-	}
-
-	if isSource {
-		content.SourceText = lines
-	} else {
-		content.TranslatedText = lines
-	}
 }
 
 func sanitizeSlug(s string) string {

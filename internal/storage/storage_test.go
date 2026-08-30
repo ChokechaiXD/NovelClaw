@@ -101,3 +101,50 @@ func TestStorageReadExistingFiles(t *testing.T) {
 		t.Errorf("Expected slug global-descent, got %s", novel.Slug)
 	}
 }
+
+func TestListNovelsRejectsCorruptMetadata(t *testing.T) {
+	dir := t.TempDir()
+	novelDir := filepath.Join(dir, "broken")
+	if err := os.MkdirAll(novelDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(novelDir, "novel.json"), []byte(`{"title":`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := NewStore(dir).ListNovels(); err == nil {
+		t.Fatal("expected corrupt novel metadata to fail library listing")
+	}
+}
+
+func TestListNovelsAllowsLegacyFolderWithoutMetadata(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "legacy-book", "chapters"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	novels, err := NewStore(dir).ListNovels()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(novels) != 1 || novels[0].Slug != "legacy-book" || novels[0].Title != "legacy-book" {
+		t.Fatalf("legacy folder not inferred correctly: %+v", novels)
+	}
+}
+
+func TestSaveTranslatedChapterFailsOnCorruptGlossary(t *testing.T) {
+	dir := t.TempDir()
+	gdir := filepath.Join(dir, "book", "glossary")
+	if err := os.MkdirAll(gdir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(gdir, "glossary.json"), []byte(`[{`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	store := NewStore(dir)
+	err := store.SaveChapter("book", 1, "source", "translated", nil, []string{"ข้อความแปล"})
+	if err == nil {
+		t.Fatal("expected corrupt glossary to block translated chapter persistence")
+	}
+	if _, statErr := os.Stat(filepath.Join(dir, "book", "chapters", "0001.th.json")); !os.IsNotExist(statErr) {
+		t.Fatalf("translated file should not be written, statErr=%v", statErr)
+	}
+}

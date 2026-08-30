@@ -191,14 +191,12 @@ func TestParseTranslationOutput_EmptyInput(t *testing.T) {
 	}
 }
 
-func TestParseTranslationOutput_SanitizesHanzi(t *testing.T) {
+func TestParseTranslationOutput_PreservesHanziForQA(t *testing.T) {
 	input := "เนื้อหาที่มี获得ตัวจีนหลุด"
 	_, paras := ParseTranslationOutput(input)
 
-	for _, p := range paras {
-		if HasHanzi(p) {
-			t.Errorf("Hanzi still present after parse: %q", p)
-		}
+	if len(paras) != 1 || !HasHanzi(paras[0]) {
+		t.Fatalf("parser must preserve language leaks for downstream QA, got %#v", paras)
 	}
 }
 

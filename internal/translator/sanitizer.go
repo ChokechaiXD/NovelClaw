@@ -2,7 +2,6 @@ package translator
 
 import (
 	"sort"
-	"strings"
 	"unicode"
 )
 
@@ -30,64 +29,64 @@ var BuiltinNovelGlossary = map[string]string{
 	"【祝福แห่งความกล้าหาญ】": "【พรแห่งความกล้าหาญ】",
 
 	// Common leaked novel words
-	"至少":    "อย่างน้อย",
-	"祝福":    "พร",
-	"突破":    "ทะลวงขั้น",
-	"当然":    "แน่นอนว่า",
-	"當然":    "แน่นอนว่า",
-	"算了":    "ช่างเถอะ",
-	"挑战":    "การท้าทาย",
-	"挑戰":    "การท้าทาย",
-	"就在":    "และใน",
-	"发出":    "เปล่ง",
-	"發出":    "เปล่ง",
-	"除了":    "นอกเหนือจาก",
-	"划过":    "กรีดผ่าน",
-	"劃過":    "กรีดผ่าน",
-	"排名":    "อันดับ",
-	"击杀":    "สังหาร",
-	"擊殺":    "สังหาร",
-	"获得":    "ได้รับ",
-	"獲得":    "ได้รับ",
-	"提示":    "การแจ้งเตือน",
-	"属性":    "ค่าสถานะ",
+	"至少": "อย่างน้อย",
+	"祝福": "พร",
+	"突破": "ทะลวงขั้น",
+	"当然": "แน่นอนว่า",
+	"當然": "แน่นอนว่า",
+	"算了": "ช่างเถอะ",
+	"挑战": "การท้าทาย",
+	"挑戰": "การท้าทาย",
+	"就在": "และใน",
+	"发出": "เปล่ง",
+	"發出": "เปล่ง",
+	"除了": "นอกเหนือจาก",
+	"划过": "กรีดผ่าน",
+	"劃過": "กรีดผ่าน",
+	"排名": "อันดับ",
+	"击杀": "สังหาร",
+	"擊殺": "สังหาร",
+	"获得": "ได้รับ",
+	"獲得": "ได้รับ",
+	"提示": "การแจ้งเตือน",
+	"属性": "ค่าสถานะ",
 	// Stats per locked.md: 力量=กำลัง, 敏捷=ความเร็ว, 精神=จิตวิญญาณ, 體質=ค่าพละ
-	"力量":    "กำลัง",
-	"敏捷":    "ความเร็ว",
-	"体质":    "ค่าพละ",
-	"體質":    "ค่าพละ",
-	"精神":    "จิตวิญญาณ",
-	"技能":    "ทักษะ",
-	"等级":    "เลเวล",
-	"等級":    "เลเวล",
-	"经验":    "ค่าประสบการณ์",
-	"經驗":    "ค่าประสบการณ์",
-	"装备":    "อุปกรณ์สวมใส่",
-	"裝備":    "อุปกรณ์สวมใส่",
-	"首领":    "จ่าฝูง",
-	"首領":    "จ่าฝูง",
-	"统领":    "ผู้บัญชาการ",
-	"統領":    "ผู้บัญชาการ",
-	"队长":    "หัวหน้าหน่วย",
-	"隊長":    "หัวหน้าหน่วย",
-	"积分":    "คะแนนสะสม",
-	"積分":    "คะแนนสะสม",
+	"力量": "กำลัง",
+	"敏捷": "ความเร็ว",
+	"体质": "ค่าพละ",
+	"體質": "ค่าพละ",
+	"精神": "จิตวิญญาณ",
+	"技能": "ทักษะ",
+	"等级": "เลเวล",
+	"等級": "เลเวล",
+	"经验": "ค่าประสบการณ์",
+	"經驗": "ค่าประสบการณ์",
+	"装备": "อุปกรณ์สวมใส่",
+	"裝備": "อุปกรณ์สวมใส่",
+	"首领": "จ่าฝูง",
+	"首領": "จ่าฝูง",
+	"统领": "ผู้บัญชาการ",
+	"統領": "ผู้บัญชาการ",
+	"队长": "หัวหน้าหน่วย",
+	"隊長": "หัวหน้าหน่วย",
+	"积分": "คะแนนสะสม",
+	"積分": "คะแนนสะสม",
 	// Stat / game terms aligned with novels/global-descent/glossary/locked.md
 	// (source of truth — QA R2 §5: builtin must not contradict locked values)
-	"忠诚度":   "ค่าความจงรักภักดี",
-	"忠誠度":   "ค่าความจงรักภักดี",
-	"天赋":    "สกิลติดตัว",
-	"天賦":    "สกิลติดตัว",
-	"领地":    "ดินแดน",
-	"領地":    "ดินแดน",
-	"领主":    "ท่านลอร์ด",
-	"領主":    "ท่านลอร์ด",
-	"领民":    "ประชากรในดินแดน",
-	"領民":    "ประชากรในดินแดน",
-	"深渊":    "เหวลึก",
-	"深淵":    "เหวลึก",
-	"怪物":    "สัตว์ประหลาด",
-	"冰巢":    "รังน้ำแข็ง",
+	"忠诚度": "ค่าความจงรักภักดี",
+	"忠誠度": "ค่าความจงรักภักดี",
+	"天赋":  "สกิลติดตัว",
+	"天賦":  "สกิลติดตัว",
+	"领地":  "ดินแดน",
+	"領地":  "ดินแดน",
+	"领主":  "ท่านลอร์ด",
+	"領主":  "ท่านลอร์ด",
+	"领民":  "ประชากรในดินแดน",
+	"領民":  "ประชากรในดินแดน",
+	"深渊":  "เหวลึก",
+	"深淵":  "เหวลึก",
+	"怪物":  "สัตว์ประหลาด",
+	"冰巢":  "รังน้ำแข็ง",
 	// locked.md: 冰封纪元 = มหายุคน้ำแข็ง (game name)
 	"冰封纪元":  "มหายุคน้ำแข็ง",
 	"冰封紀元":  "มหายุคน้ำแข็ง",
@@ -250,69 +249,12 @@ func init() {
 
 // SanitizeText removes/replaces all Hanzi characters from text using dictionary & fallback rules.
 func SanitizeText(text string, customGlossary map[string]string) string {
-	if text == "" || !HasHanzi(text) {
-		return text
-	}
-
-	result := text
-
-	// 1. Custom/Novel Glossary Replacement (Longest terms first)
-	if len(customGlossary) > 0 {
-		type kv struct {
-			k string
-			v string
-		}
-		var list []kv
-		for k, v := range customGlossary {
-			list = append(list, kv{k: k, v: v})
-		}
-		sort.Slice(list, func(i, j int) bool {
-			return len(list[i].k) > len(list[j].k)
-		})
-		for _, item := range list {
-			if item.k != "" && strings.Contains(result, item.k) {
-				result = strings.ReplaceAll(result, item.k, item.v)
-			}
-		}
-	}
-
-	if !HasHanzi(result) {
-		return result
-	}
-
-	// 2. Builtin Comprehensive Multi-Character Novel Glossary (pre-sorted, longest first)
-	for _, item := range sortedBuiltinGlossary {
-		if strings.Contains(result, item.term) {
-			result = strings.ReplaceAll(result, item.term, item.repl)
-		}
-	}
-
-	if !HasHanzi(result) {
-		return result
-	}
-
-	// 3. Fallback for stray single Chinese characters
-	var b strings.Builder
-	for _, r := range result {
-		if unicode.Is(unicode.Han, r) {
-			if trans, ok := SingleHanziFallback[r]; ok {
-				b.WriteString(trans)
-			}
-			// If not in single fallback table, silently strip so zero Chinese characters leak
-		} else {
-			b.WriteRune(r)
-		}
-	}
-
-	return b.String()
+	cleaned, _ := SanitizeTextWithDiagnostics(text, customGlossary)
+	return cleaned
 }
 
 // SanitizeParagraphs cleans all paragraphs and returns a guaranteed 0-Hanzi list.
 func SanitizeParagraphs(paragraphs []string, customGlossary map[string]string) []string {
-	cleaned := make([]string, 0, len(paragraphs))
-	for _, p := range paragraphs {
-		sanitized := SanitizeText(p, customGlossary)
-		cleaned = append(cleaned, sanitized)
-	}
+	cleaned, _ := SanitizeParagraphsWithDiagnostics(paragraphs, customGlossary)
 	return cleaned
 }
