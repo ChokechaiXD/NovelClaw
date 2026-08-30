@@ -51,11 +51,7 @@ desktop.ini
 .agents/
 
 # QA data dumps derived from the novel text (copyrighted)
-scripts/qa/filter_classified.json
-scripts/qa/filter_clean_plan.json
-scripts/qa/filter_occ.json
-scripts/qa/qa_full_scan.json
-scripts/qa/r2_filter_occ.json
-scripts/qa/r2_filter_uniq.txt
+scripts/qa-archived/qa/*.json
+scripts/qa-archived/qa/*.txt
 # Local backup archives
 backups/

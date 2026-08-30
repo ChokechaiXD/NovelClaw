@@ -464,21 +464,14 @@ func previousChapterContext(store *storage.Store, novelSlug string, chNo int, ch
 		return ""
 	}
 	if len(prevCh.TranslatedText) > 0 {
-		n := minInt(3, len(prevCh.TranslatedText))
+		n := min(3, len(prevCh.TranslatedText))
 		tail := prevCh.TranslatedText[len(prevCh.TranslatedText)-n:]
 		return fmt.Sprintf("ตอนก่อนหน้า (%s) จบด้วย:\n%s", prevCh.TranslatedTitle, strings.Join(tail, "\n"))
 	}
 	if len(prevCh.SourceText) > 0 {
-		n := minInt(3, len(prevCh.SourceText))
+		n := min(3, len(prevCh.SourceText))
 		tail := prevCh.SourceText[len(prevCh.SourceText)-n:]
 		return fmt.Sprintf("[โหมดขนาน] ท้ายบทต้นฉบับตอนก่อนหน้า (ตอนที่ %d):\n%s", prevNo, strings.Join(tail, "\n"))
 	}
 	return ""
-}
-
-func minInt(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

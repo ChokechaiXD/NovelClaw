@@ -1,7 +1,7 @@
 import { escapeHTML } from './utils.js';
 
 export function createLibraryController({
-  state, el, api, showView, openChapter, openImportModal, formatGenre,
+  state, el, api, showView, openChapter, openImportModal, formatGenre, showToast,
 }) {
   function renderEmptyLibrary() {
     el.novelGrid.innerHTML = `
@@ -58,6 +58,7 @@ export function createLibraryController({
       }
       el.novelGrid.innerHTML = state.novels.map(renderNovelCard).join('');
     } catch (err) {
+      showToast('โหลดรายการนิยายไม่สำเร็จ: ' + (err?.message || err), 'error');
       console.error('loadNovels failed', err);
     }
   }
@@ -86,6 +87,7 @@ export function createLibraryController({
       if (novel.genre && el.transGenre) el.transGenre.value = novel.genre;
       await loadChapters(slug);
     } catch (err) {
+      showToast('เปิดเรื่องไม่สำเร็จ: ' + (err?.message || err), 'error');
       console.error('openNovelDetail failed', err);
     }
   }
@@ -129,6 +131,7 @@ export function createLibraryController({
       state.qaReports = qaRes.reports || [];
       renderChapterList(slug);
     } catch (err) {
+      showToast('โหลดรายการตอนไม่สำเร็จ: ' + (err?.message || err), 'error');
       console.error('loadChapters failed', err);
     }
   }

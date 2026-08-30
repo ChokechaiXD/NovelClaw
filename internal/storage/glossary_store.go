@@ -71,6 +71,8 @@ func (s *Store) SaveGlossary(g *model.NovelGlossary) error {
 	if err := writeFileAtomic(filepath.Join(glossaryDir, "glossary.json"), data); err != nil {
 		return err
 	}
-	s.setGlossaryCache(g.NovelSlug, g.Terms)
+	// Invalidate (not overwrite): GetGlossary merges glossary.yml, so the
+	// next read must re-load the merged JSON+YAML view.
+	s.invalidateGlossaryCache(g.NovelSlug)
 	return nil
 }

@@ -117,20 +117,20 @@ func (h *APIHandler) ExportNovel(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s_ch%d-%d.txt"`, safeFileName, startNo, endNo))
 
 		var b strings.Builder
-		b.WriteString(fmt.Sprintf("====================================================\n"))
+		b.WriteString("====================================================\n")
 		b.WriteString(fmt.Sprintf(" ชื่อเรื่อง: %s\n", novelTitle))
 		if novel.Author != "" {
 			b.WriteString(fmt.Sprintf(" ผู้แต่ง: %s\n", novel.Author))
 		}
 		b.WriteString(fmt.Sprintf(" ตอนที่: %d - %d (รวม %d ตอน)\n", startNo, endNo, len(exportList)))
 		b.WriteString(fmt.Sprintf(" ส่งออกเมื่อ: %s\n", time.Now().Format("02/01/2006 15:04:05")))
-		b.WriteString(fmt.Sprintf(" แปลและจัดทำโดย: NovelClaw AI\n"))
-		b.WriteString(fmt.Sprintf("====================================================\n\n\n"))
+		b.WriteString(" แปลและจัดทำโดย: NovelClaw AI\n")
+		b.WriteString("====================================================\n\n\n")
 
 		for _, ch := range exportList {
-			b.WriteString(fmt.Sprintf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"))
+			b.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 			b.WriteString(fmt.Sprintf(" %s\n", ch.Title))
-			b.WriteString(fmt.Sprintf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"))
+			b.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
 			for _, p := range ch.Paragraphs {
 				b.WriteString("  " + p + "\n\n")
 			}

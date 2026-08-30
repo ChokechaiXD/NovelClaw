@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/url"
 	"strings"
+	"syscall"
 )
 
 // validatePublicURL blocks requests to non-HTTP(S) schemes and private /
@@ -38,6 +39,24 @@ func validatePublicURL(rawURL string) error {
 		if isDisallowedIP(ip) {
 			return fmt.Errorf("url host %q resolves to a private/reserved address (%s); blocked", host, ip)
 		}
+	}
+	return nil
+}
+
+// validateDial is an http.Dialer Control hook: the connection target has
+// already been resolved, so re-checking it here closes the DNS-rebinding
+// window between URL validation and the actual dial.
+func validateDial(network, address string, conn syscall.RawConn) error {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return err
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return fmt.Errorf("non-IP dial target %q blocked", host)
+	}
+	if isDisallowedIP(ip) {
+		return fmt.Errorf("dial to private/reserved address %s blocked (SSRF)", ip)
 	}
 	return nil
 }

@@ -51,14 +51,6 @@ func (s *Store) glossaryMapStrict(slug string) (map[string]string, error) {
 	s.glossaryCacheMu.Unlock()
 	return loaded, nil
 }
-func (s *Store) setGlossaryCache(slug string, items []model.GlossaryItem) {
-	slug = pathSafeSlug(slug)
-	loaded := glossaryItemsMap(items)
-	s.glossaryCacheMu.Lock()
-	s.glossaryCache[slug] = loaded
-	s.glossaryCacheMu.Unlock()
-}
-
 func (s *Store) invalidateGlossaryCache(slug string) {
 	slug = pathSafeSlug(slug)
 	s.glossaryCacheMu.Lock()

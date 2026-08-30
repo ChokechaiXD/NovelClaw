@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"mime"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -54,6 +55,23 @@ var client = &http.Client{
 			return fmt.Errorf("too many redirects")
 		}
 		return validatePublicURL(req.URL.String())
+	},
+	// Dial-time re-check closes the DNS-rebinding gap: validatePublicURL
+	// resolves the host once, but the OS could resolve it again here.
+	// Checking the concrete connection target makes the SSRF decision
+	// atomic with the actual dial.
+	Transport: &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 30 * time.Second,
+			Control:   validateDial,
+		}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          20,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 	},
 }
 
@@ -122,10 +140,6 @@ func (u *UniversalScraper) FetchTOCContext(ctx context.Context, url string) (*Sc
 const maxHTMLBytes = 10 << 20
 
 // Helper: fetch HTML with proper User-Agent and automatic encoding detection (GBK / UTF-8)
-func fetchHTMLDoc(targetURL string) (*goquery.Document, error) {
-	return fetchHTMLDocContext(context.Background(), targetURL)
-}
-
 func fetchHTMLDocContext(ctx context.Context, targetURL string) (*goquery.Document, error) {
 	if err := validatePublicURL(targetURL); err != nil {
 		return nil, err
@@ -192,11 +206,4 @@ func validateHTMLContentType(raw string) error {
 		return nil
 	}
 	return fmt.Errorf("unsupported content type: %s", mediaType)
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

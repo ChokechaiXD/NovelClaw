@@ -50,14 +50,14 @@ type qidianEnvelope struct {
 func decodeQidianPageData(doc *goquery.Document, out any) error {
 	raw := strings.TrimSpace(doc.Find("script#vite-plugin-ssr_pageContext").First().Text())
 	if raw == "" {
-		return fmt.Errorf("Qidian page context not found")
+		return fmt.Errorf("qidian page context not found")
 	}
 	var env qidianEnvelope
 	if err := json.Unmarshal([]byte(raw), &env); err != nil {
 		return fmt.Errorf("decode Qidian page context: %w", err)
 	}
 	if len(env.PageContext.PageProps.PageData) == 0 {
-		return fmt.Errorf("Qidian page data is empty")
+		return fmt.Errorf("qidian page data is empty")
 	}
 	if err := json.Unmarshal(env.PageContext.PageProps.PageData, out); err != nil {
 		return fmt.Errorf("decode Qidian page data: %w", err)
@@ -85,7 +85,7 @@ func (s *QidianScraper) FetchChapterContext(ctx context.Context, rawURL string) 
 	chapterURL := fmt.Sprintf("https://m.qidian.com/chapter/%s/%s/", bookID, chapterID)
 	doc, err := fetchHTMLDocContext(ctx, chapterURL)
 	if err != nil {
-		return nil, fmt.Errorf("Qidian chapter fetch failed: %w", err)
+		return nil, fmt.Errorf("qidian chapter fetch failed: %w", err)
 	}
 	var data qidianChapterData
 	if err := decodeQidianPageData(doc, &data); err != nil {
@@ -93,11 +93,11 @@ func (s *QidianScraper) FetchChapterContext(ctx context.Context, rawURL string) 
 	}
 	ci := data.ChapterInfo
 	if ci.VIPStatus != 0 && ci.IsBuy == 0 {
-		return nil, fmt.Errorf("Qidian chapter is VIP/locked; NovelClaw will not bypass the paywall")
+		return nil, fmt.Errorf("qidian chapter is VIP/locked; NovelClaw will not bypass the paywall")
 	}
 	paragraphs := qidianParagraphs(ci.Content)
 	if len(paragraphs) == 0 {
-		return nil, fmt.Errorf("Qidian chapter contains no public readable text")
+		return nil, fmt.Errorf("qidian chapter contains no public readable text")
 	}
 	chapterNo := extractChapterNumber(ci.ChapterName)
 	if chapterNo == 0 {
@@ -177,7 +177,7 @@ func (s *QidianScraper) FetchTOCContext(ctx context.Context, rawURL string) (*Sc
 
 	bookDoc, err := fetchHTMLDocContext(ctx, bookURL)
 	if err != nil {
-		return nil, fmt.Errorf("Qidian book fetch failed: %w", err)
+		return nil, fmt.Errorf("qidian book fetch failed: %w", err)
 	}
 	var book qidianBookData
 	if err := decodeQidianPageData(bookDoc, &book); err != nil {
@@ -186,7 +186,7 @@ func (s *QidianScraper) FetchTOCContext(ctx context.Context, rawURL string) (*Sc
 
 	catalogDoc, err := fetchHTMLDocContext(ctx, catalogURL)
 	if err != nil {
-		return nil, fmt.Errorf("Qidian catalog fetch failed: %w", err)
+		return nil, fmt.Errorf("qidian catalog fetch failed: %w", err)
 	}
 	var catalog qidianCatalogData
 	if err := decodeQidianPageData(catalogDoc, &catalog); err != nil {
@@ -229,7 +229,7 @@ func (s *QidianScraper) FetchTOCContext(ctx context.Context, rawURL string) (*Sc
 		}
 	}
 	if len(info.Chapters) == 0 {
-		return nil, fmt.Errorf("Qidian catalog has no chapters")
+		return nil, fmt.Errorf("qidian catalog has no chapters")
 	}
 	return info, nil
 }
@@ -244,7 +244,7 @@ func qidianBookID(rawURL string) (string, error) {
 	if m := qidianChapterPathRE.FindStringSubmatch(u.Path); len(m) == 3 {
 		return m[1], nil
 	}
-	return "", fmt.Errorf("Qidian book ID not found in URL")
+	return "", fmt.Errorf("qidian book ID not found in URL")
 }
 
 func qidianChapterIDs(rawURL string) (string, string, error) {
@@ -254,7 +254,7 @@ func qidianChapterIDs(rawURL string) (string, string, error) {
 	}
 	m := qidianChapterPathRE.FindStringSubmatch(u.Path)
 	if len(m) != 3 {
-		return "", "", fmt.Errorf("Qidian chapter URL must include book and chapter IDs")
+		return "", "", fmt.Errorf("qidian chapter URL must include book and chapter IDs")
 	}
 	if _, err := strconv.ParseInt(m[1], 10, 64); err != nil {
 		return "", "", fmt.Errorf("invalid Qidian book ID")

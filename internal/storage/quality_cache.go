@@ -13,14 +13,6 @@ func cloneQualityReport(report model.TranslationQualityReport) model.Translation
 	return report
 }
 
-func cloneQualityReports(reports []model.TranslationQualityReport) []model.TranslationQualityReport {
-	out := make([]model.TranslationQualityReport, len(reports))
-	for i, report := range reports {
-		out[i] = cloneQualityReport(report)
-	}
-	return out
-}
-
 func (s *Store) cachedQualityReports(slug string) ([]model.TranslationQualityReport, bool) {
 	s.qaCacheMu.RLock()
 	if !s.qaCacheLoaded[slug] {

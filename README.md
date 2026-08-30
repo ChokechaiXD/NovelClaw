@@ -50,10 +50,12 @@ NovelClaw คือระบบ **Local-first** สำหรับนำเข�
 ## 📁 โครงสร้างโปรเจกต์
 ```
 NovelClaw/
-├── novelclaw.exe               # Single Binary สำเร็จรูป
-├── run.bat                     # สคริปต์เปิดรัน 1-click
+├── main.go                     # Entry point (+ launcher.go เปิดเบราว์เซอร์อัตโนมัติ)
+├── novelclaw.exe               # Single Binary สำเร็จรูป (build ด้วย: go build -o novelclaw.exe .)
 ├── novels/                     # โฟลเดอร์เก็บข้อมูลนิยาย (JSON/Markdown)
-├── cmd/novelclaw/main.go       # Entry point
+├── scripts/
+│   ├── batch_titles.go         # Utility แปลชื่อตอนย้อนหลัง (รัน: go run scripts/batch_titles.go)
+│   └── qa-archived/            # สคริปต์ QA แบบ one-off (เก็บไว้อ้างอิง ไม่ใช้แล้ว)
 ├── internal/
 │   ├── config/                 # การตั้งค่าระบบ
 │   ├── model/                  # Data structures

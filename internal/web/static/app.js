@@ -38,7 +38,7 @@ import { createWorkflowController } from './js/workflow.js';
     loadNovels, openNovelDetail, loadChapters, renderChapterList,
     adjacentChapterNo, maxChapterNo, bindLibraryEvents,
   } = createLibraryController({
-    state, el, api, showView, openChapter, openImportModal, formatGenre,
+    state, el, api, showView, openChapter, openImportModal, formatGenre, showToast,
   });
 
   const { renderQASummary, bindIntelligenceEvents } = createIntelligenceController({
