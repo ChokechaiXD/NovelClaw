@@ -65,7 +65,13 @@ export function createProviderController({ state, el, api }) {
       return;
     }
     const keyNote = provider?.keyRequired ? ' · ต้องใช้ API Key' : '';
-    el.providerFreeModels.innerHTML = `<span>🆓 พบโมเดลฟรี ${free.length} รุ่น${keyNote}:</span> ${free.map(model => `<button type="button" class="model-hint" data-model="${escapeHTML(model)}">${escapeHTML(model)}</button>`).join(' ')}`;
+    const button = model => `<button type="button" class="model-hint" data-model="${escapeHTML(model)}">${escapeHTML(model)}</button>`;
+    const preview = free.slice(0, 6).map(button).join(' ');
+    const remaining = free.slice(6);
+    const more = remaining.length
+      ? `<details class="free-model-more"><summary>ดูอีก ${remaining.length} รุ่น</summary><div class="free-model-more-list">${remaining.map(button).join(' ')}</div></details>`
+      : '';
+    el.providerFreeModels.innerHTML = `<span>🆓 พบโมเดลฟรี ${free.length} รุ่น${keyNote}</span><div class="free-model-preview">${preview}</div>${more}`;
   }
 
   function renderProviderOptions() {

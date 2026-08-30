@@ -109,6 +109,7 @@ import { createWorkflowController } from './js/workflow.js';
   // Views Management
   function showView(viewName) {
     state.currentView = viewName;
+    document.body.classList.toggle('is-reader', viewName === 'reader');
     el.viewLibrary.classList.toggle('hidden', viewName !== 'library');
     el.viewDetail.classList.toggle('hidden', viewName !== 'detail');
     el.viewReader.classList.toggle('hidden', viewName !== 'reader');
@@ -139,19 +140,26 @@ import { createWorkflowController } from './js/workflow.js';
     }, 4000);
   }
 
-  // Modal Scroll Lock Helpers
+  // Modal focus + scroll lock helpers
+  let modalReturnFocus = null;
+  const modalElements = () => [el.modalImport, el.modalTranslate, el.modalGlossary, el.modalSettings, el.modalIntelligence, el.modalExport, el.modalQueue].filter(Boolean);
   function openModal(modalEl) {
-    if (modalEl) {
-      modalEl.classList.remove('hidden');
-      document.body.style.overflow = 'hidden';
-    }
+    if (!modalEl) return;
+    modalReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    modalEl.setAttribute('role', 'dialog');
+    modalEl.setAttribute('aria-modal', 'true');
+    modalEl.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => modalEl.querySelector('button, input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus({ preventScroll: true }));
   }
 
   function closeModal(modalEl) {
-    if (modalEl) {
-      modalEl.classList.add('hidden');
-      document.body.style.overflow = '';
-    }
+    if (!modalEl) return;
+    modalEl.classList.add('hidden');
+    document.body.style.overflow = '';
+    const target = modalReturnFocus;
+    modalReturnFocus = null;
+    if (target?.isConnected) requestAnimationFrame(() => target.focus({ preventScroll: true }));
   }
 
   // Provider control plane is isolated in js/providers.js.
@@ -251,21 +259,22 @@ import { createWorkflowController } from './js/workflow.js';
   // Keyboard Shortcuts (PC Ergonomics)
   function bindKeyboardShortcuts() {
     window.addEventListener('keydown', (e) => {
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+      const openDialog = modalElements().find(modal => !modal.classList.contains('hidden'));
+      if (e.key === 'Escape' && openDialog) {
+        e.preventDefault();
+        closeModal(openDialog);
         return;
       }
-
-      if (e.key === 'Escape') {
-        el.modalImport.classList.add('hidden');
-        el.modalTranslate.classList.add('hidden');
-        el.modalGlossary.classList.add('hidden');
-        el.modalSettings.classList.add('hidden');
-        if (el.modalIntelligence) el.modalIntelligence.classList.add('hidden');
-        if (el.modalExport) el.modalExport.classList.add('hidden');
-        if (el.modalQueue) el.modalQueue.classList.add('hidden');
-        document.body.style.overflow = '';
+      if (e.key === 'Tab' && openDialog) {
+        const focusable = [...openDialog.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')].filter(node => node.offsetParent !== null);
+        if (focusable.length) {
+          const first = focusable[0], last = focusable[focusable.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
         return;
       }
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
 
       if (state.currentView === 'reader') {
         if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {

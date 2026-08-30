@@ -11,7 +11,7 @@ export function createInitialState() {
     novels: [],
     chapters: [],
     chapterPage: 1,
-    chapterPageSize: 100,
+    chapterPageSize: 50,
     chapterQuery: '',
     chapterFilter: 'all',
     glossaryTerms: [],

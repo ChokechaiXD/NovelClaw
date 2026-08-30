@@ -30,6 +30,7 @@ func SetupRouter(cfg *config.AppConfig, store *storage.Store) (http.Handler, *AP
 	mux.HandleFunc("GET /api/novels", h.ListNovels)
 	mux.HandleFunc("POST /api/novels", h.SaveNovel)
 	mux.HandleFunc("GET /api/novels/{slug}", h.GetNovel)
+	mux.HandleFunc("GET /api/novels/{slug}/cover", h.GetNovelCover)
 	mux.HandleFunc("GET /api/novels/{slug}/chapters", h.ListChapters)
 	mux.HandleFunc("GET /api/novels/{slug}/chapters/{num}", h.GetChapter)
 	mux.HandleFunc("POST /api/novels/{slug}/chapters/{num}/repair", h.RepairChapter)

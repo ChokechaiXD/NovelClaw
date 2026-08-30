@@ -26,7 +26,7 @@
           <small id="active-model-label">ยังไม่ได้เลือกโมเดล</small>
         </span>
       </button>
-      <button class="btn btn-outline btn-sm" id="btn-open-import">📥 นำเข้านิยาย</button>
+      <button class="btn btn-outline btn-sm header-import" id="btn-open-import" aria-label="นำเข้านิยาย"><span class="action-icon">＋</span><span class="action-label">นำเข้านิยาย</span></button>
       <button class="btn btn-outline btn-icon" id="btn-theme-toggle" title="เปลี่ยนธีม">🌙</button>
       <button class="btn btn-outline btn-icon" id="btn-open-settings" title="ตั้งค่า">⚙️</button>
     </div>
@@ -36,11 +36,15 @@
   <div class="toast-container" id="toast-container"></div>
 
   <!-- View 1: Library (All Novels) -->
-  <main class="container" id="view-library">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-      <h2 style="font-size: 1.35rem; font-weight: 700;">📚 คลังนิยาย</h2>
-      <span id="novel-count" style="font-size: 0.85rem; color: var(--text-muted);">0 เรื่อง</span>
-    </div>
+  <main class="container library-view" id="view-library">
+    <section class="library-intro">
+      <div>
+        <span class="section-kicker">YOUR LIBRARY</span>
+        <h1>เรื่องที่กำลังอ่าน</h1>
+        <p>จัดการนิยาย แปลต่อ และกลับไปอ่านจากจุดล่าสุดได้ในที่เดียว</p>
+      </div>
+      <span id="novel-count" class="library-count">0 เรื่อง</span>
+    </section>
     <div class="novel-grid" id="novel-grid">
       <!-- Injected by JavaScript -->
     </div>
@@ -48,21 +52,26 @@
 
   <!-- View 2: Novel Detail & Chapter Index -->
   <main class="container hidden" id="view-detail">
-    <div style="margin-bottom: 1rem;">
-      <button class="btn btn-outline btn-sm" id="btn-back-library">← กลับคลังนิยาย</button>
+    <div class="detail-breadcrumb">
+      <button class="btn btn-ghost btn-sm" id="btn-back-library">← กลับคลังนิยาย</button>
     </div>
 
     <div class="novel-detail-header" id="detail-header">
       <!-- Injected by JavaScript -->
     </div>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
-      <h3 style="font-size: 1.15rem; font-weight: 600;">รายชื่อตอน</h3>
-      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <button class="btn btn-primary btn-sm" id="btn-quick-translate">⚡ สั่งแปลเป็นช่วง</button>
-        <button class="btn btn-outline btn-sm" id="btn-open-intelligence">🧠 Memory & QA</button>
-        <button class="btn btn-outline btn-sm" id="btn-open-export">📦 ส่งออก (Export)</button>
-        <button class="btn btn-outline btn-sm" id="btn-open-glossary">📖 จัดการศัพท์ (Glossary)</button>
+    <div class="chapter-section-header">
+      <div><span class="section-kicker">EPISODES</span><h2>รายชื่อตอน</h2></div>
+      <div class="detail-tools">
+        <button class="btn btn-primary btn-sm" id="btn-quick-translate">⚡ แปลเป็นช่วง</button>
+        <details class="detail-tool-menu">
+          <summary class="btn btn-outline btn-sm">••• เครื่องมือ</summary>
+          <div class="detail-tool-popover">
+            <button class="btn btn-ghost btn-sm" id="btn-open-glossary">📖 คำศัพท์</button>
+            <button class="btn btn-ghost btn-sm" id="btn-open-intelligence">🧠 Memory & QA</button>
+            <button class="btn btn-ghost btn-sm" id="btn-open-export">📦 ส่งออก</button>
+          </div>
+        </details>
       </div>
     </div>
 
@@ -114,13 +123,13 @@
 
   <!-- Floating Reader Toolbar -->
   <div class="reader-toolbar hidden" id="reader-toolbar">
-    <button class="btn btn-outline btn-sm" id="btn-reader-back">📚 กลับ</button>
-    <button class="btn btn-outline btn-sm" id="btn-reader-tts" title="ฟังเสียงอ่านภาษาไทย">🔊 ฟังเสียง</button>
-    <button class="btn btn-outline btn-sm" id="btn-font-decrease">A-</button>
-    <button class="btn btn-outline btn-sm" id="btn-font-increase">A+</button>
+    <button class="btn btn-outline btn-sm" id="btn-reader-back" aria-label="กลับหน้ารายละเอียดเรื่อง"><span class="toolbar-icon">📚</span><span class="toolbar-label">กลับ</span></button>
+    <button class="btn btn-outline btn-sm" id="btn-reader-tts" title="ฟังเสียงอ่านภาษาไทย" aria-label="ฟังเสียงอ่านภาษาไทย"><span class="toolbar-icon">🔊</span><span class="toolbar-label">ฟัง</span></button>
+    <button class="btn btn-outline btn-sm toolbar-font" id="btn-font-decrease" aria-label="ลดขนาดตัวอักษร">A−</button>
+    <button class="btn btn-outline btn-sm toolbar-font" id="btn-font-increase" aria-label="เพิ่มขนาดตัวอักษร">A+</button>
     <button class="btn btn-outline btn-sm" id="btn-reader-mode" title="สลับโหมดภาษา (ไทย / สองภาษา / ต้นฉบับ)">🌐 ไทย</button>
-    <button class="btn btn-outline btn-sm" id="btn-reader-translate">⚡ แปลตอนนี้</button>
-    <button class="btn btn-outline btn-sm" id="btn-reader-theme">🎨 ธีม</button>
+    <button class="btn btn-outline btn-sm" id="btn-reader-translate" aria-label="แปลตอนนี้"><span class="toolbar-icon">⚡</span><span class="toolbar-label">แปล</span></button>
+    <button class="btn btn-outline btn-sm" id="btn-reader-theme" aria-label="เปลี่ยนธีมการอ่าน"><span class="toolbar-icon">◐</span><span class="toolbar-label">ธีม</span></button>
   </div>
 
 
@@ -132,9 +141,9 @@
         <button class="btn btn-outline btn-sm" id="btn-close-import">✕</button>
       </div>
 
-      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-        <button class="btn btn-primary btn-sm" id="tab-import-url" style="flex: 1;">ดึงจาก URL / เว็บนิยาย</button>
-        <button class="btn btn-outline btn-sm" id="tab-import-paste" style="flex: 1;">วางข้อความเอง</button>
+      <div class="modal-tabs">
+        <button class="btn btn-primary btn-sm" id="tab-import-url">ดึงจาก URL / เว็บนิยาย</button>
+        <button class="btn btn-outline btn-sm" id="tab-import-paste">วางข้อความเอง</button>
       </div>
 
       <!-- URL Form -->
@@ -157,7 +166,7 @@
             <option value="romance">💖 โรแมนติก / ดราม่า / รักหวานซึ้ง (Romance)</option>
           </select>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="form-grid-2">
           <div class="form-group">
             <label class="form-label">เริ่มตอนที่ (เว้นว่างได้)</label>
             <input type="number" class="form-input" id="import-start" placeholder="1">
@@ -167,7 +176,7 @@
             <input type="number" class="form-input" id="import-end" placeholder="20">
           </div>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+        <div class="modal-actions">
           <button type="submit" class="btn btn-primary">เริ่มนำเข้า</button>
         </div>
       </form>
@@ -218,7 +227,7 @@
           <label class="form-label">เนื้อหาต้นฉบับ</label>
           <textarea class="form-textarea" id="paste-content" rows="8" placeholder="วางเนื้อหานิยายภาษาจีน/อังกฤษที่นี่..." required></textarea>
         </div>
-        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+        <div class="modal-actions">
           <button type="submit" class="btn btn-primary">บันทึกตอน</button>
         </div>
       </form>
@@ -233,7 +242,7 @@
         <button class="btn btn-outline btn-sm" id="btn-close-translate">✕</button>
       </div>
       <form id="form-translate">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="form-grid-2">
           <div class="form-group">
             <label class="form-label">เริ่มตอนที่</label>
             <input type="number" class="form-input" id="trans-start" value="1" required>
@@ -286,7 +295,7 @@
           <div id="trans-error-msg" class="hidden" style="font-size: 0.8rem; color: var(--danger); margin-top: 0.4rem;"></div>
         </div>
 
-        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+        <div class="modal-actions">
           <button type="submit" class="btn btn-primary" id="btn-start-translate">เริ่มแปลทันที</button>
         </div>
       </form>
@@ -304,7 +313,7 @@
       <!-- Auto Discovery Toolbar -->
       <div style="background: var(--bg-elevated); padding: 0.85rem; border-radius: var(--radius-sm); margin-bottom: 1rem; border: 1px solid var(--border);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-          <span style="font-size: 0.88rem; font-weight: 600;">🔍 Auto-Glossary Discovery (สแกนหาชื่อตัวละครอัตโนมัติ)</span>
+          <span style="font-size: 0.88rem; font-weight: 600;">🔍 สแกนคำศัพท์อัตโนมัติ</span>
           <span style="font-size: 0.75rem; color: var(--text-muted);">ดึงชื่อเฉพาะจากบทภาษาจีน</span>
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
@@ -331,7 +340,7 @@
       </div>
 
       <!-- Add term form -->
-      <form id="form-add-term" style="display: grid; grid-template-columns: 1.2fr 1.2fr 1fr auto; gap: 0.5rem; margin-bottom: 1rem;">
+      <form id="form-add-term" class="glossary-add-form">
         <input type="text" class="form-input" id="term-orig" placeholder="คำเดิม (เช่น 曹星)" required>
         <input type="text" class="form-input" id="term-target" placeholder="คำแปลไทย (เช่น เฉาซิง)" required>
         <select class="form-select" id="term-cat">
@@ -345,8 +354,8 @@
       </form>
 
       <!-- Glossary terms table -->
-      <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm);">
-        <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+      <div class="glossary-table-wrap">
+        <table class="glossary-table">
           <thead>
             <tr style="background: var(--bg-elevated); border-bottom: 1px solid var(--border); text-align: left;">
               <th style="padding: 0.5rem 0.75rem;">คำเดิม (จีน/อังกฤษ)</th>
@@ -361,8 +370,8 @@
         </table>
       </div>
 
-      <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
-        <button class="btn btn-primary btn-sm" id="btn-save-glossary">บันทึกคำศัพท์</button>
+      <div class="glossary-actions-footer">
+        <button class="btn btn-primary" id="btn-save-glossary">บันทึกคำศัพท์</button>
       </div>
     </div>
   </div>
@@ -419,7 +428,7 @@
         </div>
         <div id="memory-characters" style="display:flex;flex-direction:column;gap:0.5rem;max-height:300px;overflow:auto;"></div>
 
-        <div style="display:flex;justify-content:flex-end;margin-top:1rem;">
+        <div class="memory-actions">
           <button type="submit" class="btn btn-primary">💾 บันทึก Memory</button>
         </div>
       </form>

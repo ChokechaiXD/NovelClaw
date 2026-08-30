@@ -16,27 +16,33 @@ export function createLibraryController({
     const total = novel.totalChapters || 0;
     const translated = novel.translatedChapters || 0;
     const pct = total ? Math.round((translated / total) * 100) : 0;
-    const genreBadge = novel.genre
-      ? `<span class="badge badge-info novel-genre">${escapeHTML(formatGenre(novel.genre))}</span>`
-      : '';
+    const displayTitle = novel.translatedTitle || novel.title || 'Untitled';
+    const genreIcons = { apocalypse: '❄️', xianxia: '🥋', system: '🎮', fantasy: '✨', urban: '🏙️', scifi: '🌌', historical: '🏯', horror: '👻', romance: '💗' };
+    const genreIcon = genreIcons[novel.genre] || '📖';
+    const genreBadge = novel.genre ? `<span class="novel-genre">${escapeHTML(formatGenre(novel.genre))}</span>` : '';
+    const coverURL = `/api/novels/${encodeURIComponent(novel.slug)}/cover`;
+    const cover = `<div class="novel-cover-fallback" data-genre="${escapeHTML(novel.genre || 'novel')}"><span>${genreIcon}</span><strong>${escapeHTML(displayTitle.slice(0, 1).toUpperCase())}</strong></div><img class="novel-cover-image" src="${coverURL}" alt="ปก ${escapeHTML(displayTitle)}" loading="lazy">`;
     return `
       <article class="novel-card" data-slug="${escapeHTML(novel.slug)}" tabindex="0" role="button">
-        <div>
-          <div class="novel-card-heading">
-            <div class="novel-card-title">${escapeHTML(novel.translatedTitle || novel.title)}</div>
-            ${genreBadge}
-          </div>
-          <div class="novel-card-subtitle">${escapeHTML(novel.description || novel.title)}</div>
+        <div class="novel-cover-shell">
+          ${cover}
+          <span class="novel-cover-progress">${pct}%</span>
         </div>
-        <div>
-          <div class="novel-card-badges">
-            <span class="badge badge-info">${total} ตอน</span>
-            <span class="badge badge-success">แปลแล้ว ${translated}</span>
+        <div class="novel-card-body">
+          <div class="novel-card-heading">
+            ${genreBadge}
+            <h3 class="novel-card-title">${escapeHTML(displayTitle)}</h3>
+            <p class="novel-card-subtitle">${escapeHTML(novel.description || novel.title || 'ไม่มีคำอธิบาย')}</p>
           </div>
-          ${total ? `<div class="novel-progress" title="แปลแล้ว ${pct}%"><span style="width:${pct}%"></span></div>` : ''}
-          <div class="novel-card-meta">
-            <span>${escapeHTML(novel.author || 'ไม่ระบุผู้แต่ง')}</span>
-            <span class="btn btn-primary btn-sm">อ่าน</span>
+          <div class="novel-card-stats">
+            <span><strong>${total}</strong><small>ตอน</small></span>
+            <span><strong>${translated}</strong><small>แปลแล้ว</small></span>
+            <span><strong>${pct}%</strong><small>ความคืบหน้า</small></span>
+          </div>
+          <div class="novel-progress" aria-label="แปลแล้ว ${pct}%"><span style="width:${pct}%"></span></div>
+          <div class="novel-card-footer">
+            <span class="novel-card-author">${escapeHTML(novel.author || 'ไม่ระบุผู้แต่ง')}</span>
+            <span class="novel-card-read">เปิดเรื่อง <span aria-hidden="true">→</span></span>
           </div>
         </div>
       </article>`;
@@ -84,24 +90,33 @@ export function createLibraryController({
     }
   }
   function renderNovelDetailHeader(novel, latestCh) {
-    const genreBadge = novel.genre
-      ? `<span class="badge badge-info">${escapeHTML(formatGenre(novel.genre))}</span>`
-      : '';
+    const displayTitle = novel.translatedTitle || novel.title || 'Untitled';
+    const total = novel.totalChapters || 0;
+    const translated = novel.translatedChapters || 0;
+    const pct = total ? Math.round((translated / total) * 100) : 0;
+    const genreIcons = { apocalypse: '❄️', xianxia: '🥋', system: '🎮', fantasy: '✨', urban: '🏙️', scifi: '🌌', historical: '🏯', horror: '👻', romance: '💗' };
+    const genreIcon = genreIcons[novel.genre] || '📖';
+    const coverURL = `/api/novels/${encodeURIComponent(novel.slug)}/cover`;
+    const cover = `<div class="novel-detail-cover-fallback"><span>${genreIcon}</span><strong>${escapeHTML(displayTitle.slice(0, 1).toUpperCase())}</strong></div><img class="novel-detail-cover-image" src="${coverURL}" alt="ปก ${escapeHTML(displayTitle)}">`;
+    const genreBadge = novel.genre ? `<span class="novel-detail-genre">${escapeHTML(formatGenre(novel.genre))}</span>` : '';
     el.detailHeader.innerHTML = `
-      <div class="novel-detail-heading">
-        <div>
-          <div class="novel-detail-title-row">
-            <h1>${escapeHTML(novel.translatedTitle || novel.title)}</h1>
-            ${genreBadge}
+      <div class="novel-detail-hero">
+        <div class="novel-detail-cover">${cover}</div>
+        <div class="novel-detail-copy">
+          <div class="novel-detail-kicker">${genreBadge}<span>NovelClaw Library</span></div>
+          <h1>${escapeHTML(displayTitle)}</h1>
+          <p class="novel-detail-original">${escapeHTML(novel.title || '')}</p>
+          <p class="novel-detail-author">โดย ${escapeHTML(novel.author || 'ไม่ระบุผู้แต่ง')}</p>
+          <div class="novel-detail-stats">
+            <span><strong>${total}</strong><small>ตอนทั้งหมด</small></span>
+            <span><strong>${translated}</strong><small>แปลแล้ว</small></span>
+            <span><strong>${pct}%</strong><small>ความคืบหน้า</small></span>
           </div>
-          <div class="novel-detail-meta">
-            ${escapeHTML(novel.title)} • ผู้แต่ง: ${escapeHTML(novel.author || 'ไม่ระบุ')}
+          <p class="novel-detail-description">${escapeHTML(novel.description || 'ยังไม่มีคำอธิบายเรื่อง')}</p>
+          <div class="novel-detail-actions">
+            <button class="btn btn-primary btn-lg" type="button" data-continue-ch="${latestCh}">อ่านต่อ ตอนที่ ${latestCh} <span aria-hidden="true">→</span></button>
           </div>
-          <p class="novel-detail-description">${escapeHTML(novel.description || 'ไม่มีคำอธิบาย')}</p>
         </div>
-        <button class="btn btn-primary" type="button" data-continue-ch="${latestCh}">
-          ▶️ อ่านต่อ (ตอนที่ ${latestCh})
-        </button>
       </div>`;
   }
   async function loadChapters(slug) {
@@ -191,6 +206,12 @@ export function createLibraryController({
     if (card?.dataset.slug) openNovelDetail(card.dataset.slug);
   }
   function bindLibraryEvents() {
+    const hideBrokenCover = event => {
+      const image = event.target?.closest?.('.novel-cover-image, .novel-detail-cover-image');
+      if (image) image.classList.add('is-missing');
+    };
+    el.novelGrid?.addEventListener('error', hideBrokenCover, true);
+    el.detailHeader?.addEventListener('error', hideBrokenCover, true);
     el.novelGrid?.addEventListener('click', event => {
       if (event.target.closest('[data-action="import-first"]')) {
         openImportModal();
