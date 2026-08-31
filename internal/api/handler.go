@@ -376,21 +376,30 @@ func (h *APIHandler) DiscoverGlossary(w http.ResponseWriter, r *http.Request) {
 		termMap[t.Term] = true
 	}
 
+	// Only count/report terms that actually land in the table — the model's
+	// raw list includes builtins (locked by the sanitizer) and duplicates.
+	added := make([]model.GlossaryItem, 0)
+	skippedBuiltin := 0
 	for _, d := range discovered {
-		if !termMap[d.Term] && d.Term != "" && d.Target != "" {
-			// Same guard as auto discovery: builtin-covered terms are already
-			// enforced by the sanitizer with locked values.
-			if _, builtin := translator.BuiltinNovelGlossary[d.Term]; builtin {
-				continue
-			}
-			existing.Terms = append(existing.Terms, d)
-			termMap[d.Term] = true
+		if d.Term == "" || d.Target == "" || termMap[d.Term] {
+			continue
 		}
+		// Same guard as auto discovery: builtin-covered terms are already
+		// enforced by the sanitizer with locked values.
+		if _, builtin := translator.BuiltinNovelGlossary[d.Term]; builtin {
+			skippedBuiltin++
+			continue
+		}
+		existing.Terms = append(existing.Terms, d)
+		termMap[d.Term] = true
+		added = append(added, d)
 	}
 
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
-		"discovered": discovered,
-		"glossary":   existing,
+		"discovered":     discovered,
+		"added":          added,
+		"skippedBuiltin": skippedBuiltin,
+		"glossary":       existing,
 	})
 }
 

@@ -60,11 +60,16 @@ export function createGlossaryController({
         method: 'POST',
         body: JSON.stringify({ novelSlug: state.currentSlug, startChapter: start, endChapter: end, model }),
       });
-      const count = res.discovered?.length || 0;
+      const found = res.discovered?.length || 0;
+      const added = res.added?.length || 0;
+      const skipped = res.skippedBuiltin || 0;
+      const dupes = found - added - skipped;
       state.glossaryTerms = res.glossary?.terms || [];
       renderGlossaryTable();
-      el.discStatus.textContent = `✅ พบศัพท์ใหม่ ${count} คำ — ตรวจรายการแล้วกด "บันทึก Glossary" เพื่อเก็บถาวร`;
-      showToast(`สแกนพบศัพท์ใหม่ ${count} คำ (ยังไม่บันทึก — ตรวจรายการก่อน)`, 'info');
+      el.discStatus.textContent = added
+        ? `✅ เพิ่มศัพท์ใหม่ ${added} คำ (โมเดลเจอ ${found} — ซ้ำในตาราง ${dupes}, builtin ล็อกอยู่แล้ว ${skipped}) — กด "บันทึก Glossary" เพื่อเก็บถาวร`
+        : `✅ สแกนสำเร็จแต่ไม่มีศัพท์ใหม่ (โมเดลเจอ ${found} คำ — ซ้ำในตาราง ${dupes}, builtin ล็อกอยู่แล้ว ${skipped})`;
+      showToast(added ? `เพิ่มศัพท์ใหม่ ${added} คำ (ยังไม่บันทึก)` : `ไม่มีศัพท์ใหม่ — ที่เจอเป็นศัพท์ซ้ำ/builtin ทั้งหมด`, 'info');
     } catch (err) {
       el.discStatus.textContent = '❌ สแกนล้มเหลว';
       showToast(`การสแกนศัพท์ล้มเหลว: ${err.message}`, 'error');
