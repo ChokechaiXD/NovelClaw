@@ -21,15 +21,32 @@ export function createGlossaryController({
       el.glossaryTbody.innerHTML = '<tr><td colspan="4" class="table-empty">ยังไม่มีคำศัพท์</td></tr>';
       return;
     }
+    // Every cell is an editable input — fix a wrong AI translation in place,
+    // then hit "บันทึก Glossary" to persist the whole table.
+    // innerHTML is safe here: term/target/category all pass escapeHTML, and
+    // the <option> list is hardcoded literals (same pattern as the codebase).
     el.glossaryTbody.innerHTML = state.glossaryTerms.map((term, index) => `
       <tr class="glossary-row">
-        <td>${escapeHTML(term.term)}</td>
-        <td>${escapeHTML(term.target)}</td>
-        <td class="muted-cell">${escapeHTML(term.category || '')}</td>
+        <td><input class="form-input glossary-edit glossary-edit-orig" data-idx="${index}" data-field="term" value="${escapeHTML(term.term)}"></td>
+        <td><input class="form-input glossary-edit" data-idx="${index}" data-field="target" value="${escapeHTML(term.target)}"></td>
+        <td>
+          <select class="form-input glossary-edit" data-idx="${index}" data-field="category">
+            ${['', 'character', 'location', 'skill', 'item', 'custom'].map(cat => `<option value="${cat}" ${term.category === cat ? 'selected' : ''}>${cat || '— ไม่ระบุ —'}</option>`).join('')}
+          </select>
+        </td>
         <td class="glossary-actions">
           <button type="button" class="btn btn-outline btn-sm btn-remove-term" data-idx="${index}">✕</button>
         </td>
       </tr>`).join('');
+  }
+
+  function onGlossaryEdit(event) {
+    const input = event.target.closest('.glossary-edit');
+    if (!input) return;
+    const index = Number.parseInt(input.dataset.idx, 10);
+    const field = input.dataset.field;
+    if (!Number.isInteger(index) || index < 0 || index >= state.glossaryTerms.length || !field) return;
+    state.glossaryTerms[index][field] = input.value.trim();
   }
 
   async function discoverGlossary() {
@@ -150,6 +167,11 @@ export function createGlossaryController({
         state.glossaryTerms.splice(index, 1);
         renderGlossaryTable();
       }
+    });
+    el.glossaryTbody?.addEventListener('change', onGlossaryEdit);
+    el.glossaryTbody?.addEventListener('input', event => {
+      // Text inputs update state live so a click on บันทึก always has fresh values.
+      if (event.target.classList.contains('glossary-edit') && event.target.tagName === 'INPUT') onGlossaryEdit(event);
     });
     el.glossaryQaResults?.addEventListener('click', event => {
       const button = event.target.closest('.btn-qa-repair');

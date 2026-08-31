@@ -9,8 +9,62 @@ import (
 	"testing"
 
 	"novelclaw/internal/config"
+	"novelclaw/internal/model"
 	"novelclaw/internal/storage"
 )
+
+func TestNovelCoverUpload(t *testing.T) {
+	dir := t.TempDir()
+	cfg := config.DefaultConfig()
+	cfg.DataDir = filepath.Join(dir, "novels")
+	store := storage.NewStore(cfg.DataDir)
+	if err := store.SaveNovel(&model.Novel{Slug: "demo", Title: "Demo"}); err != nil {
+		t.Fatal(err)
+	}
+	router, _ := SetupRouter(cfg, store)
+
+	png := append([]byte{0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A}, bytes.Repeat([]byte{0}, 16)...)
+	req := httptest.NewRequest(http.MethodPost, "/api/novels/demo/cover", bytes.NewReader(png))
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("upload status=%d body=%s", w.Code, w.Body.String())
+	}
+	if _, err := os.Stat(filepath.Join(cfg.DataDir, "demo", "cover.png")); err != nil {
+		t.Fatalf("cover.png missing: %v", err)
+	}
+
+	get := httptest.NewRequest(http.MethodGet, "/api/novels/demo/cover", nil)
+	gw := httptest.NewRecorder()
+	router.ServeHTTP(gw, get)
+	if gw.Code != http.StatusOK {
+		t.Fatalf("get status=%d", gw.Code)
+	}
+	if got := gw.Header().Get("Content-Type"); got != "image/png" {
+		t.Fatalf("content-type=%q", got)
+	}
+}
+
+func TestNovelCoverUploadRejectsNonImage(t *testing.T) {
+	dir := t.TempDir()
+	cfg := config.DefaultConfig()
+	cfg.DataDir = filepath.Join(dir, "novels")
+	store := storage.NewStore(cfg.DataDir)
+	if err := store.SaveNovel(&model.Novel{Slug: "demo", Title: "Demo"}); err != nil {
+		t.Fatal(err)
+	}
+	router, _ := SetupRouter(cfg, store)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/novels/demo/cover", bytes.NewReader([]byte("definitely not an image file")))
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	if w.Code != http.StatusUnsupportedMediaType {
+		t.Fatalf("status=%d", w.Code)
+	}
+	if _, err := os.Stat(filepath.Join(cfg.DataDir, "demo", "cover.png")); !os.IsNotExist(err) {
+		t.Fatalf("junk must not be stored, err=%v", err)
+	}
+}
 
 func TestNovelCoverEndpoint(t *testing.T) {
 	dir := t.TempDir()

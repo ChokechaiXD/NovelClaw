@@ -3,6 +3,43 @@ import { escapeHTML } from './utils.js';
 export function createLibraryController({
   state, el, api, showView, openChapter, openImportModal, formatGenre, showToast,
 }) {
+  // Hidden file picker behind the "เปลี่ยนปก" button on the detail hero.
+  const coverPicker = document.createElement('input');
+  coverPicker.type = 'file';
+  coverPicker.accept = 'image/webp,image/jpeg,image/png';
+  coverPicker.hidden = true;
+  document.body.appendChild(coverPicker);
+  coverPicker.addEventListener('change', () => {
+    const file = coverPicker.files?.[0];
+    coverPicker.value = '';
+    if (file) changeCover(file);
+  });
+
+  async function changeCover(file) {
+    if (!state.currentSlug) return;
+    if (file.size > 4 * 1024 * 1024) {
+      showToast('ไฟล์ปกใหญ่เกิน 4 MB', 'error');
+      return;
+    }
+    try {
+      await api(`/api/novels/${state.currentSlug}/cover`, {
+        method: 'POST',
+        body: file,
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      });
+      state.coverVersion += 1;
+      showToast('เปลี่ยนหน้าปกเรียบร้อยแล้ว', 'success');
+      await openNovelDetail(state.currentSlug);
+    } catch (err) {
+      showToast(`เปลี่ยนหน้าปกไม่สำเร็จ: ${err.message}`, 'error');
+    }
+  }
+
+  function coverURLFor(slug) {
+    const base = `/api/novels/${encodeURIComponent(slug)}/cover`;
+    return state.coverVersion ? `${base}?v=${state.coverVersion}` : base;
+  }
+
   function renderEmptyLibrary() {
     el.novelGrid.innerHTML = `
       <div class="library-empty">
@@ -20,7 +57,7 @@ export function createLibraryController({
     const genreIcons = { apocalypse: '❄️', xianxia: '🥋', system: '🎮', fantasy: '✨', urban: '🏙️', scifi: '🌌', historical: '🏯', horror: '👻', romance: '💗' };
     const genreIcon = genreIcons[novel.genre] || '📖';
     const genreBadge = novel.genre ? `<span class="novel-genre">${escapeHTML(formatGenre(novel.genre))}</span>` : '';
-    const coverURL = `/api/novels/${encodeURIComponent(novel.slug)}/cover`;
+    const coverURL = coverURLFor(novel.slug);
     const cover = `<div class="novel-cover-fallback" data-genre="${escapeHTML(novel.genre || 'novel')}"><span>${genreIcon}</span><strong>${escapeHTML(displayTitle.slice(0, 1).toUpperCase())}</strong></div><img class="novel-cover-image" src="${coverURL}" alt="ปก ${escapeHTML(displayTitle)}" loading="lazy">`;
     return `
       <article class="novel-card" data-slug="${escapeHTML(novel.slug)}" tabindex="0" role="button">
@@ -99,7 +136,7 @@ export function createLibraryController({
     const genreIcons = { apocalypse: '❄️', xianxia: '🥋', system: '🎮', fantasy: '✨', urban: '🏙️', scifi: '🌌', historical: '🏯', horror: '👻', romance: '💗' };
     const genreIcon = genreIcons[novel.genre] || '📖';
     const coverURL = `/api/novels/${encodeURIComponent(novel.slug)}/cover`;
-    const cover = `<div class="novel-detail-cover-fallback"><span>${genreIcon}</span><strong>${escapeHTML(displayTitle.slice(0, 1).toUpperCase())}</strong></div><img class="novel-detail-cover-image" src="${coverURL}" alt="ปก ${escapeHTML(displayTitle)}">`;
+    const cover = `<div class="novel-detail-cover-fallback"><span>${genreIcon}</span><strong>${escapeHTML(displayTitle.slice(0, 1).toUpperCase())}</strong></div><img class="novel-detail-cover-image" src="${coverURLFor(novel.slug)}" alt="ปก ${escapeHTML(displayTitle)}">`;
     const genreBadge = novel.genre ? `<span class="novel-detail-genre">${escapeHTML(formatGenre(novel.genre))}</span>` : '';
     el.detailHeader.innerHTML = `
       <div class="novel-detail-hero">
@@ -117,6 +154,7 @@ export function createLibraryController({
           <p class="novel-detail-description">${escapeHTML(novel.description || 'ยังไม่มีคำอธิบายเรื่อง')}</p>
           <div class="novel-detail-actions">
             <button class="btn btn-primary btn-lg" type="button" data-continue-ch="${latestCh}">อ่านต่อ ตอนที่ ${latestCh} <span aria-hidden="true">→</span></button>
+            <button class="btn btn-outline btn-lg" type="button" data-change-cover>🖼️ เปลี่ยนปก</button>
           </div>
         </div>
       </div>`;
@@ -237,6 +275,9 @@ export function createLibraryController({
       if (!button || !state.currentSlug) return;
       const chapterNo = Number.parseInt(button.dataset.continueCh, 10);
       if (chapterNo > 0) openChapter(state.currentSlug, chapterNo);
+    });
+    el.detailHeader?.addEventListener('click', event => {
+      if (event.target.closest('[data-change-cover]')) coverPicker.click();
     });
     el.chapterSearch?.addEventListener('input', () => {
       state.chapterQuery = el.chapterSearch.value;

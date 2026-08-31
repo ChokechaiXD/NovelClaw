@@ -16,6 +16,7 @@ export function createInitialState() {
     chapterFilter: 'all',
     glossaryTerms: [],
     novelMemory: { storySummary: '', characters: [], facts: [] },
+    coverVersion: 0,
     qaReports: [],
     providers: [],
     activeProvider: '',

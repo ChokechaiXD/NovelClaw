@@ -1176,6 +1176,13 @@ button:disabled {
 .glossary-actions {
   padding: 0.5rem !important;
 }
+/* Inline glossary editing: compact inputs inside table cells */
+.glossary-edit {
+  min-width: 0;
+  width: 100%;
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.9rem;
+}
 .glossary-actions .btn {
   padding: 0.2rem 0.4rem;
   color: var(--danger);
