@@ -378,6 +378,11 @@ func (h *APIHandler) DiscoverGlossary(w http.ResponseWriter, r *http.Request) {
 
 	for _, d := range discovered {
 		if !termMap[d.Term] && d.Term != "" && d.Target != "" {
+			// Same guard as auto discovery: builtin-covered terms are already
+			// enforced by the sanitizer with locked values.
+			if _, builtin := translator.BuiltinNovelGlossary[d.Term]; builtin {
+				continue
+			}
 			existing.Terms = append(existing.Terms, d)
 			termMap[d.Term] = true
 		}

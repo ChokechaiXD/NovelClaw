@@ -73,7 +73,7 @@ func TestMergeNovelMemoryPreservesCuratedFields(t *testing.T) {
 	candidate := &model.NovelMemory{StorySummary: "fresh", Characters: []model.CharacterMemory{{
 		SourceName: "A", ThaiName: "เอใหม่", Role: "ai-role", Gender: "male", Pronouns: "ai-pronoun", Notes: "ai-note",
 	}}, Facts: []string{"existing", "new"}}
-	merged := MergeNovelMemory(existing, candidate)
+	merged := MergeNovelMemory(existing, candidate, false)
 	if merged.StorySummary != "fresh" || len(merged.Facts) != 2 || len(merged.Characters) != 1 {
 		t.Fatalf("unexpected merged memory: %+v", merged)
 	}
@@ -83,6 +83,28 @@ func TestMergeNovelMemoryPreservesCuratedFields(t *testing.T) {
 	}
 	if ch.Gender != "male" {
 		t.Fatalf("blank curated field was not filled: %+v", ch)
+	}
+}
+
+// A candidate built from chapters translated AFTER the stored memory must
+// refresh stale descriptive fields (levels, roles, locations change over a
+// long novel) while identity fields stay anchored.
+func TestMergeNovelMemoryFreshRefreshesStaleFields(t *testing.T) {
+	existing := &model.NovelMemory{Characters: []model.CharacterMemory{{
+		SourceName: "曹星", ThaiName: "เฉาซิง", Role: "ผู้คุ้มค่าย", Pronouns: "เขา",
+		Notes: "ลอร์ดเลเวล 17 ปราการเมฆน้ำแข็ง",
+	}}}
+	candidate := &model.NovelMemory{Characters: []model.CharacterMemory{{
+		SourceName: "曹星", ThaiName: "เฉาซิง(ใหม่)", Role: "ลอร์ดมือปราบ", Pronouns: "เขา",
+		Notes: "ลอร์ดเลเวล 42 อาณาเขตเหนือทะเลทราย",
+	}}}
+	merged := MergeNovelMemory(existing, candidate, true)
+	ch := merged.Characters[0]
+	if ch.Role != "ลอร์ดมือปราบ" || ch.Notes != "ลอร์ดเลเวล 42 อาณาเขตเหนือทะเลทราย" {
+		t.Fatalf("stale fields were not refreshed: %+v", ch)
+	}
+	if ch.ThaiName != "เฉาซิง" {
+		t.Fatalf("identity rename must stay a human decision: %+v", ch)
 	}
 }
 

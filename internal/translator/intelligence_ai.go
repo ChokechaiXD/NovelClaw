@@ -56,9 +56,12 @@ func normalizeCharacterMemory(ch model.CharacterMemory) model.CharacterMemory {
 	return ch
 }
 
-// MergeNovelMemory keeps non-empty curated character fields authoritative while
-// allowing AI to add newly discovered characters/facts and refresh the summary.
-func MergeNovelMemory(existing, candidate *model.NovelMemory) *model.NovelMemory {
+// MergeNovelMemory merges an AI candidate into stored memory. When fresh is
+// true the candidate reflects chapters translated AFTER the stored memory was
+// written, so its non-empty fields replace stale ones (identity fields like
+// ThaiName are still fill-only — renames stay a human decision). When fresh
+// is false only blanks are filled: manual edits always win.
+func MergeNovelMemory(existing, candidate *model.NovelMemory, fresh bool) *model.NovelMemory {
 	merged := &model.NovelMemory{Characters: []model.CharacterMemory{}, Facts: []string{}}
 	if existing != nil {
 		*merged = *existing
@@ -87,7 +90,11 @@ func MergeNovelMemory(existing, candidate *model.NovelMemory) *model.NovelMemory
 			}
 		}
 		if match >= 0 {
-			merged.Characters[match] = fillCharacterBlanks(merged.Characters[match], incoming)
+			if fresh {
+				merged.Characters[match] = refreshCharacter(merged.Characters[match], incoming)
+			} else {
+				merged.Characters[match] = fillCharacterBlanks(merged.Characters[match], incoming)
+			}
 			continue
 		}
 		if incoming.SourceName == "" && incoming.ThaiName == "" {
@@ -100,6 +107,31 @@ func MergeNovelMemory(existing, candidate *model.NovelMemory) *model.NovelMemory
 	}
 	merged.Facts = compactUniqueStrings(append(merged.Facts, candidate.Facts...), 200)
 	return merged
+}
+
+// refreshCharacter updates progression fields with fresher observations
+// (roles, levels, locations evolve over a long novel) while identity fields —
+// names, gender, pronouns — stay anchored to existing curation.
+func refreshCharacter(curated, incoming model.CharacterMemory) model.CharacterMemory {
+	if curated.ThaiName == "" {
+		curated.ThaiName = incoming.ThaiName
+	}
+	if curated.SourceName == "" {
+		curated.SourceName = incoming.SourceName
+	}
+	if incoming.Role != "" {
+		curated.Role = incoming.Role
+	}
+	if incoming.Notes != "" {
+		curated.Notes = incoming.Notes
+	}
+	if curated.Gender == "" {
+		curated.Gender = incoming.Gender
+	}
+	if curated.Pronouns == "" {
+		curated.Pronouns = incoming.Pronouns
+	}
+	return curated
 }
 func characterKeys(ch model.CharacterMemory) []string {
 	keys := []string{}

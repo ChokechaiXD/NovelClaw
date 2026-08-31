@@ -214,8 +214,13 @@ func (h *APIHandler) runTranslationJobWithProvider(ctx context.Context, jobID st
 	}
 
 	if successCount > 0 {
-		// New translations landed — let the AI refresh story memory on its own.
+		// New translations landed — let the AI refresh story memory on its own,
+		// and bootstrap glossary discovery when the novel has no terms yet
+		// (e.g. novels imported before auto-discovery existed).
 		h.AutoGenerateMemory(req.NovelSlug)
+		if glossary == nil || len(glossary.Terms) == 0 {
+			h.AutoDiscoverGlossary(req.NovelSlug)
+		}
 	}
 
 	finalStatus := "completed"

@@ -81,7 +81,8 @@ func (h *APIHandler) GenerateMemoryCandidate(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	candidate.NovelSlug = slug
-	merged := translator.MergeNovelMemory(existing, candidate)
+	// The user explicitly picked this chapter range — treat it as fresh.
+	merged := translator.MergeNovelMemory(existing, candidate, true)
 	merged.NovelSlug = slug
 	WriteJSON(w, http.StatusOK, map[string]interface{}{
 		"candidate": candidate, "merged": merged,
