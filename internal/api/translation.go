@@ -326,6 +326,7 @@ func (h *APIHandler) translateOneChapter(ctx context.Context, jobID string, req 
 	var fullTranslatedParagraphs []string
 	var finalTransTitle string
 	chapterFailed := false
+	retriedChunks := 0
 
 	for chunkIdx, chunk := range chunks {
 		select {
@@ -341,26 +342,49 @@ func (h *APIHandler) translateOneChapter(ctx context.Context, jobID string, req 
 			chunkUserPrompt = fmt.Sprintf("[เนื้อหาก่อนหน้านี้ในบทเดียวกัน: ...%s]\n\n%s", lastChunkEnd, chunkUserPrompt)
 		}
 
-		chunkCtx, chunkCancel := context.WithTimeout(ctx, 120*time.Second)
-		rawOutput, _, err := h.translator.CompleteWithFallbackForProvider(chunkCtx, provider, systemPrompt, chunkUserPrompt, modelChain, req.Temperature)
-		chunkCancel()
+		chunkUserPromptBase := chunkUserPrompt
+		var tTitle string
+		var tParagraphs []string
+		for attempt := 1; ; attempt++ {
+			if attempt > 1 {
+				// Low temperature makes identical prompts reproduce the same
+				// output, so retries carry an explicit corrective nudge.
+				chunkUserPrompt = fmt.Sprintf("%s\n\n[เตือน: ครั้งก่อนได้มาเพียง %d จาก %d ย่อหน้า — ห้ามรวม/ตัด/ข้ามย่อหน้า ต้องส่งครบทุกย่อหน้า]", chunkUserPromptBase, len(tParagraphs), len(chunk.Paragraphs))
+			}
+			chunkCtx, chunkCancel := context.WithTimeout(ctx, 120*time.Second)
+			rawOutput, _, err := h.translator.CompleteWithFallbackForProvider(chunkCtx, provider, systemPrompt, chunkUserPrompt, modelChain, req.Temperature)
+			chunkCancel()
 
-		if err != nil {
-			log.Printf("Translation error on chapter %d (chunk %d): %v\n", chNo, chunkIdx, err)
-			jc.setError(err.Error())
-			h.sse.Broadcast(model.TranslationProgress{
-				JobID:          jobID,
-				NovelSlug:      req.NovelSlug,
-				CurrentChapter: chNo,
-				Status:         "error",
-				Message:        fmt.Sprintf("ข้อผิดพลาดตอนที่ %d: %v", chNo, err),
-				ErrorDetails:   err.Error(),
-			})
-			chapterFailed = true
+			if err != nil {
+				log.Printf("Translation error on chapter %d (chunk %d): %v\n", chNo, chunkIdx, err)
+				jc.setError(err.Error())
+				h.sse.Broadcast(model.TranslationProgress{
+					JobID:          jobID,
+					NovelSlug:      req.NovelSlug,
+					CurrentChapter: chNo,
+					Status:         "error",
+					Message:        fmt.Sprintf("ข้อผิดพลาดตอนที่ %d: %v", chNo, err),
+					ErrorDetails:   err.Error(),
+				})
+				chapterFailed = true
+				break
+			}
+
+			tTitle, tParagraphs = translator.ParseTranslationOutput(rawOutput)
+			if len(tParagraphs) == len(chunk.Paragraphs) {
+				break
+			}
+			retriedChunks++
+			if attempt >= 3 {
+				log.Printf("chapter %d (chunk %d): model kept returning %d/%d paragraphs after %d attempts\n", chNo, chunkIdx, len(tParagraphs), len(chunk.Paragraphs), attempt)
+				break
+			}
+			log.Printf("chapter %d (chunk %d): model returned %d/%d paragraphs, retrying (attempt %d/3)\n", chNo, chunkIdx, len(tParagraphs), len(chunk.Paragraphs), attempt+1)
+		}
+		if chapterFailed {
 			break
 		}
 
-		tTitle, tParagraphs := translator.ParseTranslationOutput(rawOutput)
 		if finalTransTitle == "" && tTitle != "" {
 			finalTransTitle = tTitle
 		}
@@ -419,6 +443,10 @@ func (h *APIHandler) translateOneChapter(ctx context.Context, jobID string, req 
 		if issue.Severity == "error" {
 			warnings = append(warnings, "QA: "+issue.Message)
 		}
+	}
+
+	if retriedChunks > 0 {
+		warnings = append(warnings, fmt.Sprintf("ระบบส่งใหม่อัตโนมัติ %d ครั้งเพราะโมเดลส่งย่อหน้าไม่ครบ — ผลลัพธ์สุดท้ายครบถ้วน", retriedChunks))
 	}
 
 	if err := h.store.SaveChapter(req.NovelSlug, chNo, content.SourceTitle, finalTransTitle, nil, fullTranslatedParagraphs); err != nil {

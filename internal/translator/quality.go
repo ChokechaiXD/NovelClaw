@@ -12,6 +12,43 @@ import (
 
 var numberTokenRE = regexp.MustCompile(`\d+(?:[.,]\d+)?%?`)
 
+// normalizeNumberToken strips thousands separators and percent signs so that
+// "38,024", "38024" and "30%" vs "ร้อยละ 30" compare equal.
+func normalizeNumberToken(tok string) string {
+	tok = strings.ReplaceAll(tok, ",", "")
+	return strings.TrimSuffix(tok, "%")
+}
+
+// findMissingNumbers returns source-side numbers that never appear in the
+// translation. The check is one-directional on purpose: Thai prose freely
+// converts Chinese numerals (六小时 → 6) and reorders game values, so extra
+// numbers on the Thai side are normal, while a number vanishing from the
+// translation is the real failure mode.
+func findMissingNumbers(source, translated []string) []string {
+	counts := make(map[string]int)
+	for _, tok := range numberTokenRE.FindAllString(strings.Join(source, " "), -1) {
+		counts[normalizeNumberToken(tok)]++
+	}
+	for _, tok := range numberTokenRE.FindAllString(strings.Join(translated, " "), -1) {
+		tok = normalizeNumberToken(tok)
+		if n, ok := counts[tok]; ok {
+			if n <= 1 {
+				delete(counts, tok)
+			} else {
+				counts[tok] = n - 1
+			}
+		}
+	}
+	missing := make([]string, 0, len(counts))
+	for tok, n := range counts {
+		for i := 0; i < n; i++ {
+			missing = append(missing, tok)
+		}
+	}
+	sort.Strings(missing)
+	return missing
+}
+
 // EvaluateTranslationQuality performs deterministic, zero-cost QA after
 // translation. It never calls an LLM, so every chapter can be checked.
 func EvaluateTranslationQuality(novelSlug string, chapterNo int, source, translated []string, glossary *model.NovelGlossary) model.TranslationQualityReport {
@@ -40,10 +77,9 @@ func EvaluateTranslationQuality(novelSlug string, chapterNo int, source, transla
 		}
 	}
 
-	srcNumbers := sortedTokens(numberTokenRE.FindAllString(strings.Join(source, " "), -1))
-	thNumbers := sortedTokens(numberTokenRE.FindAllString(strings.Join(translated, " "), -1))
-	if strings.Join(srcNumbers, "|") != strings.Join(thNumbers, "|") {
-		add("number_mismatch", "warning", "ตัวเลขในต้นฉบับและคำแปลไม่ตรงกัน", 10)
+	if missing := findMissingNumbers(source, translated); len(missing) > 0 {
+		add("number_mismatch", "warning",
+			fmt.Sprintf("ตัวเลขจากต้นฉบับหายไปจากคำแปล: %s", strings.Join(missing, ", ")), 10)
 	}
 	if glossary != nil && len(glossary.Terms) > 0 {
 		srcText := strings.Join(source, "\n")
@@ -67,12 +103,6 @@ func EvaluateTranslationQuality(novelSlug string, chapterNo int, source, transla
 		report.Score = 0
 	}
 	return report
-}
-
-func sortedTokens(tokens []string) []string {
-	out := append([]string(nil), tokens...)
-	sort.Strings(out)
-	return out
 }
 
 // ApplySanitizationDiagnostics makes automatic cleanup visible in QA. A model
